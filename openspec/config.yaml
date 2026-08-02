@@ -1,0 +1,65 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Pinpoint is a map you drop markers on, built for trip planning: save the places
+  you want to go, see them all on one map, and share the map with the people you
+  are travelling with. The first trip is Japan, but nothing in the product is
+  Japan-specific — do not propose Japan-only features or data sources.
+
+  Hard constraint: $0 to build and run, at every scale this app will realistically
+  reach. Every dependency must be free with no signup, no API key, and no usage
+  billing. This rules out Google Maps, Mapbox, and any managed geocoding or tile
+  service with a paid tier that a free tier can silently overflow into. The only
+  accepted paid item is the Apple Developer Program ($99/yr), and only if the iOS
+  app ever ships via TestFlight or the App Store. Treat any proposal that
+  introduces a metered service as rejected by default.
+
+  Stack — web, built first:
+  - MapLibre GL JS for map rendering (open source, no API key, no license fees)
+  - OpenFreeMap for vector tiles (free, unlimited, no signup)
+  - Supabase free tier for Postgres, auth, and realtime — this is what syncs
+    markers between people on a shared map
+
+  Stack — mobile, deliberately later:
+  - React Native with Expo, using a dev build rather than Expo Go
+  - @maplibre/maplibre-react-native, which takes the same style JSON and a
+    near-identical marker/camera API as the web
+  - Design the map layer so it ports to mobile rather than being rewritten. Keep
+    map logic (style JSON, marker and camera handling) free of web-only APIs and
+    separated from web UI code. Flag any web-specific choice that would not port.
+
+  Undecided, not yet committed — propose these only when a change actually needs
+  them, and say so explicitly:
+  - Protomaps .pmtiles to extract a country into one file for offline maps
+    (useful underground or on unreliable data)
+  - Photon or Nominatim for place search — free OSM geocoders
+
+  Status: early. No application code exists yet; the repo is a README and this
+  OpenSpec setup. Do not assume any schema, framework scaffolding, build tooling,
+  or directory layout is already in place — if a change depends on one, it has to
+  establish it.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
