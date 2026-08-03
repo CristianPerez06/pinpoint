@@ -4,10 +4,14 @@ build/
 .next/
 out/
 coverage/
+*.tsbuildinfo
 
-.env
-.env.local
-.env.*.local
+# Config files. Match every variant the toolchains load (.env.local,
+# .env.production, .env.development.local, ...) rather than enumerating base
+# names — enumerating is how .env.local ends up committed. The example files
+# are the deliberate exception.
+.env*
+!.env.example
 
 # Expo / React Native
 .expo/

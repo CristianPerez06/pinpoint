@@ -1,0 +1,150 @@
+# CI for the pinpoint monorepo (apps/web + apps/mobile + packages/).
+# Runs on every PR targeting main and every push to main.
+#
+# Jobs run in parallel:
+#   quality          eslint + tsc --noEmit for both apps
+#   web-build        next build with placeholder config
+#   packages-test    vitest for the shared packages
+#   workspace-health lockfile freshness + duplicate runtime deps + graph cycles
+#
+# Mobile is linted and typechecked but not built: a native build needs a dev
+# build toolchain, which this change deliberately defers. Metro resolution is
+# covered by the mobile typecheck, which fails if a workspace package stops
+# resolving.
+#
+# Node comes from .nvmrc everywhere. Do not inline a version here — one pin,
+# one file, or the jobs drift apart from each other and from local machines.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded PR runs; never cancel on main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: Lint & typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint web
+        run: pnpm --filter web lint
+
+      - name: Lint mobile
+        run: pnpm --filter mobile lint
+
+      - name: Typecheck web
+        run: pnpm --filter web typecheck
+
+      - name: Typecheck mobile
+        run: pnpm --filter mobile typecheck
+
+      - name: Typecheck packages
+        run: pnpm --filter "./packages/*" typecheck
+
+  web-build:
+    name: Web production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          # Placeholders. CI never contacts Supabase, so real credentials are
+          # not needed — but the config module validates presence at startup,
+          # so the build fails without something here. That is the intended
+          # behaviour, exercised on every run.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder_for_ci
+        run: pnpm --filter web build
+
+  packages-test:
+    name: Package tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm --filter "./packages/*" test
+
+  workspace-health:
+    name: Workspace health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # --frozen-lockfile fails when pnpm-lock.yaml is stale relative to any
+      # manifest in the workspace. Catches PRs that change a dependency and
+      # forget the lockfile.
+      - name: Validate lockfile freshness
+        run: pnpm install --frozen-lockfile
+
+      # Two versions of a dually-bundled runtime crash the bundle in ways that
+      # look unrelated to dependencies — the classic symptom is
+      # "Cannot read property 'useRef' of null" from deep inside a navigation
+      # library. Both apps pin these exactly; this catches a transitive
+      # resolution that reintroduces a second copy.
+      #
+      # react and react-native only. react-dom is bundled into web alone;
+      # mobile can pull a different one transitively for Expo's web export
+      # without it ever reaching a native bundle, so that duplication is benign.
+      - name: Detect duplicate runtime dependencies
+        run: |
+          set -euo pipefail
+          failed=0
+          for pkg in react react-native; do
+            versions=$(pnpm why "$pkg" --json 2>/dev/null \
+              | jq -r --arg name "$pkg" '[.. | objects | select(has("version") and (.name? == $name or .alias? == $name)) | .version] | unique | .[]' \
+              || true)
+            count=$(printf "%s" "$versions" | grep -c . || true)
+            echo "::group::$pkg (${count} version(s))"
+            printf "%s\n" "$versions"
+            echo "::endgroup::"
+            if [ "${count:-0}" -gt 1 ]; then
+              echo "::error::Multiple versions of '$pkg' in the workspace. This breaks bundle resolution at runtime. Align the version across apps/web and apps/mobile."
+              failed=1
+            fi
+          done
+          exit $failed
+
+      # Reads manifests only, so it needs no install and runs even if the
+      # dependency graph is what is broken.
+      - name: Check dependency graph
+        run: node .github/scripts/check-cycles.mjs

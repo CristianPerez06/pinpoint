@@ -1,0 +1,25 @@
+{
+  "name": "pinpoint",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web typecheck",
+    "dev:mobile": "pnpm --filter mobile dev",
+    "lint:mobile": "pnpm --filter mobile lint",
+    "typecheck:mobile": "pnpm --filter mobile typecheck",
+    "test": "pnpm --filter \"./packages/*\" test",
+    "check:cycles": "node .github/scripts/check-cycles.mjs",
+    "db:login": "supabase login",
+    "db:link": "supabase link",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked > packages/supabase/src/database.types.ts"
+  },
+  "devDependencies": {
+    "supabase": "^2.111.0"
+  }
+}
