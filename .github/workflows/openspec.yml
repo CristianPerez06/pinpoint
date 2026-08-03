@@ -29,7 +29,14 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate specs and changes
+    # This string is the status check name GitHub records — the workflow name
+    # above never becomes one. It is what you search for when adding a required
+    # check to a ruleset, so it has to say which workflow it came from.
+    #
+    # Renaming it retires the old check name. A ruleset still requiring the old
+    # name will block every pull request, because a check that no longer reports
+    # can never pass. Rename first, then update the ruleset.
+    name: OpenSpec validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
