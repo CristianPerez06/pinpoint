@@ -1,0 +1,55 @@
+# OpenSpec artifact validation for the pinpoint monorepo.
+# Runs on every PR targeting main and every push to main.
+#
+# Deliberately separate from ci.yml. This validates planning artifacts — the
+# specs under openspec/specs/ and any active change under openspec/changes/ —
+# not whether the code compiles. Keeping it in its own workflow means a
+# malformed spec reports as "OpenSpec failed" rather than hiding inside a red
+# "CI", and the two can be required independently in branch protection.
+#
+# The CLI version is pinned in package.json rather than installed globally, so
+# CI and every local machine validate against the same rules. A floating
+# version lets CI reject something that passed locally, which reads as a broken
+# pipeline rather than as a real disagreement.
+#
+# Node comes from .nvmrc. Do not inline a version here — one pin, one file.
+
+name: OpenSpec
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded PR runs; never cancel on main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    name: Validate specs and changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Reports the resolved OpenSpec root and any declared cross-repo
+      # references. Cheap, and it fails loudly if the root stops resolving —
+      # which would otherwise make the validation below silently check nothing.
+      - name: Check OpenSpec root
+        run: pnpm exec openspec doctor
+
+      # --all covers every spec plus every active change. --strict additionally
+      # rejects a requirement with no scenarios, which is the most common way a
+      # spec turns into prose that looks specified and is not.
+      - name: Validate specs and changes
+        run: pnpm check:specs
