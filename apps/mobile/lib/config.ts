@@ -19,7 +19,7 @@ function required(name: string, value: string | undefined): string {
   if (value === undefined || value.trim() === '') {
     throw new Error(
       `Missing required configuration: ${name}\n` +
-        `Copy apps/mobile/.env.example to apps/mobile/.env.local and fill it in.`,
+        `Copy apps/mobile/.env.example to apps/mobile/.env and fill it in.`,
     )
   }
   return value

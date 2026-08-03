@@ -1,0 +1,24 @@
+{
+  "name": "@pinpoint/auth",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "comment": "Authentication operations, shared by both apps. Every function takes an already-constructed client rather than building one, so this package never touches cookies, secure storage, or any other API that resolves on only one platform. Adding a runtime dependency beyond the two workspace packages is a signal the code belongs in an app instead — see openspec/specs/monorepo-structure.",
+  "dependencies": {
+    "@pinpoint/core": "workspace:*",
+    "@pinpoint/supabase": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

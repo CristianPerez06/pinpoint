@@ -8,6 +8,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "comment": "Depends only on the isomorphic client. Platform session persistence (cookies on web, secure storage on native) is wired by each app and deliberately does not live here.",
@@ -15,6 +17,7 @@
     "@supabase/supabase-js": "^2"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

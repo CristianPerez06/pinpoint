@@ -5,10 +5,15 @@ import { markerSchema, newMarkerSchema } from './marker'
 const VALID = {
   id: '00000000-0000-4000-8000-000000000000',
   tripId: '00000000-0000-4000-8000-000000000001',
+  cityId: '00000000-0000-4000-8000-000000000002',
   name: 'Fushimi Inari',
   note: null,
   lng: 135.7727,
   lat: 34.9671,
+  type: 'temple',
+  link: null,
+  price: null,
+  visited: false,
   createdAt: '2026-08-02T12:00:00.000Z',
 }
 
@@ -66,26 +71,80 @@ describe('markerSchema', () => {
   })
 })
 
-describe('newMarkerSchema', () => {
-  it('does not require server-assigned fields', () => {
-    const result = newMarkerSchema.safeParse({
-      tripId: VALID.tripId,
-      name: VALID.name,
-      note: null,
-      lng: VALID.lng,
-      lat: VALID.lat,
+describe('optional fields', () => {
+  it('accepts a marker with no city', () => {
+    const unassigned = markerSchema.safeParse({ ...VALID, cityId: null })
+    expect(unassigned.success).toBe(true)
+  })
+
+  it('records an omitted note, link, and price as null rather than empty text', () => {
+    const marker = markerSchema.parse(VALID)
+    expect(marker.note).toBeNull()
+    expect(marker.link).toBeNull()
+    expect(marker.price).toBeNull()
+    expect(marker.note).not.toBe('')
+  })
+
+  it('rejects an empty string where null is meant', () => {
+    expect(markerSchema.safeParse({ ...VALID, link: '' }).success).toBe(false)
+  })
+
+  it('accepts a link and a price', () => {
+    const marker = markerSchema.parse({
+      ...VALID,
+      link: 'https://example.com/why-we-saved-this',
+      price: 500,
     })
-    expect(result.success).toBe(true)
+    expect(marker.link).toBe('https://example.com/why-we-saved-this')
+    expect(marker.price).toBe(500)
+  })
+
+  it('rejects a link that is not a url', () => {
+    expect(markerSchema.safeParse({ ...VALID, link: 'not a url' }).success).toBe(
+      false,
+    )
+  })
+
+  it('rejects a negative price', () => {
+    expect(markerSchema.safeParse({ ...VALID, price: -1 }).success).toBe(false)
+  })
+
+  it('rejects an unknown marker type', () => {
+    expect(
+      markerSchema.safeParse({ ...VALID, type: 'onsen' }).success,
+    ).toBe(false)
+  })
+})
+
+describe('newMarkerSchema', () => {
+  const NEW = {
+    tripId: VALID.tripId,
+    cityId: VALID.cityId,
+    name: VALID.name,
+    note: null,
+    lng: VALID.lng,
+    lat: VALID.lat,
+    type: VALID.type,
+    link: null,
+    price: null,
+  }
+
+  it('does not require server-assigned fields', () => {
+    expect(newMarkerSchema.safeParse(NEW).success).toBe(true)
+  })
+
+  it('does not accept visited — the database owns that default', () => {
+    const parsed = newMarkerSchema.parse({ ...NEW, visited: true })
+    expect('visited' in parsed).toBe(false)
   })
 
   it('still enforces coordinate bounds', () => {
-    const result = newMarkerSchema.safeParse({
-      tripId: VALID.tripId,
-      name: VALID.name,
-      note: null,
-      lng: 999,
-      lat: VALID.lat,
-    })
-    expect(result.success).toBe(false)
+    expect(newMarkerSchema.safeParse({ ...NEW, lng: 999 }).success).toBe(false)
+  })
+
+  it('still enforces the type list', () => {
+    expect(newMarkerSchema.safeParse({ ...NEW, type: 'onsen' }).success).toBe(
+      false,
+    )
   })
 })

@@ -1,77 +1,63 @@
-import { markerSchema } from '@pinpoint/core'
-import { ATTRIBUTION, DEFAULT_STYLE, fitBounds, styleUrl } from '@pinpoint/map'
-import { createPinpointClient } from '@pinpoint/supabase'
-
-import { config } from '@/lib/config'
+import { signOutAction } from '@/app/_actions/auth'
+import { requireUserId } from '@/lib/auth/guards'
+import { createClient } from '@/lib/supabase/server'
 
 /**
- * The walking skeleton.
+ * The signed-in landing page.
  *
- * There is no map here on purpose. What this page proves is that all three
- * workspace packages resolve and transpile through Next as TypeScript source,
- * and that configuration is validated before anything uses it. Rendering an
- * actual map is a later change.
+ * There is no map here yet — that is the next change. What this proves is the
+ * whole stack underneath one: a session, a membership, and a policy doing the
+ * filtering.
  *
- * The same derivation runs on mobile against the same package — that is the
- * portability claim, exercised rather than asserted.
+ * Note what is absent. There is no `.eq(...)` on the reader's id, no filtering
+ * of the result, no check that these trips belong to them. The query asks for
+ * every trip and the database returns the ones this account is a member of. If
+ * that were wrong, a filter here would hide it rather than fix it.
  */
-const SAMPLE_MARKERS = [
-  { lng: 139.7671, lat: 35.6812 },
-  { lng: 135.5023, lat: 34.6937 },
-  { lng: 130.4017, lat: 33.5904 },
-]
+export default async function Home() {
+  await requireUserId()
 
-export default function Home() {
-  const camera = fitBounds(SAMPLE_MARKERS)
+  const supabase = await createClient()
+  const { data: trips, error } = await supabase
+    .from('trips')
+    .select('id, name, archived, trip_members (display_name)')
+    .order('created_at', { ascending: true })
 
-  // Exercises @pinpoint/core: a parse failure here would fail the render.
-  const validated = markerSchema.safeParse({
-    id: '00000000-0000-4000-8000-000000000000',
-    tripId: '00000000-0000-4000-8000-000000000001',
-    name: 'Sample',
-    note: null,
-    lng: SAMPLE_MARKERS[0]!.lng,
-    lat: SAMPLE_MARKERS[0]!.lat,
-    createdAt: new Date(0).toISOString(),
-  })
-
-  // Exercises @pinpoint/supabase and the validated config together.
-  const client = createPinpointClient({
-    url: config.supabase.url,
-    publishableKey: config.supabase.publishableKey,
-  })
-  const clientReady = typeof client.from === 'function'
+  if (error) {
+    return (
+      <main>
+        <h1>pinpoint</h1>
+        <p role="alert">Could not load your trips.</p>
+      </main>
+    )
+  }
 
   return (
     <main>
       <h1>pinpoint</h1>
-      <p>Workspace skeleton — no map yet.</p>
 
-      <h2>@pinpoint/map</h2>
-      <dl>
-        <dt>markers</dt>
-        <dd>{SAMPLE_MARKERS.length}</dd>
-        <dt>center</dt>
-        <dd>
-          {camera.center.lng.toFixed(4)}, {camera.center.lat.toFixed(4)}
-        </dd>
-        <dt>zoom</dt>
-        <dd>{camera.zoom.toFixed(3)}</dd>
-        <dt>style</dt>
-        <dd>
-          {DEFAULT_STYLE} — {styleUrl()}
-        </dd>
-      </dl>
+      {trips.length === 0 ? (
+        // Not an error. An account with no membership sees nothing, which is
+        // exactly what someone who signed up before being invited should see.
+        <p>You are not on any trips yet.</p>
+      ) : (
+        <ul>
+          {trips.map((trip) => (
+            <li key={trip.id}>
+              <strong>{trip.name}</strong>
+              {trip.archived ? ' (archived)' : null}
+              <span>
+                {' — '}
+                {trip.trip_members.map((member) => member.display_name).join(', ')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <h2>@pinpoint/core</h2>
-      <p>marker schema parses sample: {validated.success ? 'yes' : 'no'}</p>
-
-      <h2>@pinpoint/supabase</h2>
-      <p>client constructed: {clientReady ? 'yes' : 'no'}</p>
-
-      <footer>
-        <small>{ATTRIBUTION}</small>
-      </footer>
+      <form action={signOutAction}>
+        <button type="submit">Sign out</button>
+      </form>
     </main>
   )
 }

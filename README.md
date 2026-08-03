@@ -39,8 +39,8 @@ a package resolving under one proves nothing about the other.
 ```bash
 pnpm install
 
-cp apps/web/.env.example apps/web/.env.local
-cp apps/mobile/.env.example apps/mobile/.env.local
+cp apps/web/.env.example apps/web/.env
+cp apps/mobile/.env.example apps/mobile/.env
 # then fill both in
 ```
 

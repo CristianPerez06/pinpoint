@@ -21,7 +21,12 @@ const nextConfig: NextConfig = {
    * in package.json — a package missing here fails at build time with an
    * unhelpful parse error, and the drift is silent until then.
    */
-  transpilePackages: ['@pinpoint/core', '@pinpoint/map', '@pinpoint/supabase'],
+  transpilePackages: [
+    '@pinpoint/auth',
+    '@pinpoint/core',
+    '@pinpoint/map',
+    '@pinpoint/supabase',
+  ],
 }
 
 export default nextConfig

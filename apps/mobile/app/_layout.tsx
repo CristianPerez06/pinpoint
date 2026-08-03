@@ -1,7 +1,12 @@
 import { Stack } from 'expo-router'
 
-// No styling by design — see openspec/specs/styling. The shell proves workspace
-// resolution through Metro and nothing else.
+import { SessionProvider } from '@/lib/session'
+
+// No styling by design — see openspec/specs/styling.
 export default function RootLayout() {
-  return <Stack />
+  return (
+    <SessionProvider>
+      <Stack />
+    </SessionProvider>
+  )
 }

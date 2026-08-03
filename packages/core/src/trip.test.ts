@@ -5,6 +5,7 @@ import { newTripSchema, tripSchema } from './trip'
 const VALID = {
   id: '00000000-0000-4000-8000-000000000000',
   name: 'Japan 2026',
+  archived: false,
   createdAt: '2026-08-02T12:00:00.000Z',
 }
 

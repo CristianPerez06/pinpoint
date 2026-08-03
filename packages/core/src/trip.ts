@@ -7,6 +7,8 @@ import { z } from 'zod'
 export const tripSchema = z.object({
   id: z.uuid(),
   name: z.string().min(1).max(120),
+  /** Past trips stay readable but stop cluttering the list. */
+  archived: z.boolean(),
   createdAt: z.iso.datetime(),
 })
 

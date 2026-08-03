@@ -24,7 +24,7 @@ function required(name: string, value: string | undefined): string {
   if (value === undefined || value.trim() === '') {
     throw new Error(
       `Missing required configuration: ${name}\n` +
-        `Copy apps/web/.env.example to apps/web/.env.local and fill it in.`,
+        `Copy apps/web/.env.example to apps/web/.env and fill it in.`,
     )
   }
   return value
