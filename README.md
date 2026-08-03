@@ -59,10 +59,15 @@ pnpm lint          pnpm lint:mobile
 pnpm typecheck     pnpm typecheck:mobile
 pnpm test          # shared package tests
 pnpm check:cycles  # workspace dependency graph
+pnpm check:specs   # OpenSpec specs and active changes
 ```
 
-All of these run in CI on every pull request, along with a web production build and a
-gate that fails if two versions of React or React Native end up installed.
+All of these run on every pull request, along with a web production build and a gate
+that fails if two versions of React or React Native end up installed.
+
+They run as two separate workflows. `CI` covers the code; `OpenSpec` covers the
+planning artifacts, so a malformed spec fails under its own name instead of turning
+the build red for a reason that has nothing to do with the build.
 
 ## Planned stack
 

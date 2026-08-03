@@ -5,6 +5,10 @@ packages:
 # Dependencies allowed to run install scripts. pnpm blocks these by default and
 # asks; each entry is a deliberate answer, not a default.
 allowBuilds:
+  # The OpenSpec CLI. Its postinstall only prints a shell-completion hint, and
+  # it already self-skips when CI=true. The CLI works without it, so there is
+  # nothing to gain by running it and one less install script to trust.
+  '@fission-ai/openspec': false
   # Vitest's bundler. Its postinstall fetches the platform binary — without it
   # every test run fails to start.
   esbuild: true

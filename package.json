@@ -14,12 +14,14 @@
     "typecheck:mobile": "pnpm --filter mobile typecheck",
     "test": "pnpm --filter \"./packages/*\" test",
     "check:cycles": "node .github/scripts/check-cycles.mjs",
+    "check:specs": "openspec validate --all --strict",
     "db:login": "supabase login",
     "db:link": "supabase link",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked > packages/supabase/src/database.types.ts"
   },
   "devDependencies": {
+    "@fission-ai/openspec": "^1.7.0",
     "supabase": "^2.111.0"
   }
 }
