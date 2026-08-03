@@ -8,7 +8,7 @@ Shared packages SHALL be referenced by workspace-internal version specifiers rat
 
 Applications SHALL NOT import from another application. All code shared between applications SHALL live in a shared package.
 
-Product code SHALL NOT live at the repository root. Every source file SHALL reside under an `apps/<name>/` or `packages/<name>/` directory. The root SHALL contain only workspace configuration, tooling configuration, specifications, and repository metadata.
+Product code SHALL NOT live at the repository root. Every product source file SHALL reside under an `apps/<name>/` or `packages/<name>/` directory. The root SHALL contain only workspace configuration, tooling configuration, repository automation scripts, specifications, and repository metadata.
 
 #### Scenario: A shared package is added
 

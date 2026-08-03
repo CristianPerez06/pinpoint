@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "pinpoint",
+    "slug": "pinpoint",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "pinpoint",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pinpoint.app"
+    },
+    "android": {
+      "package": "com.pinpoint.app"
+    }
+  }
+}

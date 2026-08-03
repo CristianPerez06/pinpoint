@@ -1,0 +1,40 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Dependencies allowed to run install scripts. pnpm blocks these by default and
+# asks; each entry is a deliberate answer, not a default.
+allowBuilds:
+  # Vitest's bundler. Its postinstall fetches the platform binary — without it
+  # every test run fails to start.
+  esbuild: true
+  # Next's image optimiser. Nothing renders an image yet, and Next falls back
+  # cleanly without it. Flip to true when production image optimisation matters.
+  sharp: false
+  # Native resolver used by the eslint import plugin. The JS fallback is
+  # slower but correct; skipping the native build keeps installs portable.
+  unrs-resolver: false
+
+# Required by Expo + React Native in pnpm monorepos.
+#
+# RN libraries resolve sibling packages via bare `require()` at Metro-config
+# load time. pnpm's default isolated linker breaks those resolutions, and the
+# failure surfaces as an unrelated-looking "Cannot find module" while loading
+# metro.config.js. Hoisted gives a flat, npm-style layout that RN needs and
+# that Next is indifferent to.
+# https://docs.expo.dev/guides/monorepos/#pnpm
+#
+# This setting lives HERE and not in `.npmrc`: pnpm 11 no longer reads settings
+# from `.npmrc` (https://pnpm.io/settings). Putting it there produces no error
+# — it is silently ignored, the install comes out isolated, and you debug Metro
+# instead of the linker. Do not move it back.
+#
+# Note the direction is one-way: isolated -> hoisted is safe, hoisted ->
+# isolated surfaces every accumulated phantom dependency at once. We are on
+# hoisted from the first commit because apps/mobile exists from the first
+# commit.
+nodeLinker: hoisted
+
+publicHoistPattern:
+  - '*eslint*'
+  - '*next*'
