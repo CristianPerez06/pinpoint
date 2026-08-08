@@ -12,7 +12,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "comment": "dependencies is intentionally absent. This package sits at the base of the workspace graph and must stay renderer-agnostic so the same logic drives maplibre-gl on web and maplibre-react-native on native. Adding a runtime dependency here is a signal the code belongs in an app instead — see openspec/specs/monorepo-structure.",
+  "comment": "The only dependency is @pinpoint/tokens, which itself has none — so this package still declares no RUNTIME dependency outside the workspace, and that is the property the boundary protects. It must stay renderer-agnostic so the same logic drives maplibre-gl on web and maplibre-react-native on native. A dependency on either renderer, a DOM API, or a native module is a signal the code belongs in an app instead — see openspec/specs/monorepo-structure.",
+  "dependencies": {
+    "@pinpoint/tokens": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"

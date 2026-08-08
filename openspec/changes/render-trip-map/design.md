@@ -293,12 +293,42 @@ boundaries at all; its page awaits a query and renders. Mobile already re-derive
 `loading` boolean in two separate screens. So "from scratch" means adding boundaries on
 one side and consolidating a duplicated pattern on the other.
 
+### D12 — Shared queries live in `@pinpoint/data`, not in `@pinpoint/supabase`
+
+Settled during implementation; this was the first open question below.
+
+`@pinpoint/supabase` is infrastructure — how to build a client, and how to name
+the service's errors. It declares exactly one dependency, the isomorphic client,
+and that is the reason it exists. Putting queries in it would mix *how to build a
+client* with *what to ask it*, and would drag `@pinpoint/core` in as a dependency
+of the package every other package already depends on.
+
+So a separate `@pinpoint/data`, following `@pinpoint/auth` exactly: functions
+taking an already-constructed client, returning a discriminated result rather
+than throwing. The argument against it was that one function does not justify a
+package — but it is not one function. This change already needs two (a trip's
+markers, and the trips themselves, because the map has to know which trip to
+draw), and the write path adds creating, editing and deleting markers and cities
+on top. A package per concern is the shape this workspace already has.
+
+The four-state result — loading, ready, empty, failed — lives there too, because
+it is the same shape every read will want and the distinction it protects is the
+one from D11.
+
 ## Risks / Trade-offs
 
-- **The portability bet may not survive contact.** The native library may want a style
-  document rather than a URL, or a camera expressed differently. That is the risk this
-  change exists to retire; if the shape has to change, better now than after two more
-  changes assume it.
+- ~~**The portability bet may not survive contact.**~~ **It survived.** Retired during
+  implementation: `@maplibre/maplibre-react-native` types the prop as
+  `mapStyle: string | StyleSpecification`, so the same `styleUrl()` web hands to
+  `maplibre-gl` goes straight in — one style source, not two. The camera came through
+  unchanged as well: `fitBounds` returns `{ center, zoom }` and `Camera`'s
+  `initialViewState` takes exactly that. Nothing in `@pinpoint/map` had to change shape
+  for either renderer.
+  - One thing did differ, on the web side rather than the native one: `maplibre-gl` v6
+    has no default export, so `import maplibregl from 'maplibre-gl'` — which is what
+    most published examples still show — fails to typecheck. Named imports, with `Map`
+    and `Marker` both aliased to avoid colliding with the global and with our own
+    domain type.
 - **The dev build is a step change in mobile friction.** Iteration stops being "scan a
   QR code" and becomes a native build. Expected, but it lands in this change and will
   be felt in every mobile change after it.
@@ -313,10 +343,9 @@ one side and consolidating a duplicated pattern on the other.
 
 ## Open Questions
 
-- Where do the shared query functions live — inside `@pinpoint/supabase` next to the
-  client factory, or in a package of their own? `@pinpoint/auth` set the precedent of a
-  separate package per concern, which argues for a data package; against it, one
-  function does not justify one package.
+- ~~Where do the shared query functions live — inside `@pinpoint/supabase` next to the
+  client factory, or in a package of their own?~~ **Settled in D12**: a separate
+  `@pinpoint/data`.
 - Does the detail view from D9 become what the list later shows for a selected marker,
   or do the two stay separate? Building it as a presentation of a marker rather than as
   a map popup keeps the option open.

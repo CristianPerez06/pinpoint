@@ -1,88 +1,115 @@
 import { signOut } from '@pinpoint/auth'
+import type { Marker, Trip } from '@pinpoint/core'
+import { fetchTripMarkers, fetchTrips, type QueryState } from '@pinpoint/data'
+import { COLOUR, SPACE } from '@pinpoint/tokens'
 import { Redirect } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, Button, ScrollView, Text, View } from 'react-native'
+import { Button, StyleSheet, Text, View } from 'react-native'
 
+import { MarkersOverlayNote } from '@/components/overlay-note'
+import { EmptyState, FailedState, LoadingState } from '@/components/states'
+import { TripMap } from '@/components/trip-map'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
+import { useQuery } from '@/lib/use-query'
 
 /**
- * The signed-in screen.
+ * The signed-in screen: a map of the current trip.
  *
- * Same query as the web app, against the same policies, through a different
- * bundler. That last part is the point: a package resolving under Next proves
- * nothing about Metro, and the trips arriving here is what proves both.
+ * The same queries as the web app, against the same policies, through a
+ * different bundler and a different renderer. That last part is what this
+ * change existed to prove — a package resolving under Next says nothing about
+ * Metro, and `maplibre-gl` rendering says nothing about MapLibre Native.
  *
- * No map yet — that is the next change.
+ * "The current trip" is the first one, because there is one. Choosing between
+ * trips is a later change.
  */
-
-interface TripRow {
-  id: string
-  name: string
-  archived: boolean
-  trip_members: { display_name: string }[]
-}
-
 export default function Index() {
   const { session, loading } = useSession()
-  const [trips, setTrips] = useState<TripRow[] | null>(null)
-  const [failed, setFailed] = useState(false)
 
-  useEffect(() => {
-    if (!session) return
-    let active = true
+  const trips = useQuery(() => fetchTrips(supabase), [session])
 
-    supabase
-      .from('trips')
-      .select('id, name, archived, trip_members (display_name)')
-      .order('created_at', { ascending: true })
-      .then(({ data, error }) => {
-        if (!active) return
-        if (error) setFailed(true)
-        else setTrips(data)
-      })
+  const tripId = trips.status === 'ready' ? trips.data[0]!.id : null
+  const markers = useQuery(
+    async () => (tripId ? fetchTripMarkers(supabase, tripId) : { status: 'empty' as const }),
+    [tripId],
+  )
 
-    return () => {
-      active = false
-    }
-  }, [session])
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    )
-  }
-
+  // Reading the session out of the keychain is asynchronous, so the first frame
+  // after launch has no session even when one exists. Redirecting here would
+  // bounce a signed-in person to the sign-in screen every time they opened the
+  // app.
+  if (loading) return <LoadingState what="pinpoint" />
   if (!session) return <Redirect href="/login" />
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-      <Text style={{ fontSize: 22, fontWeight: '600' }}>pinpoint</Text>
-
-      {failed ? <Text>Could not load your trips.</Text> : null}
-
-      {trips === null && !failed ? <ActivityIndicator /> : null}
-
-      {trips?.length === 0 ? (
-        // Not an error — an account with no membership correctly sees nothing.
-        <Text>You are not on any trips yet.</Text>
-      ) : null}
-
-      {trips?.map((trip) => (
-        <View key={trip.id}>
-          <Text style={{ fontWeight: '600' }}>
-            {trip.name}
-            {trip.archived ? ' (archived)' : ''}
-          </Text>
-          <Text style={{ opacity: 0.7 }}>
-            {trip.trip_members.map((member) => member.display_name).join(', ')}
-          </Text>
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.brand}>pinpoint</Text>
+        {trips.status === 'ready' ? (
+          <Text style={styles.tripName}>{trips.data[0]!.name}</Text>
+        ) : null}
+        <View style={styles.signOut}>
+          <Button title="Sign out" onPress={() => void signOut(supabase)} />
         </View>
-      ))}
+      </View>
 
-      <Button title="Sign out" onPress={() => void signOut(supabase)} />
-    </ScrollView>
+      <View style={styles.body}>
+        <Body trips={trips} markers={markers} />
+      </View>
+    </View>
   )
 }
+
+/**
+ * Four states, rendered as four different things.
+ *
+ * The one worth stating: a failed load is never shown as an empty trip. "You
+ * have not saved anything yet" and "this is broken" are different messages, and
+ * an empty map cannot tell them apart on its own.
+ */
+function Body({
+  trips,
+  markers,
+}: {
+  trips: QueryState<readonly Trip[]>
+  markers: QueryState<readonly Marker[]>
+}) {
+  if (trips.status === 'loading') return <LoadingState what="your trips" />
+  if (trips.status === 'failed') return <FailedState message={trips.message} />
+  if (trips.status === 'empty') {
+    return <EmptyState>You are not on any trips yet.</EmptyState>
+  }
+
+  if (markers.status === 'loading') return <LoadingState />
+  if (markers.status === 'failed') return <FailedState message={markers.message} />
+
+  if (markers.status === 'empty') {
+    // The map still renders, at its default position and with no error: a trip
+    // with nothing on it is a valid trip.
+    return (
+      <>
+        <TripMap markers={[]} />
+        <MarkersOverlayNote>No places saved on this trip yet.</MarkersOverlayNote>
+      </>
+    )
+  }
+
+  return <TripMap markers={markers.data} />
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLOUR.surface },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    borderBottomWidth: 1,
+    borderColor: COLOUR.border,
+  },
+  brand: { fontSize: 17, fontWeight: '600', color: COLOUR.text },
+  tripName: { color: COLOUR.textMuted },
+  signOut: { marginLeft: 'auto' },
+  body: { flex: 1 },
+})

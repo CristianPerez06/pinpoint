@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "comment": "Depends on @pinpoint/map for the marker type identifiers only. A marker's icon and colour family are presentation and live there beside the descriptor function; what stays here is the write-side rule. The direction is safe because @pinpoint/map declares no workspace dependencies — check:cycles enforces that it stays that way.",
   "dependencies": {
+    "@pinpoint/map": "workspace:*",
     "zod": "^4"
   },
   "devDependencies": {

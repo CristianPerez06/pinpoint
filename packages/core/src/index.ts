@@ -18,16 +18,11 @@ export type {
   NewMarkerInterest,
 } from './marker-interest'
 
-export {
-  FALLBACK_MARKER_TYPE,
-  isMarkerType,
-  MARKER_FAMILIES,
-  MARKER_TYPE_IDS,
-  MARKER_TYPES,
-  markerTypeOf,
-  markerTypeSchema,
-} from './marker-type'
-export type { MarkerFamily, MarkerTypeDefinition } from './marker-type'
+// Only the write-side rule lives here. The type list, its icons, its families,
+// and `markerTypeOf` are presentation and live in `@pinpoint/map` — import them
+// from there rather than re-exporting them, so there is one answer to where a
+// marker's appearance comes from.
+export { markerTypeSchema } from './marker-type'
 
 export { newTripSchema, tripSchema } from './trip'
 export type { NewTrip, Trip } from './trip'

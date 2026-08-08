@@ -24,8 +24,10 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     '@pinpoint/auth',
     '@pinpoint/core',
+    '@pinpoint/data',
     '@pinpoint/map',
     '@pinpoint/supabase',
+    '@pinpoint/tokens',
   ],
 }
 
