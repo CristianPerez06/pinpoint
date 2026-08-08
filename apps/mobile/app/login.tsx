@@ -1,4 +1,4 @@
-import { signIn } from '@pinpoint/auth'
+import { claimTripMemberships, signIn } from '@pinpoint/auth'
 import { Redirect } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -31,7 +31,11 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false)
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
-  if (session) return <Redirect href="/" />
+  // `!submitting` holds the redirect until the claim below has finished. The
+  // auth listener sets the session the moment sign-in returns, so without this
+  // the next screen mounts and queries trips while the claim is still in
+  // flight — and a first sign-in would land on "you are not on any trips yet".
+  if (session && !submitting) return <Redirect href="/" />
 
   async function submit() {
     setSubmitting(true)
@@ -40,9 +44,15 @@ export default function LoginScreen() {
 
     const outcome = await signIn(supabase, { email, password })
 
-    if (!outcome.ok) {
-      if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else setFormError(outcome.message)
+    if (outcome.ok) {
+      // Link any membership seeded for this address. Ordinary to be invited
+      // after signing up, and web does the same — claiming only at sign-up
+      // leaves such an invitation permanently unclaimable.
+      await claimTripMemberships(supabase)
+    } else if (outcome.kind === 'invalid-input') {
+      setFieldErrors(outcome.fieldErrors)
+    } else {
+      setFormError(outcome.message)
     }
     // On success the auth state listener swaps the tree; no navigation here.
 
