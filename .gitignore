@@ -34,3 +34,9 @@ npm-debug.log*
 yarn-error.log*
 .idea/
 .vscode/
+
+# MapLibre ships its tile-parsing worker as a separate module that a bundler
+# cannot serve for it. apps/web/scripts/copy-maplibre-worker.mjs copies it out of
+# node_modules on every dev and build, so the copy is generated, never edited,
+# and can never drift from the installed version.
+apps/web/public/maplibre/

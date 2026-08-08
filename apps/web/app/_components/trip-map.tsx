@@ -22,13 +22,34 @@ import {
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
 // advice. `Map` and `Marker` are both aliased — the first collides with the
 // global, the second with our own domain type.
-import { MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl'
+import { MapLibreMap, Marker as MapLibreMarker, setWorkerUrl } from 'maplibre-gl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { MarkerDetails, type Selection } from '@/app/_components/marker-details'
 
 // Without this the map renders as a blank box and reports nothing at all.
 import 'maplibre-gl/dist/maplibre-gl.css'
+
+/**
+ * Tell MapLibre where its worker is. Without this the map draws no tiles and
+ * barely says why.
+ *
+ * v6 parses tiles in a module worker whose URL it derives from its own
+ * `import.meta.url`. That is right for loose files and wrong under a bundler:
+ * Turbopack emits the worker as a content-hashed asset under
+ * `/_next/static/media/` while the library asks for it beside its own chunk, so
+ * the request 404s and the browser rejects Next's HTML error page for its MIME
+ * type.
+ *
+ * Remember the shape of that failure. The main thread still owns the camera and
+ * mounts markers as DOM, so the pins land in exactly the right places over a
+ * blank canvas — it reads as a styling problem and is not one.
+ *
+ * The file is copied into `public/maplibre/` by `scripts/copy-maplibre-worker.mjs`,
+ * which runs on every `dev` and `build`. A literal path rather than a clever
+ * `new URL(...)` because this one can be checked with `curl`.
+ */
+setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')
 
 /**
  * The web half of the portability boundary.
