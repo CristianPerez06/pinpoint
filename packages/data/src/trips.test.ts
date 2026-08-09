@@ -4,11 +4,19 @@ import { describe, expect, it, vi } from 'vitest'
 import { fetchTrips, TRIPS_FAILED_MESSAGE } from './trips'
 
 function stubClient(response: { data?: unknown[] | null; error?: unknown }) {
-  const order = vi.fn().mockResolvedValue({
+  const result = {
     data: response.data === undefined ? [] : response.data,
     error: response.error ?? null,
-  })
-  const select = vi.fn(() => ({ order }))
+  }
+
+  const builder: Record<string, unknown> = {
+    then: (resolve: (value: typeof result) => unknown) =>
+      Promise.resolve(result).then(resolve),
+  }
+  const order = vi.fn(() => builder)
+  builder.order = order
+
+  const select = vi.fn(() => builder)
   const from = vi.fn(() => ({ select }))
 
   return {
@@ -63,5 +71,13 @@ describe('fetchTrips', () => {
     expect(calls.from).toHaveBeenCalledWith('trips')
     // No `.eq()` in the chain at all: the stub would throw if one were called.
     expect(calls.select).toHaveBeenCalledTimes(1)
+  })
+
+  it('orders deterministically — the first row is the trip the map draws', () => {
+    const { client, calls } = stubClient({ data: [ROW] })
+    void fetchTrips(client)
+
+    expect(calls.order).toHaveBeenNthCalledWith(1, 'created_at', { ascending: true })
+    expect(calls.order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
   })
 })

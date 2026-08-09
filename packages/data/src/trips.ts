@@ -45,6 +45,9 @@ export async function fetchTrips(
     .from('trips')
     .select(TRIP_COLUMNS)
     .order('created_at', { ascending: true })
+    // Deterministic tiebreak, for the same reason as markers — and it matters
+    // more here, because the first row of this list is the trip the map draws.
+    .order('id', { ascending: true })
 
   if (error || !data) return failed(TRIPS_FAILED_MESSAGE)
 

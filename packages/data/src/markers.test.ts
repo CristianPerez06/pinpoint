@@ -10,11 +10,22 @@ import { fetchTripMarkers, MARKERS_FAILED_MESSAGE } from './markers'
  * answers, and that no filtering is done here that policy should be doing.
  */
 function stubClient(response: { data?: unknown[] | null; error?: unknown }) {
-  const order = vi.fn().mockResolvedValue({
+  const result = {
     data: response.data === undefined ? [] : response.data,
     error: response.error ?? null,
-  })
-  const eq = vi.fn(() => ({ order }))
+  }
+
+  // `.order()` chains and the chain is also awaitable, which is what a real
+  // query builder does. A stub whose `.order()` resolved could not tell a
+  // single ordering from two.
+  const builder: Record<string, unknown> = {
+    then: (resolve: (value: typeof result) => unknown) =>
+      Promise.resolve(result).then(resolve),
+  }
+  const order = vi.fn(() => builder)
+  builder.order = order
+
+  const eq = vi.fn(() => builder)
   const select = vi.fn(() => ({ eq }))
   const from = vi.fn(() => ({ select }))
 
@@ -98,5 +109,15 @@ describe('fetchTripMarkers', () => {
 
     expect(calls.from).toHaveBeenCalledWith('markers')
     expect(calls.eq).toHaveBeenCalledWith('trip_id', ROW.trip_id)
+  })
+
+  it('orders deterministically, so two platforms cannot disagree', () => {
+    // A bulk import writes every row in one statement, so `created_at` ties to
+    // the microsecond and alone leaves the order to the planner.
+    const { client, calls } = stubClient({ data: [ROW] })
+    void fetchTripMarkers(client, ROW.trip_id)
+
+    expect(calls.order).toHaveBeenNthCalledWith(1, 'created_at', { ascending: true })
+    expect(calls.order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
   })
 })

@@ -82,6 +82,13 @@ export async function fetchTripMarkers(
     .select(MARKER_COLUMNS)
     .eq('trip_id', tripId)
     .order('created_at', { ascending: true })
+    // `id` breaks ties, and the ties are not hypothetical: a bulk import — or
+    // the seed — writes every row in one statement, so they share a timestamp
+    // to the microsecond and `created_at` alone leaves the order to the
+    // planner. Two platforms would then disagree about which of several
+    // markers at one point gets drawn, which the specification requires them
+    // to agree on.
+    .order('id', { ascending: true })
 
   // The database error text is not shown to anyone: it is written for whoever
   // is reading logs, not for whoever is looking at a map that will not load.
