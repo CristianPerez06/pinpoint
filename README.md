@@ -69,10 +69,20 @@ pnpm --filter mobile ios       # or: android — builds and installs a dev build
 pnpm dev:mobile                # afterwards: attaches to the installed dev build
 ```
 
-The native build needs Xcode (iOS) or Android Studio (Android) and takes minutes the
-first time; after that `pnpm dev:mobile` is as fast as it was. `ios/` and `android/`
-are generated and not committed — `pnpm --filter mobile prebuild` regenerates them
-from `app.json`.
+The native build takes minutes the first time; after that `pnpm dev:mobile` is as fast
+as it was. `ios/` and `android/` are generated and not committed — `pnpm --filter
+mobile prebuild` regenerates them from `app.json`.
+
+**iOS needs Xcode 26 or newer**, because Expo SDK 57 builds a module that declares
+`swift-tools-version: 6.2`, and Swift 6.2 ships with Xcode 26. A fresh Xcode 26 also
+installs without the iOS platform bundle, and after a major upgrade the licence has to
+be re-accepted:
+
+```bash
+sudo xcodebuild -license accept    # else xcrun exits 69 and CocoaPods refuses to run
+sudo xcodebuild -runFirstLaunch
+xcodebuild -downloadPlatform iOS   # else every build destination is "ineligible"
+```
 
 ## Checks
 

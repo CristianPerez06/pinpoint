@@ -3,7 +3,7 @@
 - [x] 1.1 Migration inserting one city (`Kyoto`) for the seeded trip, and roughly sixteen markers across it — several within a kilometre downtown, others five to nine kilometres out, so the density is realistic rather than evenly spaced (design D8)
 - [x] 1.2 Include at least two markers with **identical** coordinates, so the coincident-marker requirement has something to exercise (design D4)
 - [x] 1.3 State in the migration text that the data is disposable and name the change that removes it. Make it idempotent, like the existing seed
-- [ ] 1.4 Apply with `pnpm db:push` and confirm the rows are visible to a signed-in member and invisible to everyone else
+- [x] 1.4 Apply with `pnpm db:push` and confirm the rows are visible to a signed-in member and invisible to everyone else
 
 ## 2. Shared tokens
 
@@ -79,10 +79,9 @@ because a person has to open both apps and look.
 
 Two notes for whoever does:
 
-- **1.4** is half done. The migration is applied and an unauthenticated reader
-  provably sees nothing (`HTTP 200 []` against `/rest/v1/markers` with the
-  publishable key). The other half — that a signed-in member *does* see the
-  markers — is the same thing 6.1 confirms, so it gets confirmed there.
+- **1.4 is done.** The migration is applied, an unauthenticated reader provably
+  sees nothing (`HTTP 200 []` against `/rest/v1/markers` with the publishable
+  key), and a signed-in member sees the markers on both platforms.
 - **6.11** needs the failed state forced. Point `NEXT_PUBLIC_SUPABASE_URL` at
   something unreachable, or break the `select` in `packages/data/src/markers.ts`.
   An untested error branch is the one that will be wrong.
