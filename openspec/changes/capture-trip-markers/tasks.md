@@ -14,12 +14,12 @@
 
 ## 3. @pinpoint/geocode
 
-- [ ] 3.1 Create `packages/geocode` with its manifest declaring only `@pinpoint/map`, and a package comment recording why this package may perform network I/O when `@pinpoint/map` may not.
-- [ ] 3.2 `buildSearchUrl` — `q`, `lat`, `lon`, `zoom`, `location_bias_scale`, `limit`, `lang`. Test that `bbox` is never sent, because it filters where the spec requires ranking.
-- [ ] 3.3 `toCandidates` — parse the FeatureCollection. Tests: a named place; an address with no `name` (synthesised from `housenumber`/`street`); a feature with no geometry (dropped, batch survives); unknown extra properties (ignored); malformed JSON (no throw).
-- [ ] 3.4 `guessMarkerType` — `osm_value` first, then `osm_key`, then `FALLBACK_MARKER_TYPE`. Tests including an unmapped value, which must still yield a usable candidate.
-- [ ] 3.5 `searchPlaces(fetcher, query, bias)` returning a discriminated result. Tests with a fixture fetcher: success, non-2xx, thrown, aborted.
-- [ ] 3.6 Export the package surface, add it to the workspace, and confirm `pnpm check:cycles` still passes.
+- [x] 3.1 Create `packages/geocode` with its manifest declaring only `@pinpoint/map`, and a package comment recording why this package may perform network I/O when `@pinpoint/map` may not.
+- [x] 3.2 `buildSearchUrl` — `q`, `lat`, `lon`, `zoom`, `location_bias_scale`, `limit`, `lang`. Test that `bbox` is never sent, because it filters where the spec requires ranking.
+- [x] 3.3 `toCandidates` — parse the FeatureCollection. Tests: a named place; an address with no `name` (synthesised from `housenumber`/`street`); a feature with no geometry (dropped, batch survives); unknown extra properties (ignored); malformed JSON (no throw).
+- [x] 3.4 `guessMarkerType` — `osm_value` first, then `osm_key`, then `FALLBACK_MARKER_TYPE`. Tests including an unmapped value, which must still yield a usable candidate.
+- [x] 3.5 `searchPlaces(fetcher, query, bias)` returning a discriminated result. Tests with a fixture fetcher: success, non-2xx, thrown, aborted.
+- [x] 3.6 Export the package surface, add it to the workspace, and confirm `pnpm check:cycles` still passes.
 
 ## 4. @pinpoint/data writes
 

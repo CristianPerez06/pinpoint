@@ -191,6 +191,19 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.49.0)(yaml@2.9.0)
 
+  packages/geocode:
+    dependencies:
+      '@pinpoint/map':
+        specifier: workspace:*
+        version: link:../map
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.49.0)(yaml@2.9.0)
+
   packages/map:
     dependencies:
       '@pinpoint/tokens':
