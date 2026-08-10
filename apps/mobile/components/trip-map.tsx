@@ -39,6 +39,12 @@ import { MarkerDetails, type Selection } from '@/components/marker-details'
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  pinContainer: {
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pin: {
     width: MARKER_SIZE,
     height: MARKER_SIZE,
@@ -110,7 +116,17 @@ export function TripMap({ markers }: { markers: readonly Marker[] }) {
         // until it is pressed. It stays on because it opens the full notice,
         // but the visible credit below is what satisfies the licence.
         attribution
-        onPress={() => setSelection(null)}
+        //
+        // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
+        // annotation carries its own tap recogniser (MLRNPointAnnotation
+        // `_handleTap`) and the map view carries another; a single tap on a
+        // pin can fire both. A map-level handler that cleared the selection
+        // therefore undid the one the marker had just set, and tapping a pin
+        // did nothing at all — no sheet, no error, no clue.
+        //
+        // Dismissal is the sheet's own close button, which is what the
+        // specification asks for. Tap-to-dismiss can come back if it is ever
+        // worth making the two recognisers agree.
       >
         {camera ? (
           // Initial state, not a controlled camera: a controlled one would
@@ -168,7 +184,11 @@ function Pin({ group }: { group: MarkerGroup<Marker> }) {
   const { view } = group
 
   return (
-    <View>
+    // Explicit size rather than sizing to content. The iOS annotation derives
+    // its frame from this view and `_setCenterOffset:` bails out on a zero
+    // width or height, which would leave the pin anchored wrong and its tap
+    // target somewhere other than where it is drawn.
+    <View style={styles.pinContainer}>
       <View
         style={[
           styles.pin,
