@@ -1,11 +1,19 @@
-import type { Marker } from '@pinpoint/core'
-import type { PinpointClient } from '@pinpoint/supabase'
+import {
+  type Marker,
+  type MarkerPatch,
+  markerPatchSchema,
+  type NewMarker,
+  newMarkerSchema,
+} from '@pinpoint/core'
+import type { Database, PinpointClient } from '@pinpoint/supabase'
 
 import {
   failed,
   readyOrEmpty,
   type SettledQueryState,
 } from './query-state'
+import { validate } from './validate'
+import { rejected, type WriteOutcome, wrote } from './write-outcome'
 
 /**
  * Reading a trip's markers.
@@ -96,4 +104,137 @@ export async function fetchTripMarkers(
   if (!data) return failed(MARKERS_FAILED_MESSAGE)
 
   return readyOrEmpty(data.map(toMarker))
+}
+
+export const MARKER_SAVE_FAILED_MESSAGE = 'Could not save this place.'
+export const MARKER_DELETE_FAILED_MESSAGE = 'Could not remove this place.'
+
+type MarkerInsert = Database['public']['Tables']['markers']['Insert']
+type MarkerUpdate = Database['public']['Tables']['markers']['Update']
+
+/**
+ * The database's column names for what a client supplies.
+ *
+ * Written out rather than derived from the key names, because this is the one
+ * place the camelCase of the domain meets the snake_case of the schema, and a
+ * clever transform would turn a typo into a silently dropped field. Typed
+ * against the generated row types so that a column renamed in a migration fails
+ * the build here rather than at runtime.
+ */
+function toInsertRow(input: NewMarker): MarkerInsert {
+  return {
+    trip_id: input.tripId,
+    city_id: input.cityId,
+    name: input.name,
+    note: input.note,
+    lng: input.lng,
+    lat: input.lat,
+    type: input.type,
+    link: input.link,
+    price: input.price,
+  }
+}
+
+/**
+ * Only what the patch actually mentions.
+ *
+ * `undefined` means "leave alone" and `null` means "clear", and the difference
+ * is the whole reason this is built key by key rather than spread: spreading
+ * would send every absent field as null and quietly wipe the note off a marker
+ * whose name was being corrected.
+ */
+function toUpdateRow(patch: MarkerPatch): MarkerUpdate {
+  const row: MarkerUpdate = {}
+  if (patch.cityId !== undefined) row.city_id = patch.cityId
+  if (patch.name !== undefined) row.name = patch.name
+  if (patch.note !== undefined) row.note = patch.note
+  if (patch.lng !== undefined) row.lng = patch.lng
+  if (patch.lat !== undefined) row.lat = patch.lat
+  if (patch.type !== undefined) row.type = patch.type
+  if (patch.link !== undefined) row.link = patch.link
+  if (patch.price !== undefined) row.price = patch.price
+  return row
+}
+
+/**
+ * Save a new place on a trip.
+ *
+ * Validates first, and returns before touching the network when the input is
+ * wrong — a form with a blank name should be told so immediately, not after a
+ * round trip that was always going to be refused.
+ *
+ * Note the absence of any membership check. Row-level security decides whether
+ * this account may write to this trip, and a check here would duplicate that
+ * rule in a place that cannot enforce it. A write to a trip the account is not
+ * on is refused by the database and arrives here as a rejection.
+ *
+ * Returns the stored row, so the map can draw the new marker from what came back
+ * rather than re-reading every marker on the trip to find the one just added.
+ */
+export async function createMarker(
+  client: PinpointClient,
+  input: unknown,
+): Promise<WriteOutcome<Marker>> {
+  const validated = validate(newMarkerSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { data, error } = await client
+    .from('markers')
+    .insert(toInsertRow(validated.data))
+    .select(MARKER_COLUMNS)
+    .single()
+
+  if (error || !data) return rejected(MARKER_SAVE_FAILED_MESSAGE)
+
+  return wrote(toMarker(data))
+}
+
+/**
+ * Change a place that already exists.
+ *
+ * A partial patch: a field left out is left alone, which is different from a
+ * field set to null. Sending only what changed is what keeps two people editing
+ * different fields of the same marker from overwriting each other's work by
+ * accident — though nothing here detects the case where they edit the same one.
+ * The later write wins, deliberately.
+ */
+export async function updateMarker(
+  client: PinpointClient,
+  markerId: string,
+  patch: unknown,
+): Promise<WriteOutcome<Marker>> {
+  const validated = validate(markerPatchSchema, patch)
+  if (!validated.ok) return validated.outcome
+
+  const { data, error } = await client
+    .from('markers')
+    .update(toUpdateRow(validated.data))
+    .eq('id', markerId)
+    .select(MARKER_COLUMNS)
+    .single()
+
+  if (error || !data) return rejected(MARKER_SAVE_FAILED_MESSAGE)
+
+  return wrote(toMarker(data))
+}
+
+/**
+ * Remove a place, permanently.
+ *
+ * Returns the id so a caller holding a list can drop the right row without
+ * having to remember which one it asked about.
+ *
+ * There is no soft delete and no undo. Adding either would mean every read
+ * learning to filter, and a wishlist is not a document — removing something
+ * somebody decided against is the ordinary case, not an accident to guard.
+ */
+export async function deleteMarker(
+  client: PinpointClient,
+  markerId: string,
+): Promise<WriteOutcome<string>> {
+  const { error } = await client.from('markers').delete().eq('id', markerId)
+
+  if (error) return rejected(MARKER_DELETE_FAILED_MESSAGE)
+
+  return wrote(markerId)
 }

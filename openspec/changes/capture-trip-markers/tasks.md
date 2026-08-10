@@ -23,10 +23,10 @@
 
 ## 4. @pinpoint/data writes
 
-- [ ] 4.1 Add `WriteOutcome<T>` alongside the existing query states, carrying the written row on success.
-- [ ] 4.2 `createMarker`, `updateMarker`, `deleteMarker` — validating input, unlike the reads beside them.
-- [ ] 4.3 `fetchTripCities`, `createCity`, `updateCity`, `deleteCity`.
-- [ ] 4.4 Tests: a valid create returns the row; invalid input returns field errors and issues no request at all; a refused write returns a message that is not the database's error text.
+- [x] 4.1 Add `WriteOutcome<T>` alongside the existing query states, carrying the written row on success.
+- [x] 4.2 `createMarker`, `updateMarker`, `deleteMarker` — validating input, unlike the reads beside them.
+- [x] 4.3 `fetchTripCities`, `createCity`, `updateCity`, `deleteCity`.
+- [x] 4.4 Tests: a valid create returns the row; invalid input returns field errors and issues no request at all; a refused write returns a message that is not the database's error text.
 
 ## 5. Web — cities and framing
 
