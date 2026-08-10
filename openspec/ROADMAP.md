@@ -25,23 +25,22 @@ Two of those columns are the whole product:
 - **Auth and schema** — accounts, members, five tables, row-level security on every
   one. Sequenced first so every policy was written once against a real
   authenticated user, rather than permissively and tightened later.
+- **The map renders** — both applications draw a trip's markers from one
+  zero-dependency `@pinpoint/map`, read-only. This was the founding bet and it
+  holds: `@maplibre/maplibre-react-native` takes the same style **URL** as
+  `maplibre-gl`, so there is one style source rather than two, and `fitBounds`
+  needed no change for either renderer. Mobile left Expo Go for a development
+  build, which is also where the Apple Developer Program cost arrives if iOS ever
+  ships to somebody else's phone.
+
+  Three defects only surfaced by opening the apps and looking — markers drifting
+  off their coordinates on zoom, taps on a pin doing nothing on iOS, and the tile
+  worker 404ing so pins floated over a blank canvas. Each typechecked, rendered,
+  and was wrong. Budget for looking, not just for building.
 
 ## Next
 
-### 1. The map renders
-
-MapLibre on web and `maplibre-react-native` on native, driving the same
-`fitBounds()` from `@pinpoint/map`.
-
-Originally scoped as the *first* change, on the grounds that it is the only
-genuinely unproven thing in the stack — everything else is known technology. Auth
-went first instead, so this bet is still untested. Worth keeping small: markers
-from the database, no editing.
-
-This is where Expo Go stops being enough and a dev build is required, which is
-where the Apple Developer Program cost arrives if iOS ever ships.
-
-### 2. Write path
+### 1. Write path
 
 Photon search plus tap-to-drop on the map. Cities, types, link, price.
 
@@ -54,7 +53,7 @@ under their popular name, so for food it will be the primary path.
 
 **After this change the app can replace the spreadsheet.** Not before.
 
-### 3. Bulk import
+### 2. Bulk import
 
 Paste a list of names per city, geocode them all, confirm the ambiguous ones.
 
@@ -63,7 +62,7 @@ until it holds everything — a half-migrated trip means checking two places, an
 "is anything else nearby?" returns a wrong answer. Adding sixty places one at a
 time is the difference between adopting this and going back to the sheet.
 
-### 4. Interest and filters
+### 3. Interest and filters
 
 Per-member interest, visited, and the filter that motivates the whole project:
 **Both / Either / Only one of you / Nobody yet**.
@@ -71,9 +70,9 @@ Per-member interest, visited, and the filter that motivates the whole project:
 "Nobody yet" is the triage pile — invisible in a spreadsheet, obvious here.
 
 Arguably the highest-value change, and deliberately not first: it is worthless
-until there is data, and steps 2 and 3 are what put data in.
+until there is data, and the two steps above are what put data in.
 
-### 5. Mobile reader
+### 4. Mobile reader
 
 Map, filters, mark visited, and **what's near me right now** — the one thing a
 spreadsheet fundamentally cannot do.
@@ -98,6 +97,17 @@ work of a second full client.
   attributed to a person points at the member, so an account arriving later fills in
   one column instead of rewriting every attributed row.
 
+## Settled
+
+- **Pin legibility.** Sixteen drawn points across Kyoto read clearly at city zoom on
+  both a laptop and a phone, so no clustering. The density problem was always text,
+  not geometry — which is why the `map-rendering` spec forbids permanently labelling
+  every marker instead of requiring clustering. Revisit in the high hundreds per
+  view, which this product will not reach.
+- **Markers on one point.** Identical coordinates are the same pixel at every zoom,
+  so the pin underneath is unreachable forever. Badged with a count, and selecting it
+  offers the markers there to choose between. Stored positions are never moved.
+
 ## Loose ends
 
 - [ ] No CI guard that every table has row-level security enabled. A migration that
@@ -111,7 +121,14 @@ work of a second full client.
 - [ ] Email confirmation is off, so sign-up is open to anyone who finds the URL.
       They see nothing without a membership, but the account exists. Revisit before
       the app has a public address.
-- [ ] `price` has no currency. Correct for one trip, wrong for the second.
+- [ ] `price` has no currency. Correct for one trip, wrong for the second — and the
+      write path is where a price first gets typed, so that is the moment to decide.
+- [ ] A failing tile service is unhandled. If OpenFreeMap is unreachable the map is a
+      blank canvas with correctly-placed pins and no explanation — the same symptom as
+      a bug already fixed once, from a different cause. Nothing in `map-rendering`
+      covers it.
+- [ ] `AGENTS.md` says this repo merges with `git merge --no-ff`, but recent merges
+      have been squashes. Reconcile the document with the practice, either way.
 
 ## Open design questions
 
