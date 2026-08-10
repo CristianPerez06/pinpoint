@@ -1,9 +1,11 @@
 'use client'
 
-import type { Marker } from '@pinpoint/core'
+import { formatPrice, type Marker } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { COLOUR, MARKER_SIZE, RADIUS, SPACE } from '@pinpoint/tokens'
 import type { CSSProperties } from 'react'
+
+import { Button } from '@/app/_components/ui'
 
 /**
  * What was recorded about a place, shown without leaving the map.
@@ -95,13 +97,20 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
 function Details({
   marker,
   view,
+  currency,
   onBack,
   onDismiss,
+  onEdit,
+  onDelete,
 }: {
   marker: Marker
   view: MarkerView
+  /** Of the city this marker is filed under. Null is shown as a bare amount, never assumed. */
+  currency: string | null
   onBack?: () => void
   onDismiss: () => void
+  onEdit: () => void
+  onDelete: () => void
 }) {
   return (
     <div style={overlay}>
@@ -118,27 +127,46 @@ function Details({
           label="Link"
           value={marker.link}
         />
-        {/* No currency is stored yet, so none is invented here. */}
-        <Field label="Price" value={marker.price === null ? null : String(marker.price)} />
+        <Field
+          label="Price"
+          value={marker.price === null ? null : formatPrice(marker.price, currency)}
+        />
       </dl>
 
-      {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            marginTop: SPACE.md,
-            border: `1px solid ${COLOUR.border}`,
-            borderRadius: RADIUS.sm,
-            background: COLOUR.surface,
-            color: COLOUR.text,
-            padding: `${SPACE.xs}px ${SPACE.sm}px`,
-            cursor: 'pointer',
+      <div
+        style={{
+          display: 'flex',
+          gap: SPACE.sm,
+          marginTop: SPACE.md,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Button onClick={onEdit}>Edit</Button>
+        <Button
+          tone="danger"
+          onClick={() => {
+            // Said plainly, because it is true: there is no soft delete and no
+            // undo anywhere behind this.
+            if (
+              window.confirm(
+                `Remove “${marker.name}”?\n\nThis cannot be undone.`,
+              )
+            ) {
+              onDelete()
+            }
           }}
         >
-          ← Others at this point
-        </button>
-      ) : null}
+          Remove
+        </Button>
+
+        {onBack ? (
+          <span style={{ marginLeft: 'auto' }}>
+            <Button tone="quiet" onClick={onBack}>
+              ← Others at this point
+            </Button>
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -214,14 +242,21 @@ export interface Selection {
  */
 export function MarkerDetails({
   selection,
+  currencyOf,
   onChoose,
   onBack,
   onDismiss,
+  onEdit,
+  onDelete,
 }: {
   selection: Selection
+  /** The currency of the city a marker is filed under, or null when there is none. */
+  currencyOf: (marker: Marker) => string | null
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
+  onEdit: (marker: Marker) => void
+  onDelete: (marker: Marker) => void
 }) {
   const { group, index } = selection
 
@@ -229,12 +264,17 @@ export function MarkerDetails({
     return <Chooser group={group} onChoose={onChoose} onDismiss={onDismiss} />
   }
 
+  const marker = group.markers[index]!
+
   return (
     <Details
-      marker={group.markers[index]!}
+      marker={marker}
       view={group.views[index]!}
+      currency={currencyOf(marker)}
       onBack={group.count > 1 ? onBack : undefined}
       onDismiss={onDismiss}
+      onEdit={() => onEdit(marker)}
+      onDelete={() => onDelete(marker)}
     />
   )
 }

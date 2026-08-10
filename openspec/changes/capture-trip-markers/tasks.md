@@ -30,31 +30,31 @@
 
 ## 5. Web — cities and framing
 
-- [ ] 5.1 Fetch the trip's cities on the page and pass them to the map alongside the markers.
-- [ ] 5.2 City selector reading and writing `?city=<id>`, with absent meaning all cities.
-- [ ] 5.3 Re-frame on city selection through the shared `fitBounds`. A city holding no markers must leave the camera where it is.
+- [x] 5.1 Fetch the trip's cities on the page and pass them to the map alongside the markers.
+- [x] 5.2 City selector reading and writing `?city=<id>`, with absent meaning all cities.
+- [x] 5.3 Re-frame on city selection through the shared `fitBounds`. A city holding no markers must leave the camera where it is.
 - [ ] 5.4 Confirm nothing else moves the camera: pan away, save a marker, and verify the view stays put.
 
 ## 6. Web — search
 
-- [ ] 6.1 Search box that queries after a pause rather than per keystroke, and aborts a superseded request.
-- [ ] 6.2 Derive the focus point from the selected city's markers via `boundsOf`, falling back to the viewport centre when no city is selected or it holds no markers.
-- [ ] 6.3 Render searching, no matches, and unavailable as three visibly distinct states.
-- [ ] 6.4 Choosing a candidate produces the unsaved marker with its name and guessed type pre-filled.
+- [x] 6.1 Search box that queries after a pause rather than per keystroke, and aborts a superseded request.
+- [x] 6.2 Derive the focus point from the selected city's markers via `boundsOf`, falling back to the viewport centre when no city is selected or it holds no markers.
+- [x] 6.3 Render searching, no matches, and unavailable as three visibly distinct states.
+- [x] 6.4 Choosing a candidate produces the unsaved marker with its name and guessed type pre-filled.
 
 ## 7. Web — dropping and the form
 
-- [ ] 7.1 Arm and disarm drop mode. Panning, zooming, and selecting an existing marker must create nothing.
-- [ ] 7.2 Draw the unsaved marker distinguishably and above saved markers, draggable, excluded from framing and from anywhere markers are counted.
-- [ ] 7.3 The marker form — name, note, city, type, link, price — with name and position required and blank optional fields stored as absent.
-- [ ] 7.4 Create a city from inside the form without losing the place being added; the new city is selected for it.
-- [ ] 7.5 On success apply the returned row to client state so the marker draws without a reload. On rejection keep every typed value and the marker's position.
+- [x] 7.1 Arm and disarm drop mode. Panning, zooming, and selecting an existing marker must create nothing.
+- [x] 7.2 Draw the unsaved marker distinguishably and above saved markers, draggable, excluded from framing and from anywhere markers are counted.
+- [x] 7.3 The marker form — name, note, city, type, link, price — with name and position required and blank optional fields stored as absent.
+- [x] 7.4 Create a city from inside the form without losing the place being added; the new city is selected for it.
+- [x] 7.5 On success apply the returned row to client state so the marker draws without a reload. On rejection keep every typed value and the marker's position.
 
 ## 8. Web — editing and removing
 
-- [ ] 8.1 Edit affordance on the details panel, reusing the same form prefilled from what is stored.
-- [ ] 8.2 Remove a marker behind a confirmation that says it cannot be undone.
-- [ ] 8.3 Rename a city, set or change its currency, and remove one — the removal confirmation naming how many markers it will unassign.
+- [x] 8.1 Edit affordance on the details panel, reusing the same form prefilled from what is stored.
+- [x] 8.2 Remove a marker behind a confirmation that says it cannot be undone.
+- [x] 8.3 Rename a city, set or change its currency, and remove one — the removal confirmation naming how many markers it will unassign.
 
 ## 9. Mobile
 

@@ -5,7 +5,6 @@ import {
   ATTRIBUTION,
   DEFAULT_VIEWPORT,
   fitBounds,
-  groupCoincident,
   styleUrl,
   type MarkerGroup,
   type MarkerView,
@@ -23,9 +22,7 @@ import {
 // advice. `Map` and `Marker` are both aliased — the first collides with the
 // global, the second with our own domain type.
 import { MapLibreMap, Marker as MapLibreMarker, setWorkerUrl } from 'maplibre-gl'
-import { useEffect, useMemo, useRef, useState } from 'react'
-
-import { MarkerDetails, type Selection } from '@/app/_components/marker-details'
+import { useEffect, useRef, useState } from 'react'
 
 // Without this the map renders as a blank box and reports nothing at all.
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -51,31 +48,72 @@ import 'maplibre-gl/dist/maplibre-gl.css'
  */
 setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')
 
+export interface DraftPosition {
+  lng: number
+  lat: number
+}
+
 /**
  * The web half of the portability boundary.
  *
  * Everything decided here is bound to `maplibre-gl`: creating the map, mounting
- * marker elements, wiring clicks. Everything *decided* — the style, the camera,
- * a marker's icon and colour, which markers share a point — comes from
- * `@pinpoint/map`, which imports no renderer at all. The mobile app binds the
- * same values to a different library and gets the same map.
+ * marker elements, wiring clicks and drags. Everything *decided* — the style,
+ * the camera, a marker's icon and colour, which markers share a point — comes
+ * from `@pinpoint/map`, which imports no renderer at all. The mobile app binds
+ * the same values to a different library and gets the same map.
+ *
+ * It owns no data. Markers, grouping, and the unsaved marker's position all
+ * arrive as props, so this file has nothing to say about what a place is.
  *
  * `'use client'` is not a preference. The renderer needs a canvas and a DOM, so
  * there is nothing for a server to render.
  */
-export function TripMap({ markers }: { markers: readonly Marker[] }) {
+export function TripMap({
+  groups,
+  onSelectGroup,
+  draft,
+  dropping,
+  onDropAt,
+  onDraftMove,
+  frameTo,
+  frameToken,
+  centreRef,
+}: {
+  groups: readonly MarkerGroup<Marker>[]
+  onSelectGroup: (group: MarkerGroup<Marker>) => void
+  /** The place being added, before it is saved. Null when nothing is being added. */
+  draft: DraftPosition | null
+  dropping: boolean
+  onDropAt: (position: DraftPosition) => void
+  onDraftMove: (position: DraftPosition) => void
+  /** Markers to frame when `frameToken` changes. Empty leaves the camera alone. */
+  frameTo: readonly Marker[]
+  frameToken: number
+  /** Where the map is looking, for biasing search. A ref because it changes on every pan. */
+  centreRef: { current: DraftPosition | null }
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
-  const [selection, setSelection] = useState<Selection | null>(null)
+  const draftMarkerRef = useRef<MapLibreMarker | null>(null)
+  const hasDraft = draft !== null
 
-  const groups = useMemo(() => groupCoincident([...markers]), [markers])
+  // Callbacks reached through refs so that the effects binding them to the
+  // renderer do not tear down and rebuild every time the parent re-renders.
+  // Written in an effect rather than during render: a ref mutated mid-render is
+  // a value React is entitled to discard, and the lint rule that says so is
+  // right even though this particular case would have worked.
+  const handlers = useRef({ onSelectGroup, onDropAt, onDraftMove })
+  useEffect(() => {
+    handlers.current = { onSelectGroup, onDropAt, onDraftMove }
+  })
 
   /**
-   * Framing happens once, from the markers present at mount, and never again.
-   * Re-framing when the data reference changes would yank the view back from
-   * wherever the person had panned it.
+   * Framing happens from the markers present at mount, and afterwards only when
+   * `frameToken` changes — which is to say, only when somebody asked. Re-framing
+   * whenever the data reference changed would yank the view back from wherever
+   * they had panned it, and saving a marker would move the map.
    */
-  const framing = useRef(markers)
+  const initialFraming = useRef(frameTo)
 
   useEffect(() => {
     const container = containerRef.current
@@ -91,7 +129,7 @@ export function TripMap({ markers }: { markers: readonly Marker[] }) {
           // division by zero.
           DEFAULT_VIEWPORT
 
-    const camera = fitBounds([...framing.current], { viewport })
+    const camera = fitBounds([...initialFraming.current], { viewport })
 
     const instance = new MapLibreMap({
       container,
@@ -112,17 +150,33 @@ export function TripMap({ markers }: { markers: readonly Marker[] }) {
     }
   }, [])
 
+  /** Where the map is looking, kept current for whatever wants to bias by it. */
+  useEffect(() => {
+    if (!map) return
+
+    const report = () => {
+      const centre = map.getCenter()
+      centreRef.current = { lng: centre.lng, lat: centre.lat }
+    }
+
+    report()
+    map.on('move', report)
+    return () => {
+      map.off('move', report)
+    }
+  }, [map, centreRef])
+
   /**
    * Markers are mounted in their own effect so that changing them never touches
-   * the camera. Read-only today; this is the shape the write path needs.
+   * the camera.
    */
   useEffect(() => {
     if (!map) return
 
     const instances = groups.map((group) =>
-      new MapLibreMarker({ element: pinElement(group, () => {
-        setSelection({ group, index: group.count === 1 ? 0 : null })
-      }) })
+      new MapLibreMarker({
+        element: pinElement(group, () => handlers.current.onSelectGroup(group)),
+      })
         .setLngLat([group.lng, group.lat])
         .addTo(map),
     )
@@ -132,21 +186,97 @@ export function TripMap({ markers }: { markers: readonly Marker[] }) {
     }
   }, [map, groups])
 
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+  /**
+   * Pointing at the map creates a place, but only when that was armed first.
+   *
+   * Without arming, every stray click while panning would drop a pin. The
+   * cursor changes so that the armed state is visible rather than remembered.
+   */
+  useEffect(() => {
+    if (!map || !dropping) return
 
-      {selection ? (
-        <MarkerDetails
-          selection={selection}
-          onChoose={(index) => setSelection({ ...selection, index })}
-          onBack={() => setSelection({ ...selection, index: null })}
-          // Dismissal touches no map method, so the camera cannot move.
-          onDismiss={() => setSelection(null)}
-        />
-      ) : null}
-    </div>
-  )
+    const canvas = map.getCanvas()
+    const previousCursor = canvas.style.cursor
+    canvas.style.cursor = 'crosshair'
+
+    const drop = (event: { lngLat: { lng: number; lat: number } }) => {
+      handlers.current.onDropAt({ lng: event.lngLat.lng, lat: event.lngLat.lat })
+    }
+
+    map.on('click', drop)
+    return () => {
+      map.off('click', drop)
+      canvas.style.cursor = previousCursor
+    }
+  }, [map, dropping])
+
+  /**
+   * The unsaved marker.
+   *
+   * Created when one starts existing and removed when it stops, keyed on
+   * whether there is one rather than on where it is — rebuilding it on every
+   * coordinate change would destroy the element mid-drag and drop the gesture.
+   * Its position is synced separately below.
+   */
+  useEffect(() => {
+    if (!map || !hasDraft) return
+
+    const instance = new MapLibreMarker({
+      element: draftPinElement(),
+      draggable: true,
+    })
+      .setLngLat([draft.lng, draft.lat])
+      .addTo(map)
+
+    instance.on('dragend', () => {
+      const position = instance.getLngLat()
+      handlers.current.onDraftMove({ lng: position.lng, lat: position.lat })
+    })
+
+    draftMarkerRef.current = instance
+
+    return () => {
+      instance.remove()
+      draftMarkerRef.current = null
+    }
+    // `draft` is read once, for the starting position. Every later move goes
+    // through the sync effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, hasDraft])
+
+  useEffect(() => {
+    if (draft && draftMarkerRef.current) {
+      draftMarkerRef.current.setLngLat([draft.lng, draft.lat])
+    }
+  }, [draft])
+
+  /**
+   * A requested re-frame: selecting a city. Never automatic — the first render
+   * is skipped because mounting already framed, and a city holding no markers
+   * leaves the camera exactly where it is rather than flying somewhere arbitrary.
+   */
+  const framedToken = useRef(frameToken)
+  useEffect(() => {
+    if (!map) return
+    if (framedToken.current === frameToken) return
+    framedToken.current = frameToken
+
+    if (frameTo.length === 0) return
+
+    const rect = map.getContainer().getBoundingClientRect()
+    const viewport =
+      rect.width > 0 && rect.height > 0
+        ? { width: rect.width, height: rect.height }
+        : DEFAULT_VIEWPORT
+
+    const camera = fitBounds([...frameTo], { viewport })
+    map.easeTo({
+      center: [camera.center.lng, camera.center.lat],
+      zoom: camera.zoom,
+    })
+  }, [map, frameToken, frameTo])
+
+  return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 }
 
 /**
@@ -232,10 +362,47 @@ function pinElement(group: MarkerGroup<Marker>, onSelect: () => void): HTMLEleme
   }
 
   button.addEventListener('click', (event) => {
-    // Otherwise the map treats it as a click on the surface underneath.
+    // Otherwise the map treats it as a click on the surface underneath — which
+    // while the drop mode is armed would place a second pin on top of this one.
     event.stopPropagation()
     onSelect()
   })
 
   return button
+}
+
+/**
+ * The unsaved marker's element.
+ *
+ * Deliberately unlike a saved pin: dashed, hollow, and carrying no type icon,
+ * because it is not yet a place and showing it as one would make a person think
+ * they had already saved it.
+ *
+ * Drawn above every saved marker so that dropping one onto an existing pin
+ * leaves it visible and draggable rather than buried under the thing it landed
+ * on — the case where being able to nudge it matters most.
+ */
+function draftPinElement(): HTMLElement {
+  const element = document.createElement('div')
+  element.setAttribute('aria-label', 'New place, not yet saved')
+  element.title = 'Drag to adjust, then save'
+  Object.assign(element.style, {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxSizing: 'border-box',
+    width: `${MARKER_SIZE}px`,
+    height: `${MARKER_SIZE}px`,
+    borderRadius: `${RADIUS.pill}px`,
+    backgroundColor: COLOUR.surface,
+    border: `2px dashed ${COLOUR.text}`,
+    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.4)',
+    fontSize: `${Math.round(MARKER_SIZE * 0.5)}px`,
+    lineHeight: '1',
+    cursor: 'grab',
+    zIndex: '10',
+  } satisfies Partial<CSSStyleDeclaration>)
+  element.textContent = '+'
+
+  return element
 }

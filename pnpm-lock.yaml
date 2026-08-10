@@ -99,6 +99,9 @@ importers:
       '@pinpoint/data':
         specifier: workspace:*
         version: link:../../packages/data
+      '@pinpoint/geocode':
+        specifier: workspace:*
+        version: link:../../packages/geocode
       '@pinpoint/map':
         specifier: workspace:*
         version: link:../../packages/map
