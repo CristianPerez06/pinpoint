@@ -41,6 +41,12 @@ export async function signInAction(
 
   if (!outcome.ok) return stateFrom(outcome)
 
+  // Claim on sign-in as well as sign-up. Being invited after signing up is
+  // ordinary — it is what happened to both members of the first trip — and
+  // claiming only at sign-up leaves those invitations permanently unclaimable.
+  // Idempotent, so the cost after the first time is one round trip.
+  await claimTripMemberships(supabase)
+
   revalidatePath('/', 'layout')
   redirect('/')
 }

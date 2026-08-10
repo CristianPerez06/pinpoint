@@ -17,6 +17,13 @@ import { supabase } from '@/lib/supabase'
  * is asynchronous, so for the first frame after launch there is no session even
  * when one exists. Redirecting during that frame would bounce a signed-in
  * person to the sign-in screen every time they opened the app.
+ *
+ * This is the only `loading` about the session, and it answers one question:
+ * do we know yet whether anyone is signed in. A screen loading its own data
+ * asks a different question and uses `useQuery` in `lib/use-query.ts`, which
+ * carries the four-state result from `@pinpoint/data`. They are kept apart
+ * deliberately — collapsing them would mean a screen could not reload without
+ * the whole app looking signed out.
  */
 interface SessionState {
   session: Session | null

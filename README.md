@@ -7,9 +7,14 @@ First trip is Japan, but nothing in it is Japan-specific.
 
 ## Status
 
-Workspace skeleton. Both apps build and run, and neither renders a map yet — that's
-the next change. What exists is the structure the map will be built on, with the
-portability boundary enforced by the build rather than by memory.
+Both apps render a read-only map of a trip's markers, driven by the same shared
+camera, style and marker logic. That was the founding risk: one zero-dependency
+package producing the same map through two bundlers and two renderers. It holds —
+`@maplibre/maplibre-react-native` accepts the same style **URL** as `maplibre-gl`, so
+there is one style source rather than two.
+
+No writing yet. Adding, editing and deleting markers, place search, cities and
+filtering are the changes after this one — see `openspec/ROADMAP.md`.
 
 ## Layout
 
@@ -17,11 +22,14 @@ portability boundary enforced by the build rather than by memory.
 pinpoint/
 ├── apps/
 │   ├── web/          Next.js App Router
-│   └── mobile/       Expo + expo-router (runs under Expo Go)
+│   └── mobile/       Expo + expo-router (needs a development build)
 └── packages/
-    ├── map/          style references + pure camera/marker logic — zero dependencies
+    ├── tokens/       shared literals — colours, spacing. No dependencies at all
+    ├── map/          style references + pure camera/marker logic. No renderer
     ├── core/         domain types and validation
-    └── supabase/     Supabase client factory and database types
+    ├── supabase/     Supabase client factory and database types
+    ├── auth/         sign in, sign up, sign out — takes a client, returns a result
+    └── data/         reads of trips and markers — same shape as auth
 ```
 
 Both apps import `@pinpoint/map` and render the same `fitBounds()` result. That's
@@ -49,7 +57,31 @@ missing, so a half-filled file tells you exactly what it needs.
 
 ```bash
 pnpm dev          # web at http://localhost:3000
-pnpm dev:mobile   # Expo — press i for iOS, a for Android
+```
+
+**Mobile no longer runs under Expo Go.** `@maplibre/maplibre-react-native` contains
+native code, and Expo Go ships a fixed set of native modules that does not include it
+— scanning the QR code gets you an app that fails when the map screen renders. The
+first run now builds the app natively:
+
+```bash
+pnpm --filter mobile ios       # or: android — builds and installs a dev build
+pnpm dev:mobile                # afterwards: attaches to the installed dev build
+```
+
+The native build takes minutes the first time; after that `pnpm dev:mobile` is as fast
+as it was. `ios/` and `android/` are generated and not committed — `pnpm --filter
+mobile prebuild` regenerates them from `app.json`.
+
+**iOS needs Xcode 26 or newer**, because Expo SDK 57 builds a module that declares
+`swift-tools-version: 6.2`, and Swift 6.2 ships with Xcode 26. A fresh Xcode 26 also
+installs without the iOS platform bundle, and after a major upgrade the licence has to
+be re-accepted:
+
+```bash
+sudo xcodebuild -license accept    # else xcrun exits 69 and CocoaPods refuses to run
+sudo xcodebuild -runFirstLaunch
+xcodebuild -downloadPlatform iOS   # else every build destination is "ineligible"
 ```
 
 ## Checks
@@ -73,17 +105,17 @@ the build red for a reason that has nothing to do with the build.
 
 Everything here is free at the scale this app will ever run at.
 
-**Web (first)**
+**Web**
 
 - [MapLibre GL JS](https://maplibre.org/) — open-source map renderer, no API key, no license fees
 - [OpenFreeMap](https://openfreemap.org/) — free unlimited vector tiles, no signup
 - [Supabase](https://supabase.com/) free tier — Postgres + auth + realtime, for syncing markers between people
 
-**Mobile (later)**
+**Mobile**
 
 - React Native + Expo, using a dev build (not Expo Go)
-- [`@maplibre/maplibre-react-native`](https://github.com/maplibre/maplibre-react-native) — same style JSON and
-  a near-identical marker/camera API as the web, so the map layer ports over instead of being rewritten
+- [`@maplibre/maplibre-react-native`](https://github.com/maplibre/maplibre-react-native) — takes the same style
+  URL and a near-identical marker/camera API, so the map layer ports over instead of being rewritten
 
 **Maybe**
 

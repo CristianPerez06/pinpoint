@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/copy-maplibre-worker.mjs && next dev",
+    "build": "node scripts/copy-maplibre-worker.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
@@ -12,9 +12,12 @@
   "dependencies": {
     "@pinpoint/auth": "workspace:*",
     "@pinpoint/core": "workspace:*",
+    "@pinpoint/data": "workspace:*",
     "@pinpoint/map": "workspace:*",
     "@pinpoint/supabase": "workspace:*",
+    "@pinpoint/tokens": "workspace:*",
     "@supabase/ssr": "^0.8.0",
+    "maplibre-gl": "^6.2.0",
     "next": "16.2.12",
     "react": "19.2.3",
     "react-dom": "19.2.3"

@@ -66,6 +66,29 @@ placeholders.
 - **React and React Native are pinned to exact versions in both apps.** Two copies of
   either crash the bundle in ways that look unrelated to dependencies. CI fails on
   duplicates; upgrade both apps in the same change.
+- **MapLibre's tile worker cannot find itself under a bundler.** `maplibre-gl` v6 parses
+  tiles in a module worker whose URL it derives from its own `import.meta.url`.
+  Turbopack emits that worker as a content-hashed asset under `/_next/static/media/`
+  while the library asks for it beside its own chunk, so the request 404s. Fixed by
+  copying it into `public/maplibre/` (`apps/web/scripts/copy-maplibre-worker.mjs`, run
+  from `dev` and `build`) and calling `setWorkerUrl` with a literal path. **Learn the
+  shape of this failure**: the main thread still owns the camera and mounts markers as
+  DOM, so pins appear in exactly the right places over a blank canvas. It reads as a
+  CSS problem and never is. The only clue is one console line about a module script
+  with a `text/html` MIME type.
+- **`maplibre-gl` v6 has no default export.** `import maplibregl from 'maplibre-gl'`,
+  which is what most published examples still show, is v4 advice and fails to
+  typecheck. Use named imports; alias `Map` and `Marker`, which collide with the global
+  and with our own domain type.
+- **Building the mobile app needs Xcode 26 or newer, plus a separate platform
+  download.** Expo SDK 57 builds `expo-modules-jsi` from source through SwiftPM, and
+  its `Package.swift` declares `swift-tools-version: 6.2` — which ships with Xcode 26,
+  not 16.x. Xcode 26 then installs *without* the iOS platform bundle: `xcodebuild
+  -downloadPlatform iOS` (or Settings → Components), or every destination is
+  ineligible. After a major Xcode upgrade the licence must be re-accepted for the new
+  version (`sudo xcodebuild -license accept`); until it is, `xcrun` exits 69, `pod`
+  refuses, and Expo misreads that as a broken CocoaPods and tries to reinstall it. All
+  three symptoms are one cause.
 
 ## Styling
 

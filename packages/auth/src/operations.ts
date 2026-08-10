@@ -119,12 +119,25 @@ export async function signOut(client: PinpointClient): Promise<AuthOutcome> {
 /**
  * Link the signed-in account to the member rows seeded for its email address.
  *
- * Called once after sign-up. The work happens in the database, because a
- * brand-new account is not yet a member of anything and so no membership policy
- * can reach the row it needs to claim.
+ * Called after every successful authentication, not once after sign-up. That
+ * was the original design and it left a hole with no way out: sign up on Monday,
+ * get invited on Tuesday, and the invitation can never be claimed, because the
+ * only code that claims runs at a moment that has already passed. The account
+ * then sees an empty trip list forever and nothing in the product explains why.
  *
- * Returns how many memberships were claimed — zero is a legitimate answer,
- * meaning nobody has been invited at that address.
+ * It happened. Both seeded members sat with `user_id` null while the map they
+ * were members of rendered nothing.
+ *
+ * Running it on sign-in costs one round trip and is idempotent — the statement
+ * only touches rows where `user_id` is null and the address matches the
+ * verified one on the token, so a claimed membership is never re-claimed and
+ * never stolen.
+ *
+ * The work happens in the database because an unclaimed account is not yet a
+ * member of anything, so no membership policy can reach the row it needs.
+ *
+ * Returns how many memberships were claimed — zero is the ordinary answer,
+ * meaning nothing was waiting.
  */
 export async function claimTripMemberships(
   client: PinpointClient,
