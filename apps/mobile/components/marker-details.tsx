@@ -1,4 +1,4 @@
-import type { Marker } from '@pinpoint/core'
+import { formatPrice, type Marker } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { COLOUR, MARKER_SIZE, RADIUS, SPACE } from '@pinpoint/tokens'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -119,11 +119,14 @@ export interface Selection {
  */
 export function MarkerDetails({
   selection,
+  currencyOf,
   onChoose,
   onBack,
   onDismiss,
 }: {
   selection: Selection
+  /** The currency of the city a marker is filed under, or null when there is none. */
+  currencyOf: (marker: Marker) => string | null
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
@@ -173,8 +176,17 @@ export function MarkerDetails({
         <Field label="Type" value={view.typeLabel} />
         <Field label="Note" value={marker.note} />
         <Field label="Link" value={marker.link} />
-        {/* No currency is stored yet, so none is invented here. */}
-        <Field label="Price" value={marker.price === null ? null : String(marker.price)} />
+        {/* The currency of the city this is filed under, or none — never a
+            guess. Formatted by the shared helper so the phone and the laptop
+            cannot disagree about the same amount. */}
+        <Field
+          label="Price"
+          value={
+            marker.price === null
+              ? null
+              : formatPrice(marker.price, currencyOf(marker))
+          }
+        />
 
         {group.count > 1 ? (
           <Pressable onPress={onBack} style={styles.back} accessibilityRole="button">

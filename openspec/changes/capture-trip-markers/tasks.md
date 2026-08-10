@@ -58,8 +58,8 @@
 
 ## 9. Mobile
 
-- [ ] 9.1 Fetch cities and render each price through `formatPrice` with its city's currency.
-- [ ] 9.2 Confirm no add, edit, or remove affordance reached mobile, and that every marker written from web reads correctly.
+- [x] 9.1 Fetch cities and render each price through `formatPrice` with its city's currency.
+- [x] 9.2 Confirm no add, edit, or remove affordance reached mobile, and that every marker written from web reads correctly.
 - [ ] 9.3 Verify `Intl.NumberFormat` currency formatting on an actual device. If Hermes gets it wrong, fall back to `CODE amount`.
 
 ## 10. Verification pass
