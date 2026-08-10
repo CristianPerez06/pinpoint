@@ -56,32 +56,37 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Open the same trip on both platforms at a comparable viewport; confirm the same style, the same centre and zoom, and the same icon and colour per marker (spec `map-rendering`)
-- [ ] 6.2 Confirm a trip with no markers opens at the default position on both, with no error
-- [ ] 6.3 Confirm a trip with one marker centres on it at a usable zoom, not maximum zoom
-- [ ] 6.4 Pan and zoom away on both; confirm the view is not snapped back
-- [ ] 6.5 Zoom to maximum on the two identical-coordinate markers; confirm they do not separate, and that both are still reachable (design D4)
-- [ ] 6.6 Confirm no marker carries a permanent label at city zoom, and that a marker's identity is still discoverable (spec `map-rendering`)
-- [ ] 6.7 Change one family colour in `@pinpoint/tokens`; confirm both applications render the new colour and neither contains the literal (spec `map-rendering`, `styling`)
+- [x] 6.1 Open the same trip on both platforms at a comparable viewport; confirm the same style, the same centre and zoom, and the same icon and colour per marker (spec `map-rendering`)
+- [x] 6.2 Confirm a trip with no markers opens at the default position on both, with no error
+- [x] 6.3 Confirm a trip with one marker centres on it at a usable zoom, not maximum zoom
+- [x] 6.4 Pan and zoom away on both; confirm the view is not snapped back
+- [x] 6.5 Zoom to maximum on the two identical-coordinate markers; confirm they do not separate, and that both are still reachable (design D4)
+- [x] 6.6 Confirm no marker carries a permanent label at city zoom, and that a marker's identity is still discoverable (spec `map-rendering`)
+- [x] 6.7 Change one family colour in `@pinpoint/tokens`; confirm both applications render the new colour and neither contains the literal (spec `map-rendering`, `styling`)
 - [ ] 6.8 Look at the seeded Kyoto data on both platforms and judge whether the density is legible. This is the question the change was scoped around — record the answer even if it is "clustering is needed after all"
-- [ ] 6.9 Select a marker on both platforms; confirm the same fields with the same values, and that a marker with only a name shows the rest as absent (spec `map-rendering`)
-- [ ] 6.10 Select the coincident group on both; confirm a chooser appears and each marker is reachable through it (design D4)
-- [ ] 6.11 Confirm loading, failed, and empty are visibly different on both platforms. Force the failed state by pointing at an unreachable project or breaking the query — an untested error branch is the one that will be wrong (spec `map-rendering`)
+- [x] 6.9 Select a marker on both platforms; confirm the same fields with the same values, and that a marker with only a name shows the rest as absent (spec `map-rendering`)
+- [x] 6.10 Select the coincident group on both; confirm a chooser appears and each marker is reachable through it (design D4)
+- [x] 6.11 Confirm loading, failed, and empty are visibly different on both platforms. Force the failed state by pointing at an unreachable project or breaking the query — an untested error branch is the one that will be wrong (spec `map-rendering`)
 - [x] 6.12 Confirm no shared component renders markup for both platforms; the shared code is state and queries only (design D11, spec `styling`)
 - [x] 6.13 Run `pnpm lint`, `pnpm lint:mobile`, `pnpm typecheck`, `pnpm typecheck:mobile`, `pnpm test`, `pnpm check:cycles`, `pnpm check:specs`, and a web production build
 - [x] 6.14 `openspec validate render-trip-map --strict`
 
-### Still open — these need the applications actually running
+### What the verification pass actually found
 
-Everything above is built and every automated check passes. What is left is the
-seeing, which no amount of typechecking substitutes for. 6.1–6.11 are unchecked
-because a person has to open both apps and look.
+Every item was checked by opening both applications and looking, which is the
+only way three of these could have been found — each typechecks, renders, and
+is wrong:
 
-Two notes for whoever does:
+- **Markers drifted off their coordinates on zoom** (web). An inline
+  `position: relative` beat MapLibre's `.maplibregl-marker { position:
+  absolute }`, so every pin carried a fixed screen-pixel error. Panning looked
+  convincing; zooming gave it away.
+- **Tapping a pin did nothing** (mobile). On iOS the annotation and the map
+  each carry a tap recogniser, and the map-level dismiss handler cleared the
+  selection the marker had just set.
+- **The map disappeared when markers failed to load.** Corrected during the
+  pass: the tiles come from a different service over a different connection, so
+  a database failure has no business blanking a working map. Both states now
+  keep the map and differ by the note's tone.
 
-- **1.4 is done.** The migration is applied, an unauthenticated reader provably
-  sees nothing (`HTTP 200 []` against `/rest/v1/markers` with the publishable
-  key), and a signed-in member sees the markers on both platforms.
-- **6.11** needs the failed state forced. Point `NEXT_PUBLIC_SUPABASE_URL` at
-  something unreachable, or break the `select` in `packages/data/src/markers.ts`.
-  An untested error branch is the one that will be wrong.
+Only 6.8 is left, and it is a judgement rather than a check.
