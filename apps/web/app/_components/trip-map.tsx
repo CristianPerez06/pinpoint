@@ -174,13 +174,28 @@ function pinElement(group: MarkerGroup<Marker>, onSelect: () => void): HTMLEleme
     group.count > 1 ? `${group.count} places here` : `${view.label} (${view.typeLabel})`,
   )
   Object.assign(button.style, {
-    position: 'relative',
+    // Deliberately no `position`. MapLibre's own stylesheet sets
+    // `.maplibregl-marker { position: absolute; top: 0; left: 0 }` and applies
+    // the map transform on top of that; an inline `position: relative` beats
+    // the class, drops the pin back into normal flow, and the transform then
+    // offsets it from wherever flow put it. Every marker ends up carrying a
+    // fixed screen-pixel error — which pans convincingly and drifts off the
+    // map the moment you zoom.
+    //
+    // The badge below still anchors correctly: `absolute` establishes a
+    // containing block exactly as `relative` does.
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    // With a 2px border, content-box would make this 36px and put the
+    // centre-anchored pin 2px off in each axis.
+    boxSizing: 'border-box',
     width: `${MARKER_SIZE}px`,
     height: `${MARKER_SIZE}px`,
     padding: '0',
+    // Buttons carry a UA margin in some browsers, and a margin on an
+    // absolutely-positioned marker displaces it from the point it names.
+    margin: '0',
     borderRadius: `${RADIUS.pill}px`,
     backgroundColor: view.colour,
     border: `2px solid ${view.foreground}`,

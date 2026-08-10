@@ -61,6 +61,30 @@ function toMarker(row: MarkerRow): Marker {
 
 export const MARKERS_FAILED_MESSAGE = 'Could not load the places on this trip.'
 
+/* ===========================================================================
+ * TEMPORARY — verification scaffold for render-trip-map tasks 6.2, 6.3, 6.11.
+ *
+ * Change the value below, save, and both apps pick it up (web hot-reloads;
+ * mobile fast-refreshes). Set it back to `null` when you are done, or run
+ *
+ *     git checkout packages/data/src/markers.ts
+ *
+ * DELETE THIS BLOCK BEFORE MERGING. It is deliberately ugly so it cannot be
+ * mistaken for something that belongs here.
+ *
+ *   'empty'   a trip with no markers            -> task 6.2
+ *   'single'  a trip with exactly one marker    -> task 6.3
+ *   'failed'  the query genuinely fails         -> task 6.11
+ *   null      normal
+ *
+ * Each one goes through the real code path rather than short-circuiting: the
+ * empty case queries a trip that exists nowhere, and the failed case asks the
+ * database for a column that does not exist, so PostgREST returns a real error
+ * and the real `if (error)` branch below runs. An error branch that has only
+ * ever been reached by a stub is the one that will be wrong.
+ * ======================================================================== */
+const FORCE_STATE: 'empty' | 'single' | 'failed' | null = null
+
 /**
  * Every marker of one trip, oldest first.
  *
@@ -77,10 +101,19 @@ export async function fetchTripMarkers(
   client: PinpointClient,
   tripId: string,
 ): Promise<SettledQueryState<readonly Marker[]>> {
-  const { data, error } = await client
+  // TEMPORARY: see the FORCE_STATE block above. Both lines are inert when it
+  // is null, and both disappear with the scaffold.
+  const columns =
+    FORCE_STATE === 'failed'
+      ? ('id, no_such_column' as typeof MARKER_COLUMNS)
+      : MARKER_COLUMNS
+  const targetTrip =
+    FORCE_STATE === 'empty' ? '00000000-0000-4000-8000-000000000000' : tripId
+
+  const query = client
     .from('markers')
-    .select(MARKER_COLUMNS)
-    .eq('trip_id', tripId)
+    .select(columns)
+    .eq('trip_id', targetTrip)
     .order('created_at', { ascending: true })
     // `id` breaks ties, and the ties are not hypothetical: a bulk import — or
     // the seed — writes every row in one statement, so they share a timestamp
@@ -89,6 +122,9 @@ export async function fetchTripMarkers(
     // markers at one point gets drawn, which the specification requires them
     // to agree on.
     .order('id', { ascending: true })
+
+  // TEMPORARY: see the FORCE_STATE block above.
+  const { data, error } = await (FORCE_STATE === 'single' ? query.limit(1) : query)
 
   // The database error text is not shown to anyone: it is written for whoever
   // is reading logs, not for whoever is looking at a map that will not load.
