@@ -1,4 +1,4 @@
-import { signInSchema, signUpSchema } from '@pinpoint/core'
+import { fieldErrorsOf, signInSchema, signUpSchema } from '@pinpoint/core'
 import {
   authFailureMessage,
   authFailureOf,
@@ -6,7 +6,6 @@ import {
 } from '@pinpoint/supabase'
 import {
   type AuthOutcome,
-  type FieldErrors,
   invalidInput,
   rejected,
   succeeded,
@@ -21,17 +20,6 @@ import {
  * which. Choosing where a session lives stays with the app that has to live
  * with the answer.
  */
-
-function fieldErrorsOf(issues: { path: PropertyKey[]; message: string }[]): FieldErrors {
-  const errors: FieldErrors = {}
-  for (const issue of issues) {
-    const field = issue.path.length > 0 ? String(issue.path[0]) : '_'
-    // First message per field wins: a field with three broken rules should say
-    // one thing, not stack three.
-    errors[field] ??= issue.message
-  }
-  return errors
-}
 
 /**
  * What this package needs from a schema, described structurally.

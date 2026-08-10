@@ -53,3 +53,20 @@ export const newMarkerSchema = markerSchema.pick({
 })
 
 export type NewMarker = z.infer<typeof newMarkerSchema>
+
+/**
+ * What may be changed about a marker after it exists.
+ *
+ * Derived from `newMarkerSchema` rather than written out again, so a field added
+ * to one is editable in the other without anybody remembering to do it. The two
+ * cannot drift.
+ *
+ * `tripId` is dropped: every access rule in the product resolves to the trip a
+ * row belongs to, so an edit that could move a marker between trips would be an
+ * edit that could move it out of reach. `visited` is absent for the same reason
+ * it is absent from creation — it is recorded by marking a place visited, not by
+ * editing a form.
+ */
+export const markerPatchSchema = newMarkerSchema.omit({ tripId: true }).partial()
+
+export type MarkerPatch = z.infer<typeof markerPatchSchema>

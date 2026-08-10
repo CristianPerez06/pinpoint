@@ -7,10 +7,10 @@
 
 ## 2. @pinpoint/core
 
-- [ ] 2.1 Move `FieldErrors` and the zod-issues-to-field-errors conversion out of `@pinpoint/auth` into `@pinpoint/core`; have auth consume it. Auth's existing tests must still pass untouched.
-- [ ] 2.2 Add `currency` to `citySchema` and `newCitySchema` — nullable, three uppercase letters — and add a patch schema covering a city's name and currency.
-- [ ] 2.3 Add `formatPrice(amount, currency | null)`. Tests: a known currency, a null currency (bare amount, no symbol invented), zero, and a well-formed code `Intl` does not recognise.
-- [ ] 2.4 Add a marker patch schema for edits, derived from `newMarkerSchema` so the two cannot drift.
+- [x] 2.1 Move `FieldErrors` and the zod-issues-to-field-errors conversion out of `@pinpoint/auth` into `@pinpoint/core`; have auth consume it. Auth's existing tests must still pass untouched.
+- [x] 2.2 Add `currency` to `citySchema` and `newCitySchema` — nullable, three uppercase letters — and add a patch schema covering a city's name and currency.
+- [x] 2.3 Add `formatPrice(amount, currency | null)`. Tests: a known currency, a null currency (bare amount, no symbol invented), zero, and a well-formed code `Intl` does not recognise.
+- [x] 2.4 Add a marker patch schema for edits, derived from `newMarkerSchema` so the two cannot drift.
 
 ## 3. @pinpoint/geocode
 
