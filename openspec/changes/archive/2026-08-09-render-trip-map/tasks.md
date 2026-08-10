@@ -63,7 +63,7 @@
 - [x] 6.5 Zoom to maximum on the two identical-coordinate markers; confirm they do not separate, and that both are still reachable (design D4)
 - [x] 6.6 Confirm no marker carries a permanent label at city zoom, and that a marker's identity is still discoverable (spec `map-rendering`)
 - [x] 6.7 Change one family colour in `@pinpoint/tokens`; confirm both applications render the new colour and neither contains the literal (spec `map-rendering`, `styling`)
-- [ ] 6.8 Look at the seeded Kyoto data on both platforms and judge whether the density is legible. This is the question the change was scoped around — record the answer even if it is "clustering is needed after all"
+- [x] 6.8 Look at the seeded Kyoto data on both platforms and judge whether the density is legible. This is the question the change was scoped around — record the answer even if it is "clustering is needed after all"
 - [x] 6.9 Select a marker on both platforms; confirm the same fields with the same values, and that a marker with only a name shows the rest as absent (spec `map-rendering`)
 - [x] 6.10 Select the coincident group on both; confirm a chooser appears and each marker is reachable through it (design D4)
 - [x] 6.11 Confirm loading, failed, and empty are visibly different on both platforms. Force the failed state by pointing at an unreachable project or breaking the query — an untested error branch is the one that will be wrong (spec `map-rendering`)
@@ -89,4 +89,12 @@ is wrong:
   a database failure has no business blanking a working map. Both states now
   keep the map and differ by the note's tone.
 
-Only 6.8 is left, and it is a judgement rather than a check.
+**6.8, the question the change was scoped around: the density is legible, and
+clustering is not needed.** Roughly sixteen drawn points across Kyoto read
+clearly at city zoom on both a laptop and a phone. D3's reasoning holds — the
+density problem was always labels rather than geometry, which is why the
+specification forbids permanent labels instead of requiring clustering.
+
+One caveat for whoever revisits it: two of the four prominent family colours sit
+*inside* the station stack on this data, so the "minority is the signal" effect
+reads weaker here than it will on a real trip.

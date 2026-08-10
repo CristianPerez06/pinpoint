@@ -95,6 +95,9 @@ requiring clustering — the density problem is text, not geometry.
 Clustering becomes worth revisiting somewhere in the high hundreds of markers per view,
 which this product will not reach.
 
+**Confirmed by observation** (task 6.8): sixteen drawn points across Kyoto read clearly
+at city zoom on both platforms. The arithmetic held and no clustering is needed.
+
 ### D4 — Coincident markers are badged, not moved or spiderfied
 
 A geocoder frequently answers with a building's centre point rather than the place
