@@ -1,9 +1,9 @@
 ## 1. Database
 
-- [ ] 1.1 Query for markers whose `city_id` references a city belonging to a different trip. Expected to return nothing; unassign any that come back before adding the constraint.
-- [ ] 1.2 Write the migration: `unique (id, trip_id)` on `cities`; drop `markers_city_id_fkey` and recreate it over `(city_id, trip_id)` with `on delete set null (city_id)`; add `cities.currency text` nullable, checked as three uppercase letters.
-- [ ] 1.3 Apply it and confirm the guarantee this constraint nearly broke: deleting a city that still holds markers unassigns them rather than failing. If the column-list form is rejected, fall back to the trigger described in design.md.
-- [ ] 1.4 Regenerate `packages/supabase/src/database.types.ts` so `cities.currency` is typed.
+- [x] 1.1 Query for markers whose `city_id` references a city belonging to a different trip. Expected to return nothing; unassign any that come back before adding the constraint.
+- [x] 1.2 Write the migration: `unique (id, trip_id)` on `cities`; drop `markers_city_id_fkey` and recreate it over `(city_id, trip_id)` with `on delete set null (city_id)`; add `cities.currency text` nullable, checked as three uppercase letters.
+- [x] 1.3 Apply it and confirm the guarantee this constraint nearly broke: deleting a city that still holds markers unassigns them rather than failing. If the column-list form is rejected, fall back to the trigger described in design.md.
+- [x] 1.4 Regenerate `packages/supabase/src/database.types.ts` so `cities.currency` is typed.
 
 ## 2. @pinpoint/core
 

@@ -42,18 +42,21 @@ export type Database = {
       cities: {
         Row: {
           created_at: string
+          currency: string | null
           id: string
           name: string
           trip_id: string
         }
         Insert: {
           created_at?: string
+          currency?: string | null
           id?: string
           name: string
           trip_id: string
         }
         Update: {
           created_at?: string
+          currency?: string | null
           id?: string
           name?: string
           trip_id?: string
@@ -150,10 +153,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "markers_city_id_fkey"
-            columns: ["city_id"]
+            columns: ["city_id", "trip_id"]
             isOneToOne: false
             referencedRelation: "cities"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "trip_id"]
           },
           {
             foreignKeyName: "markers_trip_id_fkey"
