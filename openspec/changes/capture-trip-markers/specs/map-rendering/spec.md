@@ -11,10 +11,18 @@ than failing or showing an undefined region.
 When the trip has exactly one marker, the map SHALL centre on it at a zoom level that
 shows its surroundings rather than at maximum zoom.
 
-The map SHALL re-frame when, and only when, the person asks it to. Selecting a city is
-such a request, and SHALL frame that city's markers using the same shared logic.
-Selecting a city that holds no markers SHALL leave the view where it is, because there
-is nothing to frame and moving to an arbitrary position would be worse than not moving.
+The map SHALL re-frame when, and only when, the person asks it to. Two things are such
+a request:
+
+- **Selecting a city**, which SHALL frame that city's markers using the same shared
+  logic. Selecting a city that holds no markers SHALL leave the view where it is,
+  because there is nothing to frame and moving to an arbitrary position would be worse
+  than not moving.
+- **Choosing a place from search**, which SHALL move to that place. A searched place is
+  usually not on screen — that is generally why somebody searched for it — so leaving
+  the camera still would put the place they just chose somewhere they cannot see, and
+  the position they are being invited to confirm would be invisible while they
+  confirmed it.
 
 Nothing else SHALL move the camera. Panning or zooming SHALL NOT be overridden by
 re-framing, and markers arriving, changing, or being added SHALL NOT re-frame — the
@@ -51,6 +59,13 @@ application moved on its own.
 - **THEN** the camera does not move
 - **AND** no error is shown
 
+#### Scenario: A place is chosen from search
+
+- **WHEN** a person chooses a place returned by search
+- **THEN** the map moves to that place
+- **AND** it is close enough to show what surrounds it, rather than at maximum zoom
+- **AND** the unsaved marker for it is on screen
+
 #### Scenario: A marker is added while the person has panned away
 
 - **WHEN** a marker is saved after the person has moved the view
@@ -74,11 +89,17 @@ When the place is abandoned the unsaved marker SHALL disappear and the map SHALL
 exactly as it was. When the place is saved it SHALL become an ordinary marker and SHALL
 be drawn like every other.
 
-#### Scenario: An unsaved marker is placed
+#### Scenario: An unsaved marker is placed by pointing at the map
 
-- **WHEN** a person begins adding a place
+- **WHEN** a person points at the map to place somewhere
 - **THEN** the map draws its position distinguishably from the saved markers
-- **AND** the camera does not move
+- **AND** the camera does not move, because they chose a point they were already looking at
+
+#### Scenario: An unsaved marker is placed by choosing a search result
+
+- **WHEN** a person chooses a place returned by search
+- **THEN** the map draws its position distinguishably from the saved markers
+- **AND** the camera moves so that position is on screen
 
 #### Scenario: An unsaved marker is placed on top of a saved one
 

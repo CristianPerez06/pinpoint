@@ -15,6 +15,7 @@ import {
   FALLBACK_MARKER_TYPE,
   fitBounds,
   groupCoincident,
+  type LngLat,
   type MarkerGroup,
 } from '@pinpoint/map'
 import { COLOUR, SPACE } from '@pinpoint/tokens'
@@ -92,7 +93,20 @@ export function TripWorkspace({
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
-  const [frameToken, setFrameToken] = useState(0)
+  /**
+   * What the camera has been asked to show, and how many times it has been
+   * asked. Nothing else moves it.
+   *
+   * Points rather than markers, because the two requests come from different
+   * places and want the same treatment: a city's saved markers, and the single
+   * position of a place just chosen from search. The token is what distinguishes
+   * "somebody asked again" from "this array is a new object", which re-renders
+   * produce constantly.
+   */
+  const [cameraTarget, setCameraTarget] = useState<{
+    points: readonly LngLat[]
+    token: number
+  }>({ points: initialMarkers, token: 0 })
 
   const centreRef = useRef<DraftPosition | null>(null)
 
@@ -149,13 +163,44 @@ export function TripWorkspace({
     const query = params.toString()
     router.replace(query === '' ? '/' : `/?${query}`, { scroll: false })
 
-    // Selecting a city is a request to re-frame. Nothing else moves the camera.
-    setFrameToken((token) => token + 1)
+    // Selecting a city is a request to re-frame. Computed from the city being
+    // selected rather than from `cityMarkers`, which still reflects the URL as
+    // it was a moment ago.
+    const points =
+      cityId === null
+        ? markers
+        : markers.filter((marker) => marker.cityId === cityId)
+
+    // An empty list leaves the camera alone: there is nothing to frame, and
+    // moving somewhere arbitrary would be worse than not moving.
+    setCameraTarget((current) => ({ points, token: current.token + 1 }))
   }
 
-  function beginCreate(position: DraftPosition, initial: Partial<MarkerFormValues>) {
+  function beginCreate(
+    position: DraftPosition,
+    initial: Partial<MarkerFormValues>,
+    /**
+     * Whether to move the camera to the new place.
+     *
+     * True for a search result, which is usually not on screen — that is
+     * generally why somebody searched — so leaving the camera still would put
+     * the place they just chose somewhere they cannot see, and ask them to
+     * confirm a position while it was invisible.
+     *
+     * False for a pointed one, where the position is by definition somewhere
+     * they were already looking, and moving would be the map taking the view
+     * away from them.
+     */
+    moveThere: boolean,
+  ) {
     setDraft(position)
     setDropping(false)
+    if (moveThere) {
+      setCameraTarget((current) => ({
+        points: [position],
+        token: current.token + 1,
+      }))
+    }
     setFieldErrors({})
     setMessage(null)
     setPanel({
@@ -290,6 +335,7 @@ export function TripWorkspace({
             beginCreate(
               { lng: candidate.lng, lat: candidate.lat },
               { name: candidate.name, type: candidate.typeGuess },
+              true,
             )
           }
         />
@@ -321,10 +367,10 @@ export function TripWorkspace({
           }}
           draft={draft}
           dropping={dropping}
-          onDropAt={(position) => beginCreate(position, {})}
+          onDropAt={(position) => beginCreate(position, {}, false)}
           onDraftMove={setDraft}
-          frameTo={cityMarkers}
-          frameToken={frameToken}
+          frameTo={cameraTarget.points}
+          frameToken={cameraTarget.token}
           centreRef={centreRef}
         />
 

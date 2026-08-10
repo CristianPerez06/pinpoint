@@ -6,6 +6,7 @@ import {
   DEFAULT_VIEWPORT,
   fitBounds,
   styleUrl,
+  type LngLat,
   type MarkerGroup,
   type MarkerView,
 } from '@pinpoint/map'
@@ -86,8 +87,16 @@ export function TripMap({
   dropping: boolean
   onDropAt: (position: DraftPosition) => void
   onDraftMove: (position: DraftPosition) => void
-  /** Markers to frame when `frameToken` changes. Empty leaves the camera alone. */
-  frameTo: readonly Marker[]
+  /**
+   * Points to frame when `frameToken` changes. Empty leaves the camera alone.
+   *
+   * Points rather than markers, because the two things that ask for a re-frame
+   * want the same treatment from different sources: a city's saved markers, and
+   * the single position of a place just chosen from search. `fitBounds` already
+   * answers a one-point list with that point at a zoom that shows its
+   * surroundings, so the second case needs no special handling.
+   */
+  frameTo: readonly LngLat[]
   frameToken: number
   /** Where the map is looking, for biasing search. A ref because it changes on every pan. */
   centreRef: { current: DraftPosition | null }
@@ -270,7 +279,7 @@ export function TripMap({
         : DEFAULT_VIEWPORT
 
     const camera = fitBounds([...frameTo], { viewport })
-    map.easeTo({
+    map.flyTo({
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
     })
