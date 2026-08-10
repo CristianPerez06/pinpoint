@@ -2,7 +2,11 @@ import { fetchTripMarkers, fetchTrips } from '@pinpoint/data'
 import { COLOUR, SPACE } from '@pinpoint/tokens'
 
 import { signOutAction } from '@/app/_actions/auth'
-import { EmptyState, FailedState } from '@/app/_components/states'
+import {
+  EmptyState,
+  FailedState,
+  MapOverlayNote,
+} from '@/app/_components/states'
 import { TripMap } from '@/app/_components/trip-map'
 import { requireUserId } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
@@ -47,43 +51,27 @@ export default async function Home() {
   const trip = trips.data[0]!
   const markers = await fetchTripMarkers(supabase, trip.id)
 
-  if (markers.status === 'failed') {
-    // Explicitly not the empty state below. An empty map that says "no places
-    // yet" when the request failed is a lie a person cannot see through.
-    return (
-      <Shell title={trip.name}>
-        <FailedState message={markers.message} />
-      </Shell>
-    )
-  }
-
+  /**
+   * The map renders in all three cases, because in all three the map itself is
+   * fine — the tiles arrived and the camera is real. Only the markers differ,
+   * so only a note differs.
+   *
+   * What must never blur is empty against failed. "You have not saved anything
+   * yet" and "this is broken" are different facts, and an empty map cannot
+   * tell them apart on its own. The note carries that distinction, in a colour
+   * a person reads before the words.
+   */
   return (
     <Shell title={trip.name}>
+      <TripMap markers={markers.status === 'ready' ? markers.data : []} />
+
       {markers.status === 'empty' ? (
-        // The map still renders — at its default position, with no error —
-        // because a trip with nothing on it is a valid trip, not a failure.
-        <>
-          <TripMap markers={[]} />
-          <div
-            style={{
-              position: 'absolute',
-              top: SPACE.md,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: COLOUR.surface,
-              border: `1px solid ${COLOUR.border}`,
-              borderRadius: 8,
-              padding: `${SPACE.sm}px ${SPACE.md}px`,
-              color: COLOUR.textMuted,
-              zIndex: 2,
-            }}
-          >
-            No places saved on this trip yet.
-          </div>
-        </>
-      ) : (
-        <TripMap markers={markers.data} />
-      )}
+        <MapOverlayNote>No places saved on this trip yet.</MapOverlayNote>
+      ) : null}
+
+      {markers.status === 'failed' ? (
+        <MapOverlayNote tone="danger">{markers.message}</MapOverlayNote>
+      ) : null}
     </Shell>
   )
 }

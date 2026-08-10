@@ -103,3 +103,48 @@ export function EmptyState({ children }: { children: ReactNode }) {
     </Panel>
   )
 }
+
+/**
+ * A note laid over the map without replacing it.
+ *
+ * Used for the two cases where the map itself is fine and only the markers are
+ * in question: a trip with nothing on it, and a trip whose markers would not
+ * load. Both keep the map, because the map is still true — the tiles arrived,
+ * the camera is real, and hiding it would throw away the part that worked.
+ *
+ * `tone` is the entire difference between them, and it has to be a difference
+ * a person notices without reading: muted grey for "nothing here yet", red for
+ * "this is broken".
+ */
+export function MapOverlayNote({
+  tone = 'muted',
+  children,
+}: {
+  tone?: 'muted' | 'danger'
+  children: ReactNode
+}) {
+  const danger = tone === 'danger'
+
+  return (
+    <div
+      role={danger ? 'alert' : 'status'}
+      style={{
+        position: 'absolute',
+        top: SPACE.md,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        maxWidth: `calc(100% - ${SPACE.xl}px)`,
+        backgroundColor: danger ? COLOUR.dangerSurface : COLOUR.surface,
+        border: `1px solid ${danger ? COLOUR.danger : COLOUR.border}`,
+        borderRadius: RADIUS.md,
+        padding: `${SPACE.sm}px ${SPACE.md}px`,
+        color: danger ? COLOUR.danger : COLOUR.textMuted,
+        fontWeight: danger ? 600 : 400,
+        textAlign: 'center',
+        zIndex: 2,
+      }}
+    >
+      {children}
+    </div>
+  )
+}

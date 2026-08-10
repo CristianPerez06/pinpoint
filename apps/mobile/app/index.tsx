@@ -81,20 +81,24 @@ function Body({
   }
 
   if (markers.status === 'loading') return <LoadingState />
-  if (markers.status === 'failed') return <FailedState message={markers.message} />
 
-  if (markers.status === 'empty') {
-    // The map still renders, at its default position and with no error: a trip
-    // with nothing on it is a valid trip.
-    return (
-      <>
-        <TripMap markers={[]} />
+  // The map renders in all three remaining cases, because in all three the map
+  // itself is fine — the tiles arrived and the camera is real. Only the markers
+  // differ, so only a note differs. What must never blur is empty against
+  // failed, and the note's tone is what carries that.
+  return (
+    <>
+      <TripMap markers={markers.status === 'ready' ? markers.data : []} />
+
+      {markers.status === 'empty' ? (
         <MarkersOverlayNote>No places saved on this trip yet.</MarkersOverlayNote>
-      </>
-    )
-  }
+      ) : null}
 
-  return <TripMap markers={markers.data} />
+      {markers.status === 'failed' ? (
+        <MarkersOverlayNote tone="danger">{markers.message}</MarkersOverlayNote>
+      ) : null}
+    </>
+  )
 }
 
 const styles = StyleSheet.create({
