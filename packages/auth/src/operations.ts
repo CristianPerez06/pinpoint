@@ -72,6 +72,12 @@ export async function signIn(
     return rejected(failure, authFailureMessage(failure))
   }
 
+  // Claiming lives here rather than in each application, so that every
+  // successful authentication claims because no path through authentication
+  // skips it — not because two call sites remembered. Two call sites remembering
+  // is the arrangement that produced the original defect.
+  await claimTripMemberships(client)
+
   return succeeded
 }
 
@@ -101,6 +107,12 @@ export async function signUp(
   if (data.user && data.user.identities?.length === 0) {
     return rejected('email-taken', authFailureMessage('email-taken'))
   }
+
+  // Same reasoning as `signIn`. Email confirmation is off, so sign-up leaves the
+  // person signed in and there is a session to claim under; if it is ever turned
+  // on there will not be, and their first sign-in is what claims instead —
+  // which is exactly why claiming cannot live only here.
+  await claimTripMemberships(client)
 
   return succeeded
 }
@@ -134,10 +146,18 @@ export async function signOut(client: PinpointClient): Promise<AuthOutcome> {
  * never stolen.
  *
  * The work happens in the database because an unclaimed account is not yet a
- * member of anything, so no membership policy can reach the row it needs.
+ * member of anything, so no membership policy can reach the row it needs. The
+ * function is SECURITY DEFINER and matches on `auth.jwt() ->> 'email'` — the
+ * address the identity provider verified, never one passed in. That is the whole
+ * authorization, and it is why this takes no email argument.
+ *
+ * Called by `signIn` and `signUp` above, so no application has to call it to be
+ * correct. Still exported, because claiming on demand remains a reasonable thing
+ * to want.
  *
  * Returns how many memberships were claimed — zero is the ordinary answer,
- * meaning nothing was waiting.
+ * meaning nothing was waiting. A failure is deliberately swallowed rather than
+ * surfaced: a claim that could not run must not fail somebody's sign-in.
  */
 export async function claimTripMemberships(
   client: PinpointClient,

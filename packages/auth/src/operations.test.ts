@@ -1,7 +1,7 @@
 import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
-import { signIn, signOut, signUp } from './operations'
+import { claimTripMemberships, signIn, signOut, signUp } from './operations'
 
 /**
  * A client that records what it was asked to do.
@@ -14,6 +14,7 @@ function stubClient(responses: {
   signInWithPassword?: unknown
   signUp?: unknown
   signOut?: unknown
+  rpc?: unknown
 }) {
   const calls = {
     signInWithPassword: vi.fn().mockResolvedValue(
@@ -24,9 +25,11 @@ function stubClient(responses: {
     ),
     signOut: vi.fn().mockResolvedValue(responses.signOut ?? { error: null }),
   }
+  const rpc = vi.fn().mockResolvedValue(responses.rpc ?? { data: 1, error: null })
+
   return {
-    client: { auth: calls } as unknown as PinpointClient,
-    calls,
+    client: { auth: calls, rpc } as unknown as PinpointClient,
+    calls: { ...calls, rpc },
   }
 }
 
@@ -161,5 +164,87 @@ describe('signOut', () => {
     const { client } = stubClient({ signOut: { error: { code: 'unexpected' } } })
 
     expect(await signOut(client)).toMatchObject({ ok: false, failure: 'generic' })
+  })
+})
+
+/**
+ * The regression these guard is not "the claim function works" — it is that
+ * authenticating claims at all. Claiming used to happen only at sign-up, which
+ * made an ordinary sequence (sign up, then get invited) produce an invitation
+ * that no action in the product could ever claim. The person saw an empty trip
+ * list, indistinguishable from having been invited to nothing.
+ *
+ * Deleting the `claimTripMemberships` call from `signIn` must fail a test here.
+ */
+describe('claiming memberships on authentication', () => {
+  it('claims when signing in, not only when signing up', async () => {
+    const { client, calls } = stubClient({})
+
+    await signIn(client, { email: 'traveller@example.com', password: 'kyoto2026' })
+
+    expect(calls.rpc).toHaveBeenCalledWith('claim_trip_memberships')
+  })
+
+  it('claims when signing up', async () => {
+    const { client, calls } = stubClient({})
+
+    await signUp(client, {
+      email: 'traveller@example.com',
+      password: 'kyoto2026',
+      confirmPassword: 'kyoto2026',
+    })
+
+    expect(calls.rpc).toHaveBeenCalledWith('claim_trip_memberships')
+  })
+
+  it('does not claim when the credentials were rejected', async () => {
+    // Nothing has been proved about who is asking, so there is no verified
+    // address to claim against.
+    const { client, calls } = stubClient({
+      signInWithPassword: { data: {}, error: { code: 'invalid_credentials' } },
+    })
+
+    await signIn(client, { email: 'traveller@example.com', password: 'wrong' })
+
+    expect(calls.rpc).not.toHaveBeenCalled()
+  })
+
+  it('does not claim when the input never reached the service', async () => {
+    const { client, calls } = stubClient({})
+
+    await signIn(client, { email: 'nope', password: '' })
+
+    expect(calls.rpc).not.toHaveBeenCalled()
+  })
+
+  it('succeeds anyway when the claim itself fails', async () => {
+    // Somebody with nothing waiting is not in an error state, and a claim that
+    // could not run must not cost them their session.
+    const { client } = stubClient({ rpc: { data: null, error: { message: 'nope' } } })
+
+    const outcome = await signIn(client, {
+      email: 'traveller@example.com',
+      password: 'kyoto2026',
+    })
+
+    expect(outcome.ok).toBe(true)
+  })
+
+  it('passes no address to the database', async () => {
+    // The match is on the address the identity provider verified, read inside
+    // the function from the token. An email argument here would turn claiming
+    // into "name any address and take their invitation".
+    const { client, calls } = stubClient({})
+
+    await claimTripMemberships(client)
+
+    expect(calls.rpc).toHaveBeenCalledWith('claim_trip_memberships')
+    expect(calls.rpc.mock.calls[0]).toHaveLength(1)
+  })
+
+  it('reports nothing claimed as zero rather than as a failure', async () => {
+    const { client } = stubClient({ rpc: { data: 0, error: null } })
+
+    expect(await claimTripMemberships(client)).toBe(0)
   })
 })

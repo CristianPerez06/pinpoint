@@ -1,6 +1,6 @@
 'use server'
 
-import { claimTripMemberships, signIn, signOut, signUp } from '@pinpoint/auth'
+import { signIn, signOut, signUp } from '@pinpoint/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -13,6 +13,9 @@ import { createClient } from '@/lib/supabase/server'
  * error interpretation, and no knowledge of what Supabase returns lives here —
  * that is all in the shared package, so mobile gets the same behaviour without
  * any of this being duplicated.
+ *
+ * Claiming trip memberships is not called here either. It happens inside
+ * `signIn` and `signUp`, so that no application can authenticate without it.
  */
 
 export interface AuthFormState {
@@ -41,12 +44,6 @@ export async function signInAction(
 
   if (!outcome.ok) return stateFrom(outcome)
 
-  // Claim on sign-in as well as sign-up. Being invited after signing up is
-  // ordinary — it is what happened to both members of the first trip — and
-  // claiming only at sign-up leaves those invitations permanently unclaimable.
-  // Idempotent, so the cost after the first time is one round trip.
-  await claimTripMemberships(supabase)
-
   revalidatePath('/', 'layout')
   redirect('/')
 }
@@ -63,14 +60,6 @@ export async function signUpAction(
   })
 
   if (!outcome.ok) return stateFrom(outcome)
-
-  // Email confirmation is off, so sign-up leaves the person signed in. Claim
-  // the member rows seeded for this address while that session exists — it is
-  // what turns a bare account into somebody on a trip.
-  //
-  // Claiming nothing is not an error: it means nobody has been invited at this
-  // address. That person sees an empty trip list, which is the correct answer.
-  await claimTripMemberships(supabase)
 
   revalidatePath('/', 'layout')
   redirect('/')
