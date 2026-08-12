@@ -81,7 +81,14 @@ const styles = StyleSheet.create({
   attributionText: { fontSize: 10, color: COLOUR.text },
 })
 
-export function TripMap({ markers }: { markers: readonly Marker[] }) {
+export function TripMap({
+  markers,
+  currencyOf,
+}: {
+  markers: readonly Marker[]
+  /** Passed straight through to the details sheet; the map itself has no use for it. */
+  currencyOf: (marker: Marker) => string | null
+}) {
   const [selection, setSelection] = useState<Selection | null>(null)
 
   /**
@@ -160,6 +167,7 @@ export function TripMap({ markers }: { markers: readonly Marker[] }) {
 
       {selection ? (
         <MarkerDetails
+          currencyOf={currencyOf}
           selection={selection}
           onChoose={(index) => setSelection({ ...selection, index })}
           onBack={() => setSelection({ ...selection, index: null })}

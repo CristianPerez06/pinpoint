@@ -89,6 +89,22 @@ placeholders.
   version (`sudo xcodebuild -license accept`); until it is, `xcrun` exits 69, `pod`
   refuses, and Expo misreads that as a broken CocoaPods and tries to reinstall it. All
   three symptoms are one cause.
+- **A `ScrollView` inside a content-sized container collapses.** React Native's
+  `ScrollView` has no intrinsic content height, so a parent that sizes to its children —
+  a sheet pinned to the bottom with `maxHeight` and no fixed height, say — asks how tall
+  it is and is told almost nothing. The parent closes up and everything past the first
+  row is clipped. **Learn the shape of this one too**: the children render perfectly and
+  are simply given nowhere to draw, so it reads as a data problem and never is. Either
+  give the container a definite height or do not scroll.
+- **A composite foreign key needs `on delete set null (column_list)`.** A bare `on delete
+  set null` nulls *every* referencing column, so `(city_id, trip_id) references cities
+  (id, trip_id)` would also null `markers.trip_id` — which is `not null`, making the
+  delete fail outright rather than unassigning anything. The column-list form is
+  Postgres 15+; this database is 17.
+- **Verify database behaviour with a rolled-back probe, not by reasoning.** A `do $$ …
+  raise exception 'RESULT: %', … $$` block does the work, reports through the error
+  message, and rolls back everything it touched. That is how the constraint above was
+  caught doing the right thing on real data instead of being assumed to.
 
 ## Styling
 

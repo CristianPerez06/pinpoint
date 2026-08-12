@@ -1,3 +1,4 @@
+import type { FieldErrors } from '@pinpoint/core'
 import type { AuthFailure } from '@pinpoint/supabase'
 
 /**
@@ -16,8 +17,13 @@ export type AuthOutcome =
   | { ok: false; kind: 'invalid-input'; fieldErrors: FieldErrors }
   | { ok: false; kind: 'rejected'; failure: AuthFailure; message: string }
 
-/** One message per offending field, keyed by field name. */
-export type FieldErrors = Record<string, string>
+/**
+ * Re-exported rather than defined here. It moved into `@pinpoint/core` when
+ * writing a marker turned out to reject input for the same reason signing in
+ * does; keeping the name on this package's surface means no caller had to learn
+ * that it moved.
+ */
+export type { FieldErrors }
 
 export function invalidInput(fieldErrors: FieldErrors): AuthOutcome {
   return { ok: false, kind: 'invalid-input', fieldErrors }

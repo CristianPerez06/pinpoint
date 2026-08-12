@@ -1,7 +1,7 @@
-import type { Marker } from '@pinpoint/core'
+import { formatPrice, type Marker } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { COLOUR, MARKER_SIZE, RADIUS, SPACE } from '@pinpoint/tokens'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 /**
  * What was recorded about a place, as a sheet rising from the bottom.
@@ -119,11 +119,14 @@ export interface Selection {
  */
 export function MarkerDetails({
   selection,
+  currencyOf,
   onChoose,
   onBack,
   onDismiss,
 }: {
   selection: Selection
+  /** The currency of the city a marker is filed under, or null when there is none. */
+  currencyOf: (marker: Marker) => string | null
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
@@ -140,7 +143,11 @@ export function MarkerDetails({
         <Text style={styles.hint}>
           They share the same coordinates, so zooming will not separate them.
         </Text>
-        <ScrollView>
+        {/* Same reasoning as the fields below: a ScrollView here reports almost
+            no height to a sheet that is asking how tall its children are, and
+            takes the list down with it. Markers sharing one point come in twos
+            and threes, so nothing needs scrolling. */}
+        <View>
           {group.markers.map((marker, i) => (
             <Pressable
               key={marker.id}
@@ -153,7 +160,7 @@ export function MarkerDetails({
               <Text style={styles.choiceType}>{group.views[i]!.typeLabel}</Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
       </View>
     )
   }
@@ -169,19 +176,43 @@ export function MarkerDetails({
         <Dismiss onDismiss={onDismiss} />
       </View>
 
-      <ScrollView>
+      {/*
+        A plain view, not a ScrollView.
+
+        The sheet has no fixed height — it is pinned to the bottom and grows
+        with its content up to a cap — and a ScrollView has no intrinsic
+        content height in React Native. Nested inside a parent that is asking
+        its children how tall they are, it answers with almost nothing, so the
+        sheet closed up around the header and every field below the first was
+        clipped away. The fields were rendering the whole time; there was just
+        no room allotted to draw them in.
+
+        The trade is that a very long note is cut off at the cap rather than
+        scrolled. Showing four fields reliably beats scrolling one that nobody
+        can see.
+      */}
+      <View>
         <Field label="Type" value={view.typeLabel} />
         <Field label="Note" value={marker.note} />
         <Field label="Link" value={marker.link} />
-        {/* No currency is stored yet, so none is invented here. */}
-        <Field label="Price" value={marker.price === null ? null : String(marker.price)} />
+        {/* The currency of the city this is filed under, or none — never a
+            guess. Formatted by the shared helper so the phone and the laptop
+            cannot disagree about the same amount. */}
+        <Field
+          label="Price"
+          value={
+            marker.price === null
+              ? null
+              : formatPrice(marker.price, currencyOf(marker))
+          }
+        />
 
         {group.count > 1 ? (
           <Pressable onPress={onBack} style={styles.back} accessibilityRole="button">
             <Text style={styles.backText}>← Others at this point</Text>
           </Pressable>
         ) : null}
-      </ScrollView>
+      </View>
     </View>
   )
 }

@@ -1,11 +1,16 @@
 export { signInSchema, signUpSchema } from './auth'
 export type { SignInInput, SignUpInput } from './auth'
 
-export { citySchema, newCitySchema } from './city'
-export type { City, NewCity } from './city'
+export { citySchema, cityPatchSchema, newCitySchema } from './city'
+export type { City, CityPatch, NewCity } from './city'
 
-export { markerSchema, newMarkerSchema } from './marker'
-export type { Marker, NewMarker } from './marker'
+export { fieldErrorsOf } from './field-errors'
+export type { FieldErrors, ValidationIssue } from './field-errors'
+
+export { markerSchema, markerPatchSchema, newMarkerSchema } from './marker'
+export type { Marker, MarkerPatch, NewMarker } from './marker'
+
+export { CURRENCY_CODE_PATTERN, formatPrice } from './price'
 
 export {
   interestStateOf,

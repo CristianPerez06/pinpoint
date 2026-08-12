@@ -1,0 +1,23 @@
+{
+  "name": "@pinpoint/geocode",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "comment": "Turns a typed query into candidate places. Unlike @pinpoint/map, which is data and pure functions and may not perform I/O at all, this package exists to talk to one external service — but it never reaches a global to do it: the caller passes a fetch function, exactly as @pinpoint/auth and @pinpoint/data are passed a client. That keeps the request building, the response parsing, and the type guessing testable with no network and no stubbed global, which is where this package's value actually is. The only workspace dependency is @pinpoint/map, for the marker type identifiers a candidate is guessed into.",
+  "dependencies": {
+    "@pinpoint/map": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

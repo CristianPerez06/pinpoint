@@ -1,6 +1,11 @@
 import { signOut } from '@pinpoint/auth'
-import type { Marker, Trip } from '@pinpoint/core'
-import { fetchTripMarkers, fetchTrips, type QueryState } from '@pinpoint/data'
+import type { City, Marker, Trip } from '@pinpoint/core'
+import {
+  fetchTripCities,
+  fetchTripMarkers,
+  fetchTrips,
+  type QueryState,
+} from '@pinpoint/data'
 import { COLOUR, SPACE } from '@pinpoint/tokens'
 import { Redirect } from 'expo-router'
 import { Button, StyleSheet, Text, View } from 'react-native'
@@ -34,6 +39,15 @@ export default function Index() {
     [tripId],
   )
 
+  // Read only so that a price can be shown in the currency of the city it is
+  // filed under. This screen writes nothing — planning happens at a laptop —
+  // but a price reading "500" here and "¥500" there would be the same record
+  // saying two things.
+  const cities = useQuery(
+    async () => (tripId ? fetchTripCities(supabase, tripId) : { status: 'empty' as const }),
+    [tripId],
+  )
+
   // Reading the session out of the keychain is asynchronous, so the first frame
   // after launch has no session even when one exists. Redirecting here would
   // bounce a signed-in person to the sign-in screen every time they opened the
@@ -54,7 +68,7 @@ export default function Index() {
       </View>
 
       <View style={styles.body}>
-        <Body trips={trips} markers={markers} />
+        <Body trips={trips} markers={markers} cities={cities} />
       </View>
     </View>
   )
@@ -70,9 +84,11 @@ export default function Index() {
 function Body({
   trips,
   markers,
+  cities,
 }: {
   trips: QueryState<readonly Trip[]>
   markers: QueryState<readonly Marker[]>
+  cities: QueryState<readonly City[]>
 }) {
   if (trips.status === 'loading') return <LoadingState what="your trips" />
   if (trips.status === 'failed') return <FailedState message={trips.message} />
@@ -86,9 +102,19 @@ function Body({
   // itself is fine — the tiles arrived and the camera is real. Only the markers
   // differ, so only a note differs. What must never blur is empty against
   // failed, and the note's tone is what carries that.
+  // Cities that did not load leave every price bare rather than guessed. That
+  // is the same rule the schema states: a price in the wrong currency is worse
+  // than one in none, because it looks correct.
+  const loadedCities = cities.status === 'ready' ? cities.data : []
+  const currencyOf = (marker: Marker) =>
+    loadedCities.find((city) => city.id === marker.cityId)?.currency ?? null
+
   return (
     <>
-      <TripMap markers={markers.status === 'ready' ? markers.data : []} />
+      <TripMap
+        markers={markers.status === 'ready' ? markers.data : []}
+        currencyOf={currencyOf}
+      />
 
       {markers.status === 'empty' ? (
         <MarkersOverlayNote>No places saved on this trip yet.</MarkersOverlayNote>
