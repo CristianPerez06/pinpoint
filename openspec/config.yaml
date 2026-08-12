@@ -17,30 +17,44 @@ context: |
   app ever ships via TestFlight or the App Store. Treat any proposal that
   introduces a metered service as rejected by default.
 
-  Stack — web, built first:
-  - MapLibre GL JS for map rendering (open source, no API key, no license fees)
-  - OpenFreeMap for vector tiles (free, unlimited, no signup)
-  - Supabase free tier for Postgres, auth, and realtime — this is what syncs
-    markers between people on a shared map
+  Stack, as built:
+  - pnpm 11 workspaces, hoisted node linker. Two apps over seven shared packages.
+  - apps/web — Next.js 16 App Router, React 19, maplibre-gl 6, @supabase/ssr.
+    Built first, and still the only place anything can be written.
+  - apps/mobile — Expo 57 with expo-router on a development build (not Expo Go),
+    React Native 0.86, @maplibre/maplibre-react-native 11. Read-only today.
+  - OpenFreeMap for vector tiles (free, unlimited, no signup); Supabase free tier
+    for Postgres and auth; Photon for place search.
+  - packages/ — tokens (no third-party deps), map (depends only on tokens),
+    core, supabase, auth, data, geocode. Apps depend on packages; packages never
+    depend on apps, and `pnpm check:cycles` enforces both.
 
-  Stack — mobile, deliberately later:
-  - React Native with Expo, using a dev build rather than Expo Go
-  - @maplibre/maplibre-react-native, which takes the same style JSON and a
-    near-identical marker/camera API as the web
-  - Design the map layer so it ports to mobile rather than being rewritten. Keep
-    map logic (style JSON, marker and camera handling) free of web-only APIs and
-    separated from web UI code. Flag any web-specific choice that would not port.
+  The portability boundary is the load-bearing constraint: @pinpoint/map carries
+  no renderer, no DOM API, and no native module, because web renders with
+  maplibre-gl and native with @maplibre/maplibre-react-native. Map behaviour is
+  therefore expressed as data and pure functions — style references, camera
+  derivation, marker geometry — and each app binds that to its own renderer. Code
+  that needs a renderer dependency belongs in an app. Flag any web-specific choice
+  that would not port.
 
-  Undecided, not yet committed — propose these only when a change actually needs
-  them, and say so explicitly:
+  Undecided, not yet committed — propose only when a change actually needs it, and
+  say so explicitly:
   - Protomaps .pmtiles to extract a country into one file for offline maps
     (useful underground or on unreliable data)
-  - Photon or Nominatim for place search — free OSM geocoders
 
-  Status: early. No application code exists yet; the repo is a README and this
-  OpenSpec setup. Do not assume any schema, framework scaffolding, build tooling,
-  or directory layout is already in place — if a change depends on one, it has to
-  establish it.
+  Status: the app can replace the spreadsheet it was built to replace. Auth,
+  schema with row-level security on every table, map rendering on both platforms,
+  and the full write path (search, drop, edit, remove, cities as the grouping) are
+  all in place. Read `openspec/ROADMAP.md` for what is next and why in that order,
+  `openspec/specs/` for the rules in force, and `AGENTS.md` for the gotchas that
+  have already cost real time. Do not assume a capability is missing without
+  checking — but do check, because several things that look present are not, and
+  the roadmap's loose ends list is where they are recorded.
+
+  A standing lesson from every change so far: budget for looking, not just for
+  building. Each of the last two changes shipped three defects that type-checked,
+  rendered, and were wrong — visible only by opening the apps. Tasks that mean
+  looking at the running product belong in the task list.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
