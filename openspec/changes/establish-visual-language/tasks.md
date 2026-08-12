@@ -65,22 +65,22 @@
 
 ## 4. Mobile
 
-- [ ] 4.1 Add Figtree via `expo-font` and hold render until the font has loaded
-- [ ] 4.2 Add `lucide-react-native` and its mapping, built from the same identifiers
+- [x] 4.1 Add Figtree via `expo-font` and hold render until the font has loaded
+- [x] 4.2 Add `lucide-react-native` and its mapping, built from the same identifiers
       as web
-- [ ] 4.3 Add the `useTheme()` hook over React Native's `useColorScheme()`, returning
+- [x] 4.3 Add the `useTheme()` hook over React Native's `useColorScheme()`, returning
       one theme's literals
-- [ ] 4.4 Fetch and patch the style, passing the result to
+- [x] 4.4 Fetch and patch the style, passing the result to
       `@maplibre/maplibre-react-native` as it expects
-- [ ] 4.5 Draw the teardrop pin from the shared geometry and the annotation's anchor
-- [ ] 4.6 Restyle the map screen, the detail sheet, the overlay note, and login
+- [x] 4.5 Draw the teardrop pin from the shared geometry and the annotation's anchor
+- [x] 4.6 Restyle the map screen, the detail sheet, the overlay note, and login
 - [ ] 4.7 Confirm the theme change re-renders the map without moving the camera
 
 ## 5. Checks, and looking
 
 - [x] 5.1 Add the repository script asserting both font files exist and report the
       same family and version, and wire it into CI
-- [ ] 5.2 Run `pnpm check:cycles` and confirm `@pinpoint/map` still declares no
+- [x] 5.2 Run `pnpm check:cycles` and confirm `@pinpoint/map` still declares no
       third-party runtime dependencies after the style patch lands
 - [ ] 5.3 Open the web application in both themes and confirm every surface changes
       together, including the map

@@ -1,6 +1,9 @@
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import type { ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+
+import { useTheme } from '@/lib/theme'
+import { role } from '@/lib/type'
 
 /**
  * Loading, broken, and correctly empty — in React Native's idiom.
@@ -11,9 +14,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
  * component has to render something, and `<div>` and `<View>` are not the same
  * something. A shared spinner is the rule's subject, not a way around it.
  *
- * Every colour and measurement below comes from `@pinpoint/tokens`, which is
- * what keeps this looking like the same product as the web app without either
- * one importing the other's markup.
+ * Every measurement below comes from `@pinpoint/tokens` and every colour from
+ * the theme it resolves, which is what keeps this looking like the same product
+ * as the web app without either one importing the other's markup.
  */
 
 const styles = StyleSheet.create({
@@ -24,32 +27,27 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
     padding: SPACE.xl,
   },
-  muted: {
-    color: COLOUR.textMuted,
-    textAlign: 'center',
-  },
+  muted: { ...role(TYPE.body), textAlign: 'center' },
   failed: {
-    backgroundColor: COLOUR.dangerSurface,
-    borderColor: COLOUR.danger,
     borderWidth: 1,
     borderRadius: RADIUS.md,
     margin: SPACE.md,
   },
-  failedText: {
-    color: COLOUR.danger,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  failedText: { ...role(TYPE.body), fontWeight: '600', textAlign: 'center' },
 })
 
 export function LoadingState({ what = 'the map' }: { what?: string }) {
+  const theme = useTheme()
+
   return (
     <View style={styles.panel}>
-      <ActivityIndicator />
+      <ActivityIndicator color={theme.colour.accent} />
       {/* Words as well as motion: an animation on its own is indistinguishable
           from a stalled one, and this is the state most often mistaken for
           emptiness. */}
-      <Text style={styles.muted}>Loading {what}…</Text>
+      <Text style={[styles.muted, { color: theme.colour.inkMuted }]}>
+        Loading {what}…
+      </Text>
     </View>
   )
 }
@@ -61,18 +59,33 @@ export function FailedState({
   message: string
   children?: ReactNode
 }) {
+  const theme = useTheme()
+
   return (
-    <View style={[styles.panel, styles.failed]}>
-      <Text style={styles.failedText}>{message}</Text>
+    <View
+      style={[
+        styles.panel,
+        styles.failed,
+        {
+          backgroundColor: theme.colour.dangerSurface,
+          borderColor: theme.colour.danger,
+        },
+      ]}
+    >
+      <Text style={[styles.failedText, { color: theme.colour.danger }]}>
+        {message}
+      </Text>
       {children}
     </View>
   )
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
+  const theme = useTheme()
+
   return (
     <View style={styles.panel}>
-      <Text style={styles.muted}>{children}</Text>
+      <Text style={[styles.muted, { color: theme.colour.inkMuted }]}>{children}</Text>
     </View>
   )
 }
