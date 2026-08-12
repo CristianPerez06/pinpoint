@@ -65,6 +65,22 @@ Two of those columns are the whole product:
 
 Paste a list of names per city, geocode them all, confirm the ambiguous ones.
 
+Measured against a real list of thirty-five Osaka places before committing to
+it: twenty-two resolved correctly, six came back confidently wrong — from 270 km
+to 16,187 km away — and seven found nothing. The failures were not obscure
+places. They were the notes people write beside a name. "Parque", "Templo",
+"Barrio" and "Tienda" are what the geocoder matched, and they pulled the search
+to Spanish-speaking countries.
+
+Stripping those words and the parenthetical asides recovered seven of the
+thirteen failures, taking the list to twenty-nine of thirty-five. **That cleanup
+belongs here and not in interactive search** — pasting a list is the moment a
+guessed correction can be shown and reviewed before anything is stored, where
+typing a query is a moment to be left alone.
+
+Which makes the review step the substance of this change, not the geocoding. A
+wrong match looks exactly like a right one, and a run of sixty produces several.
+
 This looks like a nicety and is not. The app is worth *less* than the spreadsheet
 until it holds everything — a half-migrated trip means checking two places, and
 "is anything else nearby?" returns a wrong answer. Adding sixty places one at a
