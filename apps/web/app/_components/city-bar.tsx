@@ -1,10 +1,11 @@
 'use client'
 
 import type { City, Marker } from '@pinpoint/core'
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
 import { useState } from 'react'
 
 import { Button, TextField } from '@/app/_components/ui'
+
+import styles from './city-bar.module.css'
 
 /**
  * Choosing which group of places is being worked on, and correcting a group
@@ -40,9 +41,9 @@ export function CityBar({
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: SPACE.sm }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: SPACE.xs }}>
-        <span style={{ fontSize: 13, color: COLOUR.textMuted }}>City</span>
+    <div className={styles.bar}>
+      <label className={styles.picker}>
+        <span className={styles.label}>City</span>
         <select
           value={selectedCityId ?? ALL}
           onChange={(event) => {
@@ -50,15 +51,7 @@ export function CityBar({
             onSelect(value === ALL ? null : value)
             setEditing(false)
           }}
-          style={{
-            padding: `${SPACE.xs}px ${SPACE.sm}px`,
-            border: `1px solid ${COLOUR.border}`,
-            borderRadius: RADIUS.sm,
-            backgroundColor: COLOUR.surface,
-            color: COLOUR.text,
-            fontSize: 14,
-            fontFamily: 'inherit',
-          }}
+          className={styles.select}
         >
           <option value={ALL}>All places</option>
           {cities.map((city) => (
@@ -122,23 +115,7 @@ function CityEditor({
   const [currency, setCurrency] = useState(city.currency ?? '')
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '100%',
-        left: SPACE.md,
-        marginTop: SPACE.xs,
-        width: 300,
-        display: 'grid',
-        gap: SPACE.sm,
-        padding: SPACE.md,
-        backgroundColor: COLOUR.surface,
-        border: `1px solid ${COLOUR.border}`,
-        borderRadius: RADIUS.md,
-        boxShadow: '0 6px 24px rgba(0, 0, 0, 0.18)',
-        zIndex: 5,
-      }}
-    >
+    <div className={styles.editor}>
       <TextField label="Name" value={name} onChange={setName} />
       <TextField
         label="Currency"
@@ -147,7 +124,7 @@ function CityEditor({
         placeholder="JPY — blank shows plain numbers"
       />
 
-      <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
+      <div className={styles.actions}>
         <Button
           tone="primary"
           onClick={() => {
@@ -164,7 +141,7 @@ function CityEditor({
         <Button tone="quiet" onClick={onClose}>
           Cancel
         </Button>
-        <span style={{ marginLeft: 'auto' }}>
+        <span className={styles.spacer}>
           <Button
             tone="danger"
             onClick={() => {

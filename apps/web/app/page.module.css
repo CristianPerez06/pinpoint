@@ -1,0 +1,98 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  color: var(--pp-ink);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-md);
+  padding: 11px var(--pp-space-md);
+  border-bottom: 1px solid var(--pp-line);
+  background: var(--pp-surface);
+  position: relative;
+  z-index: 6;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: -0.032em;
+}
+
+/*
+ * The dot is the whole mark: a pin reduced to the point it names, in the one
+ * colour that is not a marker family.
+ */
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.trip {
+  padding-left: var(--pp-space-md);
+  border-left: 1px solid var(--pp-line);
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  white-space: nowrap;
+}
+
+.signOutForm {
+  margin-left: auto;
+}
+
+.signOut {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background: none;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-control-size);
+  cursor: pointer;
+}
+
+.signOut:hover {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+/* Positioned, so anything absolutely placed inside has something to sit in. */
+.centred {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.full {
+  height: 100dvh;
+}
+
+.boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+}
+
+.retry {
+  padding: var(--pp-space-xs) var(--pp-space-md);
+  border: 1px solid var(--pp-danger);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface);
+  color: var(--pp-danger);
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--pp-danger-surface);
+}

@@ -123,7 +123,13 @@ jobs:
       # generated file survives indefinitely, and the two platforms drift
       # apart one colour at a time.
       - name: Check derived tokens are current
-        run: pnpm --filter @pinpoint/tokens check:derived
+        run: pnpm check:tokens
+
+      # A missing or mismatched font file is silent on both platforms: the face
+      # falls back to a system one, every measurement on the screen changes, and
+      # no build, typecheck or lint has anything to say about it.
+      - name: Check the bundled typeface
+        run: pnpm check:fonts
 
       # Two versions of a dually-bundled runtime crash the bundle in ways that
       # look unrelated to dependencies — the classic symptom is

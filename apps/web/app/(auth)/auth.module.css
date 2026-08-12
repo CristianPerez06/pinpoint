@@ -1,0 +1,168 @@
+/*
+ * Sign in and sign up.
+ *
+ * These had no styling at all — plain elements on a white page. They are the
+ * first thing anybody sees, and the only screen where the map is not doing the
+ * talking, so the wordmark carries it and everything else stays quiet.
+ */
+
+.screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--pp-space-lg);
+  background: var(--pp-ground);
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: grid;
+  gap: var(--pp-space-md);
+  padding: var(--pp-space-lg);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-md);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.032em;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--pp-type-display-size);
+  font-weight: var(--pp-type-display-weight);
+  letter-spacing: var(--pp-type-display-tracking);
+  line-height: var(--pp-type-display-leading);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-body-size);
+  line-height: var(--pp-type-body-leading);
+}
+
+.form {
+  display: grid;
+  gap: var(--pp-space-md);
+  margin: 0;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-body-size);
+  font-family: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--pp-danger);
+}
+
+.fieldError {
+  font-size: var(--pp-type-note-size);
+  font-weight: 550;
+  color: var(--pp-danger);
+}
+
+.formError {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-danger-surface);
+  border: 1px solid var(--pp-danger);
+  color: var(--pp-danger);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+.submit {
+  padding: 11px var(--pp-space-md);
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-accent);
+  /* Not white: amber is a light surface, and white on it clears about 1.7:1. */
+  color: #241703;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--pp-shadow-sm);
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.12s ease;
+}
+
+.submit:hover:not(:disabled) {
+  box-shadow: var(--pp-shadow-md);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.alternative {
+  margin: 0;
+  text-align: center;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+}
+
+.alternative a {
+  color: var(--pp-accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.alternative a:hover {
+  text-decoration: underline;
+}

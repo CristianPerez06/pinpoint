@@ -7,8 +7,11 @@ import {
   searchPlaces,
 } from '@pinpoint/geocode'
 import { markerTypeOf } from '@pinpoint/map'
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
 import { useEffect, useState } from 'react'
+
+import { MarkerGlyph } from '@/app/_components/marker-icon'
+
+import styles from './place-search.module.css'
 
 /**
  * Finding a place by name.
@@ -125,42 +128,19 @@ export function PlaceSearch({
     result?.status === 'ready' ? result.candidates : ([] as PlaceCandidate[])
 
   return (
-    <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 420 }}>
+    <div className={styles.wrap}>
       <input
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search for a place…"
         aria-label="Search for a place"
-        style={{
-          boxSizing: 'border-box',
-          width: '100%',
-          padding: `${SPACE.xs}px ${SPACE.sm}px`,
-          border: `1px solid ${COLOUR.border}`,
-          borderRadius: RADIUS.sm,
-          backgroundColor: COLOUR.surface,
-          color: COLOUR.text,
-          fontSize: 14,
-          fontFamily: 'inherit',
-        }}
+        className={styles.input}
       />
 
       {trimmed !== '' ? (
         <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: SPACE.xs,
-            maxHeight: 320,
-            overflowY: 'auto',
-            backgroundColor: COLOUR.surface,
-            border: `1px solid ${COLOUR.border}`,
-            borderRadius: RADIUS.md,
-            boxShadow: '0 6px 24px rgba(0, 0, 0, 0.18)',
-            zIndex: 4,
-          }}
+          className={styles.results}
         >
           {searching ? (
             <Note role="status">Searching…</Note>
@@ -173,7 +153,7 @@ export function PlaceSearch({
           ) : result?.status === 'empty' ? (
             <Note role="status">No matches. Try fewer words, or drop a pin.</Note>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <ul className={styles.list}>
               {candidates.map((candidate) => (
                 <li key={candidate.id}>
                   <button
@@ -184,38 +164,14 @@ export function PlaceSearch({
                       // nothing else to close.
                       setQuery('')
                     }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: SPACE.sm,
-                      width: '100%',
-                      textAlign: 'left',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      color: COLOUR.text,
-                      padding: `${SPACE.sm}px ${SPACE.md}px`,
-                      fontSize: 14,
-                      fontFamily: 'inherit',
-                    }}
+                    className={styles.candidate}
                   >
-                    <span aria-hidden>{markerTypeOf(candidate.typeGuess).icon}</span>
-                    <span>{candidate.name}</span>
+                    <Glyph candidate={candidate} />
+                    <span className={styles.name}>{candidate.name}</span>
 
-                    <span
-                      style={{
-                        marginLeft: 'auto',
-                        display: 'flex',
-                        alignItems: 'baseline',
-                        gap: SPACE.sm,
-                        fontSize: 12,
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className={styles.meta}>
                       {candidate.context ? (
-                        <span style={{ color: COLOUR.textMuted }}>
-                          {candidate.context}
-                        </span>
+                        <span className={styles.context}>{candidate.context}</span>
                       ) : null}
 
                       {/*
@@ -230,15 +186,9 @@ export function PlaceSearch({
                       */}
                       {candidate.distanceKm === null ? null : (
                         <span
-                          style={{
-                            color:
-                              candidate.distanceKm > FAR_AWAY_KM
-                                ? COLOUR.danger
-                                : COLOUR.textMuted,
-                            fontWeight:
-                              candidate.distanceKm > FAR_AWAY_KM ? 600 : 400,
-                            whiteSpace: 'nowrap',
-                          }}
+                          className={`${styles.distance} ${
+                            candidate.distanceKm > FAR_AWAY_KM ? styles.far : ''
+                          }`}
                         >
                           {formatDistance(candidate.distanceKm)}
                         </span>
@@ -267,14 +217,31 @@ function Note({
   return (
     <p
       role={role}
-      style={{
-        margin: 0,
-        padding: `${SPACE.sm}px ${SPACE.md}px`,
-        fontSize: 13,
-        color: tone === 'danger' ? COLOUR.danger : COLOUR.textMuted,
-      }}
+      className={`${styles.note} ${tone === 'danger' ? styles.noteDanger : ''}`}
     >
       {children}
     </p>
+  )
+}
+
+/**
+ * The guessed type, drawn as the pin it would become.
+ *
+ * The guess is worth showing before anything is saved: it is what the form will
+ * default to, and correcting it in the list is cheaper than noticing later that
+ * a ramen shop is filed as a temple.
+ */
+function Glyph({ candidate }: { candidate: PlaceCandidate }) {
+  const definition = markerTypeOf(candidate.typeGuess)
+
+  return (
+    <span
+      className={styles.glyph}
+      style={{ backgroundColor: `var(--pp-family-${definition.family})` }}
+      aria-hidden
+      title={definition.label}
+    >
+      <MarkerGlyph icon={definition.icon} size={14} />
+    </span>
   )
 }

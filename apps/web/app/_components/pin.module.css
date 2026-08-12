@@ -1,0 +1,94 @@
+.pin {
+  position: relative;
+  display: block;
+  /* The shadow follows the drawn outline rather than a box around it, which a
+     teardrop needs — box-shadow would draw a rectangle's worth of shade. */
+  filter: drop-shadow(var(--pp-shadow-pin));
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-origin: 50% 100%;
+}
+
+.pin[data-selected] {
+  transform: scale(1.2);
+}
+
+.body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The selection ring is drawn outside the 32×42 box on purpose. */
+  overflow: visible;
+}
+
+.drop {
+  fill: var(--family);
+}
+
+.ring {
+  fill: var(--pp-accent-ring);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.pin[data-selected] .ring {
+  opacity: 1;
+}
+
+.glyph {
+  stroke: var(--pp-marker-foreground);
+  fill: none;
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  min-width: var(--pp-marker-badge);
+  height: var(--pp-marker-badge);
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-ink);
+  color: var(--pp-ground);
+  /* Against the map, not against a surface — the ring is what separates it. */
+  border: 2px solid var(--pp-map-land);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.draft {
+  animation: drop 0.42s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+.dropDraft {
+  fill: var(--pp-surface);
+  stroke: var(--pp-ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.plus {
+  stroke: var(--pp-ink);
+  fill: none;
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.chip {
+  display: grid;
+  place-items: center;
+  border-radius: var(--pp-radius-sm);
+  flex: none;
+}

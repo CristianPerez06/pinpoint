@@ -1,5 +1,6 @@
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+
+import styles from './states.module.css'
 
 /**
  * The three things a screen can be doing other than showing a map: still
@@ -15,26 +16,7 @@ import type { CSSProperties, ReactNode } from 'react'
  * `@pinpoint/data`. Forgetting the failed branch, spinning forever, showing
  * "nothing saved yet" while a request is in flight — those are logic bugs,
  * identical on both platforms, and none of them live in a spinner.
- *
- * Styling is inline because this app has no styling system yet and inventing
- * one is a different change. Every value comes from `@pinpoint/tokens`; nothing
- * here writes a colour of its own.
  */
-
-const panel: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: `${SPACE.sm}px`,
-  padding: `${SPACE.xl}px`,
-  textAlign: 'center',
-  color: COLOUR.text,
-}
-
-function Panel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ ...panel, ...style }}>{children}</div>
-}
 
 /**
  * Still loading. Deliberately says so in words as well as motion: an animation
@@ -43,24 +25,12 @@ function Panel({ children, style }: { children: ReactNode; style?: CSSProperties
  */
 export function LoadingState({ what = 'the map' }: { what?: string }) {
   return (
-    <Panel style={{ backgroundColor: COLOUR.surfaceMuted }}>
-      <span
-        aria-hidden
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: RADIUS.pill,
-          border: `2px solid ${COLOUR.border}`,
-          borderTopColor: COLOUR.textMuted,
-          animation: 'pinpoint-spin 0.8s linear infinite',
-        }}
-      />
-      <p role="status" style={{ color: COLOUR.textMuted }}>
+    <div className={`${styles.panel} ${styles.loading}`}>
+      <span aria-hidden className={styles.spinner} />
+      <p role="status" className={styles.message}>
         Loading {what}…
       </p>
-      {/* A keyframe has to exist somewhere and this app has no stylesheet. */}
-      <style>{'@keyframes pinpoint-spin { to { transform: rotate(360deg) } }'}</style>
-    </Panel>
+    </div>
   )
 }
 
@@ -77,18 +47,12 @@ export function FailedState({
   children?: ReactNode
 }) {
   return (
-    <Panel
-      style={{
-        backgroundColor: COLOUR.dangerSurface,
-        border: `1px solid ${COLOUR.danger}`,
-        borderRadius: `${RADIUS.md}px`,
-      }}
-    >
-      <p role="alert" style={{ color: COLOUR.danger, fontWeight: 600 }}>
+    <div className={`${styles.panel} ${styles.failed}`}>
+      <p role="alert" className={styles.failedMessage}>
         {message}
       </p>
       {children}
-    </Panel>
+    </div>
   )
 }
 
@@ -98,9 +62,9 @@ export function FailedState({
  */
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <Panel style={{ backgroundColor: COLOUR.surface }}>
-      <p style={{ color: COLOUR.textMuted }}>{children}</p>
-    </Panel>
+    <div className={`${styles.panel} ${styles.empty}`}>
+      <p className={styles.message}>{children}</p>
+    </div>
   )
 }
 
@@ -113,7 +77,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
  * the camera is real, and hiding it would throw away the part that worked.
  *
  * `tone` is the entire difference between them, and it has to be a difference
- * a person notices without reading: muted grey for "nothing here yet", red for
+ * a person notices without reading: quiet for "nothing here yet", red for
  * "this is broken".
  */
 export function MapOverlayNote({
@@ -128,21 +92,7 @@ export function MapOverlayNote({
   return (
     <div
       role={danger ? 'alert' : 'status'}
-      style={{
-        position: 'absolute',
-        top: SPACE.md,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        maxWidth: `calc(100% - ${SPACE.xl}px)`,
-        backgroundColor: danger ? COLOUR.dangerSurface : COLOUR.surface,
-        border: `1px solid ${danger ? COLOUR.danger : COLOUR.border}`,
-        borderRadius: RADIUS.md,
-        padding: `${SPACE.sm}px ${SPACE.md}px`,
-        color: danger ? COLOUR.danger : COLOUR.textMuted,
-        fontWeight: danger ? 600 : 400,
-        textAlign: 'center',
-        zIndex: 2,
-      }}
+      className={`${styles.note} ${danger ? styles.noteDanger : ''}`}
     >
       {children}
     </div>

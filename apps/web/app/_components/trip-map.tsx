@@ -5,25 +5,29 @@ import {
   ATTRIBUTION,
   DEFAULT_VIEWPORT,
   fitBounds,
-  styleUrl,
   type LngLat,
+  type MarkerAnchor,
   type MarkerGroup,
-  type MarkerView,
+  type StyleDocument,
 } from '@pinpoint/map'
-import {
-  COLOUR,
-  MARKER_BADGE_SIZE,
-  MARKER_FOREGROUND,
-  MARKER_SIZE,
-  RADIUS,
-  SPACE,
-} from '@pinpoint/tokens'
 // Named imports, not a default: maplibre-gl v6 has no default export, and the
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
 // advice. `Map` and `Marker` are both aliased — the first collides with the
 // global, the second with our own domain type.
-import { MapLibreMap, Marker as MapLibreMarker, setWorkerUrl } from 'maplibre-gl'
+import {
+  MapLibreMap,
+  Marker as MapLibreMarker,
+  setWorkerUrl,
+  type StyleSpecification,
+} from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
+import { createRoot } from 'react-dom/client'
+
+import { DraftPin, Pin } from '@/app/_components/pin'
+import { themedBasemap } from '@/lib/basemap'
+import { useColourScheme } from '@/lib/use-colour-scheme'
+
+import styles from './trip-map.module.css'
 
 // Without this the map renders as a blank box and reports nothing at all.
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -41,7 +45,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
  *
  * Remember the shape of that failure. The main thread still owns the camera and
  * mounts markers as DOM, so the pins land in exactly the right places over a
- * blank canvas — it reads as a styling problem and is not one.
+ * blank canvas — it reads as a styling problem and is not one. The style fetch
+ * below can now fail with the same symptom from a different cause, which is why
+ * it reports rather than falling back.
  *
  * The file is copied into `public/maplibre/` by `scripts/copy-maplibre-worker.mjs`,
  * which runs on every `dev` and `build`. A literal path rather than a clever
@@ -55,13 +61,49 @@ export interface DraftPosition {
 }
 
 /**
+ * Where MapLibre should put the element, given where the shared description
+ * says the marker's point is.
+ *
+ * Expressed as an offset from the element's centre rather than as one of
+ * MapLibre's named anchors, because the named set cannot express an arbitrary
+ * point and this way nothing has to be re-derived if the pin's shape changes.
+ * The renderer places the element's centre at the coordinate; moving it by
+ * `(0.5 - x)` of the width and `(0.5 - y)` of the height puts the named point
+ * there instead.
+ *
+ * No application writes this offset by hand. That is the whole point: the last
+ * drift defect lived in two applications each choosing their own, so fixing one
+ * left the other wrong.
+ */
+function offsetFor(
+  anchor: MarkerAnchor,
+  size: { width: number; height: number },
+): [number, number] {
+  return [size.width * (0.5 - anchor.x), size.height * (0.5 - anchor.y)]
+}
+
+/**
+ * The renderer's own type for a style, which the shared package cannot use.
+ *
+ * `@pinpoint/map` describes a style document structurally, because naming
+ * `maplibre-gl`'s type there would mean depending on a renderer — and the whole
+ * portability boundary is that it does not. The two describe the same JSON; only
+ * one of them is allowed to say so in `maplibre-gl`'s vocabulary, and this is the
+ * seam where that translation belongs.
+ */
+function asRendererStyle(document: StyleDocument): StyleSpecification {
+  return document as unknown as StyleSpecification
+}
+
+/**
  * The web half of the portability boundary.
  *
  * Everything decided here is bound to `maplibre-gl`: creating the map, mounting
  * marker elements, wiring clicks and drags. Everything *decided* — the style,
- * the camera, a marker's icon and colour, which markers share a point — comes
- * from `@pinpoint/map`, which imports no renderer at all. The mobile app binds
- * the same values to a different library and gets the same map.
+ * the camera, which family and icon a marker takes, where its point sits, which
+ * markers share a point — comes from `@pinpoint/map`, which imports no renderer
+ * at all. The mobile app binds the same values to a different library and gets
+ * the same map.
  *
  * It owns no data. Markers, grouping, and the unsaved marker's position all
  * arrive as props, so this file has nothing to say about what a place is.
@@ -72,6 +114,7 @@ export interface DraftPosition {
 export function TripMap({
   groups,
   onSelectGroup,
+  selectedKey,
   draft,
   dropping,
   onDropAt,
@@ -82,6 +125,8 @@ export function TripMap({
 }: {
   groups: readonly MarkerGroup<Marker>[]
   onSelectGroup: (group: MarkerGroup<Marker>) => void
+  /** Which drawn point is selected, so the pin can show it. */
+  selectedKey: string | null
   /** The place being added, before it is saved. Null when nothing is being added. */
   draft: DraftPosition | null
   dropping: boolean
@@ -106,6 +151,15 @@ export function TripMap({
   const draftMarkerRef = useRef<MapLibreMarker | null>(null)
   const hasDraft = draft !== null
 
+  const mode = useColourScheme()
+
+  /**
+   * The style has to be fetched and transformed before the renderer can be
+   * given one, so it is state rather than a value.
+   */
+  const [style, setStyle] = useState<StyleDocument | null>(null)
+  const [styleError, setStyleError] = useState<string | null>(null)
+
   // Callbacks reached through refs so that the effects binding them to the
   // renderer do not tear down and rebuild every time the parent re-renders.
   // Written in an effect rather than during render: a ref mutated mid-render is
@@ -124,9 +178,31 @@ export function TripMap({
    */
   const initialFraming = useRef(frameTo)
 
+  /** Fetch and repaint. Re-runs when the ground changes, and only then. */
+  useEffect(() => {
+    let live = true
+
+    themedBasemap(mode).then(
+      (document) => {
+        if (live) setStyle(document)
+      },
+      (cause: unknown) => {
+        if (!live) return
+        setStyleError(
+          cause instanceof Error ? cause.message : 'the map style could not be loaded',
+        )
+      },
+    )
+
+    return () => {
+      live = false
+    }
+  }, [mode])
+
+  /** The map itself, created once the first style has arrived. */
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || !style) return
 
     // The measured surface, not the window: the map does not fill the viewport,
     // and framing against the wrong box puts markers under the edges.
@@ -142,7 +218,7 @@ export function TripMap({
 
     const instance = new MapLibreMap({
       container,
-      style: styleUrl(),
+      style: asRendererStyle(style),
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
       // Not compact: compact collapses to an "i" button, and a button that
@@ -157,7 +233,31 @@ export function TripMap({
       instance.remove()
       setMap(null)
     }
-  }, [])
+    // Created from the first style only. Later styles go through `setStyle`
+    // below, which keeps the camera and the markers where they are — rebuilding
+    // the map on a theme change would throw the view away.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [style !== null])
+
+  /**
+   * A theme change repaints the map in place.
+   *
+   * `setStyle` swaps the document without touching the camera, and the markers
+   * are DOM elements the renderer only positions — so nothing is refetched,
+   * nothing is remounted, and the view does not move.
+   */
+  const appliedStyle = useRef<StyleDocument | null>(null)
+  useEffect(() => {
+    if (!map || !style) return
+    if (appliedStyle.current === null) {
+      appliedStyle.current = style
+      return
+    }
+    if (appliedStyle.current === style) return
+
+    appliedStyle.current = style
+    map.setStyle(asRendererStyle(style))
+  }, [map, style])
 
   /** Where the map is looking, kept current for whatever wants to bias by it. */
   useEffect(() => {
@@ -178,22 +278,63 @@ export function TripMap({
   /**
    * Markers are mounted in their own effect so that changing them never touches
    * the camera.
+   *
+   * Each one is a React root rendered into an element the renderer owns. That
+   * buys one icon mapping and one pin shape for the map, the list, and the
+   * details panel — the alternative was building an SVG by hand here and
+   * keeping it in step with a component by eye.
    */
   useEffect(() => {
     if (!map) return
 
-    const instances = groups.map((group) =>
-      new MapLibreMarker({
-        element: pinElement(group, () => handlers.current.onSelectGroup(group)),
+    const mounted = groups.map((group) => {
+      const element = document.createElement('button')
+      element.type = 'button'
+      element.className = styles.marker
+      element.title = group.count > 1 ? `${group.count} places here` : group.view.label
+      element.setAttribute(
+        'aria-label',
+        group.count > 1
+          ? `${group.count} places here`
+          : `${group.view.label} (${group.view.typeLabel})`,
+      )
+
+      element.addEventListener('click', (event) => {
+        // Otherwise the map treats it as a click on the surface underneath —
+        // which while the drop mode is armed would place a second pin on top of
+        // this one.
+        event.stopPropagation()
+        handlers.current.onSelectGroup(group)
+      })
+
+      const root = createRoot(element)
+      root.render(
+        <Pin
+          view={group.view}
+          count={group.count}
+          selected={group.key === selectedKey}
+        />,
+      )
+
+      const marker = new MapLibreMarker({
+        element,
+        offset: offsetFor(group.view.anchor, group.view.size),
       })
         .setLngLat([group.lng, group.lat])
-        .addTo(map),
-    )
+        .addTo(map)
+
+      return { marker, root }
+    })
 
     return () => {
-      for (const instance of instances) instance.remove()
+      for (const { marker, root } of mounted) {
+        marker.remove()
+        // Unmounting synchronously inside a cleanup runs while React may still
+        // be rendering, which it warns about; a microtask puts it after.
+        queueMicrotask(() => root.unmount())
+      }
     }
-  }, [map, groups])
+  }, [map, groups, selectedKey])
 
   /**
    * Pointing at the map creates a place, but only when that was armed first.
@@ -230,9 +371,18 @@ export function TripMap({
   useEffect(() => {
     if (!map || !hasDraft) return
 
+    const element = document.createElement('div')
+    element.className = `${styles.marker} ${styles.draft}`
+    element.setAttribute('aria-label', 'New place, not yet saved')
+    element.title = 'Drag to adjust, then save'
+
+    const root = createRoot(element)
+    root.render(<DraftPin />)
+
     const instance = new MapLibreMarker({
-      element: draftPinElement(),
+      element,
       draggable: true,
+      offset: offsetFor({ x: 0.5, y: 1 }, { width: 32, height: 42 }),
     })
       .setLngLat([draft.lng, draft.lat])
       .addTo(map)
@@ -247,6 +397,7 @@ export function TripMap({
     return () => {
       instance.remove()
       draftMarkerRef.current = null
+      queueMicrotask(() => root.unmount())
     }
     // `draft` is read once, for the starting position. Every later move goes
     // through the sync effect below.
@@ -285,133 +436,25 @@ export function TripMap({
     })
   }, [map, frameToken, frameTo])
 
-  return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
-}
-
-/**
- * A marker element.
- *
- * View-based rather than a symbol layer, and that follows from the icons being
- * emoji: a symbol layer draws from a sprite atlas, and rasterising emoji into
- * one per platform would produce output that differs between the platforms it
- * is meant to unify. View-based markers degrade in the hundreds; a trip holds
- * tens.
- *
- * No permanent label. Twenty names at city zoom overlap into unreadable text,
- * and the question the map answers at that zoom is which places are near each
- * other, not what each is called. The name is on the pin's tooltip and in the
- * details it opens.
- */
-function pinElement(group: MarkerGroup<Marker>, onSelect: () => void): HTMLElement {
-  const view: MarkerView = group.view
-
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.title = group.count > 1 ? `${group.count} places here` : view.label
-  button.setAttribute(
-    'aria-label',
-    group.count > 1 ? `${group.count} places here` : `${view.label} (${view.typeLabel})`,
-  )
-  Object.assign(button.style, {
-    // Deliberately no `position`. MapLibre's own stylesheet sets
-    // `.maplibregl-marker { position: absolute; top: 0; left: 0 }` and applies
-    // the map transform on top of that; an inline `position: relative` beats
-    // the class, drops the pin back into normal flow, and the transform then
-    // offsets it from wherever flow put it. Every marker ends up carrying a
-    // fixed screen-pixel error — which pans convincingly and drifts off the
-    // map the moment you zoom.
-    //
-    // The badge below still anchors correctly: `absolute` establishes a
-    // containing block exactly as `relative` does.
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // With a 2px border, content-box would make this 36px and put the
-    // centre-anchored pin 2px off in each axis.
-    boxSizing: 'border-box',
-    width: `${MARKER_SIZE}px`,
-    height: `${MARKER_SIZE}px`,
-    padding: '0',
-    // Buttons carry a UA margin in some browsers, and a margin on an
-    // absolutely-positioned marker displaces it from the point it names.
-    margin: '0',
-    borderRadius: `${RADIUS.pill}px`,
-    backgroundColor: view.colour,
-    border: `2px solid ${view.foreground}`,
-    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.35)',
-    fontSize: `${Math.round(MARKER_SIZE * 0.55)}px`,
-    lineHeight: '1',
-    cursor: 'pointer',
-  } satisfies Partial<CSSStyleDeclaration>)
-  button.textContent = view.icon
-
-  if (group.count > 1) {
-    // The badge is the entire mechanism that stops the pin underneath from
-    // being invisible forever. Identical coordinates are the same pixel at
-    // every zoom, so nothing about panning or zooming can reveal it.
-    const badge = document.createElement('span')
-    badge.textContent = String(group.count)
-    Object.assign(badge.style, {
-      position: 'absolute',
-      top: `-${SPACE.xs}px`,
-      right: `-${SPACE.xs}px`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minWidth: `${MARKER_BADGE_SIZE}px`,
-      height: `${MARKER_BADGE_SIZE}px`,
-      borderRadius: `${RADIUS.pill}px`,
-      backgroundColor: COLOUR.text,
-      color: MARKER_FOREGROUND,
-      border: `1px solid ${MARKER_FOREGROUND}`,
-      fontSize: '11px',
-      fontWeight: '700',
-    } satisfies Partial<CSSStyleDeclaration>)
-    button.appendChild(badge)
+  /**
+   * A failed style is reported rather than drawn around.
+   *
+   * The alternative — mounting the map with no style — is a blank canvas with
+   * correctly-placed pins over it, which is the exact symptom of a bug already
+   * fixed once from a different cause, and reads as a styling problem every
+   * time.
+   */
+  if (styleError !== null) {
+    return (
+      <div className={styles.failure} role="alert">
+        <p className={styles.failureTitle}>The map could not be loaded</p>
+        <p className={styles.failureDetail}>
+          The place data is fine — {styleError}. Your saved places are still
+          here; only the map underneath them is missing.
+        </p>
+      </div>
+    )
   }
 
-  button.addEventListener('click', (event) => {
-    // Otherwise the map treats it as a click on the surface underneath — which
-    // while the drop mode is armed would place a second pin on top of this one.
-    event.stopPropagation()
-    onSelect()
-  })
-
-  return button
-}
-
-/**
- * The unsaved marker's element.
- *
- * Deliberately unlike a saved pin: dashed, hollow, and carrying no type icon,
- * because it is not yet a place and showing it as one would make a person think
- * they had already saved it.
- *
- * Drawn above every saved marker so that dropping one onto an existing pin
- * leaves it visible and draggable rather than buried under the thing it landed
- * on — the case where being able to nudge it matters most.
- */
-function draftPinElement(): HTMLElement {
-  const element = document.createElement('div')
-  element.setAttribute('aria-label', 'New place, not yet saved')
-  element.title = 'Drag to adjust, then save'
-  Object.assign(element.style, {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxSizing: 'border-box',
-    width: `${MARKER_SIZE}px`,
-    height: `${MARKER_SIZE}px`,
-    borderRadius: `${RADIUS.pill}px`,
-    backgroundColor: COLOUR.surface,
-    border: `2px dashed ${COLOUR.text}`,
-    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.4)',
-    fontSize: `${Math.round(MARKER_SIZE * 0.5)}px`,
-    lineHeight: '1',
-    cursor: 'grab',
-    zIndex: '10',
-  } satisfies Partial<CSSStyleDeclaration>)
-  element.textContent = '+'
-
-  return element
+  return <div ref={containerRef} className={styles.canvas} />
 }

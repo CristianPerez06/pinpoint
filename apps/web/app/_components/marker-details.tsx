@@ -2,10 +2,13 @@
 
 import { formatPrice, type Marker } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
-import { COLOUR, MARKER_SIZE, RADIUS, SPACE } from '@pinpoint/tokens'
-import type { CSSProperties } from 'react'
+import { X } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-import { Button } from '@/app/_components/ui'
+import { TypeChip } from '@/app/_components/pin'
+import { Button, overlayPanelClass } from '@/app/_components/ui'
+
+import styles from './marker-details.module.css'
 
 /**
  * What was recorded about a place, shown without leaving the map.
@@ -16,82 +19,31 @@ import { Button } from '@/app/_components/ui'
  * sheet, in its own idiom, importing nothing from here.
  */
 
-const overlay: CSSProperties = {
-  position: 'absolute',
-  left: SPACE.md,
-  bottom: SPACE.md,
-  maxWidth: 360,
-  maxHeight: '60%',
-  overflowY: 'auto',
-  backgroundColor: COLOUR.surface,
-  color: COLOUR.text,
-  border: `1px solid ${COLOUR.border}`,
-  borderRadius: RADIUS.md,
-  padding: SPACE.md,
-  boxShadow: '0 6px 24px rgba(0, 0, 0, 0.18)',
-  zIndex: 2,
-}
-
-function Pin({ view, size = MARKER_SIZE }: { view: MarkerView; size?: number }) {
-  return (
-    <span
-      aria-hidden
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: `0 0 ${size}px`,
-        width: size,
-        height: size,
-        borderRadius: RADIUS.pill,
-        backgroundColor: view.colour,
-        border: `2px solid ${view.foreground}`,
-        fontSize: Math.round(size * 0.55),
-        lineHeight: 1,
-      }}
-    >
-      {view.icon}
-    </span>
-  )
-}
-
-/** A field that holds nothing is shown as holding nothing, never as blank text. */
-function Field({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div style={{ display: 'flex', gap: SPACE.sm, alignItems: 'baseline' }}>
-      <dt style={{ color: COLOUR.textMuted, minWidth: 64, fontSize: 13 }}>{label}</dt>
-      <dd style={{ margin: 0 }}>
-        {value === null ? (
-          <span style={{ color: COLOUR.textMuted, fontStyle: 'italic' }}>
-            Not recorded
-          </span>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  )
-}
-
 function DismissButton({ onDismiss }: { onDismiss: () => void }) {
   return (
     <button
       type="button"
       onClick={onDismiss}
       aria-label="Close"
-      style={{
-        marginLeft: 'auto',
-        border: 'none',
-        background: 'none',
-        cursor: 'pointer',
-        color: COLOUR.textMuted,
-        fontSize: 18,
-        lineHeight: 1,
-      }}
+      className={styles.dismiss}
     >
-      ×
+      <X size={16} strokeWidth={2.2} />
     </button>
   )
+}
+
+/** A field that holds nothing is shown as holding nothing, never as blank text. */
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.field}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <p className={styles.fieldValue}>{children}</p>
+    </div>
+  )
+}
+
+function Absent() {
+  return <span className={styles.absent}>Not recorded</span>
 }
 
 function Details({
@@ -113,45 +65,53 @@ function Details({
   onDelete: () => void
 }) {
   return (
-    <div style={overlay}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE.sm }}>
-        <Pin view={view} />
-        <strong style={{ fontSize: 16 }}>{marker.name}</strong>
+    <div className={overlayPanelClass}>
+      <div className={styles.head}>
+        <TypeChip view={view} />
+        <h2 className={styles.name}>{marker.name}</h2>
         <DismissButton onDismiss={onDismiss} />
       </div>
 
-      <dl style={{ margin: `${SPACE.md}px 0 0`, display: 'grid', gap: SPACE.xs }}>
-        <Field label="Type" value={view.typeLabel} />
-        <Field label="Note" value={marker.note} />
-        <Field
-          label="Link"
-          value={marker.link}
-        />
-        <Field
-          label="Price"
-          value={marker.price === null ? null : formatPrice(marker.price, currency)}
-        />
-      </dl>
+      <div className={styles.tags}>
+        <span
+          className={`${styles.tag} ${styles.tagFamily}`}
+          style={{ backgroundColor: `var(--pp-family-${view.family})` }}
+        >
+          {view.typeLabel}
+        </span>
+        {marker.price === null ? null : (
+          <span className={`${styles.tag} ${styles.tagPrice}`}>
+            {formatPrice(marker.price, currency)}
+          </span>
+        )}
+      </div>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: SPACE.sm,
-          marginTop: SPACE.md,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className={styles.fields}>
+        <Field label="Note">{marker.note ?? <Absent />}</Field>
+        <Field label="Link">
+          {marker.link === null ? (
+            <Absent />
+          ) : (
+            <a
+              className={styles.link}
+              href={marker.link}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {marker.link}
+            </a>
+          )}
+        </Field>
+      </div>
+
+      <div className={styles.actions}>
         <Button onClick={onEdit}>Edit</Button>
         <Button
           tone="danger"
           onClick={() => {
             // Said plainly, because it is true: there is no soft delete and no
             // undo anywhere behind this.
-            if (
-              window.confirm(
-                `Remove “${marker.name}”?\n\nThis cannot be undone.`,
-              )
-            ) {
+            if (window.confirm(`Remove “${marker.name}”?\n\nThis cannot be undone.`)) {
               onDelete()
             }
           }}
@@ -160,7 +120,7 @@ function Details({
         </Button>
 
         {onBack ? (
-          <span style={{ marginLeft: 'auto' }}>
+          <span className={styles.spacer}>
             <Button tone="quiet" onClick={onBack}>
               ← Others at this point
             </Button>
@@ -188,39 +148,27 @@ function Chooser({
   onDismiss: () => void
 }) {
   return (
-    <div style={overlay}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE.sm }}>
-        <strong style={{ fontSize: 16 }}>{group.count} places here</strong>
+    <div className={overlayPanelClass}>
+      <div className={styles.head}>
+        <h2 className={styles.name}>{group.count} places here</h2>
         <DismissButton onDismiss={onDismiss} />
       </div>
-      <p style={{ color: COLOUR.textMuted, fontSize: 13, margin: `${SPACE.xs}px 0 0` }}>
+      <p className={styles.chooserNote}>
         They share the same coordinates, so zooming will not separate them.
+        Nothing has been moved — pick one.
       </p>
 
-      <ul style={{ listStyle: 'none', margin: `${SPACE.md}px 0 0`, padding: 0 }}>
+      <ul className={styles.list}>
         {group.markers.map((marker, index) => (
           <li key={marker.id}>
             <button
               type="button"
               onClick={() => onChoose(index)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: SPACE.sm,
-                width: '100%',
-                textAlign: 'left',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                color: COLOUR.text,
-                padding: `${SPACE.sm}px 0`,
-              }}
+              className={styles.choice}
             >
-              <Pin view={group.views[index]!} size={24} />
+              <TypeChip view={group.views[index]!} size={26} />
               <span>{marker.name}</span>
-              <span style={{ marginLeft: 'auto', color: COLOUR.textMuted, fontSize: 13 }}>
-                {group.views[index]!.typeLabel}
-              </span>
+              <span className={styles.choiceType}>{group.views[index]!.typeLabel}</span>
             </button>
           </li>
         ))}

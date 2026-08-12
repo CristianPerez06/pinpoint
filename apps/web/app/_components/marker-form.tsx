@@ -2,16 +2,19 @@
 
 import type { City, FieldErrors } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { X } from 'lucide-react'
 import { useState } from 'react'
 
+import { MarkerGlyph } from '@/app/_components/marker-icon'
 import {
   Button,
   FormError,
-  overlayPanel,
+  overlayPanelClass,
   SelectField,
   TextField,
 } from '@/app/_components/ui'
+
+import styles from './marker-form.module.css'
 
 /**
  * The one form places are saved and edited through.
@@ -113,19 +116,23 @@ export function MarkerForm({
 
   return (
     <form
-      style={{ ...overlayPanel, display: 'grid', gap: SPACE.sm }}
+      className={`${overlayPanelClass} ${styles.form}`}
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE.sm }}>
-        <strong style={{ fontSize: 16 }}>{title}</strong>
-        <span style={{ marginLeft: 'auto' }}>
-          <Button tone="quiet" onClick={onCancel} title="Discard">
-            ×
-          </Button>
-        </span>
+      <div className={styles.head}>
+        <h2 className={styles.title}>{title}</h2>
+        <button
+          type="button"
+          className={styles.dismiss}
+          onClick={onCancel}
+          aria-label="Discard"
+          title="Discard"
+        >
+          <X size={16} strokeWidth={2.2} />
+        </button>
       </div>
 
       {message ? <FormError message={message} /> : null}
@@ -139,16 +146,49 @@ export function MarkerForm({
         autoFocus
       />
 
-      <SelectField
-        label="Type"
-        value={type}
-        onChange={setType}
-        error={fieldErrors.type}
-        options={MARKER_TYPES.map((definition) => ({
-          value: definition.id,
-          label: `${definition.icon}  ${definition.label}`,
-        }))}
-      />
+      {/*
+        A grid of pins rather than a select. A type's icon is a drawn component
+        now, and a dropdown cannot print one — but the better reason is that this
+        answers the question the select could not: what this place will look like
+        once it is on the map.
+      */}
+      <div>
+        <span className={styles.typesLabel}>Type</span>
+        <div className={styles.types} role="group" aria-label="Type">
+          {MARKER_TYPES.map((definition) => {
+            const chosen = definition.id === type
+
+            return (
+              <button
+                key={definition.id}
+                type="button"
+                className={styles.type}
+                aria-pressed={chosen}
+                onClick={() => setType(definition.id)}
+                title={definition.label}
+              >
+                <span
+                  className={styles.typeChip}
+                  style={{
+                    backgroundColor: chosen
+                      ? `var(--pp-family-${definition.family})`
+                      : 'var(--pp-surface-muted)',
+                    color: chosen ? 'var(--pp-marker-foreground)' : 'var(--pp-ink-muted)',
+                  }}
+                >
+                  <MarkerGlyph icon={definition.icon} size={15} />
+                </span>
+                {definition.label}
+              </button>
+            )
+          })}
+        </div>
+        {fieldErrors.type ? (
+          <span role="alert" className={styles.typeError}>
+            {fieldErrors.type}
+          </span>
+        ) : null}
+      </div>
 
       <SelectField
         label="City"
@@ -169,16 +209,7 @@ export function MarkerForm({
       />
 
       {newCity ? (
-        <div
-          style={{
-            display: 'grid',
-            gap: SPACE.sm,
-            padding: SPACE.sm,
-            border: `1px solid ${COLOUR.border}`,
-            borderRadius: RADIUS.sm,
-            backgroundColor: COLOUR.surfaceMuted,
-          }}
-        >
+        <div className={styles.newCity}>
           <TextField
             label="New city name"
             value={newCity.name}
@@ -192,12 +223,12 @@ export function MarkerForm({
             onChange={(value) => setNewCity({ ...newCity, currency: value })}
             placeholder="JPY"
           />
-          <p style={{ margin: 0, fontSize: 12, color: COLOUR.textMuted }}>
+          <p className={styles.hint}>
             Prices filed under this city are read in its currency. Leave it blank
             and they show as plain numbers — nothing is assumed.
           </p>
           {cityError ? <FormError message={cityError} /> : null}
-          <div style={{ display: 'flex', gap: SPACE.sm }}>
+          <div className={styles.row}>
             <Button
               onClick={createCity}
               disabled={newCity.name.trim() === ''}
@@ -239,7 +270,7 @@ export function MarkerForm({
         type="number"
       />
 
-      <div style={{ display: 'flex', gap: SPACE.sm, marginTop: SPACE.xs }}>
+      <div className={styles.actions}>
         <Button type="submit" tone="primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save place'}
         </Button>

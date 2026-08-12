@@ -46,21 +46,21 @@
 
 ## 3. Web
 
-- [ ] 3.1 Adopt CSS Modules and import the generated stylesheet in the root layout;
+- [x] 3.1 Adopt CSS Modules and import the generated stylesheet in the root layout;
       delete `app/_components/ui.tsx`'s inline style objects as each component moves
-- [ ] 3.2 Add Figtree via `next/font/local` with the variable woff2, and apply it as
+- [x] 3.2 Add Figtree via `next/font/local` with the variable woff2, and apply it as
       the application's font
-- [ ] 3.3 Add `lucide-react` and the `Record<MarkerIconName, IconComponent>` mapping;
+- [x] 3.3 Add `lucide-react` and the `Record<MarkerIconName, IconComponent>` mapping;
       confirm the exhaustive record makes a missing entry a type error
-- [ ] 3.4 Fetch the style document, pass it through `themeStyle`, and hand the result
+- [x] 3.4 Fetch the style document, pass it through `themeStyle`, and hand the result
       to MapLibre instead of the URL — including the unreachable-style failure, which
       must say what happened rather than leave a blank canvas under correct pins
-- [ ] 3.5 Draw the teardrop pin from the shared geometry, using MapLibre's `Marker`
+- [x] 3.5 Draw the teardrop pin from the shared geometry, using MapLibre's `Marker`
       anchor option rather than an offset written in the app
-- [ ] 3.6 Restyle the marker details panel, the marker form, the city bar, place
+- [x] 3.6 Restyle the marker details panel, the marker form, the city bar, place
       search, and the state/notice components against the tokens
-- [ ] 3.7 Restyle the login and signup screens
-- [ ] 3.8 Re-render the map when the theme changes, without reloading the trip and
+- [x] 3.7 Restyle the login and signup screens
+- [x] 3.8 Re-render the map when the theme changes, without reloading the trip and
       without moving the camera
 
 ## 4. Mobile
@@ -78,7 +78,7 @@
 
 ## 5. Checks, and looking
 
-- [ ] 5.1 Add the repository script asserting both font files exist and report the
+- [x] 5.1 Add the repository script asserting both font files exist and report the
       same family and version, and wire it into CI
 - [ ] 5.2 Run `pnpm check:cycles` and confirm `@pinpoint/map` still declares no
       third-party runtime dependencies after the style patch lands

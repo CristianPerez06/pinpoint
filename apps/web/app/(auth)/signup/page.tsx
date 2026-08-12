@@ -1,5 +1,6 @@
 import { redirectIfAuthenticated } from '@/lib/auth/guards'
 
+import styles from '../auth.module.css'
 import { SignupForm } from './signup-form'
 
 /**
@@ -12,12 +13,18 @@ export default async function SignupPage() {
   await redirectIfAuthenticated()
 
   return (
-    <main>
-      <h1>Create an account</h1>
-      <p>
-        Use the address you were invited at — it is what links you to your trip.
-      </p>
-      <SignupForm />
+    <main className={styles.screen}>
+      <div className={styles.card}>
+        <span className={styles.wordmark}>
+          <span className={styles.dot} aria-hidden />
+          pinpoint
+        </span>
+        <h1 className={styles.title}>Create an account</h1>
+        <p className={styles.subtitle}>
+          Use the address you were invited at — it is what links you to your trip.
+        </p>
+        <SignupForm />
+      </div>
     </main>
   )
 }
