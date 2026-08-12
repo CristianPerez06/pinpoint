@@ -17,11 +17,16 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Search "Parque Suigetsu" with a Kyoto or Osaka marker selected. It must still be offered, and must show thousands of kilometres, marked.
-- [ ] 4.2 Search a place actually nearby. It must show a small distance and no mark.
-- [ ] 4.3 Search with no city selected and the map somewhere neutral — results must still appear, with no distance rather than a wrong one.
+- [x] 4.1 Search "Parque Suigetsu" with a Kyoto or Osaka marker selected. It must still be offered, and must show thousands of kilometres, marked.
+- [x] 4.2 Search a place actually nearby. Its distance is muted grey rather than red — the mark is the emphasis on the distance itself, not a separate badge.
+- [x] 4.3 Not reachable through the interface, and that is correct. Choosing "All
+      places" does not remove the bias — it falls back to the map's viewport
+      centre, which is set as soon as the map exists — so there is always a
+      reference point, and losing it would mean losing locality entirely. The
+      null case is defensive, for the instant before the map reports where it is
+      looking, and is covered by a unit test rather than by looking.
 
 ## 5. Closing
 
 - [x] 5.1 `pnpm lint`, `typecheck`, `test`, `build`, `check:cycles`, `check:specs` all green.
-- [ ] 5.2 Note in `openspec/ROADMAP.md` that query cleanup — stripping notes and parentheses, which recovered seven of thirteen failures in the sample — belongs to bulk import rather than to interactive search.
+- [x] 5.2 Note in `openspec/ROADMAP.md` that query cleanup — stripping notes and parentheses, which recovered seven of thirteen failures in the sample — belongs to bulk import rather than to interactive search.
