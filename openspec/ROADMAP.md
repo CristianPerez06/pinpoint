@@ -61,42 +61,17 @@ Two of those columns are the whole product:
 
 ## Next
 
-### 1. Bulk import
-
-Paste a list of names per city, geocode them all, confirm the ambiguous ones.
-
-Measured against a real list of thirty-five Osaka places before committing to
-it: twenty-two resolved correctly, six came back confidently wrong — from 270 km
-to 16,187 km away — and seven found nothing. The failures were not obscure
-places. They were the notes people write beside a name. "Parque", "Templo",
-"Barrio" and "Tienda" are what the geocoder matched, and they pulled the search
-to Spanish-speaking countries.
-
-Stripping those words and the parenthetical asides recovered seven of the
-thirteen failures, taking the list to twenty-nine of thirty-five. **That cleanup
-belongs here and not in interactive search** — pasting a list is the moment a
-guessed correction can be shown and reviewed before anything is stored, where
-typing a query is a moment to be left alone.
-
-Which makes the review step the substance of this change, not the geocoding. A
-wrong match looks exactly like a right one, and a run of sixty produces several.
-
-This looks like a nicety and is not. The app is worth *less* than the spreadsheet
-until it holds everything — a half-migrated trip means checking two places, and
-"is anything else nearby?" returns a wrong answer. Adding sixty places one at a
-time is the difference between adopting this and going back to the sheet.
-
-### 2. Interest and filters
+### 1. Interest and filters
 
 Per-member interest, visited, and the filter that motivates the whole project:
 **Both / Either / Only one of you / Nobody yet**.
 
 "Nobody yet" is the triage pile — invisible in a spreadsheet, obvious here.
 
-Arguably the highest-value change, and deliberately not first: it is worthless
-until there is data, and the write path and bulk import are what put data in.
+The highest-value change, and it was deliberately not first: it is worthless
+until there is data, and the write path is what puts data in.
 
-### 3. Mobile reader
+### 2. Mobile reader
 
 Map, filters, mark visited, and **what's near me right now** — the one thing a
 spreadsheet fundamentally cannot do.
@@ -141,6 +116,28 @@ work of a second full client.
   needed it. If it ever requires paying, search is withdrawn rather than billed —
   survivable only because dropping a pin contacts nothing, which is the real reason
   that path is primary rather than a fallback.
+
+- **Bulk import is not a feature.** It was step one here for a long time, on the
+  argument that the app is worth less than the spreadsheet until it holds
+  everything. That argument is about a *migration* — one existing sheet, moved
+  once — and a migration is not a product capability. Nobody pastes sixty places
+  twice; after the move, places arrive one at a time, from a recommendation or a
+  video, which is what the write path is for. Getting the first trip in is a
+  sitting at a keyboard or a throwaway script, and neither earns permanent
+  interface.
+
+  The measurement is worth keeping even though the step is gone. Thirty-five real
+  Osaka places through the geocoder: twenty-two resolved, six came back
+  confidently wrong — 270 km to 16,187 km away — and seven found nothing. The
+  failures were not obscure places but the notes written beside them; "Parque",
+  "Templo", "Barrio" and "Tienda" are what matched, and they pulled the search to
+  Spanish-speaking countries. Stripping those words and the parenthetical asides
+  recovered seven of the thirteen.
+
+  Two things follow. A pasted list would need a review step rather than trusting
+  the geocoder, because a wrong match looks exactly like a right one. And the
+  reason interactive search now shows how far away each result is, is that this
+  is the only fact distinguishing them.
 
 ## Loose ends
 
