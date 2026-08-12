@@ -1,28 +1,28 @@
 ## 1. Tokens: themes, typography, and a real derivation
 
-- [ ] 1.1 Restructure `packages/tokens/src/colour.ts` so every colour is a
+- [x] 1.1 Restructure `packages/tokens/src/colour.ts` so every colour is a
       `{ light, dark }` pair, and replace the cool neutrals with the warm set
       (ground, surface, surface-muted, surface-sunk, line, line-strong, ink,
       ink-muted, ink-faint)
-- [ ] 1.2 Add the amber accent and its text-safe partner — `#E39A2B` / `#F0AE4A` for
+- [x] 1.2 Add the amber accent and its text-safe partner — `#E39A2B` / `#F0AE4A` for
       surfaces, `#8A5A0B` / `#F0AE4A` for text — plus the accent wash and ring, and
       restate in the file's comment why the accent may not be a sixth family colour
-- [ ] 1.3 Give the five marker families their dark values, keeping the comment that
+- [x] 1.3 Give the five marker families their dark values, keeping the comment that
       explains the deliberate lopsidedness and adding that the ranking holds in both
       themes
-- [ ] 1.4 Add the elevation tokens (three shadow levels, per theme) and extend
+- [x] 1.4 Add the elevation tokens (three shadow levels, per theme) and extend
       `RADIUS` for the softer corners
-- [ ] 1.5 Add `packages/tokens/src/type.ts` — the type scale as roles, each with size,
+- [x] 1.5 Add `packages/tokens/src/type.ts` — the type scale as roles, each with size,
       weight, letter-spacing, line height, and whether numerals are tabular; keep the
       existing comment's reasoning about numbers rather than unit strings
-- [ ] 1.6 Add the basemap colour tokens (land, block, road, casing, water, park, label)
+- [x] 1.6 Add the basemap colour tokens (land, block, road, casing, water, park, label)
       for both themes, so the style patch and the interface read one palette
-- [ ] 1.7 Write the derivation script producing the native module (both themes as
+- [x] 1.7 Write the derivation script producing the native module (both themes as
       literals) and the web stylesheet (custom properties under `:root` and a
       `prefers-color-scheme` block), each with a generated-file header
-- [ ] 1.8 Make the derivation fail rather than emit when a colour is defined for only
+- [x] 1.8 Make the derivation fail rather than emit when a colour is defined for only
       one theme, or when a host-resolved reference would reach the native output
-- [ ] 1.9 Add a CI check that regenerates both representations and fails on a diff
+- [x] 1.9 Add a CI check that regenerates both representations and fails on a diff
 
 ## 2. `@pinpoint/map`: icons, geometry, and the style patch
 

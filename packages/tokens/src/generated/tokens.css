@@ -1,0 +1,156 @@
+/**
+ * GENERATED FILE — DO NOT EDIT.
+ *
+ * Written by packages/tokens/scripts/derive.ts from the modules in ../. Any
+ * edit here is lost the next time that script runs, and CI fails on the diff
+ * before it gets the chance.
+ *
+ * This is the web representation. A browser theme belongs in the cascade rather
+ * than in JavaScript, so both grounds are declared here and the media query
+ * chooses — components reference the properties and never import a colour, and
+ * a theme change repaints without re-rendering a tree.
+ *
+ * These custom properties are for web only. A value the host resolves is
+ * exactly what native cannot render, which is why the native representation
+ * beside this one carries literals instead.
+ */
+
+:root {
+  /* spacing */
+  --pp-space-xs: 4px;
+  --pp-space-sm: 8px;
+  --pp-space-md: 16px;
+  --pp-space-lg: 24px;
+  --pp-space-xl: 32px;
+
+  /* radii */
+  --pp-radius-sm: 6px;
+  --pp-radius-md: 10px;
+  --pp-radius-lg: 14px;
+  --pp-radius-pill: 999px;
+
+  /* the marker pin */
+  --pp-marker-width: 32px;
+  --pp-marker-height: 42px;
+  --pp-marker-glyph: 15px;
+  --pp-marker-badge: 18px;
+
+  /* type */
+  --pp-font: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  --pp-type-display-size: 32px;
+  --pp-type-display-weight: 800;
+  --pp-type-display-tracking: -0.033em;
+  --pp-type-display-leading: 1.1;
+  --pp-type-title-size: 17px;
+  --pp-type-title-weight: 700;
+  --pp-type-title-tracking: -0.022em;
+  --pp-type-title-leading: 1.22;
+  --pp-type-row-name-size: 14px;
+  --pp-type-row-name-weight: 600;
+  --pp-type-row-name-tracking: -0.012em;
+  --pp-type-row-name-leading: 1.3;
+  --pp-type-body-size: 13.5px;
+  --pp-type-body-weight: 400;
+  --pp-type-body-tracking: 0em;
+  --pp-type-body-leading: 1.52;
+  --pp-type-note-size: 12.5px;
+  --pp-type-note-weight: 400;
+  --pp-type-note-tracking: 0em;
+  --pp-type-note-leading: 1.35;
+  --pp-type-label-size: 11px;
+  --pp-type-label-weight: 700;
+  --pp-type-label-tracking: 0.1em;
+  --pp-type-label-leading: 1.3;
+  --pp-type-numeric-size: 13px;
+  --pp-type-numeric-weight: 600;
+  --pp-type-numeric-tracking: 0em;
+  --pp-type-numeric-leading: 1.3;
+  --pp-type-control-size: 13.5px;
+  --pp-type-control-weight: 500;
+  --pp-type-control-tracking: 0em;
+  --pp-type-control-leading: 1.3;
+
+  /* surfaces and ink */
+  --pp-ground: #FBFAF8;
+  --pp-surface: #FFFFFF;
+  --pp-surface-muted: #F3F2EF;
+  --pp-surface-sunk: #EFEDE8;
+  --pp-line: #E4E2DC;
+  --pp-line-strong: #D3D0C8;
+  --pp-ink: #1A1917;
+  --pp-ink-muted: #6E6A63;
+  --pp-ink-faint: #9C978E;
+  --pp-accent: #E39A2B;
+  --pp-accent-ink: #8A5A0B;
+  --pp-accent-wash: #FBF1DF;
+  --pp-accent-ring: #E39A2B61;
+  --pp-danger: #B3261E;
+  --pp-danger-surface: #FCEDEC;
+
+  /* the basemap, patched to share this ground */
+  --pp-map-land: #EFEEE9;
+  --pp-map-block: #E7E5DF;
+  --pp-map-road: #FFFFFF;
+  --pp-map-road-casing: #E2DFD8;
+  --pp-map-water: #D8DEE0;
+  --pp-map-park: #E4E7DE;
+  --pp-map-label: #A8A29A;
+
+  /* marker families — fixed by the product, not by the palette */
+  --pp-family-see: #7C8896;
+  --pp-family-eat: #D2451E;
+  --pp-family-buy: #8A3FFC;
+  --pp-family-sleep: #0B5FD0;
+  --pp-family-move: #00857A;
+  --pp-marker-foreground: #FFFFFF;
+
+  /* elevation, composed — CSS wants one string */
+  --pp-shadow-sm: 0 1px 2px #1A19170F;
+  --pp-shadow-md: 0 4px 12px #1A19171A;
+  --pp-shadow-lg: 0 12px 32px #1A191729;
+  --pp-shadow-pin: 0 2px 5px #1A19174D;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* surfaces and ink */
+    --pp-ground: #171614;
+    --pp-surface: #201E1B;
+    --pp-surface-muted: #2A2724;
+    --pp-surface-sunk: #1B1A17;
+    --pp-line: #34302B;
+    --pp-line-strong: #443F38;
+    --pp-ink: #F2F0EC;
+    --pp-ink-muted: #A09A91;
+    --pp-ink-faint: #7C766D;
+    --pp-accent: #F0AE4A;
+    --pp-accent-ink: #F0AE4A;
+    --pp-accent-wash: #33291A;
+    --pp-accent-ring: #F0AE4A6B;
+    --pp-danger: #F2857C;
+    --pp-danger-surface: #33211F;
+
+    /* the basemap, patched to share this ground */
+    --pp-map-land: #1D1B18;
+    --pp-map-block: #232019;
+    --pp-map-road: #2F2B25;
+    --pp-map-road-casing: #262219;
+    --pp-map-water: #1A1F22;
+    --pp-map-park: #1F241F;
+    --pp-map-label: #6B655C;
+
+    /* marker families — fixed by the product, not by the palette */
+    --pp-family-see: #98A3B0;
+    --pp-family-eat: #F0653A;
+    --pp-family-buy: #A97BFF;
+    --pp-family-sleep: #4A8FE8;
+    --pp-family-move: #16A99C;
+    --pp-marker-foreground: #171614;
+
+    /* elevation, composed — CSS wants one string */
+    --pp-shadow-sm: 0 1px 2px #00000066;
+    --pp-shadow-md: 0 4px 12px #00000075;
+    --pp-shadow-lg: 0 12px 32px #00000094;
+    --pp-shadow-pin: 0 2px 5px #0000008C;
+  }
+}

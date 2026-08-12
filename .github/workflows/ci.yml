@@ -116,6 +116,15 @@ jobs:
       - name: Validate lockfile freshness
         run: pnpm install --frozen-lockfile
 
+      # @pinpoint/tokens holds one authoritative definition and two derived
+      # representations — literals for native, custom properties for web.
+      # Regenerating and failing on a diff is what keeps "derived" from
+      # degrading into "was derived once": without it a hand-edit to a
+      # generated file survives indefinitely, and the two platforms drift
+      # apart one colour at a time.
+      - name: Check derived tokens are current
+        run: pnpm --filter @pinpoint/tokens check:derived
+
       # Two versions of a dually-bundled runtime crash the bundle in ways that
       # look unrelated to dependencies — the classic symptom is
       # "Cannot read property 'useRef' of null" from deep inside a navigation

@@ -5,13 +5,16 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/generated/tokens.css"
   },
   "scripts": {
+    "derive": "vite-node scripts/derive.ts",
+    "check:derived": "vite-node scripts/derive.ts && git diff --exit-code -- src/generated",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
-  "comment": "dependencies is intentionally absent, and so is any runtime code. This package holds platform-neutral literals and nothing else — the single source of truth the styling spec requires. Both applications import the same values and apply them in their own idiom; nothing here knows what a stylesheet is. Adding a dependency here means something other than a token value has been put in it.",
+  "comment": "dependencies is intentionally absent. This package holds platform-neutral literals and pure functions over them — the single source of truth the styling spec requires. src/ is authoritative and hand-written; src/generated/ is derived from it by scripts/derive.ts and must never be edited, and CI fails on a diff. The direction is one way: nothing recovers a token by parsing the generated stylesheet. Adding a runtime dependency here means something other than a token value has been put in it.",
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
