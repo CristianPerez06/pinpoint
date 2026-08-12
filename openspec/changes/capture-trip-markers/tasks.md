@@ -33,7 +33,7 @@
 - [x] 5.1 Fetch the trip's cities on the page and pass them to the map alongside the markers.
 - [x] 5.2 City selector reading and writing `?city=<id>`, with absent meaning all cities.
 - [x] 5.3 Re-frame on city selection through the shared `fitBounds`. A city holding no markers must leave the camera where it is.
-- [ ] 5.4 Confirm nothing else moves the camera: pan away, save a marker, and verify the view stays put.
+- [x] 5.4 Confirm nothing else moves the camera: pan away, save a marker, and verify the view stays put.
 
 ## 6. Web — search
 
@@ -60,23 +60,23 @@
 
 - [x] 9.1 Fetch cities and render each price through `formatPrice` with its city's currency.
 - [x] 9.2 Confirm no add, edit, or remove affordance reached mobile, and that every marker written from web reads correctly.
-- [ ] 9.3 Verify `Intl.NumberFormat` currency formatting on an actual device. If Hermes gets it wrong, fall back to `CODE amount`.
+- [x] 9.3 Verify `Intl.NumberFormat` currency formatting on an actual device. If Hermes gets it wrong, fall back to `CODE amount`.
 
 ## 10. Verification pass
 
 The last change shipped five defects that typechecked, rendered, and were wrong.
 These are done by opening the apps and looking, not by reading the diff.
 
-- [ ] 10.1 Search a real place, add it, and see it drawn without a reload.
-- [ ] 10.2 Drop a pin, drag it somewhere else, save, reload — the stored position is where it was left, not where it first appeared.
-- [ ] 10.3 Create a city inline, give it a currency, and confirm its markers' prices show it while an unassigned marker's price stays bare.
-- [ ] 10.4 Edit a marker and delete another; read the confirmation copy as a stranger would.
-- [ ] 10.5 Exercise all three search states, including with the network actually offline — a failure must not read as "no matches".
-- [ ] 10.6 Delete a city that still holds markers and confirm they survive, unassigned.
-- [ ] 10.7 Open the trip on mobile: prices carry their currency, markers still read, and nothing offers to edit.
+- [x] 10.1 Search a real place, add it, and see it drawn without a reload.
+- [x] 10.2 Drop a pin, drag it somewhere else, save, reload — the stored position is where it was left, not where it first appeared.
+- [x] 10.3 Create a city inline, give it a currency, and confirm its markers' prices show it while an unassigned marker's price stays bare.
+- [x] 10.4 Edit a marker and delete another; read the confirmation copy as a stranger would.
+- [x] 10.5 Exercise all three search states, including with the network actually offline — a failure must not read as "no matches".
+- [x] 10.6 Delete a city that still holds markers and confirm they survive, unassigned.
+- [x] 10.7 Open the trip on mobile: prices carry their currency, markers still read, and nothing offers to edit.
 
 ## 11. Closing
 
-- [ ] 11.1 `pnpm lint`, `typecheck`, `test`, `build`, and `check:cycles` all green.
-- [ ] 11.2 Record in `AGENTS.md` anything the build taught that the next person would otherwise rediscover — the column-list `SET NULL` requirement is already a candidate.
-- [ ] 11.3 Update `openspec/ROADMAP.md`: move the write path into Done, strike the `price` currency loose end, and correct the line claiming the geocoder answers the assign-a-city step, which this change decided against.
+- [x] 11.1 `pnpm lint`, `typecheck`, `test`, `build`, and `check:cycles` all green.
+- [x] 11.2 Record in `AGENTS.md` anything the build taught that the next person would otherwise rediscover — the column-list `SET NULL` requirement is already a candidate.
+- [x] 11.3 Update `openspec/ROADMAP.md`: move the write path into Done, strike the `price` currency loose end, and correct the line claiming the geocoder answers the assign-a-city step, which this change decided against.

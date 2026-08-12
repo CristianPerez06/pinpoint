@@ -38,22 +38,30 @@ Two of those columns are the whole product:
   worker 404ing so pins floated over a blank canvas. Each typechecked, rendered,
   and was wrong. Budget for looking, not just for building.
 
+- **The write path** — search, drop, edit and remove, with cities as the grouping.
+  **The app can now replace the spreadsheet.** Photon is settled as the geocoder,
+  and writing is web-only by decision: the shared write functions are usable from
+  either platform, and only the phone declines to offer them.
+
+  Two things turned out differently from the plan. Cities are a name somebody
+  chose for a cluster of pins, not a geographical fact — so nothing resolves a
+  city's name to a position, and search biases toward the markers already filed
+  under it, which say where the group is. That killed the idea below that the
+  geocoder answers the "assign a city" question; it can suggest, and the person
+  decides.
+
+  And the bias is a focus point, never a bounding box. Photon offers both, and
+  only the first ranks rather than excludes — a trip is mostly day trips, and the
+  place an hour away has to stay findable.
+
+  Budget for looking held again: three more defects surfaced only by opening the
+  apps. One of them was a specification defect first — the camera refused to move
+  to a searched place, because the rule had been written for pinning a pointed
+  position and applied to both.
+
 ## Next
 
-### 1. Write path
-
-Photon search plus tap-to-drop on the map. Cities, types, link, price.
-
-Photon rather than Nominatim: Photon is built for as-you-type, Nominatim's usage
-policy is not. Bias the query to the active city — hit rates go up sharply and the
-"assign a city" step disappears, because the geocoder already answered it.
-
-Tap-to-drop is not a fallback. Small restaurants are frequently absent from OSM
-under their popular name, so for food it will be the primary path.
-
-**After this change the app can replace the spreadsheet.** Not before.
-
-### 2. Bulk import
+### 1. Bulk import
 
 Paste a list of names per city, geocode them all, confirm the ambiguous ones.
 
@@ -62,7 +70,7 @@ until it holds everything — a half-migrated trip means checking two places, an
 "is anything else nearby?" returns a wrong answer. Adding sixty places one at a
 time is the difference between adopting this and going back to the sheet.
 
-### 3. Interest and filters
+### 2. Interest and filters
 
 Per-member interest, visited, and the filter that motivates the whole project:
 **Both / Either / Only one of you / Nobody yet**.
@@ -70,9 +78,9 @@ Per-member interest, visited, and the filter that motivates the whole project:
 "Nobody yet" is the triage pile — invisible in a spreadsheet, obvious here.
 
 Arguably the highest-value change, and deliberately not first: it is worthless
-until there is data, and the two steps above are what put data in.
+until there is data, and the write path and bulk import are what put data in.
 
-### 4. Mobile reader
+### 3. Mobile reader
 
 Map, filters, mark visited, and **what's near me right now** — the one thing a
 spreadsheet fundamentally cannot do.
@@ -107,6 +115,16 @@ work of a second full client.
 - **Markers on one point.** Identical coordinates are the same pixel at every zoom,
   so the pin underneath is unreachable forever. Badged with a count, and selecting it
   offers the markers there to choose between. Stored positions are never moved.
+- **What a price is denominated in.** The currency sits on the **city**, not the trip
+  and not the marker: on the city so one trip can cross a border, on the city rather
+  than each place so it is said once instead of sixty times. A city with no currency
+  shows a bare amount and nothing is assumed — a price in the wrong currency is worse
+  than one in none, because it looks correct. Moving a marker between cities never
+  converts the stored amount; the number was transcribed off a menu.
+- **Who the geocoder is.** Photon, the free public instance, held open until a change
+  needed it. If it ever requires paying, search is withdrawn rather than billed —
+  survivable only because dropping a pin contacts nothing, which is the real reason
+  that path is primary rather than a fallback.
 
 ## Loose ends
 
@@ -121,14 +139,25 @@ work of a second full client.
 - [ ] Email confirmation is off, so sign-up is open to anyone who finds the URL.
       They see nothing without a membership, but the account exists. Revisit before
       the app has a public address.
-- [ ] `price` has no currency. Correct for one trip, wrong for the second — and the
-      write path is where a price first gets typed, so that is the moment to decide.
 - [ ] A failing tile service is unhandled. If OpenFreeMap is unreachable the map is a
       blank canvas with correctly-placed pins and no explanation — the same symptom as
       a bug already fixed once, from a different cause. Nothing in `map-rendering`
       covers it.
 - [ ] `AGENTS.md` says this repo merges with `git merge --no-ff`, but recent merges
       have been squashes. Reconcile the document with the practice, either way.
+- [ ] The disposable Kyoto seed migration is still applied. It was kept deliberately so
+      there was something to look at; deleting it now needs the rows gone as well as
+      the file, since removing a migration leaves the remote's history untouched.
+- [ ] A long note is clipped rather than scrolled in the mobile detail sheet. The sheet
+      sizes to its content, and a `ScrollView` inside a content-sized parent collapses;
+      the fix is a sheet with a real height, which is its own change.
+- [ ] Concurrent edits are last-write-wins with no way to detect a collision — there is
+      no `updated_at` on a marker to compare. Correct at two travellers, and the thing
+      to revisit before there are more.
+- [ ] Creating a trip and inviting people is still impossible from the product.
+      Neither `trips` nor `trip_members` has an insert policy, and the schema records
+      why: an insert policy cannot resolve to membership for a trip with no members, so
+      it needs a trigger making the creator the first member.
 
 ## Open design questions
 
