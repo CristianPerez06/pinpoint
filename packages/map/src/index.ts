@@ -15,6 +15,8 @@ export {
   TILE_SIZE,
 } from './constants'
 
+export { distanceKm } from './distance'
+
 export {
   boundsOf,
   boundsWidth,

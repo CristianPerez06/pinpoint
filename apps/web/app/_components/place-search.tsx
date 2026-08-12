@@ -41,6 +41,31 @@ const QUIET_PERIOD_MS = 300
 const browserFetch = (url: string, init?: { signal?: AbortSignal }) =>
   fetch(url, init)
 
+/**
+ * Beyond this, a candidate is marked as far away.
+ *
+ * Chosen from a real list rather than from theory: running thirty-five Osaka
+ * places through the geocoder, every correct match landed within 17 km and the
+ * nearest wrong one was 270 km. Anything in that gap separates them.
+ *
+ * The mark means "not near where you are working", not "wrong". A Hiroshima
+ * result while planning Osaka is 280 km and genuinely is far. And because this
+ * only ever changes emphasis — nothing is filtered or reordered — being wrong
+ * about the number costs a misplaced highlight and never a missing result.
+ */
+const FAR_AWAY_KM = 100
+
+/**
+ * A distance, at a precision that suits its size.
+ *
+ * Under 10 km a tenth matters, because that is the difference between the right
+ * temple and the one across the river. At four figures it is noise.
+ */
+function formatDistance(km: number): string {
+  if (km < 10) return `${km.toFixed(1)} km`
+  return `${Math.round(km).toLocaleString('en')} km`
+}
+
 export function PlaceSearch({
   biasRef,
   onChoose,
@@ -176,17 +201,49 @@ export function PlaceSearch({
                   >
                     <span aria-hidden>{markerTypeOf(candidate.typeGuess).icon}</span>
                     <span>{candidate.name}</span>
-                    {candidate.context ? (
-                      <span
-                        style={{
-                          marginLeft: 'auto',
-                          color: COLOUR.textMuted,
-                          fontSize: 12,
-                        }}
-                      >
-                        {candidate.context}
-                      </span>
-                    ) : null}
+
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: SPACE.sm,
+                        fontSize: 12,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {candidate.context ? (
+                        <span style={{ color: COLOUR.textMuted }}>
+                          {candidate.context}
+                        </span>
+                      ) : null}
+
+                      {/*
+                        The distance, which is the whole point. A query carrying
+                        a note — "Parque Suigetsu", "Barrio Shinsekai" — matches
+                        a real place of a similar name on another continent and
+                        arrives looking exactly like a correct result. The name
+                        cannot tell them apart; this can.
+
+                        Shown, never used to filter. A place a few hundred
+                        kilometres away is an ordinary thing to save.
+                      */}
+                      {candidate.distanceKm === null ? null : (
+                        <span
+                          style={{
+                            color:
+                              candidate.distanceKm > FAR_AWAY_KM
+                                ? COLOUR.danger
+                                : COLOUR.textMuted,
+                            fontWeight:
+                              candidate.distanceKm > FAR_AWAY_KM ? 600 : 400,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {formatDistance(candidate.distanceKm)}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 </li>
               ))}

@@ -104,4 +104,32 @@ describe('toCandidates', () => {
     )
     expect(candidate?.context).not.toBe('Kyoto')
   })
+
+  it('stamps how far a candidate is from the bias point', () => {
+    const osaka = { lng: 135.5023, lat: 34.6937 }
+    const [near] = toCandidates(
+      collection(feature({ name: 'Osaka Castle' }, [135.5262, 34.6873])),
+      osaka,
+    )
+    expect(near?.distanceKm).toBeGreaterThan(0)
+    expect(near?.distanceKm).toBeLessThan(10)
+  })
+
+  it('stamps a large distance on the failure this exists for', () => {
+    // A query for an Osaka place resolving to somewhere in Spain, offered
+    // looking exactly like a correct match.
+    const osaka = { lng: 135.5023, lat: 34.6937 }
+    const [far] = toCandidates(
+      collection(feature({ name: 'Parque Fluvial' }, [-6.5, 40.9])),
+      osaka,
+    )
+    expect(far?.distanceKm).toBeGreaterThan(10_000)
+  })
+
+  it('carries no distance when there was no bias to measure from', () => {
+    // Rather than a zero, which would render as "0 km away" — the most
+    // confident possible claim, made with no information at all.
+    const [candidate] = toCandidates(collection(feature({ name: 'Somewhere' })))
+    expect(candidate?.distanceKm).toBeNull()
+  })
 })

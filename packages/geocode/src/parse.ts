@@ -1,5 +1,7 @@
+import { distanceKm } from '@pinpoint/map'
+
 import { guessMarkerType } from './type-guess'
-import type { PlaceCandidate } from './types'
+import type { PlaceCandidate, SearchBias } from './types'
 
 /**
  * Turning the geocoder's GeoJSON into candidates.
@@ -65,7 +67,11 @@ function contextOf(props: Record<string, unknown>, name: string): string | null 
   return unique.length > 0 ? unique.join(', ') : null
 }
 
-function toCandidate(feature: unknown, index: number): PlaceCandidate | null {
+function toCandidate(
+  feature: unknown,
+  index: number,
+  bias: SearchBias | undefined,
+): PlaceCandidate | null {
   if (!isRecord(feature)) return null
 
   const props = isRecord(feature.properties) ? feature.properties : {}
@@ -100,6 +106,7 @@ function toCandidate(feature: unknown, index: number): PlaceCandidate | null {
     lat,
     typeGuess: guessMarkerType(str(props.osm_key), str(props.osm_value)),
     context: contextOf(props, name),
+    distanceKm: bias ? distanceKm(bias, { lng, lat }) : null,
   }
 }
 
@@ -110,10 +117,13 @@ function toCandidate(feature: unknown, index: number): PlaceCandidate | null {
  * caller distinguishes "no matches" from "search unavailable" by how the request
  * itself went, not by whether the body parsed.
  */
-export function toCandidates(payload: unknown): readonly PlaceCandidate[] {
+export function toCandidates(
+  payload: unknown,
+  bias?: SearchBias,
+): readonly PlaceCandidate[] {
   if (!isRecord(payload) || !Array.isArray(payload.features)) return []
 
   return payload.features
-    .map((feature, index) => toCandidate(feature, index))
+    .map((feature, index) => toCandidate(feature, index, bias))
     .filter((candidate): candidate is PlaceCandidate => candidate !== null)
 }

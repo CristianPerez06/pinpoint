@@ -106,4 +106,15 @@ describe('searchPlaces', () => {
     const asFetcher: Fetcher = globalThis.fetch
     expect(typeof asFetcher).toBe('function')
   })
+
+  it('carries the bias through to the candidates it returns', () => {
+    // The bias was already used to build the request. Dropping it afterwards is
+    // what left every candidate unable to say how far it had landed.
+    return searchPlaces(respondWith(oneResult), 'nishiki', {
+      bias: { lng: 135.5023, lat: 34.6937 },
+    }).then((result) => {
+      if (result.status !== 'ready') throw new Error('expected ready')
+      expect(result.candidates[0]?.distanceKm).toBeGreaterThan(0)
+    })
+  })
 })

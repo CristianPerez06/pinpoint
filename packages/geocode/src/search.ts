@@ -69,7 +69,9 @@ export async function searchPlaces(
     return { status: 'failed', message: SEARCH_FAILED_MESSAGE }
   }
 
-  const candidates = toCandidates(payload)
+  // The bias was already used to build the request; it is carried on so each
+  // candidate can say how far it landed from it.
+  const candidates = toCandidates(payload, searchOptions.bias)
 
   // An unreadable body and a genuinely empty result both arrive here as an empty
   // list. Both are reported as empty, and that is the right call: the request

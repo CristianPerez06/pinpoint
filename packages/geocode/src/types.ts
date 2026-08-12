@@ -26,6 +26,17 @@ export interface PlaceCandidate {
    * in a list. Null when the service said nothing useful.
    */
   context: string | null
+  /**
+   * How far this is from the point the search was biased toward, in kilometres.
+   * Null when there was no bias, because there is then nothing to measure from
+   * and a fabricated number would appear in the same place a real one does.
+   *
+   * The geocoder matches on whatever words somebody wrote down, and a saved
+   * place usually carries a note — which routinely resolves to a real place of a
+   * similar name on another continent, rendered identically to a correct match.
+   * This is the one fact that tells them apart.
+   */
+  distanceKm: number | null
 }
 
 /** The point results are ranked around. Never a filter — see `buildSearchUrl`. */
