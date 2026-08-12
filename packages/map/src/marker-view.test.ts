@@ -1,7 +1,7 @@
-import { MARKER_FAMILY_COLOURS } from '@pinpoint/tokens'
+import { MARKER_ANCHOR, MARKER_FAMILY_COLOURS, MARKER_SIZE } from '@pinpoint/tokens'
 import { describe, expect, it } from 'vitest'
 
-import { FALLBACK_MARKER_TYPE } from './marker-type'
+import { FALLBACK_MARKER_TYPE, MARKER_ICONS } from './marker-type'
 import { groupCoincident, markerView, type MarkerViewInput } from './marker-view'
 
 function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) {
@@ -9,22 +9,20 @@ function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) 
 }
 
 describe('markerView', () => {
-  it('gives two types of different families different icons and colours', () => {
+  it('gives two types of different families different icons and families', () => {
     const temple = markerView(at(135.78, 35.0, { name: 'Kiyomizu-dera', type: 'temple' }))
     const restaurant = markerView(at(135.77, 35.0, { name: 'Pontocho', type: 'restaurant' }))
 
     expect(temple.icon).not.toBe(restaurant.icon)
-    expect(temple.colour).not.toBe(restaurant.colour)
-    expect(temple.colour).toBe(MARKER_FAMILY_COLOURS.see)
-    expect(restaurant.colour).toBe(MARKER_FAMILY_COLOURS.eat)
+    expect(temple.family).toBe('see')
+    expect(restaurant.family).toBe('eat')
   })
 
-  it('gives two types of the same family one colour and two icons', () => {
+  it('gives two types of the same family one family and two icons', () => {
     const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
     const castle = markerView(at(135.75, 35.01, { type: 'castle' }))
 
     expect(temple.family).toBe(castle.family)
-    expect(temple.colour).toBe(castle.colour)
     expect(temple.icon).not.toBe(castle.icon)
   })
 
@@ -32,8 +30,29 @@ describe('markerView', () => {
     const view = markerView(at(135.78, 35.0, { type: 'onsen' }))
 
     expect(view.typeId).toBe(FALLBACK_MARKER_TYPE)
-    expect(view.icon.length).toBeGreaterThan(0)
-    expect(view.colour).toBe(MARKER_FAMILY_COLOURS.see)
+    expect(MARKER_ICONS).toContain(view.icon)
+    expect(view.family).toBe('see')
+  })
+
+  it('names an icon rather than carrying one, and names a family rather than a colour', () => {
+    // The whole point of the indirection: nothing here is ready to draw, so a
+    // theme can decide the colour and a platform can decide the glyph.
+    const view = markerView(at(135.78, 35.0, { type: 'cafe' }))
+
+    expect(MARKER_ICONS).toContain(view.icon)
+    expect(view).not.toHaveProperty('colour')
+    expect(view).not.toHaveProperty('foreground')
+  })
+
+  it('says which point of the drawn pin sits on the coordinate', () => {
+    // Anchored at the point, not the centre. Carried in the description so that
+    // neither application writes an offset of its own — which is how the last
+    // drift defect survived being fixed on one platform.
+    const view = markerView(at(135.78, 35.0))
+
+    expect(view.anchor).toEqual({ x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y })
+    expect(view.anchor.y).toBe(1)
+    expect(view.size).toEqual({ width: MARKER_SIZE.width, height: MARKER_SIZE.height })
   })
 
   it('carries the position and the name through unchanged', () => {
@@ -44,11 +63,13 @@ describe('markerView', () => {
     expect(view.label).toBe('Fushimi Inari')
   })
 
-  it('gives every declared family a colour', () => {
+  it('gives every declared family a colour on both grounds', () => {
     // The compile-time check in marker-view.ts is the real guard; this catches
     // a colour that exists but is empty.
     for (const colour of Object.values(MARKER_FAMILY_COLOURS)) {
-      expect(colour).toMatch(/^#[0-9A-F]{6}$/i)
+      expect(colour.light).toMatch(/^#[0-9A-F]{6}$/i)
+      expect(colour.dark).toMatch(/^#[0-9A-F]{6}$/i)
+      expect(colour.light).not.toBe(colour.dark)
     }
   })
 })

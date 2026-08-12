@@ -4,6 +4,7 @@ import {
   FALLBACK_MARKER_TYPE,
   isMarkerType,
   MARKER_FAMILIES,
+  MARKER_ICONS,
   MARKER_TYPES,
   markerTypeOf,
 } from './marker-type'
@@ -20,10 +21,20 @@ describe('the type list', () => {
     }
   })
 
-  it('gives every type an icon', () => {
+  it('gives every type a declared icon name', () => {
     for (const type of MARKER_TYPES) {
-      expect(type.icon.length).toBeGreaterThan(0)
+      expect(MARKER_ICONS).toContain(type.icon)
     }
+  })
+
+  it('gives each type its own icon, because type is what the icon channel carries', () => {
+    // Family carries colour and stays small; type carries icon and may grow.
+    // Two types sharing an icon collapses the only channel that distinguishes
+    // them, since they may also share a family — a temple and a castle would
+    // then be identical pins.
+    const icons = MARKER_TYPES.map((type) => type.icon)
+
+    expect(new Set(icons).size).toBe(icons.length)
   })
 
   it('includes the fallback type', () => {

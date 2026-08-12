@@ -26,22 +26,22 @@
 
 ## 2. `@pinpoint/map`: icons, geometry, and the style patch
 
-- [ ] 2.1 Change `MarkerTypeDefinition.icon` from an emoji string to a
+- [x] 2.1 Change `MarkerTypeDefinition.icon` from an emoji string to a
       `MarkerIconName` union, and replace every entry in `MARKER_TYPES`; update the
       file comment, which currently explains the emoji choice
-- [ ] 2.2 Change the marker visual description to carry a family identifier and an
+- [x] 2.2 Change the marker visual description to carry a family identifier and an
       icon identifier rather than a resolved colour and glyph
-- [ ] 2.3 Add the drawn geometry to the description — the teardrop's size and its
+- [x] 2.3 Add the drawn geometry to the description — the teardrop's size and its
       normalised anchor `{ x: 0.5, y: 1 }` — and update `marker-view.test.ts`
-- [ ] 2.4 Add `themeStyle(document, theme)`: classify each layer by category from its
+- [x] 2.4 Add `themeStyle(document, theme)`: classify each layer by category from its
       paint properties and source layer, rewrite colours from the basemap tokens, and
       perform no I/O
-- [ ] 2.5 Make `themeStyle` throw naming any category that matched no layer, and cover
+- [x] 2.5 Make `themeStyle` throw naming any category that matched no layer, and cover
       that case in a test alongside the happy path
-- [ ] 2.6 Add a committed fixture of the upstream positron document for those tests,
+- [x] 2.6 Add a committed fixture of the upstream positron document for those tests,
       with a note in the test file that a fixture can drift from live and the runtime
       assertion is what actually protects the map
-- [ ] 2.7 Replace `styleUrl`'s role: keep the URLs, but have the package expose the
+- [x] 2.7 Replace `styleUrl`'s role: keep the URLs, but have the package expose the
       transformation by name so both applications apply the same one
 
 ## 3. Web
