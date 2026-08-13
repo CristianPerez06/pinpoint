@@ -88,10 +88,10 @@
 - [ ] 5.5 Zoom hard on both platforms in both themes and confirm pins hold their
       coordinates throughout, not only after the zoom settles
 - [ ] 5.6 Confirm attribution is still visible on both platforms in both themes
-- [ ] 5.7 Confirm every marker type renders a distinct icon on both platforms, and
+- [x] 5.7 Confirm every marker type renders a distinct icon on both platforms, and
       that an unknown type still renders the fallback
 - [ ] 5.8 Break the style fetch deliberately and confirm the failure is reported rather
       than showing pins over a blank canvas
-- [ ] 5.9 Run `openspec validate establish-visual-language --strict`
-- [ ] 5.10 Replace the `styling` spec's `TBD - created by archiving` purpose in
+- [x] 5.9 Run `openspec validate establish-visual-language --strict`
+- [x] 5.10 Replace the `styling` spec's `TBD - created by archiving` purpose in
       `openspec/specs/styling/spec.md`, and tick the matching roadmap loose end

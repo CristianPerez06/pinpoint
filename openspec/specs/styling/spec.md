@@ -1,7 +1,21 @@
 # styling Specification
 
 ## Purpose
-TBD - created by archiving change establish-monorepo-skeleton. Update Purpose after archive.
+
+Define how two applications built on different rendering stacks stay visually one
+product, and what they are forbidden from sharing in order to do it. Web and native
+share **token values** — colour for both grounds, spacing, radii, elevation, and the
+type scale — held in one authoritative, platform-neutral definition and derived
+outward into each platform's own representation. They share no styling code, no
+class-name vocabulary, and no component markup, because a shared component has to
+render something and a `<div>` and a `<View>` are not the same something.
+
+This capability also governs the failures that make styling uniquely bad at reporting
+itself. A value the host is expected to resolve renders as nothing on native while
+occupying correct layout space; a font file that does not load falls back silently and
+changes every measurement on screen. Neither is visible to a typecheck, a lint, or any
+test that does not inspect pixels, so the rules here are what stand in for one.
+
 ## Requirements
 ### Requirement: Visual styling is shared as token values, not as styling code
 
