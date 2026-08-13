@@ -63,14 +63,32 @@ Stop and explain instead of guessing if any of these fails:
    - If multiple commits: construct a single conventional-commit-style title that captures the dominant theme. Lean on the most substantive commit. Keep under 70 chars. Lowercase after the colon.
    - Strip trailing periods.
 
-6. **Synthesize the body** matching the structure of `.github/PULL_REQUEST_TEMPLATE.md`:
-   - **Summary** (always): 1-2 sentences on what the PR does and why. Read the diff, not just the commit messages — focus on intent, not a file recap. Don't reference "this PR" verbosely; write it as a description of the change.
+6. **Synthesize the body by filling in `.github/PULL_REQUEST_TEMPLATE.md`**. Read the template
+   from disk rather than working from memory — it is the source of truth and it changes.
+   Keep its headings, in its order, and fill each one:
 
-   - **New features**: bullet list of commits typed `feat(...)`. One bullet per commit using its subject minus the conventional prefix. Omit this section entirely if there are no `feat` commits.
+   - **🎯 What does this PR do?** — 1–2 sentences on the change and its intent. Read the
+     diff, not just the commit subjects. Describe the change, not "this PR".
+   - **🔗 Ticket** — fill in only if the branch, commits or the user mention an issue.
+     Otherwise delete the whole section; an empty "Ticket:" line looks like an oversight
+     and the ticket→Done workflow reads this section.
+   - **🧩 Type of change** — tick exactly one, from the dominant commit type.
+   - **📐 OpenSpec** — if the diff touches `openspec/`, name the change and tick what is
+     genuinely true. **Verify each box rather than ticking it optimistically**: check the
+     change is archived, that no `## ADDED/MODIFIED` sections remain, and that no `Purpose`
+     still says `TBD`. Delete the section if no specs are touched.
+   - **📸 Screenshots / videos** — you cannot take these. Leave the headings and say plainly
+     that they are for the author to attach, or delete the section if the diff is not UI.
+   - **🧪 How to test it** — real steps someone else can follow: what to run, where to look,
+     what should happen. Not "run the app".
+   - **✅ Pre-merge checklist** — tick only what you actually ran and saw pass, and say so in
+     the notes if you ran the suite. Leave unticked anything you could not verify. A ticked
+     box that nobody checked is worse than an empty one.
+   - **💬 Notes for the reviewer** — trade-offs, anything skipped, anything you were unsure
+     of. Delete if there is genuinely nothing.
 
-   - **Chores**: bullet list of everything else (`chore`, `ci`, `docs`, `fix`, `refactor`, `test`, `perf`, `style`, `build`). One bullet per commit. Omit if empty.
-
-   Keep bullets concise. If a commit message has a body that adds important detail, mention the key point inline; don't paste full commit bodies.
+   Sections the template marks optional should be **deleted when they do not apply**, not
+   left as empty headings.
 
 7. **Show the user the draft and confirm**:
    - Print the proposed title.
@@ -92,11 +110,15 @@ Stop and explain instead of guessing if any of these fails:
 
 ## Conventions
 
-- The repo's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) is the source of truth for body structure. If it changes, follow it.
-- Conventional commit type → body section mapping:
-  - `feat` → **New features**
-  - `chore`, `ci`, `docs`, `fix`, `refactor`, `test`, `perf`, `style`, `build` → **Chores**
-- Bugfixes go under **Chores** by design — they restore correct behavior, they don't add new functionality.
+- The repo's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) is the source of truth for body structure. Read it from disk each time; if it changes, follow it.
+- Conventional commit type → "🧩 Type of change" mapping:
+  - `feat` → 🧩 New feature
+  - `fix` → 🐞 Bug fix
+  - `refactor`, `perf`, `style` → ⚙️ Improvement / refactor
+  - `docs` → 📄 Documentation
+  - `ci`, `chore`, `build`, `test` → 🔧 Config / CI
+  - a change that only proposes or archives an OpenSpec change → 🗂️ OpenSpec
+- Pick the one that matches the dominant commit, not every box that could arguably apply.
 - Empty sections are omitted from the body. Don't leave "New features\n\n- " stubs.
 - If the branch is messy (many WIP commits, unclear messages), suggest the user squash + rewrite via `git rebase -i main` before creating the PR. A clean branch makes the body draft itself.
 
@@ -106,4 +128,4 @@ Stop and explain instead of guessing if any of these fails:
 - **No commits ahead of main**: stop. Tell the user the branch has nothing to PR.
 - **Existing PR for this branch**: surface its URL instead of creating a duplicate.
 - **Repo has CI with required checks**: mention to the user that the PR will run CI on creation; they should wait for green before merging.
-- **Merge convention**: this repo merges to `main` with `git merge --no-ff` (one squashed work commit + one merge commit per unit of work) — see AGENTS.md "Merging to `main`". If GitHub branch protection on this repo enforces a different strategy (e.g. linear history / squash-only), surface the conflict to the user rather than guessing.
+- **Merge convention**: this repo uses **Squash and merge** — one commit on `main` per pull request, linear history, no merge commits — see AGENTS.md "Merging to `main`". The squash subject is the PR title in conventional-commit form and the body is left empty, so the PR title is what lands in `main`: it is worth getting right rather than treating as a label. If GitHub branch protection enforces something else, surface the conflict rather than guessing.
