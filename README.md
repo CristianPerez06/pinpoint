@@ -85,6 +85,18 @@ pnpm --filter mobile prebuild
 pnpm --filter mobile ios
 ```
 
+**Run these through `pnpm --filter mobile`, not a bare `npx expo`.** A bare `npx expo
+run:ios` uses whatever directory you are standing in, and from the repository root
+Expo finds a `package.json` with no `main`, falls back to `expo/AppEntry.js`, and
+fails with `Unable to resolve "../../App"` — a file nobody has ever written here. The
+root looks enough like an Expo project to get several steps in before saying so.
+`pnpm --filter` sets the working directory, so it cannot happen.
+
+```bash
+node -e "require('expo/scripts/resolveAppEntry')" apps/mobile ios absolute
+# should print expo-router/entry.js — anything else means the wrong root
+```
+
 **If the build hangs at "Installing CocoaPods…"**, suspect CocoaPods rather than the
 project, and check it on its own:
 
