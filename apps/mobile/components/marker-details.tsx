@@ -4,7 +4,8 @@ import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
 import X from 'lucide-react-native/icons/x'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
@@ -160,6 +161,7 @@ export function MarkerDetails({
   onChoose,
   onBack,
   onDismiss,
+  onHeight,
 }: {
   selection: Selection
   /** The currency of the city a marker is filed under, or null when there is none. */
@@ -167,9 +169,19 @@ export function MarkerDetails({
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
+  /**
+   * How tall this sheet ended up, so the map can lift its licence credit clear
+   * of it. Reported rather than assumed: the sheet grows with its content up to
+   * a cap, so there is no height for the map to hard-code.
+   */
+  onHeight?: (height: number) => void
 }) {
   const theme = useTheme()
   const { group, index } = selection
+  // The sheet is pinned to the very bottom of the screen, so its last field —
+  // or its "Others at this point" button — would otherwise sit under the home
+  // indicator, which is exactly where a thumb reaches for it.
+  const insets = useSafeAreaInsets()
 
   const sheet = [
     styles.sheet,
@@ -177,12 +189,16 @@ export function MarkerDetails({
       backgroundColor: theme.colour.surface,
       borderColor: theme.colour.line,
       shadowColor: theme.elevation.lg.colour,
+      paddingBottom: SPACE.md + insets.bottom,
     },
   ]
 
+  const measure = (event: LayoutChangeEvent) =>
+    onHeight?.(event.nativeEvent.layout.height)
+
   if (index === null) {
     return (
-      <View style={sheet}>
+      <View style={sheet} onLayout={measure}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: theme.colour.ink }]}>
             {group.count} places here
@@ -224,7 +240,7 @@ export function MarkerDetails({
   const currency = currencyOf(marker)
 
   return (
-    <View style={sheet}>
+    <View style={sheet} onLayout={measure}>
       <View style={styles.headerRow}>
         <TypeChip view={view} />
         <Text style={[styles.title, { color: theme.colour.ink }]}>{marker.name}</Text>

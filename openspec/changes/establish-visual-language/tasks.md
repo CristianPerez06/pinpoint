@@ -74,7 +74,7 @@
       `@maplibre/maplibre-react-native` as it expects
 - [x] 4.5 Draw the teardrop pin from the shared geometry and the annotation's anchor
 - [x] 4.6 Restyle the map screen, the detail sheet, the overlay note, and login
-- [ ] 4.7 Confirm the theme change re-renders the map without moving the camera
+- [x] 4.7 Confirm the theme change re-renders the map without moving the camera
 
 ## 5. Checks, and looking
 
@@ -82,15 +82,15 @@
       same family and version, and wire it into CI
 - [x] 5.2 Run `pnpm check:cycles` and confirm `@pinpoint/map` still declares no
       third-party runtime dependencies after the style patch lands
-- [ ] 5.3 Open the web application in both themes and confirm every surface changes
+- [x] 5.3 Open the web application in both themes and confirm every surface changes
       together, including the map
-- [ ] 5.4 Open the mobile application in both themes and confirm the same
-- [ ] 5.5 Zoom hard on both platforms in both themes and confirm pins hold their
+- [x] 5.4 Open the mobile application in both themes and confirm the same
+- [x] 5.5 Zoom hard on both platforms in both themes and confirm pins hold their
       coordinates throughout, not only after the zoom settles
-- [ ] 5.6 Confirm attribution is still visible on both platforms in both themes
+- [x] 5.6 Confirm attribution is still visible on both platforms in both themes
 - [x] 5.7 Confirm every marker type renders a distinct icon on both platforms, and
       that an unknown type still renders the fallback
-- [ ] 5.8 Break the style fetch deliberately and confirm the failure is reported rather
+- [x] 5.8 Break the style fetch deliberately and confirm the failure is reported rather
       than showing pins over a blank canvas
 - [x] 5.9 Run `openspec validate establish-visual-language --strict`
 - [x] 5.10 Replace the `styling` spec's `TBD - created by archiving` purpose in

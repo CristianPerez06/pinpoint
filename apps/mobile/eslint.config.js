@@ -3,18 +3,16 @@ const expo = require('eslint-config-expo/flat')
 /**
  * Icons come from `lucide-react-native/icons/<name>`, never the package root.
  *
- * This is a guard against a crash, not a preference about tidiness. The package
- * ships 1767 icons and its root re-exports every one; Metro does not tree-shake
- * in development, so a single value import of the root pulls the whole
- * catalogue into the bundle — 8.5 MB became 12 MB, and a few hundred modules
- * became 3391.
+ * The package ships 1767 icons and its root re-exports every one; Metro does not
+ * tree-shake in development, so a single value import of the root pulls the
+ * whole catalogue into the bundle — 8.5 MB became 12 MB, and 1694 modules became
+ * 3391, to draw sixteen glyphs. The rule exists so that regression cannot be
+ * reintroduced by an editor's auto-import, which offers the root by default.
  *
- * The bundle still built and Metro reported success. Hermes then died compiling
- * the barrel's re-export function — it compiles lazily on a fibre with a
- * fixed-size stack — and the failure arrived as `free_list_checksum_botch`
- * inside malloc: SIGABRT, no JavaScript error, no red screen, and nothing in
- * the Metro log past a successful bundle. It reads as a broken native module
- * and is not one.
+ * It is a bundle-size guard and nothing more. A previous version of this comment
+ * also blamed the barrel for a startup crash; that diagnosis was wrong — the
+ * crash came from stale codegen artifacts after adding native dependencies
+ * incrementally — and the overstatement is removed rather than left to mislead.
  *
  * The rule names the exact path rather than a pattern, because a pattern
  * matching `lucide-react-native` also matches `lucide-react-native/icons/bed`

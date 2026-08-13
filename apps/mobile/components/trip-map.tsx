@@ -15,6 +15,7 @@ import {
 import { RADIUS, SPACE } from '@pinpoint/tokens'
 import { useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerDetails, type Selection } from '@/components/marker-details'
 import { Pin } from '@/components/pin'
@@ -74,6 +75,17 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
   return NAMES[`${anchor.x},${anchor.y}`] ?? 'bottom'
 }
 
+/**
+ * Room for MapLibre's own bottom ornaments — its wordmark on the left and the
+ * attribution button on the right.
+ *
+ * Our credit sits at the bottom left too, so without this it lands on top of
+ * the wordmark and both become hard to read. Lifting ours is deliberate rather
+ * than turning theirs off: hiding another project's branding to fix our own
+ * layout is not a trade this change gets to make.
+ */
+const ORNAMENT_CLEARANCE = 28
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   attribution: {
@@ -107,6 +119,11 @@ export function TripMap({
   const [selection, setSelection] = useState<Selection | null>(null)
   const theme = useTheme()
   const mode = useThemeMode()
+  // The map is full-bleed, so everything drawn over it has to hold itself clear
+  // of the home indicator. The licence credit is the one that matters most: a
+  // credit the system draws its handle through is not legible, and legibility
+  // is the condition being satisfied.
+  const insets = useSafeAreaInsets()
 
   /**
    * The style, fetched and repainted for the current ground.
@@ -123,6 +140,16 @@ export function TripMap({
    * to — framing happens on opening and never afterwards.
    */
   const [viewport, setViewport] = useState<Viewport | null>(null)
+
+  /**
+   * How tall the open sheet is, so the credit can sit above it.
+   *
+   * The sheet is pinned to the bottom and so is the credit, so an open sheet
+   * covered it completely — and the credit is a licence condition, not
+   * decoration. Measured rather than assumed because the sheet grows with its
+   * content up to a cap, so there is no fixed height to offset by.
+   */
+  const [sheetHeight, setSheetHeight] = useState(0)
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
   const camera = useMemo(
@@ -221,7 +248,15 @@ export function TripMap({
       <View
         style={[
           styles.attribution,
-          { backgroundColor: theme.colour.surface, opacity: 0.85 },
+          {
+            backgroundColor: theme.colour.surface,
+            opacity: 0.85,
+            // An open sheet already carries the bottom inset in its own
+            // padding, so adding it again here would float the credit.
+            bottom: selection
+              ? sheetHeight + SPACE.sm
+              : SPACE.sm + insets.bottom + ORNAMENT_CLEARANCE,
+          },
         ]}
         pointerEvents="none"
       >
@@ -236,6 +271,7 @@ export function TripMap({
           selection={selection}
           onChoose={(index) => setSelection({ ...selection, index })}
           onBack={() => setSelection({ ...selection, index: null })}
+          onHeight={setSheetHeight}
           // Nothing here touches the camera, so dismissing cannot move it.
           onDismiss={() => setSelection(null)}
         />

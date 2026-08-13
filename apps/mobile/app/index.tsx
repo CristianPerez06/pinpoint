@@ -9,6 +9,7 @@ import {
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import { Redirect } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { EmptyState, FailedState, LoadingState } from '@/components/states'
@@ -33,6 +34,10 @@ import { useQuery } from '@/lib/use-query'
 export default function Index() {
   const { session, loading } = useSession()
   const theme = useTheme()
+  // The header is the top of the screen, so it owns the space the system draws
+  // into. Without this the wordmark sits under the clock and the Dynamic
+  // Island — the status bar is not a margin the layout gets for free.
+  const insets = useSafeAreaInsets()
 
   const trips = useQuery(() => fetchTrips(supabase), [session])
 
@@ -60,7 +65,12 @@ export default function Index() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colour.surface }]}>
-      <View style={[styles.header, { borderColor: theme.colour.line }]}>
+      <View
+        style={[
+          styles.header,
+          { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
+        ]}
+      >
         {/* The mark is a pin reduced to the point it names, in the one colour
             that is not a marker family. */}
         <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
@@ -142,6 +152,9 @@ function Body({
   )
 }
 
+/** The header's own breathing room, above and below its content. */
+const HEADER_PAD = 11
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
@@ -149,7 +162,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE.sm,
     paddingHorizontal: SPACE.md,
-    paddingVertical: 11,
+    // `paddingTop` is applied inline instead, because it has to carry the
+    // device's top inset as well as this.
+    paddingBottom: HEADER_PAD,
     borderBottomWidth: 1,
   },
   dot: { width: 9, height: 9, borderRadius: 5 },

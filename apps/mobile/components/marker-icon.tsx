@@ -2,23 +2,21 @@ import type { MarkerIconName } from '@pinpoint/map'
 /*
  * Imported one icon at a time, from the subpath rather than the package root.
  *
- * This is not a style preference, it is the difference between an app that runs
- * and one that does not. `lucide-react-native` ships 1767 icons and its root
- * module re-exports every one of them. Metro does not tree-shake in development,
- * so `import { Bed } from 'lucide-react-native'` pulls the whole catalogue into
- * the bundle — it went from a few hundred modules to 3391, and about 12 MB.
+ * `lucide-react-native` ships 1767 icons and its root module re-exports every
+ * one of them. Metro does not tree-shake in development, so
+ * `import { Bed } from 'lucide-react-native'` pulls the whole catalogue into the
+ * bundle: 1694 modules and 8.5 MB became 3391 modules and about 12 MB, for
+ * sixteen glyphs.
  *
- * The bundle still *built*. What broke was Hermes: it compiles lazily, on a
- * fibre with a fixed-size stack, and the barrel's re-export function is large
- * enough to overrun it. The result is heap corruption inside the compiler —
- * `free_list_checksum_botch` under `compileLazyFunction` — which surfaces as
- * SIGABRT with no JavaScript error, no red screen, and nothing in the Metro log
- * beyond a successful bundle. It reads like a native module problem and is not
- * one.
+ * That is the whole claim. An earlier version of this comment blamed the barrel
+ * for a startup crash we were chasing at the time; that was wrong, and the
+ * crash turned out to be stale codegen artifacts from building incrementally
+ * after adding native dependencies. The import style is worth keeping on bundle
+ * size alone — it is just not load-bearing for correctness, and pretending
+ * otherwise would send the next person down the wrong path.
  *
- * Deep imports keep only the sixteen icons this app actually draws. The paths
- * come from the package's own `exports` map (`./icons/*`), so they are a
- * supported entry point rather than a reach into its internals.
+ * The paths come from the package's own `exports` map (`./icons/*`), so they are
+ * a supported entry point rather than a reach into its internals.
  */
 import Bed from 'lucide-react-native/icons/bed'
 import Beer from 'lucide-react-native/icons/beer'
