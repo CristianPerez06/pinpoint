@@ -1,7 +1,9 @@
 import { formatPrice, type Marker } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { X } from 'lucide-react-native'
+// Deep import, not the package root — see marker-icon.tsx. One value
+// import of the barrel pulls all 1767 icons and crashes Hermes.
+import X from 'lucide-react-native/icons/x'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { MarkerGlyph } from '@/components/marker-icon'
