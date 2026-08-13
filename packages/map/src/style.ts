@@ -21,11 +21,27 @@ export const OPENFREEMAP_STYLES = {
 
 export type StyleName = keyof typeof OPENFREEMAP_STYLES
 
-export const DEFAULT_STYLE: StyleName = 'liberty'
+/**
+ * Positron, because the pins are the subject.
+ *
+ * A near-greyscale basemap is what lets five saturated marker colours be the
+ * only strong colour on screen — finding the one restaurant among fourteen
+ * temples is the question the palette exists to answer, and liberty's own
+ * greens, blues and POI labels compete with it directly.
+ */
+export const DEFAULT_STYLE: StyleName = 'positron'
 
 export function styleUrl(name: StyleName = DEFAULT_STYLE): string {
   return OPENFREEMAP_STYLES[name]
 }
+
+/**
+ * The transformation both applications apply, named so that neither invents its
+ * own. Applications fetch `styleUrl()`, pass the document through `themeStyle`,
+ * and hand the result to their renderer — see the requirement in
+ * `map-rendering`.
+ */
+export const BASEMAP_TRANSFORM = 'pinpoint-warm-positron'
 
 /**
  * Attribution that must remain visible wherever these tiles are rendered.

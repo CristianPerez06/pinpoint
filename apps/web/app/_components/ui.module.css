@@ -1,0 +1,162 @@
+/*
+ * The controls the capture flow is built from.
+ *
+ * These were inline style objects, factored out of five components that each
+ * carried the same forty lines. Inline styles cannot express `:hover`,
+ * `:focus-visible`, or a media query, and this direction needs all three — so
+ * they are CSS Modules now, scoped per component, reading the generated custom
+ * properties and never writing a colour of their own.
+ */
+
+.panel {
+  position: absolute;
+  left: var(--pp-space-md);
+  bottom: var(--pp-space-md);
+  width: 328px;
+  max-width: calc(100% - var(--pp-space-xl));
+  max-height: 70%;
+  overflow-y: auto;
+  padding: var(--pp-space-md);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 3;
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--pp-space-sm) 15px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.12s ease;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.primary {
+  background: var(--pp-accent);
+  /* Not white: amber is a light surface, and white on it clears about 1.7:1.
+     A very dark brown of the same hue carries at any size. */
+  color: #241703;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.primary:hover:not(:disabled) {
+  box-shadow: var(--pp-shadow-md);
+}
+
+.default {
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  border-color: var(--pp-line-strong);
+}
+
+.default:hover:not(:disabled) {
+  background: var(--pp-surface-muted);
+}
+
+.quiet {
+  background: transparent;
+  color: var(--pp-ink-muted);
+}
+
+.quiet:hover:not(:disabled) {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+.danger {
+  background: transparent;
+  color: var(--pp-danger);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--pp-danger-surface);
+}
+
+/* ── fields ──────────────────────────────────────────────────────────────── */
+
+.field {
+  display: grid;
+  gap: 5px;
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+.control {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--pp-space-sm) 11px;
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  font-size: var(--pp-type-control-size);
+  font-family: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.control::placeholder {
+  color: var(--pp-ink-faint);
+}
+
+.control:focus {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.control[aria-invalid='true'] {
+  border-color: var(--pp-danger);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 68px;
+}
+
+.error {
+  font-size: var(--pp-type-note-size);
+  font-weight: 550;
+  color: var(--pp-danger);
+}
+
+.formError {
+  margin: 0;
+  padding: var(--pp-space-sm) 11px;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-danger-surface);
+  border: 1px solid var(--pp-danger);
+  color: var(--pp-danger);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}

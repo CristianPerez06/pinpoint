@@ -1,0 +1,90 @@
+/*
+ * The surface MapLibre draws into.
+ *
+ * Sized rather than positioned, and that is the fix for a real defect rather
+ * than a preference. MapLibre's own stylesheet sets
+ * `.maplibregl-map { position: relative }`; this element carries that class
+ * too, the specificity is identical, and `maplibre-gl.css` is imported after
+ * this module — so MapLibre wins and any `position: absolute` written here is
+ * inert. `inset: 0` on a relatively-positioned box does nothing, leaving a
+ * block of auto height, which is zero.
+ *
+ * It worked before this change only because it was an inline style, and inline
+ * beats any class regardless of source order. The symptom on losing that was
+ * the map's own worst failure mode: the canvas and all seventeen markers
+ * present and correct in the DOM, with no error anywhere, and nothing visible.
+ *
+ * So: leave positioning to MapLibre and give the box a definite size. `.stage`
+ * is a flex item with a resolved height, so 100% resolves against it.
+ */
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * The element MapLibre positions.
+ *
+ * Deliberately no `position`. MapLibre's own stylesheet sets
+ * `.maplibregl-marker { position: absolute; top: 0; left: 0 }` and applies the
+ * map transform on top of that; a `position: relative` here beats the class,
+ * drops the pin back into normal flow, and the transform then offsets it from
+ * wherever flow put it. Every marker ends up carrying a fixed screen-pixel
+ * error — which pans convincingly and drifts off the map the moment you zoom.
+ *
+ * The badge inside the pin still anchors correctly: `absolute` establishes a
+ * containing block exactly as `relative` does.
+ */
+.marker {
+  display: block;
+  padding: 0;
+  /* Buttons carry a UA margin in some browsers, and a margin on an
+     absolutely-positioned marker displaces it from the point it names. */
+  margin: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.marker:hover {
+  z-index: 2;
+}
+
+.draft {
+  cursor: grab;
+  /* Above every saved marker, so dropping one onto an existing pin leaves it
+     visible and draggable rather than buried under the thing it landed on. */
+  z-index: 10;
+}
+
+.draft:active {
+  cursor: grabbing;
+}
+
+.failure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-xl);
+  background: var(--pp-surface-muted);
+  text-align: center;
+}
+
+.failureTitle {
+  margin: 0;
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+}
+
+.failureDetail {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}

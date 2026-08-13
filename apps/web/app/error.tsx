@@ -1,9 +1,10 @@
 'use client'
 
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
 import { useEffect } from 'react'
 
 import { FailedState } from '@/app/_components/states'
+
+import styles from './page.module.css'
 
 /**
  * The last line of defence: something threw where nothing was expected to.
@@ -30,27 +31,9 @@ export default function Error({
   }, [error])
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100dvh',
-      }}
-    >
+    <div className={styles.boundary}>
       <FailedState message="Something went wrong loading the map.">
-        <button
-          type="button"
-          onClick={reset}
-          style={{
-            border: `1px solid ${COLOUR.danger}`,
-            borderRadius: RADIUS.sm,
-            background: COLOUR.surface,
-            color: COLOUR.danger,
-            padding: `${SPACE.xs}px ${SPACE.md}px`,
-            cursor: 'pointer',
-          }}
-        >
+        <button type="button" onClick={reset} className={styles.retry}>
           Try again
         </button>
       </FailedState>

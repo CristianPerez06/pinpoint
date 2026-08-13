@@ -1,0 +1,132 @@
+.wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 420px;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-family: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--pp-ink-faint);
+}
+
+.input:hover {
+  border-color: var(--pp-line-strong);
+}
+
+.input:focus {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: var(--pp-space-xs);
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 4;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  display: grid;
+  gap: 1px;
+}
+
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: var(--pp-space-sm) 10px;
+  border: 0;
+  border-radius: var(--pp-radius-md);
+  background: none;
+  color: var(--pp-ink);
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--pp-type-row-name-size);
+  font-family: inherit;
+}
+
+.candidate:hover {
+  background: var(--pp-surface-muted);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-marker-foreground);
+}
+
+.name {
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--pp-space-sm);
+  flex-shrink: 0;
+  font-size: var(--pp-type-note-size);
+}
+
+.context {
+  color: var(--pp-ink-muted);
+}
+
+.distance {
+  color: var(--pp-ink-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.far {
+  color: var(--pp-danger);
+  font-weight: 600;
+}
+
+.note {
+  margin: 0;
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+.noteDanger {
+  color: var(--pp-danger);
+}

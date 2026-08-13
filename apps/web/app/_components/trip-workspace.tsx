@@ -18,7 +18,6 @@ import {
   type LngLat,
   type MarkerGroup,
 } from '@pinpoint/map'
-import { COLOUR, SPACE } from '@pinpoint/tokens'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -33,6 +32,8 @@ import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
 import { Button } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
+
+import styles from './trip-workspace.module.css'
 
 /**
  * Everything a trip's map can be doing, in one place.
@@ -306,19 +307,7 @@ export function TripWorkspace({
 
   return (
     <>
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          gap: SPACE.md,
-          padding: `${SPACE.sm}px ${SPACE.md}px`,
-          borderBottom: `1px solid ${COLOUR.border}`,
-          backgroundColor: COLOUR.surface,
-          zIndex: 6,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className={styles.toolbar}>
         <CityBar
           cities={cities}
           markers={markers}
@@ -340,7 +329,7 @@ export function TripWorkspace({
           }
         />
 
-        <span style={{ marginLeft: 'auto' }}>
+        <span className={styles.spacer}>
           <Button
             tone={dropping ? 'danger' : 'primary'}
             onClick={() => {
@@ -355,7 +344,7 @@ export function TripWorkspace({
         </span>
       </div>
 
-      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+      <div className={styles.stage}>
         <TripMap
           groups={groups}
           onSelectGroup={(group: MarkerGroup<Marker>) => {
@@ -372,6 +361,7 @@ export function TripWorkspace({
           frameTo={cameraTarget.points}
           frameToken={cameraTarget.token}
           centreRef={centreRef}
+          selectedKey={panel.kind === 'details' ? panel.selection.group.key : null}
         />
 
         {dropping ? (
@@ -435,22 +425,7 @@ export function TripWorkspace({
 
 function Banner({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      role="status"
-      style={{
-        position: 'absolute',
-        top: SPACE.md,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        margin: 0,
-        padding: `${SPACE.sm}px ${SPACE.md}px`,
-        backgroundColor: COLOUR.text,
-        color: COLOUR.surface,
-        borderRadius: 999,
-        fontSize: 13,
-        zIndex: 3,
-      }}
-    >
+    <p role="status" className={styles.banner}>
       {children}
     </p>
   )

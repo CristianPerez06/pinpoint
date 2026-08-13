@@ -1,0 +1,130 @@
+.form {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+}
+
+.dismiss {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink-faint);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.dismiss:hover {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+/*
+ * The type picker.
+ *
+ * A grid of pins rather than a select, now that a type carries a drawn icon
+ * instead of a character a dropdown could print. It also answers the question
+ * the select could not: what this place is about to look like on the map.
+ */
+.typesLabel {
+  display: block;
+  margin-bottom: 5px;
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+.typeError {
+  display: block;
+  margin-top: 5px;
+  font-size: var(--pp-type-note-size);
+  font-weight: 550;
+  color: var(--pp-danger);
+}
+
+.typeChip {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--pp-radius-sm);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.types {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 4px;
+}
+
+.type {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  background: none;
+  color: var(--pp-ink-muted);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.type:hover {
+  background: var(--pp-surface-muted);
+}
+
+.type[aria-pressed='true'] {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent);
+  color: var(--pp-ink);
+  font-weight: 600;
+}
+
+.newCity {
+  display: grid;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-muted);
+}
+
+.hint {
+  margin: 0;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+.row {
+  display: flex;
+  gap: var(--pp-space-sm);
+}
+
+.actions {
+  display: flex;
+  gap: var(--pp-space-sm);
+  margin-top: var(--pp-space-xs);
+}

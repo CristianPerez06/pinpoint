@@ -1,35 +1,42 @@
-import { Camera, Map, Marker as MapLibreMarker } from '@maplibre/maplibre-react-native'
+import {
+  Camera,
+  Map,
+  Marker as MapLibreMarker,
+  type Anchor,
+  type StyleSpecification,
+} from '@maplibre/maplibre-react-native'
 import type { Marker } from '@pinpoint/core'
 import {
   ATTRIBUTION,
   fitBounds,
   groupCoincident,
-  styleUrl,
-  type MarkerGroup,
   type Viewport,
 } from '@pinpoint/map'
-import {
-  COLOUR,
-  MARKER_BADGE_SIZE,
-  MARKER_FOREGROUND,
-  MARKER_SIZE,
-  RADIUS,
-  SPACE,
-} from '@pinpoint/tokens'
+import { RADIUS, SPACE } from '@pinpoint/tokens'
 import { useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerDetails, type Selection } from '@/components/marker-details'
+import { Pin } from '@/components/pin'
+import { useThemedBasemap } from '@/lib/basemap'
+import { useTheme, useThemeMode } from '@/lib/theme'
 
 /**
- * The native half of the portability boundary — and the thing this whole change
+ * The native half of the portability boundary — and the thing the map change
  * was built to find out.
  *
- * It works. `mapStyle` on `Map` is typed `string | StyleSpecification`, so the
- * same `styleUrl()` that web hands to `maplibre-gl` goes straight in here. No
- * fetching a style document, no per-platform patching, no second style source
- * to keep in step. The camera arrives the same way: `fitBounds` returns
- * `{ center, zoom }` and `initialViewState` takes exactly that.
+ * It works, with one correction to what it originally claimed. `mapStyle` is
+ * typed `string | StyleSpecification`, so the same `styleUrl()` web used could
+ * go straight in, and for a while that meant no fetching and no per-platform
+ * patching. Theming ended that: OpenFreeMap publishes no dark style, so the
+ * document has to be transformed before either renderer sees it.
+ *
+ * What the original claim was actually about survived. Both platforms still
+ * fetch the same document and pass it through the same shared function, so
+ * there is one style source rather than two — the transformation is shared even
+ * though the fetching is not, because a package with no third-party
+ * dependencies cannot fetch.
  *
  * What differs is everything about drawing, which is where it was always
  * supposed to differ: `Map` and `Camera` components instead of a constructor,
@@ -37,48 +44,68 @@ import { MarkerDetails, type Selection } from '@/components/marker-details'
  * inline CSS. None of that reaches a shared package.
  */
 
+/**
+ * The shared anchor, in this renderer's vocabulary.
+ *
+ * `@pinpoint/map` states the anchor as a normalised point because that is what
+ * describes an arbitrary shape — the web renderer takes a pixel offset and can
+ * express any of them. This one takes a name from a fixed set of nine, so the
+ * point has to be translated, and a point that is not one of the nine cannot be
+ * expressed at all.
+ *
+ * `bottom` rather than `center` as the fallback, and that is a deliberate
+ * choice about which way to be wrong: every marker in this product is a
+ * teardrop anchored at its point, so if a future shape is not nameable, being
+ * anchored at the bottom is the near-miss and being anchored at the middle is
+ * the drift defect all over again.
+ */
+function anchorName(anchor: { x: number; y: number }): Anchor {
+  const NAMES: Record<string, Anchor> = {
+    '0.5,1': 'bottom',
+    '0.5,0.5': 'center',
+    '0.5,0': 'top',
+    '0,0.5': 'left',
+    '1,0.5': 'right',
+    '0,0': 'top-left',
+    '1,0': 'top-right',
+    '0,1': 'bottom-left',
+    '1,1': 'bottom-right',
+  }
+
+  return NAMES[`${anchor.x},${anchor.y}`] ?? 'bottom'
+}
+
+/**
+ * Room for MapLibre's own bottom ornaments — its wordmark on the left and the
+ * attribution button on the right.
+ *
+ * Our credit sits at the bottom left too, so without this it lands on top of
+ * the wordmark and both become hard to read. Lifting ours is deliberate rather
+ * than turning theirs off: hiding another project's branding to fix our own
+ * layout is not a trade this change gets to make.
+ */
+const ORNAMENT_CLEARANCE = 28
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  pinContainer: {
-    width: MARKER_SIZE,
-    height: MARKER_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pin: {
-    width: MARKER_SIZE,
-    height: MARKER_SIZE,
-    borderRadius: RADIUS.pill,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinIcon: { fontSize: Math.round(MARKER_SIZE * 0.5) },
-  badge: {
-    position: 'absolute',
-    top: -SPACE.xs,
-    right: -SPACE.xs,
-    minWidth: MARKER_BADGE_SIZE,
-    height: MARKER_BADGE_SIZE,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLOUR.text,
-    borderWidth: 1,
-    borderColor: MARKER_FOREGROUND,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: { color: MARKER_FOREGROUND, fontSize: 11, fontWeight: '700' },
   attribution: {
     position: 'absolute',
     left: SPACE.sm,
     bottom: SPACE.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACE.xs,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACE.sm,
     paddingVertical: 2,
   },
-  attributionText: { fontSize: 10, color: COLOUR.text },
+  attributionText: { fontSize: 10 },
+  failure: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.sm,
+    padding: SPACE.xl,
+  },
+  failureTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
+  failureDetail: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
 })
 
 export function TripMap({
@@ -90,6 +117,22 @@ export function TripMap({
   currencyOf: (marker: Marker) => string | null
 }) {
   const [selection, setSelection] = useState<Selection | null>(null)
+  const theme = useTheme()
+  const mode = useThemeMode()
+  // The map is full-bleed, so everything drawn over it has to hold itself clear
+  // of the home indicator. The licence credit is the one that matters most: a
+  // credit the system draws its handle through is not legible, and legibility
+  // is the condition being satisfied.
+  const insets = useSafeAreaInsets()
+
+  /**
+   * The style, fetched and repainted for the current ground.
+   *
+   * Changing the ground swaps `mapStyle` on the existing `Map`, which repaints
+   * without remounting it — so the camera stays exactly where the person left
+   * it and the markers are not rebuilt.
+   */
+  const basemap = useThemedBasemap(mode)
 
   /**
    * Measured once and then frozen. `onLayout` fires again on rotation, and
@@ -97,6 +140,16 @@ export function TripMap({
    * to — framing happens on opening and never afterwards.
    */
   const [viewport, setViewport] = useState<Viewport | null>(null)
+
+  /**
+   * How tall the open sheet is, so the credit can sit above it.
+   *
+   * The sheet is pinned to the bottom and so is the credit, so an open sheet
+   * covered it completely — and the credit is a licence condition, not
+   * decoration. Measured rather than assumed because the sheet grows with its
+   * content up to a cap, so there is no fixed height to offset by.
+   */
+  const [sheetHeight, setSheetHeight] = useState(0)
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
   const camera = useMemo(
@@ -107,6 +160,25 @@ export function TripMap({
     [viewport],
   )
 
+  /**
+   * A failed style is reported rather than drawn around. Mounting the map
+   * without one produces a blank canvas with correctly-placed pins over it,
+   * which reads as a styling problem and is not one.
+   */
+  if (basemap.error !== null) {
+    return (
+      <View style={[styles.failure, { backgroundColor: theme.colour.surfaceMuted }]}>
+        <Text style={[styles.failureTitle, { color: theme.colour.ink }]}>
+          The map could not be loaded
+        </Text>
+        <Text style={[styles.failureDetail, { color: theme.colour.inkMuted }]}>
+          The place data is fine — {basemap.error}. Your saved places are still
+          here; only the map underneath them is missing.
+        </Text>
+      </View>
+    )
+  }
+
   return (
     <View
       style={styles.fill}
@@ -116,53 +188,81 @@ export function TripMap({
         if (width > 0 && height > 0) setViewport({ width, height })
       }}
     >
-      <Map
-        style={styles.fill}
-        mapStyle={styleUrl()}
-        // The native attribution control is an "i" button that says nothing
-        // until it is pressed. It stays on because it opens the full notice,
-        // but the visible credit below is what satisfies the licence.
-        attribution
-        //
-        // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
-        // annotation carries its own tap recogniser (MLRNPointAnnotation
-        // `_handleTap`) and the map view carries another; a single tap on a
-        // pin can fire both. A map-level handler that cleared the selection
-        // therefore undid the one the marker had just set, and tapping a pin
-        // did nothing at all — no sheet, no error, no clue.
-        //
-        // Dismissal is the sheet's own close button, which is what the
-        // specification asks for. Tap-to-dismiss can come back if it is ever
-        // worth making the two recognisers agree.
-      >
-        {camera ? (
-          // Initial state, not a controlled camera: a controlled one would
-          // re-apply on every render and fight the person panning.
-          <Camera
-            initialViewState={{
-              center: [camera.center.lng, camera.center.lat],
-              zoom: camera.zoom,
-            }}
-          />
-        ) : null}
+      {basemap.style ? (
+        <Map
+          style={styles.fill}
+          mapStyle={basemap.style as unknown as StyleSpecification}
+          // The native attribution control is an "i" button that says nothing
+          // until it is pressed. It stays on because it opens the full notice,
+          // but the visible credit below is what satisfies the licence.
+          attribution
+          //
+          // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
+          // annotation carries its own tap recogniser (MLRNPointAnnotation
+          // `_handleTap`) and the map view carries another; a single tap on a
+          // pin can fire both. A map-level handler that cleared the selection
+          // therefore undid the one the marker had just set, and tapping a pin
+          // did nothing at all — no sheet, no error, no clue.
+          //
+          // Dismissal is the sheet's own close button, which is what the
+          // specification asks for. Tap-to-dismiss can come back if it is ever
+          // worth making the two recognisers agree.
+        >
+          {camera ? (
+            // Initial state, not a controlled camera: a controlled one would
+            // re-apply on every render and fight the person panning.
+            <Camera
+              initialViewState={{
+                center: [camera.center.lng, camera.center.lat],
+                zoom: camera.zoom,
+              }}
+            />
+          ) : null}
 
-        {groups.map((group) => (
-          <MapLibreMarker
-            key={group.key}
-            id={group.key}
-            lngLat={[group.lng, group.lat]}
-            onPress={() =>
-              setSelection({ group, index: group.count === 1 ? 0 : null })
-            }
-          >
-            <Pin group={group} />
-          </MapLibreMarker>
-        ))}
-      </Map>
+          {groups.map((group) => (
+            <MapLibreMarker
+              key={group.key}
+              id={group.key}
+              lngLat={[group.lng, group.lat]}
+              // Where the drawn pin meets its coordinate, from the shared
+              // description. Neither application writes this by hand — the last
+              // drift defect lived exactly in two apps choosing their own.
+              anchor={anchorName(group.view.anchor)}
+              onPress={() =>
+                setSelection({ group, index: group.count === 1 ? 0 : null })
+              }
+            >
+              <Pin
+                view={group.view}
+                count={group.count}
+                selected={selection?.group.key === group.key}
+              />
+            </MapLibreMarker>
+          ))}
+        </Map>
+      ) : (
+        <View style={[styles.fill, { backgroundColor: theme.basemap.land }]} />
+      )}
 
       {/* A licence condition, not a default. Drawn rather than relied upon. */}
-      <View style={styles.attribution} pointerEvents="none">
-        <Text style={styles.attributionText}>{ATTRIBUTION}</Text>
+      <View
+        style={[
+          styles.attribution,
+          {
+            backgroundColor: theme.colour.surface,
+            opacity: 0.85,
+            // An open sheet already carries the bottom inset in its own
+            // padding, so adding it again here would float the credit.
+            bottom: selection
+              ? sheetHeight + SPACE.sm
+              : SPACE.sm + insets.bottom + ORNAMENT_CLEARANCE,
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={[styles.attributionText, { color: theme.colour.inkMuted }]}>
+          {ATTRIBUTION}
+        </Text>
       </View>
 
       {selection ? (
@@ -171,53 +271,10 @@ export function TripMap({
           selection={selection}
           onChoose={(index) => setSelection({ ...selection, index })}
           onBack={() => setSelection({ ...selection, index: null })}
+          onHeight={setSheetHeight}
           // Nothing here touches the camera, so dismissing cannot move it.
           onDismiss={() => setSelection(null)}
         />
-      ) : null}
-    </View>
-  )
-}
-
-/**
- * View-based, like web, and for the same reason: the icons are emoji, and a
- * symbol layer would need them rasterised into a per-platform sprite atlas —
- * producing output that differs between the two platforms it is meant to
- * unify. `Marker` places a real React Native view on the map projection, so the
- * emoji renders as the system draws it.
- *
- * No permanent label. Twenty names at city zoom overlap into unreadable text.
- */
-function Pin({ group }: { group: MarkerGroup<Marker> }) {
-  const { view } = group
-
-  return (
-    // Explicit size rather than sizing to content. The iOS annotation derives
-    // its frame from this view and `_setCenterOffset:` bails out on a zero
-    // width or height, which would leave the pin anchored wrong and its tap
-    // target somewhere other than where it is drawn.
-    <View style={styles.pinContainer}>
-      <View
-        style={[
-          styles.pin,
-          { backgroundColor: view.colour, borderColor: view.foreground },
-        ]}
-        accessibilityLabel={
-          group.count > 1
-            ? `${group.count} places here`
-            : `${view.label} (${view.typeLabel})`
-        }
-      >
-        <Text style={styles.pinIcon}>{view.icon}</Text>
-      </View>
-
-      {group.count > 1 ? (
-        // The badge is the entire mechanism that stops the marker underneath
-        // from being invisible forever — identical coordinates are the same
-        // pixel at every zoom.
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{group.count}</Text>
-        </View>
       ) : null}
     </View>
   )

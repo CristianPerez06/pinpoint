@@ -1,5 +1,4 @@
 import { fetchTripCities, fetchTripMarkers, fetchTrips } from '@pinpoint/data'
-import { COLOUR, SPACE } from '@pinpoint/tokens'
 import { Suspense } from 'react'
 
 import { signOutAction } from '@/app/_actions/auth'
@@ -11,6 +10,8 @@ import {
 import { TripWorkspace } from '@/app/_components/trip-workspace'
 import { requireUserId } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
+
+import styles from './page.module.css'
 
 /**
  * The signed-in landing page: a map of the current trip, and the places on it.
@@ -99,27 +100,17 @@ export default async function Home() {
 /** The frame around whatever state the page is in. Web's own idiom, shared values. */
 function Shell({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <main
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        color: COLOUR.text,
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: SPACE.md,
-          padding: `${SPACE.sm}px ${SPACE.md}px`,
-          borderBottom: `1px solid ${COLOUR.border}`,
-        }}
-      >
-        <strong>pinpoint</strong>
-        {title ? <span style={{ color: COLOUR.textMuted }}>{title}</span> : null}
-        <form action={signOutAction} style={{ marginLeft: 'auto' }}>
-          <button type="submit">Sign out</button>
+    <main className={styles.shell}>
+      <header className={styles.header}>
+        <span className={styles.wordmark}>
+          <span className={styles.dot} aria-hidden />
+          pinpoint
+        </span>
+        {title ? <span className={styles.trip}>{title}</span> : null}
+        <form action={signOutAction} className={styles.signOutForm}>
+          <button type="submit" className={styles.signOut}>
+            Sign out
+          </button>
         </form>
       </header>
 
@@ -130,7 +121,5 @@ function Shell({ title, children }: { title?: string; children: React.ReactNode 
 
 /** Positioned, so anything absolutely placed inside has something to sit in. */
 function Centred({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>{children}</div>
-  )
+  return <div className={styles.centred}>{children}</div>
 }

@@ -1,0 +1,45 @@
+.toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pp-space-md);
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  border-bottom: 1px solid var(--pp-line);
+  background: var(--pp-surface);
+  z-index: 6;
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/*
+ * The armed state, said out loud.
+ *
+ * Ink on ground rather than the accent: the accent means "this is the primary
+ * thing you can do", and while the map is armed the primary thing is the map
+ * itself. A loud banner would compete with the pins it is asking you to look
+ * past.
+ */
+.banner {
+  position: absolute;
+  top: var(--pp-space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 9px var(--pp-space-md);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-ink);
+  color: var(--pp-ground);
+  box-shadow: var(--pp-shadow-lg);
+  font-size: var(--pp-type-note-size);
+  font-weight: 550;
+  z-index: 4;
+}

@@ -1,0 +1,110 @@
+/**
+ * The base layer.
+ *
+ * Everything above this is a CSS Module scoped to one component. The only
+ * things declared globally are what genuinely applies everywhere: the token
+ * custom properties, the document's own colours, and the focus ring.
+ *
+ * The token sheet is generated — see packages/tokens/scripts/derive.ts. It is
+ * imported rather than duplicated, and nothing here overrides a value from it.
+ */
+
+@import '@pinpoint/tokens/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /*
+   * Tells the browser which form controls, scrollbars and default canvases to
+   * draw. Without it a dark page keeps light scrollbars and white select
+   * dropdowns, which is the tell that a theme was painted on rather than
+   * declared.
+   */
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--pp-ground);
+  color: var(--pp-ink);
+  /*
+   * The loaded face first, the token stack behind it.
+   *
+   * `--pp-font-loaded` is what `next/font` puts on <html>: the family name it
+   * chose, plus a metric-matched local fallback that stops the page reflowing
+   * when the real file arrives. `--pp-font` is the token's own declaration of
+   * intent, and what renders if the loader is ever removed.
+   *
+   * Naming only the token here would override <html> and quietly drop that
+   * metric fallback, leaving the face to resolve on a case-insensitive family
+   * match — which works, until the day it does not.
+   */
+  font-family: var(--pp-font-loaded, var(--pp-font));
+  font-size: var(--pp-type-body-size);
+  line-height: var(--pp-type-body-leading);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * One focus ring for the whole application, in the accent.
+ *
+ * `:focus-visible` rather than `:focus` so a mouse click on a button does not
+ * leave a ring behind, while keyboard navigation always shows one. Removing
+ * the ring outright is the common shortcut and it makes the app unusable
+ * without a pointer.
+ */
+:focus-visible {
+  outline: 2px solid var(--pp-accent);
+  outline-offset: 2px;
+  border-radius: var(--pp-radius-sm);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/*
+ * MapLibre draws its own attribution and controls, and they arrive with a
+ * light-mode stylesheet. Left alone they are a white bar in the corner of a
+ * dark map.
+ *
+ * Attribution is a licence condition of the tiles rather than decoration, so
+ * this restyles it and never hides it.
+ */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--pp-map-land) 82%, transparent) !important;
+  color: var(--pp-ink-muted) !important;
+  border-radius: var(--pp-radius-pill) 0 0 0;
+  font-family: var(--pp-font);
+  font-size: 11px;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--pp-ink-muted) !important;
+}
+
+.maplibregl-ctrl-group {
+  background: var(--pp-surface) !important;
+  box-shadow: var(--pp-shadow-sm) !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--pp-line) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

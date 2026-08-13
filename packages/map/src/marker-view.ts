@@ -1,32 +1,46 @@
-import { MARKER_FAMILY_COLOURS, MARKER_FOREGROUND } from '@pinpoint/tokens'
+import {
+  MARKER_ANCHOR,
+  MARKER_FAMILY_COLOURS,
+  MARKER_SIZE,
+  type Themed,
+} from '@pinpoint/tokens'
 
 import {
   markerTypeOf,
   type MarkerFamily,
+  type MarkerIconName,
   type MarkerTypeDefinition,
 } from './marker-type'
 import type { LngLat } from './types'
 
 /**
  * Turning a marker into something a renderer can draw, without knowing what a
- * renderer is.
+ * renderer is — or, now, what a theme is.
  *
  * The rule the specification states is that applications render a description
- * and never inspect a marker's type to decide how it looks. That is what keeps
- * web and mobile identical: there is one place a temple becomes a ⛩️ on a
- * slate pin, and both platforms read it.
+ * and never inspect a marker's type to decide how it looks. What the description
+ * carries changed with theming: a family *name* rather than a colour, and an
+ * icon *name* rather than a glyph.
+ *
+ * That is not a weakening of the rule, it is the only way to keep it. A colour
+ * now depends on which ground the interface is drawn on, and this package has
+ * no business knowing that; an icon is a rendered component, and a package
+ * declaring no third-party dependencies cannot hold one. Both are resolved by
+ * the application — the family through the shared tokens, the icon through the
+ * platform's icon set — and neither application decides *which* family or
+ * *which* icon, which is the part that had to stay shared.
  */
 
 /**
  * Every family has a colour, checked at compile time.
  *
- * `@pinpoint/tokens` cannot import `MarkerFamily` — it declares no dependencies
- * and this package depends on it, so the import would point the wrong way. This
- * assignment is the tie instead: adding a family without adding its colour
- * fails to typecheck here rather than rendering an undefined colour somewhere
- * downstream.
+ * `@pinpoint/tokens` cannot import `MarkerFamily` — it declares no third-party
+ * dependencies and this package depends on it, so the import would point the
+ * wrong way. This assertion is the tie instead: adding a family without adding
+ * its colour fails to typecheck here rather than rendering an undefined colour
+ * somewhere downstream.
  */
-const FAMILY_COLOUR: Record<MarkerFamily, string> = MARKER_FAMILY_COLOURS
+MARKER_FAMILY_COLOURS satisfies Record<MarkerFamily, Themed>
 
 /**
  * What the descriptor needs from a marker.
@@ -40,22 +54,46 @@ export interface MarkerViewInput extends LngLat {
   type?: string | null
 }
 
+/**
+ * Where a drawn marker meets its coordinate, normalised against the drawn box.
+ *
+ * `{ x: 0.5, y: 1 }` is the bottom centre — the teardrop's point.
+ */
+export interface MarkerAnchor {
+  x: number
+  y: number
+}
+
 /** A platform-neutral description of one drawn marker. */
 export interface MarkerView {
   lng: number
   lat: number
-  /** Drawn as-is. Emoji today; see `MarkerTypeDefinition.icon`. */
-  icon: string
-  /** A six-digit hex literal from `@pinpoint/tokens`. */
-  colour: string
-  /** Drawn on top of `colour` — the glyph background and the pin's ring. */
-  foreground: string
+  /**
+   * Names an icon rather than being one. The application resolves it against
+   * its own icon set; an unresolvable name draws the fallback type's icon.
+   */
+  icon: MarkerIconName
+  /**
+   * Names a colour rather than being one. The application resolves it through
+   * `@pinpoint/tokens` for whichever ground it is currently drawing on.
+   */
+  family: MarkerFamily
   /** The marker's own name. Not drawn permanently beside the pin; see the spec. */
   label: string
   /** The resolved type, for a detail view that wants to say "Temple". */
   typeId: string
   typeLabel: string
-  family: MarkerFamily
+  /**
+   * The drawn box, and which point of it sits on `lng`/`lat`.
+   *
+   * Carried here rather than left to each application because the previous
+   * defect — markers drifting off their coordinates as the map zoomed — lived
+   * exactly in the gap between two applications each deciding their own offset.
+   * Fixing one left the other wrong, and the symptom was invisible at the zoom
+   * the map opens at.
+   */
+  size: { width: number; height: number }
+  anchor: MarkerAnchor
 }
 
 /**
@@ -73,12 +111,12 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     lng: marker.lng,
     lat: marker.lat,
     icon: type.icon,
-    colour: FAMILY_COLOUR[type.family],
-    foreground: MARKER_FOREGROUND,
+    family: type.family,
     label: marker.name,
     typeId: type.id,
     typeLabel: type.label,
-    family: type.family,
+    size: { width: MARKER_SIZE.width, height: MARKER_SIZE.height },
+    anchor: { x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y },
   }
 }
 

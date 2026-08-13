@@ -1,6 +1,9 @@
-import { COLOUR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+
+import { useTheme } from '@/lib/theme'
+import { role } from '@/lib/type'
 
 /**
  * A note laid over the map without replacing it.
@@ -24,15 +27,34 @@ export function MarkersOverlayNote({
   tone?: 'muted' | 'danger'
   children: ReactNode
 }) {
+  const theme = useTheme()
   const danger = tone === 'danger'
 
   return (
     <View
-      style={[styles.note, danger ? styles.danger : styles.muted]}
+      style={[
+        styles.note,
+        danger
+          ? {
+              backgroundColor: theme.colour.dangerSurface,
+              borderColor: theme.colour.danger,
+            }
+          : {
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.line,
+            },
+      ]}
       pointerEvents="none"
       accessibilityRole="alert"
     >
-      <Text style={[styles.text, danger ? styles.dangerText : styles.mutedText]}>
+      <Text
+        style={[
+          styles.text,
+          danger
+            ? { color: theme.colour.danger, fontWeight: '600' }
+            : { color: theme.colour.inkMuted },
+        ]}
+      >
         {children}
       </Text>
     </View>
@@ -46,19 +68,9 @@ const styles = StyleSheet.create({
     left: SPACE.md,
     right: SPACE.md,
     borderWidth: 1,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,
   },
-  muted: {
-    backgroundColor: COLOUR.surface,
-    borderColor: COLOUR.border,
-  },
-  danger: {
-    backgroundColor: COLOUR.dangerSurface,
-    borderColor: COLOUR.danger,
-  },
-  text: { textAlign: 'center' },
-  mutedText: { color: COLOUR.textMuted },
-  dangerText: { color: COLOUR.danger, fontWeight: '600' },
+  text: { ...role(TYPE.note), textAlign: 'center' },
 })

@@ -29,19 +29,56 @@ export const MARKER_FAMILIES = ['see', 'eat', 'buy', 'sleep', 'move'] as const
 
 export type MarkerFamily = (typeof MARKER_FAMILIES)[number]
 
+/**
+ * The icons a type may name, and why these are names rather than icons.
+ *
+ * An icon is a rendered component, and this package declares no third-party
+ * dependencies — so it cannot hold one. What it holds is the identifier, and
+ * each application maps it to something from its own icon set. That mapping is
+ * an exhaustive record on both sides, so a name added here without a glyph
+ * beside it fails to typecheck in both applications rather than drawing an
+ * empty pin.
+ *
+ * These were emoji until this change. Emoji needed no dependency and rendered
+ * everywhere, which is genuinely why they were chosen — but they carry their
+ * own colour, and the colour is the one thing a pin is already saying. A red
+ * bowl of ramen on a slate `see` pin argues with the family it belongs to, and
+ * at 15px on a coloured teardrop the detail turns to mush.
+ *
+ * The names describe what is drawn, not which library draws it. Naming them
+ * after a vendor's catalogue would make swapping the catalogue a change to the
+ * shared contract, which is exactly what this indirection exists to avoid.
+ */
+export const MARKER_ICONS = [
+  'pin',
+  'star',
+  'landmark',
+  'castle',
+  'picture',
+  'trees',
+  'mountain',
+  'utensils',
+  'coffee',
+  'beer',
+  'skewer',
+  'shopping-bag',
+  'storefront',
+  'bed',
+  'train',
+  'plane',
+] as const
+
+export type MarkerIconName = (typeof MARKER_ICONS)[number]
+
 export interface MarkerTypeDefinition {
   readonly id: string
   readonly label: string
   readonly family: MarkerFamily
   /**
-   * Rendered as-is by both apps. Emoji keeps this package free of an icon
-   * dependency and renders on web and native alike; swapping to a real icon set
-   * later touches this file only — but note that it also means revisiting how
-   * markers are drawn, because a symbol layer cannot render emoji without a
-   * per-platform sprite atlas. The icon choice and the rendering architecture
-   * are the same decision.
+   * Names an icon; is not one. Resolved by each application against its own
+   * icon set — see `MARKER_ICONS`.
    */
-  readonly icon: string
+  readonly icon: MarkerIconName
 }
 
 /**
@@ -55,26 +92,26 @@ export interface MarkerTypeDefinition {
 export const FALLBACK_MARKER_TYPE = 'other'
 
 export const MARKER_TYPES: readonly MarkerTypeDefinition[] = [
-  { id: 'other', label: 'Place', family: 'see', icon: '📍' },
-  { id: 'attraction', label: 'Attraction', family: 'see', icon: '⭐' },
-  { id: 'temple', label: 'Temple', family: 'see', icon: '⛩️' },
-  { id: 'castle', label: 'Castle', family: 'see', icon: '🏯' },
-  { id: 'museum', label: 'Museum', family: 'see', icon: '🖼️' },
-  { id: 'park', label: 'Park', family: 'see', icon: '🌳' },
-  { id: 'viewpoint', label: 'Viewpoint', family: 'see', icon: '🌄' },
+  { id: 'other', label: 'Place', family: 'see', icon: 'pin' },
+  { id: 'attraction', label: 'Attraction', family: 'see', icon: 'star' },
+  { id: 'temple', label: 'Temple', family: 'see', icon: 'landmark' },
+  { id: 'castle', label: 'Castle', family: 'see', icon: 'castle' },
+  { id: 'museum', label: 'Museum', family: 'see', icon: 'picture' },
+  { id: 'park', label: 'Park', family: 'see', icon: 'trees' },
+  { id: 'viewpoint', label: 'Viewpoint', family: 'see', icon: 'mountain' },
 
-  { id: 'restaurant', label: 'Restaurant', family: 'eat', icon: '🍜' },
-  { id: 'cafe', label: 'Café', family: 'eat', icon: '☕' },
-  { id: 'bar', label: 'Bar', family: 'eat', icon: '🍺' },
-  { id: 'street-food', label: 'Street food', family: 'eat', icon: '🍢' },
+  { id: 'restaurant', label: 'Restaurant', family: 'eat', icon: 'utensils' },
+  { id: 'cafe', label: 'Café', family: 'eat', icon: 'coffee' },
+  { id: 'bar', label: 'Bar', family: 'eat', icon: 'beer' },
+  { id: 'street-food', label: 'Street food', family: 'eat', icon: 'skewer' },
 
-  { id: 'shop', label: 'Shop', family: 'buy', icon: '🛍️' },
-  { id: 'market', label: 'Market', family: 'buy', icon: '🏪' },
+  { id: 'shop', label: 'Shop', family: 'buy', icon: 'shopping-bag' },
+  { id: 'market', label: 'Market', family: 'buy', icon: 'storefront' },
 
-  { id: 'lodging', label: 'Lodging', family: 'sleep', icon: '🛏️' },
+  { id: 'lodging', label: 'Lodging', family: 'sleep', icon: 'bed' },
 
-  { id: 'station', label: 'Station', family: 'move', icon: '🚉' },
-  { id: 'airport', label: 'Airport', family: 'move', icon: '✈️' },
+  { id: 'station', label: 'Station', family: 'move', icon: 'train' },
+  { id: 'airport', label: 'Airport', family: 'move', icon: 'plane' },
 ] as const
 
 const BY_ID = new Map(MARKER_TYPES.map((type) => [type.id, type]))

@@ -6,14 +6,17 @@ import {
   fetchTrips,
   type QueryState,
 } from '@pinpoint/data'
-import { COLOUR, SPACE } from '@pinpoint/tokens'
+import { SPACE, TYPE } from '@pinpoint/tokens'
 import { Redirect } from 'expo-router'
-import { Button, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { EmptyState, FailedState, LoadingState } from '@/components/states'
 import { TripMap } from '@/components/trip-map'
 import { useSession } from '@/lib/session'
+import { useTheme } from '@/lib/theme'
+import { role } from '@/lib/type'
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@/lib/use-query'
 
@@ -30,6 +33,11 @@ import { useQuery } from '@/lib/use-query'
  */
 export default function Index() {
   const { session, loading } = useSession()
+  const theme = useTheme()
+  // The header is the top of the screen, so it owns the space the system draws
+  // into. Without this the wordmark sits under the clock and the Dynamic
+  // Island — the status bar is not a margin the layout gets for free.
+  const insets = useSafeAreaInsets()
 
   const trips = useQuery(() => fetchTrips(supabase), [session])
 
@@ -56,15 +64,32 @@ export default function Index() {
   if (!session) return <Redirect href="/login" />
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>pinpoint</Text>
+    <View style={[styles.screen, { backgroundColor: theme.colour.surface }]}>
+      <View
+        style={[
+          styles.header,
+          { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
+        ]}
+      >
+        {/* The mark is a pin reduced to the point it names, in the one colour
+            that is not a marker family. */}
+        <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
+        <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
         {trips.status === 'ready' ? (
-          <Text style={styles.tripName}>{trips.data[0]!.name}</Text>
+          <Text style={[styles.tripName, { color: theme.colour.inkMuted }]}>
+            {trips.data[0]!.name}
+          </Text>
         ) : null}
-        <View style={styles.signOut}>
-          <Button title="Sign out" onPress={() => void signOut(supabase)} />
-        </View>
+        <Pressable
+          style={styles.signOut}
+          onPress={() => void signOut(supabase)}
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Text style={[styles.signOutText, { color: theme.colour.inkMuted }]}>
+            Sign out
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.body}>
@@ -127,19 +152,25 @@ function Body({
   )
 }
 
+/** The header's own breathing room, above and below its content. */
+const HEADER_PAD = 11
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLOUR.surface },
+  screen: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
     paddingHorizontal: SPACE.md,
-    paddingVertical: SPACE.sm,
+    // `paddingTop` is applied inline instead, because it has to carry the
+    // device's top inset as well as this.
+    paddingBottom: HEADER_PAD,
     borderBottomWidth: 1,
-    borderColor: COLOUR.border,
   },
-  brand: { fontSize: 17, fontWeight: '600', color: COLOUR.text },
-  tripName: { color: COLOUR.textMuted },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  brand: { ...role(TYPE.title), fontWeight: '800', letterSpacing: -0.5 },
+  tripName: { ...role(TYPE.note) },
   signOut: { marginLeft: 'auto' },
+  signOutText: { ...role(TYPE.control) },
   body: { flex: 1 },
 })

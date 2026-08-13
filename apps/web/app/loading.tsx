@@ -1,5 +1,7 @@
 import { LoadingState } from '@/app/_components/states'
 
+import styles from './page.module.css'
+
 /**
  * Shown while the page's own data is being fetched on the server.
  *
@@ -10,7 +12,7 @@ import { LoadingState } from '@/app/_components/states'
  */
 export default function Loading() {
   return (
-    <div style={{ height: '100dvh' }}>
+    <div className={styles.full}>
       <LoadingState what="your trip" />
     </div>
   )
