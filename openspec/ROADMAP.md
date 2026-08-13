@@ -152,10 +152,6 @@ work of a second full client.
 - [ ] Email confirmation is off, so sign-up is open to anyone who finds the URL.
       They see nothing without a membership, but the account exists. Revisit before
       the app has a public address.
-- [ ] A failing tile service is unhandled. If OpenFreeMap is unreachable the map is a
-      blank canvas with correctly-placed pins and no explanation — the same symptom as
-      a bug already fixed once, from a different cause. Nothing in `map-rendering`
-      covers it.
 - [ ] `AGENTS.md` says this repo merges with `git merge --no-ff`, but recent merges
       have been squashes. Reconcile the document with the practice, either way.
 - [ ] The disposable Kyoto seed migration is still applied. It was kept deliberately so
@@ -171,6 +167,30 @@ work of a second full client.
       Neither `trips` nor `trip_members` has an insert policy, and the schema records
       why: an insert policy cannot resolve to membership for a trip with no members, so
       it needs a trigger making the creator the first member.
+- [ ] `README.md`'s "Status" describes a product two changes ago. It says "No writing
+      yet" when markers can be added, edited and deleted, and it says both platforms
+      take the same style **URL** — which stopped being true when the themed basemap
+      landed, because the document is now fetched and patched before either renderer
+      sees it. That URL claim is the founding portability argument, so stating it
+      wrongly misrepresents the thing the repository exists to demonstrate.
+- [ ] `README.md`'s "A new native dependency means another native build" understates
+      how it fails. It promises "a missing native component" message; adding
+      `react-native-svg` and `expo-font` instead produced `EXC_CRASH (SIGABRT)` at
+      launch with no JavaScript error, no red screen and a clean Metro log, because the
+      generated codegen artifacts and the Pods project had drifted apart. Roughly a day
+      went into diagnosing it. Worth saying plainly that a stale build can crash inside
+      Hermes or React's C++ and look nothing like a dependency problem, and that the
+      fix is `pod install` plus clearing DerivedData — not an incremental rebuild.
+- [ ] The approved look-and-feel mockup no longer matches what shipped. Two deviations
+      were agreed while building — the mobile detail sheet is a plain positioned view
+      rather than a draggable sheet with detents, and web keeps its existing layout
+      rather than the list rail — and the published artifact still shows the original.
+      Republish rather than mint a new URL.
+- [ ] Six Expo packages lag the SDK: `expo` 57.0.9 against ~57.0.12, plus
+      `expo-router`, `expo-constants`, `expo-dev-client` and `expo-linking`
+      (`npx expo install --check` lists them). Worth doing deliberately, with a clean
+      rebuild afterwards, rather than picking them up incidentally alongside other
+      work — see the codegen loose end above for why.
 
 ## Open design questions
 
