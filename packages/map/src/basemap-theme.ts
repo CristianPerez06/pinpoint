@@ -42,6 +42,7 @@ export type BasemapCategory =
   | 'roadCasing'
   | 'label'
   | 'boundary'
+  | 'shield'
 
 /**
  * Categories that must each match at least one layer.
@@ -97,10 +98,21 @@ function classify(layer: StyleLayer): BasemapCategory | null {
   // The ground everything else sits on.
   if (layer.type === 'background') return 'land'
 
-  // Text, and only text. Shields carry no `text-color` and are left alone —
-  // they are a US route badge whose colours mean something.
   if (layer.type === 'symbol') {
-    return layer.paint && 'text-color' in layer.paint ? 'label' : null
+    if (layer.paint && 'text-color' in layer.paint) return 'label'
+    /*
+     * A route shield: a sprite chip with no text colour to rewrite.
+     *
+     * These were left alone at first, on the reasoning that a route badge's
+     * colours mean something and repainting them would be lying about the road
+     * classification. That is still true, and it was still the wrong call — the
+     * sprite is drawn for a light basemap, so on a dark one every shield is a
+     * white chip brighter than our own `see` pins. The map's furniture ends up
+     * louder than the places somebody saved, which inverts the whole point.
+     *
+     * So the colours are left intact and the whole chip is dimmed instead.
+     */
+    return 'shield'
   }
 
   if (source === 'building') return 'block'
@@ -126,6 +138,15 @@ function classify(layer: StyleLayer): BasemapCategory | null {
 }
 
 /**
+ * How far a route shield is dimmed, per ground.
+ *
+ * Not a colour token: the sprite keeps its own colours, and this only says how
+ * much of it comes through. Full strength on light, where the sprite was drawn
+ * to sit; well back on dark, where it would otherwise outshine the markers.
+ */
+const SHIELD_OPACITY: Record<string, number> = { light: 1, dark: 0.45 }
+
+/**
  * Repaint one layer, leaving everything that is not a colour alone.
  *
  * Widths and opacities are zoom expressions in this document and carry the
@@ -135,8 +156,14 @@ function repaint(
   layer: StyleLayer,
   category: BasemapCategory,
   palette: Record<string, string>,
+  mode: ThemeMode,
 ): StyleLayer {
   const paint = { ...(layer.paint ?? {}) }
+
+  if (category === 'shield') {
+    paint['icon-opacity'] = SHIELD_OPACITY[mode]
+    return { ...layer, paint }
+  }
 
   const colour = {
     land: palette.land,
@@ -146,8 +173,9 @@ function repaint(
     road: palette.road,
     roadCasing: palette.roadCasing,
     label: palette.label,
-    // A border is a quiet line, and the palette has one already.
-    boundary: palette.label,
+    boundary: palette.boundary,
+    // Handled above; never reaches the colour lookup.
+    shield: palette.label,
   }[category]!
 
   if (layer.type === 'background') paint['background-color'] = colour
@@ -187,7 +215,7 @@ export function themeStyle(document: StyleDocument, mode: ThemeMode): StyleDocum
     const category = classify(layer)
     if (category === null) return layer
     matched.add(category)
-    return repaint(layer, category, palette)
+    return repaint(layer, category, palette, mode)
   })
 
   const missing = REQUIRED.filter((category) => !matched.has(category))

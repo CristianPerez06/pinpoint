@@ -20,7 +20,7 @@ export interface ThemeElevation {
 export interface Theme {
   readonly mode: 'light' | 'dark'
   readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'accentWash' | 'accentRing' | 'danger' | 'dangerSurface', string>>
-  readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'label', string>>
+  readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'boundary' | 'label', string>>
   readonly markerFamily: Readonly<Record<'see' | 'eat' | 'buy' | 'sleep' | 'move', string>>
   readonly markerForeground: string
   readonly elevation: Readonly<Record<'sm' | 'md' | 'lg' | 'pin', ThemeElevation>>
@@ -47,12 +47,13 @@ export const LIGHT: Theme = {
   },
   "basemap": {
     "land": "#EFEEE9",
-    "block": "#E7E5DF",
+    "block": "#E3E1D9",
     "road": "#FFFFFF",
-    "roadCasing": "#E2DFD8",
-    "water": "#D8DEE0",
-    "park": "#E4E7DE",
-    "label": "#A8A29A"
+    "roadCasing": "#DAD6CC",
+    "water": "#CBD6DA",
+    "park": "#E1E5DC",
+    "boundary": "#DEDAD0",
+    "label": "#9A948B"
   },
   "markerFamily": {
     "see": "#7C8896",
@@ -106,13 +107,14 @@ export const DARK: Theme = {
     "dangerSurface": "#33211F"
   },
   "basemap": {
-    "land": "#1D1B18",
-    "block": "#232019",
-    "road": "#2F2B25",
-    "roadCasing": "#262219",
-    "water": "#1A1F22",
+    "land": "#1A1815",
+    "block": "#262218",
+    "road": "#3D372D",
+    "roadCasing": "#2C271E",
+    "water": "#16242C",
     "park": "#1F241F",
-    "label": "#6B655C"
+    "boundary": "#2A251E",
+    "label": "#8A8378"
   },
   "markerFamily": {
     "see": "#98A3B0",

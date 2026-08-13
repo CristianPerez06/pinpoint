@@ -89,12 +89,13 @@
 
   /* the basemap, patched to share this ground */
   --pp-map-land: #EFEEE9;
-  --pp-map-block: #E7E5DF;
+  --pp-map-block: #E3E1D9;
   --pp-map-road: #FFFFFF;
-  --pp-map-road-casing: #E2DFD8;
-  --pp-map-water: #D8DEE0;
-  --pp-map-park: #E4E7DE;
-  --pp-map-label: #A8A29A;
+  --pp-map-road-casing: #DAD6CC;
+  --pp-map-water: #CBD6DA;
+  --pp-map-park: #E1E5DC;
+  --pp-map-boundary: #DEDAD0;
+  --pp-map-label: #9A948B;
 
   /* marker families — fixed by the product, not by the palette */
   --pp-family-see: #7C8896;
@@ -131,13 +132,14 @@
     --pp-danger-surface: #33211F;
 
     /* the basemap, patched to share this ground */
-    --pp-map-land: #1D1B18;
-    --pp-map-block: #232019;
-    --pp-map-road: #2F2B25;
-    --pp-map-road-casing: #262219;
-    --pp-map-water: #1A1F22;
+    --pp-map-land: #1A1815;
+    --pp-map-block: #262218;
+    --pp-map-road: #3D372D;
+    --pp-map-road-casing: #2C271E;
+    --pp-map-water: #16242C;
     --pp-map-park: #1F241F;
-    --pp-map-label: #6B655C;
+    --pp-map-boundary: #2A251E;
+    --pp-map-label: #8A8378;
 
     /* marker families — fixed by the product, not by the palette */
     --pp-family-see: #98A3B0;

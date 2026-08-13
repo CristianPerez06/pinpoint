@@ -160,17 +160,56 @@ export const COLOUR = {
  * quietness is what lets five saturated pins be the only strong colour on
  * screen.
  */
+/**
+ * HOW THESE VALUES WERE CHOSEN, AND THE MISTAKE THEY CORRECT
+ *
+ * A basemap is read by the *separation* between its categories, not by any one
+ * colour. The first attempt at the dark set was picked by eye at a contrast
+ * ratio that looked reasonable — and rendered a map that was, at 1:1, a black
+ * rectangle. Every category was there and drawing; none of them were
+ * distinguishable.
+ *
+ * Contrast ratio is the wrong instrument at this end of the range. It is near
+ * 1.0 between any two dark colours by construction, so it reported the dark set
+ * as no worse than the light one. Perceived lightness — CIE L* — is uniform,
+ * and it showed the real problem immediately: water sat 1.5 L* from land, where
+ * the light set separates them by 9.
+ *
+ * So every value below is chosen for its L* distance from `land`, with a floor
+ * of about 4.5 for a fill and more for anything linear. Water additionally
+ * carries a cool cast and park a green one, because a hue difference reads at
+ * distances where a lightness difference alone does not.
+ */
 export const BASEMAP_COLOUR = {
   /** Everything that is not water, park, road, or building. */
-  land: { light: '#EFEEE9', dark: '#1D1B18' },
+  land: { light: '#EFEEE9', dark: '#1A1815' },
   /** Building footprints and blocks. */
-  block: { light: '#E7E5DF', dark: '#232019' },
-  /** The road surface itself. */
-  road: { light: '#FFFFFF', dark: '#2F2B25' },
+  block: { light: '#E3E1D9', dark: '#262218' },
+  /** The road surface itself. The most prominent thing after labels. */
+  road: { light: '#FFFFFF', dark: '#3D372D' },
   /** The line around a road, which is what separates it from the land. */
-  roadCasing: { light: '#E2DFD8', dark: '#262219' },
-  water: { light: '#D8DEE0', dark: '#1A1F22' },
-  park: { light: '#E4E7DE', dark: '#1F241F' },
+  roadCasing: { light: '#DAD6CC', dark: '#2C271E' },
+  water: { light: '#CBD6DA', dark: '#16242C' },
+  /**
+   * Park and woodland.
+   *
+   * Kept close to the land in both lightness *and* chroma, which is the part
+   * that was got wrong first. A green at chroma 16 measured as a modest +7.8 L*
+   * from the land and still swamped the map — because at city zoom woodland
+   * covers most of the viewport, and a large area of saturated colour dominates
+   * regardless of how its lightness measures. Judge a fill by the area it will
+   * actually cover, not by a swatch.
+   */
+  park: { light: '#E1E5DC', dark: '#1F241F' },
+  /**
+   * Administrative borders.
+   *
+   * Their own value rather than the label colour, which is what they took at
+   * first — and it made prefecture boundaries the loudest thing on the map,
+   * louder than the roads somebody is actually navigating by. They sit between
+   * the land and a road casing: present when looked for, invisible otherwise.
+   */
+  boundary: { light: '#DEDAD0', dark: '#2A251E' },
   /** The map's own text. Deliberately quiet — our markers are the subject. */
-  label: { light: '#A8A29A', dark: '#6B655C' },
+  label: { light: '#9A948B', dark: '#8A8378' },
 } as const satisfies Record<string, Themed>

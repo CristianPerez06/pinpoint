@@ -85,11 +85,22 @@ describe('themeStyle', () => {
     expect(JSON.stringify(document)).toBe(original)
   })
 
-  it('leaves a route shield alone — its colours mean something', () => {
-    const themed = themeStyle(document, 'dark')
-    const shield = layerById(themed, 'highway-shield-non-us')
+  it('keeps a route shield\'s own colours but dims the chip on dark', () => {
+    // The sprite is drawn for a light basemap, so on a dark one an untouched
+    // shield is a white chip brighter than the markers. Recolouring it would be
+    // lying about the road classification, so the whole chip is pulled back
+    // instead.
+    const dark = layerById(themeStyle(document, 'dark'), 'highway-shield-non-us')
+    const light = layerById(themeStyle(document, 'light'), 'highway-shield-non-us')
 
-    expect(shield.paint).toEqual(layerById(document, 'highway-shield-non-us').paint)
+    expect(dark.paint?.['icon-opacity']).toBeLessThan(1)
+    expect(light.paint?.['icon-opacity']).toBe(1)
+
+    // Nothing about the sprite's own colours was rewritten.
+    const upstream = layerById(document, 'highway-shield-non-us').paint ?? {}
+    for (const [key, value] of Object.entries(upstream)) {
+      expect(dark.paint?.[key]).toEqual(value)
+    }
   })
 
   it('throws naming the category when upstream restructures it away', () => {

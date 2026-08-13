@@ -1,6 +1,25 @@
+/*
+ * The surface MapLibre draws into.
+ *
+ * Sized rather than positioned, and that is the fix for a real defect rather
+ * than a preference. MapLibre's own stylesheet sets
+ * `.maplibregl-map { position: relative }`; this element carries that class
+ * too, the specificity is identical, and `maplibre-gl.css` is imported after
+ * this module — so MapLibre wins and any `position: absolute` written here is
+ * inert. `inset: 0` on a relatively-positioned box does nothing, leaving a
+ * block of auto height, which is zero.
+ *
+ * It worked before this change only because it was an inline style, and inline
+ * beats any class regardless of source order. The symptom on losing that was
+ * the map's own worst failure mode: the canvas and all seventeen markers
+ * present and correct in the DOM, with no error anywhere, and nothing visible.
+ *
+ * So: leave positioning to MapLibre and give the box a definite size. `.stage`
+ * is a flex item with a resolved height, so 100% resolves against it.
+ */
 .canvas {
-  position: absolute;
-  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /*
