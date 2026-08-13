@@ -73,6 +73,38 @@ The native build takes minutes the first time; after that `pnpm dev:mobile` is a
 as it was. `ios/` and `android/` are generated and not committed — `pnpm --filter
 mobile prebuild` regenerates them from `app.json`.
 
+**A new native dependency means another native build.** `pnpm dev:mobile` reloads
+JavaScript and nothing else, so installing a package that contains native code —
+`react-native-svg`, say — leaves the dev build on the device without it. The app then
+fails at the first component that needs it, with a message about a missing native
+component that reads like a JavaScript error and is not one. Rebuild:
+
+```bash
+rm -rf apps/mobile/ios            # its Pods are stale, and it is generated anyway
+pnpm --filter mobile prebuild
+pnpm --filter mobile ios
+```
+
+**If the build hangs at "Installing CocoaPods…"**, suspect CocoaPods rather than the
+project, and check it on its own:
+
+```bash
+pod --version                     # should answer in about a second
+```
+
+If that hangs — with no arguments, and nothing to wait on — CocoaPods is broken. The
+usual cause is Homebrew's Ruby being upgraded after `cocoapods` was built against it:
+
+```bash
+brew upgrade cocoapods            # or: brew reinstall cocoapods
+pod --version                     # confirm it answers before building again
+pod --version --verbose           # if it still hangs, this shows where
+```
+
+Note the misdirection, because it is the same one as the licence problem below: Expo
+says *installing* CocoaPods when the truth is that `pod` will not answer. Both
+symptoms point at a step that is fine, and neither names the step that is not.
+
 **iOS needs Xcode 26 or newer**, because Expo SDK 57 builds a module that declares
 `swift-tools-version: 6.2`, and Swift 6.2 ships with Xcode 26. A fresh Xcode 26 also
 installs without the iOS platform bundle, and after a major upgrade the licence has to
@@ -92,7 +124,14 @@ pnpm typecheck     pnpm typecheck:mobile
 pnpm test          # shared package tests
 pnpm check:cycles  # workspace dependency graph
 pnpm check:specs   # OpenSpec specs and active changes
+pnpm check:tokens  # the derived token files are current
+pnpm check:fonts   # both apps bundle the same typeface
 ```
+
+The last two exist because styling fails quietly. A hand-edit to a generated token
+file survives forever without the first, and a missing or mismatched font file falls
+back to a system face without the second — changing every measurement on screen while
+no build, typecheck, lint or test has anything to say about it.
 
 All of these run on every pull request, along with a web production build and a gate
 that fails if two versions of React or React Native end up installed.
