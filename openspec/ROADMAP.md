@@ -152,8 +152,6 @@ work of a second full client.
 - [ ] Email confirmation is off, so sign-up is open to anyone who finds the URL.
       They see nothing without a membership, but the account exists. Revisit before
       the app has a public address.
-- [ ] `AGENTS.md` says this repo merges with `git merge --no-ff`, but recent merges
-      have been squashes. Reconcile the document with the practice, either way.
 - [ ] The disposable Kyoto seed migration is still applied. It was kept deliberately so
       there was something to look at; deleting it now needs the rows gone as well as
       the file, since removing a migration leaves the remote's history untouched.

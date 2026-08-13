@@ -110,8 +110,14 @@ placeholders.
 
 Web and mobile share **token values**, not styling code. There is no cross-platform
 styling runtime and adding one is rejected by default — see `openspec/specs/styling`
-for the revisit conditions. No token package exists yet; the first shared colour
-creates it.
+for the revisit conditions.
+
+The values live in `@pinpoint/tokens`. Every colour is declared once as a
+`{ light, dark }` pair and derived by `packages/tokens/scripts/derive.ts` into two
+representations: custom properties for web, literals for native. **Edit the source
+modules, never `src/generated/`** — `pnpm check:tokens` regenerates and fails CI on
+the diff. A value the host resolves (`var()`, `color-mix()`, `currentColor`) is
+rejected by the script, because native cannot render it.
 
 ## Attribution
 
@@ -124,3 +130,18 @@ warning — don't.
 Planning artifacts live in `openspec/changes/<name>/`; `openspec/specs/` holds the
 rules in force. Run `openspec validate <change> --strict` before considering a change
 done.
+
+## Merging to `main`
+
+**Squash and merge, one commit per pull request.** `main` keeps a linear history with
+no merge commits, so each unit of work is a single commit that can be read, reverted
+or bisected on its own.
+
+The squash commit's subject is the pull request title in conventional-commit form —
+`type(scope): subject` — and the body is left empty. GitHub offers the branch's
+commit messages as a default body; delete them. They are the record of how the work
+was arrived at, which the pull request already preserves, and repeating them in
+`main` makes every entry a wall of text.
+
+Branch commits are for the branch. Write them for a reviewer reading the diff, and
+let the squash discard the ones that only mattered on the way.
