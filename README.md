@@ -128,6 +128,33 @@ sudo xcodebuild -runFirstLaunch
 xcodebuild -downloadPlatform iOS   # else every build destination is "ineligible"
 ```
 
+**Xcode 26.2 cannot build this app at all.** Its SDK ships a libc++ `stdlib.h` that
+declares `abs` for `float`, `double` and `long double` in the global namespace.
+`expo-modules-jsi` compiles with C++ interop enabled — it has to, it wraps JSI — so
+Swift sees those overloads beside its own generic `abs` and refuses to choose:
+
+```
+JavaScriptCodable+Date.swift:53: error: type of expression is ambiguous
+  guard milliseconds.isFinite, abs(milliseconds) <= maxJavaScriptDateMilliseconds else {
+```
+
+Nothing here is involved. The file belongs to a package nobody has opened, the line is
+plainly correct, and the two candidates mean the same thing — the compiler simply will
+not pick one. 26.6 (Swift 6.3.3) resolves it. Check a toolchain before trusting it:
+
+```bash
+printf 'func f(_ ms: Double) { let e: Double = abs(ms); _ = e }\n' > /tmp/t.swift
+swiftc -typecheck -cxx-interoperability-mode=default /tmp/t.swift   # silence is good
+```
+
+**And do not conclude much from another machine building fine.** That module is
+compiled once into an xcframework and cached against a hash of its sources, `RN_ROOT`
+and the toolchain version. A machine whose cache is still valid never compiles the file
+and so never meets the bug — it is reheating, not cooking. Ours only surfaced because a
+stray root `dependencies` block installed a second React Native, which moved `RN_ROOT`,
+which invalidated the hash. The dependency mistake did not cause the failure; it removed
+the thing that had been hiding it.
+
 ## Checks
 
 ```bash

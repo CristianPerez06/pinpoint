@@ -89,6 +89,18 @@ placeholders.
   version (`sudo xcodebuild -license accept`); until it is, `xcrun` exits 69, `pod`
   refuses, and Expo misreads that as a broken CocoaPods and tries to reinstall it. All
   three symptoms are one cause.
+- **Xcode 26.2 is a hole in that floor — it cannot build this app.** Its SDK's libc++
+  `stdlib.h` declares `abs` for `float`/`double`/`long double` in the global namespace,
+  and `expo-modules-jsi` compiles with C++ interop on, so Swift sees them beside its own
+  generic `abs` and calls the expression ambiguous — inside a package nobody here wrote,
+  on a line that is correct. 26.6 (Swift 6.3.3) is fine. Verify a toolchain in one line
+  rather than by version number: `swiftc -typecheck -cxx-interoperability-mode=default`
+  over `func f(_ ms: Double) { let e: Double = abs(ms); _ = e }`. **The wider lesson is
+  about the cache**: that module is built once into an xcframework, keyed on a hash of
+  its sources, `RN_ROOT` and the toolchain version, so a machine holding a valid slice
+  never compiles the file and never meets the bug. "It builds on the other laptop" is
+  evidence about a cache, not about a toolchain. Anything that moves `RN_ROOT` — a
+  second React Native, a worktree — re-exposes whatever the slice was hiding.
 - **A `ScrollView` inside a content-sized container collapses.** React Native's
   `ScrollView` has no intrinsic content height, so a parent that sizes to its children —
   a sheet pinned to the bottom with `maxHeight` and no fixed height, say — asks how tall
