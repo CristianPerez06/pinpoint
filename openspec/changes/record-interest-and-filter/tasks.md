@@ -1,27 +1,30 @@
 ## 1. The domain
 
-- [ ] 1.1 Add the interest record to `@pinpoint/core` — marker id, member id, interested —
-      with a zod schema beside the existing marker schemas
-- [ ] 1.2 Add `InterestFilter` and `VisitedFilter` as named values, and a pure
+- [x] 1.1 ~~Add~~ Verify the interest record in `@pinpoint/core` — it already existed
+      (`marker-interest.ts`: schema, `InterestState`, `interestStateOf`) and matches what
+      the specification requires, including absence meaning undecided. Nothing to add.
+- [x] 1.2 Add `InterestFilter` and `VisitedFilter` as named values, and a pure
       `matches(marker, interestForMarker, members, filter)` predicate
-- [ ] 1.3 Unit-test the predicate against every combination the spec names, including the
+- [x] 1.3 Unit-test the predicate against every combination the spec names, including the
       two that are easy to conflate: everybody declined is **not** "Nobody yet", and a
       member who declined does **not** count toward "Either"
-- [ ] 1.4 Unit-test that a trip with one unanswered member never satisfies "Both", so the
+- [x] 1.4 Unit-test that a trip with one unanswered member never satisfies "Both", so the
       behaviour behind the unclaimed-member risk is pinned rather than discovered
 
 ## 2. Reading and writing
 
-- [ ] 2.1 Add `fetchTripInterest(supabase, tripId)` to `@pinpoint/data`, returning the
+- [x] 2.1 Add `fetchTripInterest(supabase, tripId)` to `@pinpoint/data`, returning the
       trip's records unfiltered — the policies decide what comes back
-- [ ] 2.2 Add `recordInterest` and `withdrawInterest`; withdrawing deletes the row rather
+- [x] 2.2 Add `recordInterest` and `withdrawInterest`; withdrawing deletes the row rather
       than storing a third value
-- [ ] 2.3 Add `setMarkerVisited`, trip-wide, recording no author
-- [ ] 2.4 Resolve the reader's own `trip_members.id` for the current trip, since every
+- [x] 2.3 Add `setMarkerVisited`, trip-wide, recording no author
+- [x] 2.4 Resolve the reader's own `trip_members.id` for the current trip, since every
       write is attributed to a member rather than a user
 - [ ] 2.5 Confirm the existing policies actually refuse a write attributed to another
       member, with a rolled-back `do $$ … raise exception 'RESULT: %' … $$` probe rather
-      than by reading the policy and assuming
+      than by reading the policy and assuming.
+      **Handed over:** needs the database password, which the agent should not hold.
+      Run the probe in the Supabase SQL editor; it rolls itself back.
 
 ## 3. Recording, on web
 

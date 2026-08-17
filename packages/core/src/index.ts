@@ -23,6 +23,9 @@ export type {
   NewMarkerInterest,
 } from './marker-interest'
 
+export { isFiltered, matchesFilter, NO_FILTER } from './marker-filter'
+export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filter'
+
 // Only the write-side rule lives here. The type list, its icons, its families,
 // and `markerTypeOf` are presentation and live in `@pinpoint/map` — import them
 // from there rather than re-exporting them, so there is one answer to where a

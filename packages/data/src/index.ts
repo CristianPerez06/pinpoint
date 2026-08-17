@@ -27,6 +27,19 @@ export {
   updateMarker,
 } from './markers'
 
+export {
+  fetchTripInterest,
+  fetchTripMembers,
+  INTEREST_FAILED_MESSAGE,
+  INTEREST_SAVE_FAILED_MESSAGE,
+  MEMBERS_FAILED_MESSAGE,
+  ownMemberOf,
+  recordInterest,
+  setMarkerVisited,
+  VISITED_FAILED_MESSAGE,
+  withdrawInterest,
+} from './interest'
+
 export { fetchTrips, TRIPS_FAILED_MESSAGE } from './trips'
 
 export { invalidInput, rejected, wrote } from './write-outcome'
