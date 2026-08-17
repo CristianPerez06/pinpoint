@@ -20,11 +20,11 @@
 - [x] 2.3 Add `setMarkerVisited`, trip-wide, recording no author
 - [x] 2.4 Resolve the reader's own `trip_members.id` for the current trip, since every
       write is attributed to a member rather than a user
-- [ ] 2.5 Confirm the existing policies actually refuse a write attributed to another
+- [x] 2.5 Confirm the existing policies actually refuse a write attributed to another
       member, with a rolled-back `do $$ … raise exception 'RESULT: %' … $$` probe rather
       than by reading the policy and assuming.
-      **Handed over:** needs the database password, which the agent should not hold.
-      Run the probe in the Supabase SQL editor; it rolls itself back.
+      **Verified against the live database:** the write was
+      `refused: new row violates row-level security policy for table "marker_interest"`.
 
 ## 3. Recording, on web
 
