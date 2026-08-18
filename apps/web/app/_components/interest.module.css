@@ -1,0 +1,126 @@
+/*
+ * Interest reads as a small table of people, not as a row of buttons.
+ *
+ * Every colour and measurement here comes from the generated custom properties,
+ * so both grounds are handled by the cascade and nothing needs a second rule.
+ */
+
+.rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.who {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  color: var(--pp-ink);
+  overflow-wrap: anywhere;
+}
+
+/* Another member's answer: reported, not offered. */
+.state {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+  white-space: nowrap;
+}
+
+/*
+ * The reader's own state, said in words underneath their two buttons.
+ *
+ * The buttons alone leave "undecided" looking like a rendering accident — two
+ * unpressed controls — when it is a real state the whole "Nobody yet" pile
+ * depends on being visible.
+ */
+.ownState {
+  grid-column: 1 / -1;
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+.undecided {
+  font-style: italic;
+}
+
+.interested {
+  color: var(--pp-accent-ink);
+}
+
+/*
+ * Declining is stated plainly rather than coloured as a warning. It is an
+ * ordinary answer — half of what the filter exists to sort on — and painting it
+ * red would make "we decided against this" look like something went wrong.
+ */
+.notInterested {
+  color: var(--pp-ink-muted);
+}
+
+.choices {
+  display: flex;
+  gap: 4px;
+}
+
+.choice {
+  border: 1px solid var(--pp-line-strong);
+  background: transparent;
+  color: var(--pp-ink-muted);
+  border-radius: var(--pp-radius-pill);
+  padding: 3px 10px;
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.choice:hover {
+  border-color: var(--pp-ink-faint);
+  color: var(--pp-ink);
+}
+
+/*
+ * The wash-and-ink pair rather than the accent itself.
+ *
+ * Amber is a light surface: white on it clears about 1.7:1, which is why the
+ * primary button carries a hand-picked dark brown. That literal should not be
+ * copied around, and it does not need to be — `accent-wash` and `accent-ink`
+ * are declared as a pair for exactly this, and both grounds already define
+ * them, so the cascade handles dark without a second rule.
+ */
+.choiceActive {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent-ink);
+  color: var(--pp-accent-ink);
+}
+
+.visited {
+  border: 1px solid var(--pp-line-strong);
+  background: transparent;
+  color: var(--pp-ink-muted);
+  border-radius: var(--pp-radius-pill);
+  padding: 3px 10px;
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+}
+
+.visited:hover {
+  border-color: var(--pp-ink-faint);
+  color: var(--pp-ink);
+}
+
+.visitedOn {
+  background: var(--pp-surface-muted);
+  border-color: var(--pp-line-strong);
+  color: var(--pp-ink);
+}

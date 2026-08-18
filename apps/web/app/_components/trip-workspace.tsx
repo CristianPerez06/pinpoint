@@ -1,13 +1,23 @@
 'use client'
 
-import type { City, FieldErrors, Marker, Trip } from '@pinpoint/core'
+import type {
+  City,
+  FieldErrors,
+  Marker,
+  MarkerInterest,
+  Trip,
+  TripMember,
+} from '@pinpoint/core'
 import {
   createCity,
   createMarker,
   deleteCity,
   deleteMarker,
+  recordInterest,
+  setMarkerVisited,
   updateCity,
   updateMarker,
+  withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
 import {
@@ -70,11 +80,24 @@ export function TripWorkspace({
   trip,
   initialMarkers,
   initialCities,
+  members,
+  initialInterest,
+  ownMemberId,
   notice,
 }: {
   trip: Trip
   initialMarkers: readonly Marker[]
   initialCities: readonly City[]
+  members: readonly TripMember[]
+  initialInterest: readonly MarkerInterest[]
+  /**
+   * Which member the reader is, or null when their account matches none.
+   *
+   * Null is ordinary rather than broken: a member exists before the account
+   * does. They can read the trip and see everyone's answers; they have nothing
+   * to attribute an answer to, so no control is offered.
+   */
+  ownMemberId: string | null
   /**
    * What the initial read of the markers did, when it did not produce any. The
    * map still renders — it is fine either way — and only this note distinguishes
@@ -88,6 +111,7 @@ export function TripWorkspace({
 
   const [markers, setMarkers] = useState<readonly Marker[]>(initialMarkers)
   const [cities, setCities] = useState<readonly City[]>(initialCities)
+  const [interest, setInterest] = useState<readonly MarkerInterest[]>(initialInterest)
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [dropping, setDropping] = useState(false)
   const [draft, setDraft] = useState<DraftPosition | null>(null)
@@ -155,6 +179,89 @@ export function TripWorkspace({
       cities.find((city) => city.id === marker.cityId)?.currency ?? null,
     [cities],
   )
+
+  const interestFor = useCallback(
+    (marker: Marker) => interest.filter((record) => record.markerId === marker.id),
+    [interest],
+  )
+
+  /**
+   * Recording an answer, and putting it back if the database disagrees.
+   *
+   * Optimistic, like saving and removing a place already are: a toggle that
+   * waited for a round trip would feel worse than the spreadsheet this replaces.
+   * The previous records are captured before the change so the revert restores
+   * exactly what was there, rather than guessing at what to undo.
+   */
+  async function answer(marker: Marker, interested: boolean) {
+    if (ownMemberId === null) return
+
+    const previous = interest
+    const optimistic: MarkerInterest = {
+      markerId: marker.id,
+      memberId: ownMemberId,
+      interested,
+      updatedAt: new Date().toISOString(),
+    }
+
+    setInterest((current) => [
+      ...current.filter(
+        (record) =>
+          !(record.markerId === marker.id && record.memberId === ownMemberId),
+      ),
+      optimistic,
+    ])
+
+    const outcome = await recordInterest(supabase, {
+      markerId: marker.id,
+      memberId: ownMemberId,
+      interested,
+    })
+
+    if (!outcome.ok) {
+      setInterest(previous)
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not save that.',
+      )
+    }
+  }
+
+  async function unanswer(marker: Marker) {
+    if (ownMemberId === null) return
+
+    const previous = interest
+    setInterest((current) =>
+      current.filter(
+        (record) =>
+          !(record.markerId === marker.id && record.memberId === ownMemberId),
+      ),
+    )
+
+    const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
+    if (!outcome.ok) {
+      setInterest(previous)
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not save that.',
+      )
+    }
+  }
+
+  async function markVisited(marker: Marker, visited: boolean) {
+    const previous = markers
+    setMarkers((current) =>
+      current.map((each) => (each.id === marker.id ? { ...each, visited } : each)),
+    )
+
+    const outcome = await setMarkerVisited(supabase, marker.id, visited)
+    if (!outcome.ok) {
+      setMarkers(previous)
+      setMessage(
+        outcome.kind === 'rejected'
+          ? outcome.message
+          : 'Could not change whether this place is visited.',
+      )
+    }
+  }
 
   function selectCity(cityId: string | null) {
     const params = new URLSearchParams(searchParams.toString())
@@ -381,6 +488,12 @@ export function TripWorkspace({
           <MarkerDetails
             selection={panel.selection}
             currencyOf={currencyOf}
+            members={members}
+            interestFor={interestFor}
+            ownMemberId={ownMemberId}
+            onRecordInterest={(marker, interested) => void answer(marker, interested)}
+            onWithdrawInterest={(marker) => void unanswer(marker)}
+            onSetVisited={(marker, visited) => void markVisited(marker, visited)}
             onChoose={(index) =>
               setPanel({
                 kind: 'details',

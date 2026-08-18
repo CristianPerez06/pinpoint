@@ -28,14 +28,14 @@
 
 ## 3. Recording, on web
 
-- [ ] 3.1 Load interest alongside markers and cities in the page's existing `Promise.all`,
+- [x] 3.1 Load interest alongside markers and cities in the page's existing `Promise.all`,
       and hand it to the workspace
-- [ ] 3.2 Hold interest in workspace state keyed by marker id, beside the markers it
+- [x] 3.2 Hold interest in workspace state keyed by marker id, beside the markers it
       already owns
-- [ ] 3.3 Add the per-member rows to the marker detail card — own row interactive, other
+- [x] 3.3 Add the per-member rows to the marker detail card — own row interactive, other
       members' read-only, undecided rendered as its own state
-- [ ] 3.4 Add the visited control to the detail card
-- [ ] 3.5 Write optimistically and revert on failure, matching how saving and removing a
+- [x] 3.4 Add the visited control to the detail card
+- [x] 3.5 Write optimistically and revert on failure, matching how saving and removing a
       place already behave
 
 ## 4. Filtering, on web
