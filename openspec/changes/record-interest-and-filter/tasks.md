@@ -40,14 +40,22 @@
 
 ## 4. Filtering, on web
 
-- [ ] 4.1 Build the filter control in the toolbar's reserved slot, as a labelled selector
-      matching the city selector's construction, plus a `Hide visited` toggle
-- [ ] 4.2 Apply the predicate to produce one filtered set, and feed it to both the map and
-      the list so they cannot disagree
-- [ ] 4.3 Indicate that the view is narrowed whenever any filter is applied, with clearing
-      available from there
-- [ ] 4.4 Say "no markers match this filter" when nothing matches, distinctly from the
-      trip being empty
+- [x] 4.1 Build the filter control in the toolbar's reserved slot, as a labelled selector
+      matching the city selector's construction, plus a `Hide visited` toggle.
+      One wording change from the design: the unfiltered choice reads **"No filter"**, not
+      "Anyone". "Anyone" and "Either of you" are the same words to somebody scanning a
+      menu, and they are the one pair in the list that must not be confused — one narrows
+      the trip and the other does not.
+- [x] 4.2 Apply the predicate to produce one filtered set, and feed it to both the map and
+      the list so they cannot disagree. Filtered **upstream of `groupCoincident`**, so the
+      map and the card's chooser read from the same groups and there is no second place a
+      predicate could be applied differently.
+      Web has no standalone list of places; the chooser shown when several markers share a
+      point is the only list of markers on the screen, and it narrows with everything else.
+- [x] 4.3 Indicate that the view is narrowed whenever any filter is applied, with clearing
+      available from there — `Showing N of M · Clear` in the filter bar
+- [x] 4.4 Say "no markers match this filter" when nothing matches, distinctly from the
+      trip being empty. States the trip's real count, so the note cannot be read as loss.
 
 ## 4b. A visited marker looks visited
 
@@ -61,11 +69,18 @@
 
 ## 5. The map under a filter
 
-- [ ] 5.1 Add the filtered-to-nothing state to the map, distinguishable from loading,
-      failed and genuinely empty
-- [ ] 5.2 Confirm changing or clearing a filter does not move the camera
-- [ ] 5.3 Indicate that matches lie outside the current view when none are visible, and
-      offer to frame them
+- [x] 5.1 Add the filtered-to-nothing state to the map, distinguishable from loading,
+      failed and genuinely empty — a fourth overlay note, and the only one that names a
+      count and offers a way back out
+- [x] 5.2 Confirm changing or clearing a filter does not move the camera.
+      **Confirmed by construction rather than by looking:** the camera moves only when
+      `frameToken` changes, and the only two things that change it are selecting a city
+      and choosing a place from search. Nothing on the filter path touches it. Still worth
+      the interactive check in 6.5, because "confirmed by reading" has been wrong before.
+- [x] 5.3 Indicate that matches lie outside the current view when none are visible, and
+      offer to frame them. The map reports whether anything it drew is inside the current
+      view — a boolean, on `moveend` and on every change to the drawn set, since narrowing
+      while the map sits still fires no camera event at all.
 
 ## 6. Checks, and looking
 

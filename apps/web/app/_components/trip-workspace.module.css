@@ -21,6 +21,25 @@
 }
 
 /*
+ * A way out, offered inside a sentence rather than beside it.
+ *
+ * Underlined and in the accent so it reads as the thing to press, without
+ * becoming a button — the note is a sentence, and a filled button in the middle
+ * of one would outweigh what it is explaining.
+ */
+.inlineAction {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--pp-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/*
  * The armed state, said out loud.
  *
  * Ink on ground rather than the accent: the accent means "this is the primary
