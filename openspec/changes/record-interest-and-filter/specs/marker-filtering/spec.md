@@ -8,79 +8,80 @@ view from being mistaken for the whole trip.
 
 ### Requirement: A trip can be narrowed by who is interested
 
-The system SHALL offer filtering a trip's markers by who has recorded interest, expressed
-as two separable parts: **which members are being asked about**, and **how many of them
-must have recorded interest**.
+The system SHALL offer narrowing a trip's markers to those **wanted by a named set of
+members**, chosen from the people on the trip.
 
-The second part SHALL offer at least these choices, each applying to the members selected
-in the first:
+A marker SHALL be shown when **every** named member has recorded interest in it. Naming
+two people asks for the places they agree on; returning the places either of them wants
+would be a different question and a much longer list, and agreement is the question this
+product exists to answer.
 
-- **All of them** — every selected member has recorded interest.
-- **At least one** — one or more selected members have recorded interest.
-- **Just one** — exactly one selected member has recorded interest.
-- **None of them yet** — no selected member has recorded anything about the marker.
+Naming one member SHALL show the places that member wants, whatever anybody else has
+recorded.
 
-Rationale for separating them: the questions a pair of travellers asks — do we both want
-this, does either of us, do we disagree, has neither of us looked — are these four
-quantifiers applied to *everybody* on the trip. A trip of five needs the same four
-questions asked of a *subset*, because "do all five of us want this" is a much weaker
-question than "do these two want this". Naming the pair's four questions as fixed choices
-would make the group's unaskable.
-
-Records belonging to members outside the selection SHALL be ignored, so that somebody who
+Records belonging to members outside the named set SHALL be ignored, so that somebody who
 has left a trip is not still counted.
 
-"None of them yet" SHALL mean the absence of every record, not that every selected member
-declined. A marker everyone has actively declined is a decision that was made; a marker
-nobody has answered is a decision waiting to be made, and collapsing the two would bury
-the second inside the first.
+A member who has recorded *not interested* SHALL NOT count as wanting to go.
 
-A member who has recorded *not interested* SHALL NOT count as interested for any of
-these choices.
-
-Selecting no members at all SHALL select no markers, rather than behaving as though no
-filter were applied. Both "all of them" and "none of them" are vacuously true of an empty
-selection, and either reading would fill a pile that is supposed to mean agreement, or one
-that is supposed to mean silence, with the entire trip.
+Rationale for naming members rather than offering fixed choices written for two people:
+on a trip of three or more, "do all of us want this" is a much weaker question than "do
+these two want this", and only the second is worth asking. A fixed set of choices can
+express the first and cannot express the second.
 
 #### Scenario: Both members want to go
 
 - **WHEN** every member of the trip has recorded interest in a marker
-- **AND** every member is selected, and the choice is All of them
+- **AND** every member is named
 - **THEN** the marker is shown
 
 #### Scenario: One member wants to go and the other declined
 
 - **WHEN** one member has recorded interest and another has recorded not interested
-- **AND** both are selected, and the choice is Just one
-- **THEN** the marker is shown
-- **AND** it is not shown under All of them
-
-#### Scenario: Nobody has answered
-
-- **WHEN** no member has recorded anything about a marker
-- **AND** every member is selected, and the choice is None of them yet
-- **THEN** the marker is shown
-
-#### Scenario: Everybody declined
-
-- **WHEN** every member has recorded not interested
-- **AND** every member is selected, and the choice is None of them yet
-- **THEN** the marker is not shown, because a recorded decision is not an absent one
+- **AND** both are named
+- **THEN** the marker is not shown
+- **AND** it is shown when only the interested member is named
 
 #### Scenario: Asking about some of the trip
 
 - **WHEN** a trip has three members, two of whom have recorded interest in a marker and
   the third has declined
-- **AND** only those two are selected, and the choice is All of them
+- **AND** only those two are named
 - **THEN** the marker is shown
-- **AND** it is not shown when all three are selected
+- **AND** it is not shown when all three are named
 
-#### Scenario: Asking about nobody
+### Requirement: A trip can be narrowed to what nobody has answered
 
-- **WHEN** a choice other than the unfiltered one is made and no member is selected
-- **THEN** no markers are shown
-- **AND** this is reported as a filter matching nothing, not as an unfiltered trip
+The system SHALL offer narrowing a trip's markers to those about which **no member has
+recorded anything**.
+
+This SHALL mean the absence of every record, not that every member declined. A marker
+everyone has actively declined is a decision that was made; a marker nobody has answered
+is a decision waiting to be made, and collapsing the two would bury the second inside the
+first. It is the triage pile — the set that is invisible in a spreadsheet and the reason
+filtering is worth building.
+
+This choice SHALL NOT combine with naming members. "Wanted by Ana, and also nobody has
+answered" has no meaning, so choosing one SHALL replace the other rather than adding to
+it.
+
+#### Scenario: Nobody has answered
+
+- **WHEN** no member has recorded anything about a marker
+- **AND** the filter is set to what nobody has answered
+- **THEN** the marker is shown
+
+#### Scenario: Everybody declined
+
+- **WHEN** every member has recorded not interested
+- **AND** the filter is set to what nobody has answered
+- **THEN** the marker is not shown, because a recorded decision is not an absent one
+
+#### Scenario: One member has declined and the other has not answered
+
+- **WHEN** one member has recorded not interested and no other record exists
+- **AND** the filter is set to what nobody has answered
+- **THEN** the marker is not shown, because somebody answered
 
 ### Requirement: Every marker remains reachable
 
@@ -165,13 +166,13 @@ in a way the first is not.
 
 ### Requirement: What a filter means is defined once and shared
 
-The meaning of each filter — which markers "all of them" selects, and the rest — SHALL be
-defined in shared code used by every platform that offers filtering, rather than
+The meaning of each filter — which markers naming two members selects, and the rest —
+SHALL be defined in shared code used by every platform that offers filtering, rather than
 implemented per application.
 
-Rationale: these are definitions, not rendering. Two implementations of "all of them"
-would eventually disagree, and the disagreement would show up as a place appearing on a
-laptop and missing on a phone, which reads as a data problem and is not one.
+Rationale: these are definitions, not rendering. Two implementations of "wanted by both of
+us" would eventually disagree, and the disagreement would show up as a place appearing on
+a laptop and missing on a phone, which reads as a data problem and is not one.
 
 Filtering SHALL NOT be used to hide markers the reader is not entitled to see; what a
 member may read is decided where the data is stored, and re-deciding it while filtering

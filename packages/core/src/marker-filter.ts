@@ -8,45 +8,28 @@ import type { MarkerInterest } from './marker-interest'
  * need them, and a list draws no map — so `@pinpoint/map` would be the wrong
  * home even though the map is the most visible consumer.
  *
- * Two implementations of "both of you want to go" would eventually disagree, and
+ * Two implementations of "wanted by both of us" would eventually disagree, and
  * the disagreement would surface as a place appearing on a laptop and missing on
  * a phone. That reads as a data problem and would not be one.
  */
 
 /**
- * How the chosen members combine.
+ * Who has to want a place for it to be shown.
  *
- * Separating *who is being asked about* from *how many of them must want it* is
- * what lets one control answer a two-person trip and a six-person one. The
- * questions a pair of travellers actually asks — do we both want this, does
- * either of us, do we disagree, has neither of us looked at it — are this
- * quantifier applied to every member. The same four questions asked of a subset
- * are what a larger trip needs, and they arrive for free rather than as four
- * more named choices.
+ * Three states rather than a set plus a mode, because the states are mutually
+ * exclusive and a shape that can hold two of them at once is a shape somebody
+ * eventually puts two of them in. "Nobody has answered" is not a person, so it
+ * cannot be one of the people.
  *
- * `unfiltered` is a member of this set rather than a separate flag because the
- * control offers it in the same menu, and a state the interface can reach has to
- * be a state the model can hold.
+ * `wanted-by` means **every** named member has recorded interest, which is the
+ * question this product exists to answer — the places we both want to go. Naming
+ * two people and getting back the places either of them wants would be a
+ * different question and a much longer list.
  */
-export type InterestQuantifier =
-  | 'unfiltered'
-  | 'all'
-  | 'at-least-one'
-  | 'exactly-one'
-  | 'none'
-
-export interface InterestFilter {
-  /**
-   * Whose answers are being asked about.
-   *
-   * Records belonging to anybody outside this set are ignored, which is what
-   * keeps a member who has left the trip from still casting a vote. That used to
-   * need its own rule; now it falls out of asking the question about named
-   * people.
-   */
-  readonly members: readonly string[]
-  readonly quantifier: InterestQuantifier
-}
+export type InterestFilter =
+  | { readonly kind: 'anyone' }
+  | { readonly kind: 'wanted-by'; readonly members: readonly string[] }
+  | { readonly kind: 'unanswered' }
 
 export type VisitedFilter = 'any' | 'unvisited' | 'visited'
 
@@ -63,22 +46,22 @@ export interface MarkerFilter {
  * guarantee is easier to keep when it has one definition.
  */
 export const NO_FILTER: MarkerFilter = {
-  interest: { members: [], quantifier: 'unfiltered' },
+  interest: { kind: 'anyone' },
   visited: 'any',
 }
 
 /** Whether anything is being hidden, so a narrowed view can say that it is. */
 export function isFiltered(filter: MarkerFilter): boolean {
-  return filter.interest.quantifier !== 'unfiltered' || filter.visited !== 'any'
+  return filter.interest.kind !== 'anyone' || filter.visited !== 'any'
 }
 
 /**
  * Whether one marker survives the filter.
  *
- * The trip's membership is not a parameter, unlike the version this replaces.
- * The filter names the members it is asking about, so "have all of them recorded
- * interest" can be decided from the question itself — and a question about
- * nobody in particular is no longer answerable by accident.
+ * The trip's membership is not a parameter: the filter names the members it asks
+ * about, so "have all of them recorded interest" can be decided from the
+ * question itself. That also means a record belonging to somebody not named is
+ * ignored, which is what stops a member who has left from still casting a vote.
  */
 export function matchesFilter(
   marker: { readonly visited: boolean },
@@ -95,41 +78,37 @@ function matchesInterest(
   interest: readonly Pick<MarkerInterest, 'memberId' | 'interested'>[],
   filter: InterestFilter,
 ): boolean {
-  if (filter.quantifier === 'unfiltered') return true
+  switch (filter.kind) {
+    case 'anyone':
+      return true
 
-  /*
-   * A question asked about nobody selects nothing, rather than everything.
-   *
-   * Three of the four quantifiers already answer false over an empty set, but
-   * `all` and `none` are both vacuously true of nobody — which would put every
-   * marker in a pile that is supposed to mean agreement, or every marker in the
-   * one that is supposed to mean silence.
-   *
-   * Selecting nothing rather than quietly falling back to unfiltered is the
-   * choice that stays visible: the view says no places match, which is what has
-   * actually been asked for, instead of the filter appearing to switch itself
-   * off while the control still reads as set.
-   */
-  if (filter.members.length === 0) return false
+    case 'wanted-by': {
+      /*
+       * Naming nobody selects nothing, rather than everything. "Every named
+       * member wants this" is vacuously true of no names, which would put the
+       * whole trip in the pile that is supposed to mean agreement.
+       *
+       * The control does not produce this — unticking the last person returns it
+       * to `anyone` — so this is the guard for the case where something else
+       * does, not a state a person can reach.
+       */
+      if (filter.members.length === 0) return false
 
-  const recorded = interest.filter((record) =>
-    filter.members.includes(record.memberId),
-  )
-  const wanted = recorded.filter((record) => record.interested).length
+      return filter.members.every((memberId) =>
+        interest.some(
+          (record) => record.memberId === memberId && record.interested,
+        ),
+      )
+    }
 
-  switch (filter.quantifier) {
-    case 'all':
-      return wanted === filter.members.length
-    case 'at-least-one':
-      return wanted > 0
-    case 'exactly-one':
-      return wanted === 1
-    case 'none':
-      // The absence of every record, not "everybody declined". A marker the two
-      // of you have turned down is a decision that was made; one nobody has
-      // answered is a decision still waiting. Collapsing them would bury the
-      // second inside the first, and the second is the whole point of the pile.
-      return recorded.length === 0
+    case 'unanswered':
+      /*
+       * The absence of every record, not "everybody declined". A place the two
+       * of you turned down is a decision that was made; one nobody has answered
+       * is a decision still waiting, and it is the second this pile exists to
+       * surface — the set that is invisible in a spreadsheet.
+       */
+      return interest.length === 0
   }
 }
 

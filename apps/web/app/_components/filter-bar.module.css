@@ -21,13 +21,25 @@
   color: var(--pp-ink-faint);
 }
 
+/* Positioned, because the list hangs from it. */
 .picker {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--pp-space-sm);
 }
 
+/*
+ * A button wearing the city selector's clothes.
+ *
+ * It is not a `<select>` — the list holds checkboxes and an entry that is not
+ * one of the people — but it is the same control to look at, because it does the
+ * same job in the same row. Matching by eye rather than by element is the point.
+ */
 .select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px 11px;
   border: 1px solid transparent;
   border-radius: var(--pp-radius-pill);
@@ -40,50 +52,69 @@
   transition: border-color 0.15s ease;
 }
 
-.select:hover {
+.select:hover,
+.select[aria-expanded='true'] {
   border-color: var(--pp-line-strong);
 }
 
-/*
- * The names, revealed once a real question is being asked.
- *
- * Tighter than the bar's own gap: they are one answer split into parts, not a
- * row of independent controls, and spacing them like siblings of the menu would
- * hide which one they belong to.
- */
-.members {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-xs);
+.caret {
+  font-size: 10px;
+  color: var(--pp-ink-faint);
 }
 
-.member {
+/* The same panel treatment as the city editor, for the same reason. */
+.menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--pp-space-xs);
+  min-width: 220px;
+  display: grid;
+  gap: 2px;
+  padding: var(--pp-space-xs);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 7;
+}
+
+.option {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius-pill);
+  gap: var(--pp-space-sm);
+  padding: 7px var(--pp-space-sm);
+  border-radius: var(--pp-radius-sm);
   color: var(--pp-ink);
-  font-size: var(--pp-type-note-size);
-  font-weight: var(--pp-type-control-weight);
+  font-size: var(--pp-type-control-size);
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.15s ease;
 }
 
-.member:hover {
-  border-color: var(--pp-line-strong);
+.option:hover {
+  background: var(--pp-surface-muted);
 }
 
-/*
- * A question about nobody. Not a failure — the person is mid-edit — so it
- * states what is missing rather than colouring like an error.
- */
-.hint {
+.everyone {
+  justify-self: start;
+  margin: 2px 0 2px var(--pp-space-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: var(--pp-type-note-size);
-  color: var(--pp-ink-muted);
-  font-style: italic;
+  font-weight: 600;
+  color: var(--pp-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.divide {
+  height: 0;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  border-top: 1px solid var(--pp-line);
 }
 
 .toggle {

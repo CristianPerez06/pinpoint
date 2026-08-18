@@ -5,20 +5,20 @@
       the specification requires, including absence meaning undecided. Nothing to add.
 - [x] 1.2 Add `InterestFilter` and `VisitedFilter` as named values, and a pure
       `matches(marker, interestForMarker, filter)` predicate.
-      **Revised after the control was built and read as confusing.** The filter is now a
-      set of members plus a quantifier over them, rather than four choices written for two
-      travellers. The four are the quantifier asked about everybody; a trip of more than
-      two needs the same questions asked of a subset, which fixed choices could not
-      express. The trip's membership stopped being a parameter — the filter names who it
-      asks about — which also retired the separate rule about ignoring a departed member.
+      **Revised twice, after the control was built and rejected on sight both times.** The
+      filter is now three mutually exclusive states — `anyone`, `wanted-by` a named set of
+      members, and `unanswered` — rather than choices written for exactly two travellers.
+      Naming members is what lets a trip of three ask about two of them. The trip's
+      membership stopped being a parameter, which also retired the separate rule about
+      ignoring a departed member's record.
 - [x] 1.3 Unit-test the predicate against every combination the spec names, including the
-      two that are easy to conflate: everybody declined is **not** "none of them yet", and
-      a member who declined does **not** count toward "at least one"
-- [x] 1.4 Unit-test that a trip with one unanswered member never satisfies "all of them",
-      so the behaviour behind the unclaimed-member risk is pinned rather than discovered
-- [x] 1.5 Unit-test the subset questions, and that asking about nobody selects nothing
-      rather than everything — `all` and `none` are both vacuously true of an empty set,
-      and either reading would fill a pile with the entire trip
+      two that are easy to conflate: everybody declined is **not** "nobody has answered",
+      and a member who declined does **not** count as wanting to go
+- [x] 1.4 Unit-test that naming an unanswered member never matches, so the behaviour
+      behind the unclaimed-member risk is pinned rather than discovered — and that
+      unticking them is the way out
+- [x] 1.5 Unit-test that naming two people means both rather than either, and that a trip
+      of three can be asked about two of them
 
 ## 2. Reading and writing
 
@@ -51,14 +51,16 @@
 
 - [x] 4.1 Build the filter control in the toolbar's reserved slot, as a labelled selector
       matching the city selector's construction, plus a `Hide visited` toggle.
-      **Rebuilt once.** The first attempt was labelled `WHO` with five fixed choices and
-      was reported as confusing on sight. Three things were wrong with it: `Who → No
-      filter` does not parse, the toolbar and the detail card used different words for the
-      same concept, and the choices were written for exactly two travellers.
-      It is now `WANTED BY [quantifier]` plus a checkbox per member, revealed once a real
-      question is asked. `Wanted by` was chosen because it parses with a quantifier and
-      with a name — `Wanted by: All of them` and `Wanted by: Ana` both read — so it
-      survives the group case rather than needing another pass.
+      **Rebuilt twice, rejected on sight twice.** The first attempt was `WHO` with five
+      fixed choices: `Who → No filter` does not parse, the toolbar and the card used
+      different words for one concept, and the choices assumed exactly two travellers.
+      The second kept those choices and added member checkboxes *beside* them — worse,
+      because the control then had two halves that could contradict each other and the
+      names appeared as a side effect of picking something else.
+      It is now one dropdown whose entries **are** the people, plus `Nobody has answered
+      yet` below a divider. Ticking names asks for the places they all want; the closed
+      button says which people, joined with "and". `Wanted by` as the label because it
+      parses with a name.
 - [x] 4.2 Apply the predicate to produce one filtered set, and feed it to both the map and
       the list so they cannot disagree. Filtered **upstream of `groupCoincident`**, so the
       map and the card's chooser read from the same groups and there is no second place a

@@ -1,58 +1,33 @@
 'use client'
 
 import {
-  type InterestQuantifier,
+  type InterestFilter,
   isFiltered,
   type MarkerFilter,
   NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
+import { useEffect, useRef, useState } from 'react'
 
 import styles from './filter-bar.module.css'
 
 /**
  * Narrowing a trip to the places worth looking at.
  *
- * Two questions, asked in the order they are answered: how much agreement is
- * being looked for, and among whom. Splitting them is what lets one control
- * serve a pair of travellers and a group — the questions a pair asks are these
- * quantifiers applied to everybody, and a group needs the same questions asked
- * of a subset.
+ * One list, whose entries are the people on the trip. Ticking two names asks for
+ * the places they agree on, which is the question the product exists to answer —
+ * not the places either of them wants, which is a different and much longer
+ * list. The button says which it is, because the two readings are both plausible
+ * and only one is right.
  *
- * The names appear only once a quantifier has been chosen. Unfiltered is the
- * state a trip opens in and by far the most common one, and a row of ticked
- * boxes that change nothing is a control that has to be understood before it can
- * be ignored.
+ * A native `<select multiple>` would be the obvious control and is not usable:
+ * it renders as a scrolling box that is always open, loses its selection to a
+ * stray click, and cannot hold an entry that is not one of the people.
  *
  * It decides nothing. What each choice selects lives in `@pinpoint/core` so the
  * map, the card and eventually the phone all agree; this file only says which
  * words go on which value.
  */
-
-/**
- * Phrased without pronouns, because the names are shown right beside them and
- * "both of you" would be wrong the moment somebody unticks themselves.
- *
- * "Anyone" reads as the absence of a question rather than as one of the answers,
- * which is what it is. The pair it must not be confused with is "At least one" —
- * one narrows the trip and the other does not, and these are the two words a
- * reader scanning the menu is most likely to conflate.
- */
-const QUANTIFIER_LABELS: Record<InterestQuantifier, string> = {
-  unfiltered: 'Anyone',
-  all: 'All of them',
-  'at-least-one': 'At least one',
-  'exactly-one': 'Just one',
-  none: 'None of them yet',
-}
-
-const QUANTIFIER_ORDER: readonly InterestQuantifier[] = [
-  'unfiltered',
-  'all',
-  'at-least-one',
-  'exactly-one',
-  'none',
-]
 
 export function FilterBar({
   filter,
@@ -71,83 +46,130 @@ export function FilterBar({
   shown: number
   total: number
 }) {
-  const narrowed = isFiltered(filter)
-  const { members: selected, quantifier } = filter.interest
+  const [open, setOpen] = useState(false)
+  const wrapper = useRef<HTMLDivElement | null>(null)
 
-  function setQuantifier(next: InterestQuantifier) {
-    onChange({
-      ...filter,
-      interest: {
-        quantifier: next,
-        /*
-         * Everybody, the first time a real question is asked. Revealing an
-         * unticked list would mean the choice just made selects nothing, and the
-         * whole-trip question is the one somebody almost always wants — it is
-         * the only one a two-person trip has.
-         */
-        members:
-          selected.length === 0 ? members.map((member) => member.id) : selected,
-      },
-    })
+  /**
+   * Closing the way a dropdown closes.
+   *
+   * Pointer down rather than click, so that pressing on the map both closes this
+   * and reaches the map — a click listener here would fire after the map had
+   * already decided what the press meant.
+   */
+  useEffect(() => {
+    if (!open) return
+
+    const dismiss = (event: PointerEvent) => {
+      if (!wrapper.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
+
+  const nameOf = (member: TripMember) =>
+    member.id === ownMemberId ? 'You' : member.displayName
+
+  const chosen =
+    filter.interest.kind === 'wanted-by' ? filter.interest.members : []
+
+  function setInterest(interest: InterestFilter) {
+    onChange({ ...filter, interest })
   }
 
   function toggleMember(memberId: string) {
-    onChange({
-      ...filter,
-      interest: {
-        quantifier,
-        members: selected.includes(memberId)
-          ? selected.filter((id) => id !== memberId)
-          : [...selected, memberId],
-      },
-    })
+    const next = chosen.includes(memberId)
+      ? chosen.filter((id) => id !== memberId)
+      : [...chosen, memberId]
+
+    // Unticking the last person is a request to stop filtering, not a question
+    // about nobody — which would correctly select nothing and read as broken.
+    setInterest(
+      next.length === 0 ? { kind: 'anyone' } : { kind: 'wanted-by', members: next },
+    )
   }
 
   return (
     <div className={styles.bar}>
-      <label className={styles.picker}>
+      <div className={styles.picker} ref={wrapper}>
         <span className={styles.label}>Wanted by</span>
-        <select
-          value={quantifier}
-          onChange={(event) =>
-            setQuantifier(event.target.value as InterestQuantifier)
-          }
+
+        <button
+          type="button"
+          onClick={() => setOpen((shown) => !shown)}
+          aria-expanded={open}
+          aria-haspopup="true"
           className={styles.select}
         >
-          {QUANTIFIER_ORDER.map((choice) => (
-            <option key={choice} value={choice}>
-              {QUANTIFIER_LABELS[choice]}
-            </option>
-          ))}
-        </select>
-      </label>
+          {summarise(filter.interest, members, nameOf)}
+          <span aria-hidden className={styles.caret}>
+            ▾
+          </span>
+        </button>
 
-      {quantifier === 'unfiltered' ? null : (
-        <span className={styles.members}>
-          {members.map((member) => (
-            <label key={member.id} className={styles.member}>
+        {open ? (
+          <div className={styles.menu} role="group" aria-label="Wanted by">
+            {members.map((member) => (
+              <label key={member.id} className={styles.option}>
+                <input
+                  type="checkbox"
+                  checked={chosen.includes(member.id)}
+                  onChange={() => toggleMember(member.id)}
+                  className={styles.checkbox}
+                />
+                <span>{nameOf(member)}</span>
+              </label>
+            ))}
+
+            {/* Everybody ticked is one press rather than one per person, which
+                on a two-person trip is the difference between the common case
+                being easy and being merely possible. */}
+            {members.length > 1 ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setInterest({
+                    kind: 'wanted-by',
+                    members: members.map((member) => member.id),
+                  })
+                }
+                className={styles.everyone}
+              >
+                Everyone
+              </button>
+            ) : null}
+
+            <hr className={styles.divide} />
+
+            {/*
+              Not a person, so not one of the people. It is the triage pile — the
+              set that is invisible in a spreadsheet — and it cannot combine with
+              a name: "wanted by Ana, and also nobody has answered" has no
+              meaning, so picking it clears the ticks rather than adding to them.
+            */}
+            <label className={styles.option}>
               <input
                 type="checkbox"
-                checked={selected.includes(member.id)}
-                onChange={() => toggleMember(member.id)}
+                checked={filter.interest.kind === 'unanswered'}
+                onChange={(event) =>
+                  setInterest(
+                    event.target.checked ? { kind: 'unanswered' } : { kind: 'anyone' },
+                  )
+                }
                 className={styles.checkbox}
               />
-              <span>{member.id === ownMemberId ? 'You' : member.displayName}</span>
+              <span>Nobody has answered yet</span>
             </label>
-          ))}
-        </span>
-      )}
-
-      {/*
-        Asking a question about nobody. It selects nothing, deliberately, and
-        that is easier to act on than to work out — the alternative was silently
-        behaving as unfiltered while the menu still read as set.
-      */}
-      {quantifier !== 'unfiltered' && selected.length === 0 ? (
-        <span className={styles.hint} role="status">
-          Pick at least one person
-        </span>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <label className={styles.toggle}>
         <input
@@ -169,7 +191,7 @@ export function FilterBar({
         place. A filtered trip and a trip that lost its places look identical —
         fewer pins — and the difference is not one a person can recover alone.
       */}
-      {narrowed ? (
+      {isFiltered(filter) ? (
         <p className={styles.narrowed} role="status">
           <span className={styles.count}>
             Showing {shown} of {total}
@@ -185,4 +207,33 @@ export function FilterBar({
       ) : null}
     </div>
   )
+}
+
+/**
+ * What the closed control says.
+ *
+ * Names rather than a count, up to the point where the names stop fitting. "Two
+ * people" answers a question nobody asked; the whole reason interest is stored
+ * per member is that *which* of you is the interesting part.
+ *
+ * Two names are joined with "and" rather than a comma, because it is the word
+ * that carries the meaning — the places you both want, not either of you.
+ */
+function summarise(
+  interest: InterestFilter,
+  members: readonly TripMember[],
+  nameOf: (member: TripMember) => string,
+): string {
+  if (interest.kind === 'anyone') return 'Anyone'
+  if (interest.kind === 'unanswered') return 'Nobody yet'
+
+  const names = members
+    .filter((member) => interest.members.includes(member.id))
+    .map(nameOf)
+
+  if (names.length === 0) return 'Anyone'
+  if (names.length === 1) return names[0]!
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  if (names.length === members.length) return 'Everyone'
+  return `${names.length} people`
 }
