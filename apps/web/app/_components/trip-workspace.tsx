@@ -140,6 +140,26 @@ export function TripWorkspace({
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
 
+  /**
+   * The open panel's group, resolved against current state rather than the copy
+   * captured when the pin was clicked.
+   *
+   * The panel stores what was selected, which is a snapshot: marking a place
+   * visited updated `markers`, the map redrew from the new groups, and the card
+   * went on rendering the marker as it had been a moment earlier. The pin faded
+   * and the button beside it still said "Mark visited".
+   *
+   * Interest did not show the bug because it is looked up by id at render time,
+   * which is what this now does for the marker itself.
+   *
+   * Null when the group has gone — the last marker on the point was removed —
+   * and the panel closes rather than rendering something that is not there.
+   */
+  const openGroup = useMemo(() => {
+    if (panel.kind !== 'details') return null
+    return groups.find((group) => group.key === panel.selection.group.key) ?? null
+  }, [panel, groups])
+
   const cityMarkers = useMemo(
     () =>
       selectedCityId === null
@@ -484,9 +504,21 @@ export function TripWorkspace({
           <MapOverlayNote tone={notice.tone}>{notice.text}</MapOverlayNote>
         ) : null}
 
-        {panel.kind === 'details' ? (
+        {panel.kind === 'details' && openGroup ? (
           <MarkerDetails
-            selection={panel.selection}
+            selection={{
+              group: openGroup,
+              // Clamped, because the group can shrink underneath an open card —
+              // another member removes a place sharing this point — and an index
+              // past the end would render nothing with no explanation.
+              index:
+                panel.selection.index !== null &&
+                panel.selection.index < openGroup.count
+                  ? panel.selection.index
+                  : openGroup.count === 1
+                    ? 0
+                    : null,
+            }}
             currencyOf={currencyOf}
             members={members}
             interestFor={interestFor}
