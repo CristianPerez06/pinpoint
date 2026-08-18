@@ -44,6 +44,48 @@
   border-color: var(--pp-line-strong);
 }
 
+/*
+ * The names, revealed once a real question is being asked.
+ *
+ * Tighter than the bar's own gap: they are one answer split into parts, not a
+ * row of independent controls, and spacing them like siblings of the menu would
+ * hide which one they belong to.
+ */
+.members {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-xs);
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-pill);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-note-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+
+.member:hover {
+  border-color: var(--pp-line-strong);
+}
+
+/*
+ * A question about nobody. Not a failure — the person is mid-edit — so it
+ * states what is missing rather than colouring like an error.
+ */
+.hint {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+  font-style: italic;
+}
+
 .toggle {
   display: flex;
   align-items: center;

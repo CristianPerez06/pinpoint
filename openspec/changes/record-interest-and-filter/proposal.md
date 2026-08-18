@@ -25,9 +25,13 @@ change remaining.
   another's.
 - **Recording visited.** A marker is marked visited for the whole trip, not per person,
   because travelling companions visit a place together.
-- **Filtering by who wants to go.** The filter the project exists for:
-  **Both**, **Either**, **Only one of you**, and **Nobody yet**. "Nobody yet" is the
-  triage pile — the set that is invisible in a spreadsheet and obvious here.
+- **Filtering by who wants to go.** The filter the project exists for, asked as two
+  parts: which members, and how many of them must want it — **all of them**, **at least
+  one**, **just one**, or **none of them yet**. Asked about everybody, those are the four
+  questions a pair of travellers has: both of us, either of us, we disagree, neither of us
+  has looked. "None of them yet" is the triage pile — the set that is invisible in a
+  spreadsheet and obvious here. Asked about a subset, they are what a trip of more than
+  two needs, which fixed two-person choices could not express.
 - **Filtering by visited**, so places already seen can be set aside without deleting
   them.
 - **The filter narrows the map and the list together.** They are two views of one set,

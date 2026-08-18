@@ -1,10 +1,11 @@
 'use client'
 
 import {
-  type InterestFilter,
+  type InterestQuantifier,
   isFiltered,
   type MarkerFilter,
   NO_FILTER,
+  type TripMember,
 } from '@pinpoint/core'
 
 import styles from './filter-bar.module.css'
@@ -12,10 +13,16 @@ import styles from './filter-bar.module.css'
 /**
  * Narrowing a trip to the places worth looking at.
  *
- * Built as a second labelled selector of the same construction as the city
- * picker, which is the point rather than a convenience: two controls that narrow
- * the same trip should not be two different kinds of control, and the city bar
- * already solved the label-plus-select shape at this type scale.
+ * Two questions, asked in the order they are answered: how much agreement is
+ * being looked for, and among whom. Splitting them is what lets one control
+ * serve a pair of travellers and a group — the questions a pair asks are these
+ * quantifiers applied to everybody, and a group needs the same questions asked
+ * of a subset.
+ *
+ * The names appear only once a quantifier has been chosen. Unfiltered is the
+ * state a trip opens in and by far the most common one, and a row of ticked
+ * boxes that change nothing is a control that has to be understood before it can
+ * be ignored.
  *
  * It decides nothing. What each choice selects lives in `@pinpoint/core` so the
  * map, the card and eventually the phone all agree; this file only says which
@@ -23,70 +30,125 @@ import styles from './filter-bar.module.css'
  */
 
 /**
- * The vocabulary is the roadmap's, written for two travellers, while the
- * predicate behind it is defined over however many members a trip has. A third
- * member makes "only one of you" read oddly without making it select the wrong
- * markers — which is the signal to revisit the wording, not the meaning.
+ * Phrased without pronouns, because the names are shown right beside them and
+ * "both of you" would be wrong the moment somebody unticks themselves.
  *
- * "No filter" rather than "Anyone" for the unfiltered choice. "Anyone" and
- * "Either of you" are the same words for a reader scanning a menu, and one of
- * them narrows the trip while the other does not — the one distinction in this
- * list that must not be missed.
+ * "Anyone" reads as the absence of a question rather than as one of the answers,
+ * which is what it is. The pair it must not be confused with is "At least one" —
+ * one narrows the trip and the other does not, and these are the two words a
+ * reader scanning the menu is most likely to conflate.
  */
-const INTEREST_LABELS: Record<InterestFilter, string> = {
-  any: 'No filter',
-  both: 'Both of you',
-  either: 'Either of you',
-  'only-one': 'Only one of you',
-  nobody: 'Nobody yet',
+const QUANTIFIER_LABELS: Record<InterestQuantifier, string> = {
+  unfiltered: 'Anyone',
+  all: 'All of them',
+  'at-least-one': 'At least one',
+  'exactly-one': 'Just one',
+  none: 'None of them yet',
 }
 
-const INTEREST_ORDER: readonly InterestFilter[] = [
-  'any',
-  'both',
-  'either',
-  'only-one',
-  'nobody',
+const QUANTIFIER_ORDER: readonly InterestQuantifier[] = [
+  'unfiltered',
+  'all',
+  'at-least-one',
+  'exactly-one',
+  'none',
 ]
 
 export function FilterBar({
   filter,
   onChange,
+  members,
+  ownMemberId,
   shown,
   total,
 }: {
   filter: MarkerFilter
   onChange: (filter: MarkerFilter) => void
+  members: readonly TripMember[]
+  /** So the reader is named the way the detail card names them. */
+  ownMemberId: string | null
   /** How many markers survive the filter, and how many the trip holds. */
   shown: number
   total: number
 }) {
   const narrowed = isFiltered(filter)
+  const { members: selected, quantifier } = filter.interest
+
+  function setQuantifier(next: InterestQuantifier) {
+    onChange({
+      ...filter,
+      interest: {
+        quantifier: next,
+        /*
+         * Everybody, the first time a real question is asked. Revealing an
+         * unticked list would mean the choice just made selects nothing, and the
+         * whole-trip question is the one somebody almost always wants — it is
+         * the only one a two-person trip has.
+         */
+        members:
+          selected.length === 0 ? members.map((member) => member.id) : selected,
+      },
+    })
+  }
+
+  function toggleMember(memberId: string) {
+    onChange({
+      ...filter,
+      interest: {
+        quantifier,
+        members: selected.includes(memberId)
+          ? selected.filter((id) => id !== memberId)
+          : [...selected, memberId],
+      },
+    })
+  }
 
   return (
     <div className={styles.bar}>
       <label className={styles.picker}>
-        <span className={styles.label}>Who</span>
+        <span className={styles.label}>Wanted by</span>
         <select
-          value={filter.interest}
+          value={quantifier}
           onChange={(event) =>
-            onChange({ ...filter, interest: event.target.value as InterestFilter })
+            setQuantifier(event.target.value as InterestQuantifier)
           }
           className={styles.select}
         >
-          {INTEREST_ORDER.map((choice) => (
+          {QUANTIFIER_ORDER.map((choice) => (
             <option key={choice} value={choice}>
-              {INTEREST_LABELS[choice]}
+              {QUANTIFIER_LABELS[choice]}
             </option>
           ))}
         </select>
       </label>
 
+      {quantifier === 'unfiltered' ? null : (
+        <span className={styles.members}>
+          {members.map((member) => (
+            <label key={member.id} className={styles.member}>
+              <input
+                type="checkbox"
+                checked={selected.includes(member.id)}
+                onChange={() => toggleMember(member.id)}
+                className={styles.checkbox}
+              />
+              <span>{member.id === ownMemberId ? 'You' : member.displayName}</span>
+            </label>
+          ))}
+        </span>
+      )}
+
       {/*
-        A toggle rather than a third selector. The specification asks for places
-        already seen to be set aside; it does not ask for a visited-only view,
-        and `VisitedFilter` can express one if a reason ever appears.
+        Asking a question about nobody. It selects nothing, deliberately, and
+        that is easier to act on than to work out — the alternative was silently
+        behaving as unfiltered while the menu still read as set.
       */}
+      {quantifier !== 'unfiltered' && selected.length === 0 ? (
+        <span className={styles.hint} role="status">
+          Pick at least one person
+        </span>
+      ) : null}
+
       <label className={styles.toggle}>
         <input
           type="checkbox"

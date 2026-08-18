@@ -175,8 +175,6 @@ export function TripWorkspace({
     [interest],
   )
 
-  const memberIds = useMemo(() => members.map((member) => member.id), [members])
-
   /**
    * One narrowed set, computed once and used by everything that shows a marker.
    *
@@ -192,10 +190,8 @@ export function TripWorkspace({
    */
   const visibleMarkers = useMemo(
     () =>
-      markers.filter((marker) =>
-        matchesFilter(marker, interestFor(marker), memberIds, filter),
-      ),
-    [markers, interestFor, memberIds, filter],
+      markers.filter((marker) => matchesFilter(marker, interestFor(marker), filter)),
+    [markers, interestFor, filter],
   )
 
   const groups = useMemo(
@@ -519,6 +515,8 @@ export function TripWorkspace({
         <FilterBar
           filter={filter}
           onChange={setFilter}
+          members={members}
+          ownMemberId={ownMemberId}
           shown={visibleMarkers.length}
           total={markers.length}
         />
