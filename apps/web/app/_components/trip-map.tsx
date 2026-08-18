@@ -178,9 +178,9 @@ export function TripMap({
   // Written in an effect rather than during render: a ref mutated mid-render is
   // a value React is entitled to discard, and the lint rule that says so is
   // right even though this particular case would have worked.
-  const handlers = useRef({ onSelectGroup, onDropAt, onDraftMove, onMarkersInView })
+  const handlers = useRef({ onSelectGroup, onDropAt, onDraftMove })
   useEffect(() => {
-    handlers.current = { onSelectGroup, onDropAt, onDraftMove, onMarkersInView }
+    handlers.current = { onSelectGroup, onDropAt, onDraftMove }
   })
 
   /**
@@ -298,13 +298,21 @@ export function TripMap({
    *
    * Reads the camera rather than the last reported centre, because a marker at
    * the edge of the view is in it and a centre cannot say that.
+   *
+   * The callback is a dependency rather than reached through the handlers ref.
+   * That ref exists to keep the renderer bindings — clicks, drags — from being
+   * torn down and rebuilt on every parent render, and this effect binds one
+   * cheap listener, so it has nothing to protect. Going through the ref anyway
+   * broke immediately: the ref object survives a hot reload while the code that
+   * built it does not, so adding a handler to it crashed every already-open tab
+   * with a key the surviving object had never had.
    */
   useEffect(() => {
     if (!map) return
 
     const report = () => {
       const bounds = map.getBounds()
-      handlers.current.onMarkersInView(
+      onMarkersInView(
         groups.some((group) => bounds.contains([group.lng, group.lat])),
       )
     }
@@ -314,7 +322,7 @@ export function TripMap({
     return () => {
       map.off('moveend', report)
     }
-  }, [map, groups])
+  }, [map, groups, onMarkersInView])
 
   /**
    * Markers are mounted in their own effect so that changing them never touches
