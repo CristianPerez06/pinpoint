@@ -43,6 +43,50 @@ action: save something, retry, or widen the filter.
 
 ## ADDED Requirements
 
+### Requirement: A visited marker is drawn as visited, without changing its colour
+
+A marker that has been visited SHALL be drawn distinguishably from one that has not.
+
+That distinction SHALL NOT be carried by the marker's colour. Colour names the marker's
+family and nothing else, which is what allows the type list to grow without the map
+becoming unreadable.
+
+How much a visited marker is muted SHALL be decided by shared code and carried in the
+drawn description, in the same way the drawn box and the anchor already are, so that both
+applications mute it identically.
+
+Interest SHALL NOT be drawn on a marker. Narrowing the map is what answers who wants to
+go; encoding several members' answers onto one pin that already carries a family colour, a
+glyph, a possible count badge and a possible selection ring is the unreadability this rule
+exists to prevent.
+
+Rationale: "which of these have we already been to" is asked while looking at the map,
+most of all on a phone during the trip, and a filter answers it only once somebody thinks
+to set one. "Who wants to go" is asked while planning, where narrowing is the better
+instrument and the states are too many to draw.
+
+#### Scenario: A visited marker among unvisited ones
+
+- **WHEN** a trip containing visited and unvisited markers is drawn
+- **THEN** the visited markers are visually distinguishable from the unvisited ones
+- **AND** both are drawn in the colour of their family
+
+#### Scenario: Two markers of one family, one visited
+
+- **WHEN** two markers share a family and only one has been visited
+- **THEN** they are drawn in the same colour
+- **AND** still tell apart as visited and not
+
+#### Scenario: Both applications mute identically
+
+- **WHEN** the same visited marker is drawn by either application
+- **THEN** it is muted by the same amount, taken from the shared drawn description
+
+#### Scenario: Interest is not drawn
+
+- **WHEN** members have recorded differing interest in a marker
+- **THEN** the marker's drawn form is unchanged by those records
+
 ### Requirement: Changing a filter does not move the camera
 
 Applying, changing or clearing a filter SHALL NOT re-frame the map.

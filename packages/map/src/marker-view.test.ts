@@ -2,7 +2,12 @@ import { MARKER_ANCHOR, MARKER_FAMILY_COLOURS, MARKER_SIZE } from '@pinpoint/tok
 import { describe, expect, it } from 'vitest'
 
 import { FALLBACK_MARKER_TYPE, MARKER_ICONS } from './marker-type'
-import { groupCoincident, markerView, type MarkerViewInput } from './marker-view'
+import {
+  groupCoincident,
+  markerView,
+  type MarkerViewInput,
+  VISITED_OPACITY,
+} from './marker-view'
 
 function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) {
   return { lng, lat, name: 'A place', type: 'other', ...overrides }
@@ -153,5 +158,30 @@ describe('groupCoincident', () => {
       'Kyoto Station',
       'Kyoto Tower',
     ])
+  })
+})
+
+describe('markerView — visited', () => {
+  const place = { lng: 135.7, lat: 35.0, name: 'To-ji', type: 'temple' }
+
+  it('mutes a visited marker without touching its colour', () => {
+    const seen = markerView({ ...place, visited: true })
+    const unseen = markerView({ ...place, visited: false })
+
+    // The whole point of the rule: colour names the family and only the family,
+    // so a visited place and an unvisited one of the same type are the same
+    // colour and differ only in how solidly they are drawn.
+    expect(seen.family).toBe(unseen.family)
+    expect(seen.icon).toBe(unseen.icon)
+    expect(seen.opacity).toBe(VISITED_OPACITY)
+    expect(unseen.opacity).toBe(1)
+    expect(seen.visited).toBe(true)
+    expect(unseen.visited).toBe(false)
+  })
+
+  it('treats an unanswered marker as not visited', () => {
+    // A draft has never been anywhere and is not asked.
+    expect(markerView(place).visited).toBe(false)
+    expect(markerView(place).opacity).toBe(1)
   })
 })

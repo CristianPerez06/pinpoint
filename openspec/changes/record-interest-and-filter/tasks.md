@@ -49,6 +49,16 @@
 - [ ] 4.4 Say "no markers match this filter" when nothing matches, distinctly from the
       trip being empty
 
+## 4b. A visited marker looks visited
+
+- [x] 4b.1 Carry `visited` and the muting amount in `MarkerView`, decided by shared code so
+      neither application picks its own — the same reason the box and anchor live there
+- [x] 4b.2 Draw the muting and a small check on web, never as a colour change
+- [x] 4b.3 Draw it identically on mobile. Mobile gains no controls; `map-rendering`
+      requires both applications to draw the same map, so the rule cannot be adopted by one
+- [x] 4b.4 Unit-test that a visited and an unvisited marker of one family differ only in
+      the muting, and that the family colour is untouched
+
 ## 5. The map under a filter
 
 - [ ] 5.1 Add the filtered-to-nothing state to the map, distinguishable from loading,

@@ -92,3 +92,30 @@
   border-radius: var(--pp-radius-sm);
   flex: none;
 }
+
+/*
+ * The visited tick.
+ *
+ * Bottom-left, so it never collides with the count badge at the top-right — a
+ * place can be both visited and one of several on the same point, and the two
+ * marks have to coexist.
+ *
+ * Ringed against the map for the same reason the badge is: it sits over tiles,
+ * not over a surface, and nothing else separates it from whatever is beneath.
+ */
+.visited {
+  position: absolute;
+  bottom: 6px;
+  left: -5px;
+  width: var(--pp-marker-badge);
+  height: var(--pp-marker-badge);
+  display: grid;
+  place-items: center;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-ink);
+  color: var(--pp-ground);
+  border: 2px solid var(--pp-map-land);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}

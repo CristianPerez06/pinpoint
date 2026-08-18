@@ -77,5 +77,12 @@ stopping to find out what.
   defect rather than expose it.
 - `apps/web` — the control in the reserved toolbar slot, an interest control on the
   marker detail card, and the filtered set feeding both the map and the list.
-- `apps/mobile` — untouched by this change.
+- `apps/mobile` — drawing only. It gains no way to record or filter, but a visited marker
+  has to be muted there too: `map-rendering` requires both applications to draw the same
+  map from the same data, so a rule about how a marker looks cannot be adopted by one of
+  them alone.
+- `@pinpoint/map` — the drawn description gains whether a marker is visited and how much
+  to mute it, carried there for the same reason the box and the anchor already are: the
+  last defect from letting each application decide was markers drifting off their
+  coordinates.
 - No migration. No new dependency.
