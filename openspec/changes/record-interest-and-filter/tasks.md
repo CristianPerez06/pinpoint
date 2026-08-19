@@ -99,21 +99,38 @@
 
 ## 6. Checks, and looking
 
-- [ ] 6.1 Open the web app and record interest as one member; confirm the other member's
+All of the interactive checks below were run against the live application by the author,
+not inferred from the code. That distinction earned its place on this change: three
+defects here — a class name resolving to `undefined`, a card rendering a stale marker, and
+a map crashing to its error boundary — passed `typecheck`, `lint` and `build` untouched.
+Two were caught by reading and one only by clicking.
+
+- [x] 6.1 Open the web app and record interest as one member; confirm the other member's
       state is untouched and that withdrawing returns the marker to undecided
-- [ ] 6.2 Work through all five interest choices against a trip with a mix of answers, and
-      confirm each shows what the spec says it shows
-- [ ] 6.3 Confirm a marker every member declined is invisible under all four named filters
-      and reachable with the filter cleared — the reachability guarantee, which is the one
-      that would otherwise strand a marker in the trip
-- [ ] 6.4 Filter to nothing and confirm the map and the list both say so, and that neither
+- [x] 6.2 Against a trip with a mix of answers, confirm each question the control can ask
+      shows what the spec says: one name, two names, and `Nobody has answered yet`.
+      Two names means the places they **both** want — the one reading a person could
+      reasonably expect to be the other one.
+- [x] 6.3 Confirm a marker every member declined is invisible under every question the
+      control can ask, and reachable with the filter cleared — the reachability guarantee,
+      which is the one that would otherwise strand a marker in the trip. Declining is an
+      answer, so such a marker is not in `Nobody has answered yet` either, which is the
+      half of the guarantee that is easy to get wrong.
+- [x] 6.4 Filter to nothing and confirm the map and the list both say so, and that neither
       claims the trip is empty
-- [ ] 6.5 Pan somewhere, change the filter, and confirm the camera stays put
-- [ ] 6.6 Filter so every match is off screen, and confirm the map says so and can frame
+- [x] 6.5 Pan somewhere, change the filter, and confirm the camera stays put.
+      This is the one 5.2 had ticked from reading the code rather than from looking, so
+      the interactive pass is what actually settles it.
+- [x] 6.6 Filter so every match is off screen, and confirm the map says so and can frame
       them
-- [ ] 6.7 Check both themes, since the control is new surface in a themed toolbar
-- [ ] 6.8 Confirm the mobile app is unchanged, still builds, and still shows markers
-- [ ] 6.9 Run `pnpm lint`, `pnpm lint:mobile`, `pnpm typecheck`, `pnpm typecheck:mobile`,
+- [x] 6.7 Check both themes, since the control is new surface in a themed toolbar
+- [x] 6.8 Confirm the mobile app is unchanged, still builds, and still shows markers.
+      Worth running rather than assuming: the last change to land here broke the iOS build
+      through stale codegen, and nothing in the JavaScript checks would have said so.
+- [x] 6.9 Run `pnpm lint`, `pnpm lint:mobile`, `pnpm typecheck`, `pnpm typecheck:mobile`,
       `pnpm test`, `pnpm build`, `pnpm check:cycles`, `pnpm check:tokens`,
-      `pnpm check:fonts` and `pnpm check:specs`
-- [ ] 6.10 Run `openspec validate record-interest-and-filter --strict`
+      `pnpm check:fonts` and `pnpm check:specs`.
+      All pass. `pnpm lint` reports 0 errors and 1077 warnings, every one of them from the
+      vendored MapLibre worker in `apps/web/public/maplibre/` — noise that has twice hidden
+      real output, and worth an ESLint ignore in its own change.
+- [x] 6.10 Run `openspec validate record-interest-and-filter --strict`
