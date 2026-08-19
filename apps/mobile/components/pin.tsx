@@ -37,6 +37,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: { fontSize: 11, fontWeight: '700' },
+  // Bottom-left, clear of the count badge at the top-right: a place can be both
+  // visited and one of several sharing a point.
+  visited: {
+    position: 'absolute',
+    bottom: 6,
+    left: -5,
+    width: MARKER_BADGE_SIZE,
+    height: MARKER_BADGE_SIZE,
+    borderRadius: RADIUS.pill,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visitedMark: { fontSize: 10, fontWeight: '700' },
   glyph: {
     position: 'absolute',
     alignItems: 'center',
@@ -65,7 +79,10 @@ export function Pin({
      * somewhere other than where it is drawn.
      */
     <View
-      style={{ width, height }}
+      // The muting comes from the shared description rather than being chosen
+      // here, so this pin and the web one cannot disagree about how faint a
+      // visited place looks.
+      style={{ width, height, opacity: view.opacity }}
       accessibilityLabel={
         count > 1 ? `${count} places here` : `${view.label} (${view.typeLabel})`
       }
@@ -100,6 +117,20 @@ export function Pin({
           strokeWidth={2.4}
         />
       </View>
+
+      {/* A tick as well as the muting: faintness only reads as "visited" when
+          there is a solid pin nearby to compare against, and filtered down to
+          visited places there would be none. */}
+      {view.visited ? (
+        <View
+          style={[
+            styles.visited,
+            { backgroundColor: theme.colour.ink, borderColor: theme.basemap.land },
+          ]}
+        >
+          <Text style={[styles.visitedMark, { color: theme.colour.ground }]}>✓</Text>
+        </View>
+      ) : null}
 
       {count > 1 ? (
         /*

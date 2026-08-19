@@ -122,6 +122,7 @@ export function TripMap({
   frameTo,
   frameToken,
   centreRef,
+  onMarkersInView,
 }: {
   groups: readonly MarkerGroup<Marker>[]
   onSelectGroup: (group: MarkerGroup<Marker>) => void
@@ -145,6 +146,18 @@ export function TripMap({
   frameToken: number
   /** Where the map is looking, for biasing search. A ref because it changes on every pan. */
   centreRef: { current: DraftPosition | null }
+  /**
+   * Whether any drawn marker is inside the current view.
+   *
+   * A boolean rather than a count, and reported when a movement finishes rather
+   * than during it: a count would change on most frames of a drag, and this
+   * drives a note that would then flicker through a pan it is not about.
+   *
+   * Phrased in the renderer's own terms — what is drawn, and where the camera
+   * is — because this file knows nothing about why some markers are missing.
+   * Whoever narrowed them decides what to say.
+   */
+  onMarkersInView: (anyInView: boolean) => void
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
@@ -274,6 +287,42 @@ export function TripMap({
       map.off('move', report)
     }
   }, [map, centreRef])
+
+  /**
+   * Whether anything drawn is on screen, answered after the camera settles and
+   * again whenever the drawn set changes.
+   *
+   * The second half is what makes it useful: narrowing a filter while the map
+   * sits still moves no camera, so `moveend` never fires and only re-running on
+   * `groups` notices that the survivors are all somewhere else.
+   *
+   * Reads the camera rather than the last reported centre, because a marker at
+   * the edge of the view is in it and a centre cannot say that.
+   *
+   * The callback is a dependency rather than reached through the handlers ref.
+   * That ref exists to keep the renderer bindings — clicks, drags — from being
+   * torn down and rebuilt on every parent render, and this effect binds one
+   * cheap listener, so it has nothing to protect. Going through the ref anyway
+   * broke immediately: the ref object survives a hot reload while the code that
+   * built it does not, so adding a handler to it crashed every already-open tab
+   * with a key the surviving object had never had.
+   */
+  useEffect(() => {
+    if (!map) return
+
+    const report = () => {
+      const bounds = map.getBounds()
+      onMarkersInView(
+        groups.some((group) => bounds.contains([group.lng, group.lat])),
+      )
+    }
+
+    report()
+    map.on('moveend', report)
+    return () => {
+      map.off('moveend', report)
+    }
+  }, [map, groups, onMarkersInView])
 
   /**
    * Markers are mounted in their own effect so that changing them never touches

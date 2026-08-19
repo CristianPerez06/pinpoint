@@ -1,4 +1,11 @@
-import { fetchTripCities, fetchTripMarkers, fetchTrips } from '@pinpoint/data'
+import {
+  fetchTripCities,
+  fetchTripInterest,
+  fetchTripMarkers,
+  fetchTripMembers,
+  fetchTrips,
+  ownMemberOf,
+} from '@pinpoint/data'
 import { Suspense } from 'react'
 
 import { signOutAction } from '@/app/_actions/auth'
@@ -33,7 +40,7 @@ import styles from './page.module.css'
  * without re-reading the trip to find the one row that changed.
  */
 export default async function Home() {
-  await requireUserId()
+  const userId = await requireUserId()
 
   const supabase = await createClient()
   const trips = await fetchTrips(supabase)
@@ -62,10 +69,23 @@ export default async function Home() {
 
   // Independent reads, so they wait on each other only for as long as the slower
   // one takes.
-  const [markers, cities] = await Promise.all([
+  const [markers, cities, interest, members] = await Promise.all([
     fetchTripMarkers(supabase, trip.id),
     fetchTripCities(supabase, trip.id),
+    fetchTripInterest(supabase, trip.id),
+    fetchTripMembers(supabase, trip.id),
   ])
+
+  /**
+   * Interest and members that failed to load are treated as absent rather than
+   * fatal. The map is the point of this screen and it is fine without them: a
+   * marker whose interest did not arrive reads as undecided, which is what it
+   * would read as if nobody had answered — and the alternative, refusing to draw
+   * the trip because a secondary read failed, trades a whole screen for a
+   * detail.
+   */
+  const memberList = members.status === 'ready' ? members.data : []
+  const interestRecords = interest.status === 'ready' ? interest.data : []
 
   /**
    * The map renders whatever the markers did, because in all three cases the map
@@ -84,6 +104,9 @@ export default async function Home() {
           trip={trip}
           initialMarkers={markers.status === 'ready' ? markers.data : []}
           initialCities={cities.status === 'ready' ? cities.data : []}
+          members={memberList}
+          initialInterest={interestRecords}
+          ownMemberId={ownMemberOf(memberList, userId)?.id ?? null}
           notice={
             markers.status === 'empty'
               ? { tone: 'muted', text: 'No places saved on this trip yet.' }

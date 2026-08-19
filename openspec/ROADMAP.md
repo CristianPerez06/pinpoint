@@ -59,19 +59,35 @@ Two of those columns are the whole product:
   to a searched place, because the rule had been written for pinning a pointed
   position and applied to both.
 
+- **Interest and filters** — per-member interest, visited, and the filter that
+  motivates the whole project. **The app now beats the spreadsheet at planning,
+  not just at capture**, which was the point of the whole exercise.
+
+  The vocabulary above did not survive contact. **Both / Either / Only one of you
+  / Nobody yet** was written for two travellers, and every attempt to put it on
+  screen was rejected on sight — twice. What shipped is a list of the people on
+  the trip: tick names, get the places they all want. The four named piles turned
+  out to be that question asked about everybody, so nothing was lost by dropping
+  the names, and a trip of three can now ask about two of them, which fixed
+  choices could never express.
+
+  Two piles did not survive. "Either of you" is a longer list than no filter at
+  all on a two-person trip. "Only one of you" — the disagreement pile — is a real
+  loss and is recorded below, because no way of offering it fitted a list of
+  people without reintroducing the second control that made the rejected attempts
+  confusing.
+
+  Budget for looking held a third time, and harder: three defects passed
+  `typecheck`, `lint` and `build` untouched — a CSS class resolving to the literal
+  string `"undefined"`, a detail card rendering a marker from a stale snapshot,
+  and a map crashing to its error boundary because a ref survived a hot reload
+  while the code that built it did not. Two were caught by reading, one only by
+  clicking. Static checks have now been green over a real defect on three
+  consecutive changes.
+
 ## Next
 
-### 1. Interest and filters
-
-Per-member interest, visited, and the filter that motivates the whole project:
-**Both / Either / Only one of you / Nobody yet**.
-
-"Nobody yet" is the triage pile — invisible in a spreadsheet, obvious here.
-
-The highest-value change, and it was deliberately not first: it is worthless
-until there is data, and the write path is what puts data in.
-
-### 2. Mobile reader
+### 1. Mobile reader
 
 Map, filters, mark visited, and **what's near me right now** — the one thing a
 spreadsheet fundamentally cannot do.
@@ -184,6 +200,12 @@ work of a second full client.
       rather than a draggable sheet with detents, and web keeps its existing layout
       rather than the list rail — and the published artifact still shows the original.
       Republish rather than mint a new URL.
+- [ ] No way to see the places you disagree about. Ticking names asks for agreement,
+      and there is no tick meaning "and not the other" — so "only one of you wants
+      this", the negotiation pile, is the one thing the rejected filter designs could
+      express and the shipped one cannot. Revisit once it has been missed in real use
+      rather than in anticipation; the predicate is a pure function in
+      `@pinpoint/core`, so the cost is a control, not a model.
 - [ ] Six Expo packages lag the SDK: `expo` 57.0.9 against ~57.0.12, plus
       `expo-router`, `expo-constants`, `expo-dev-client` and `expo-linking`
       (`npx expo install --check` lists them). Worth doing deliberately, with a clean

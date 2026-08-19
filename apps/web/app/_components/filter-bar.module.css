@@ -1,0 +1,181 @@
+/*
+ * Deliberately the city bar's construction, repeated rather than shared.
+ *
+ * The two are one visual idea — a small uppercase label against a pill-shaped
+ * control — and they are two components because they narrow by different things
+ * and will drift apart at different times. What must not drift is the token
+ * values, and none of these are literals.
+ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+/* Positioned, because the list hangs from it. */
+.picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+/*
+ * A button wearing the city selector's clothes.
+ *
+ * It is not a `<select>` — the list holds checkboxes and an entry that is not
+ * one of the people — but it is the same control to look at, because it does the
+ * same job in the same row. Matching by eye rather than by element is the point.
+ */
+.select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.select:hover,
+.select[aria-expanded='true'] {
+  border-color: var(--pp-line-strong);
+}
+
+.caret {
+  font-size: 10px;
+  color: var(--pp-ink-faint);
+}
+
+/* The same panel treatment as the city editor, for the same reason. */
+.menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--pp-space-xs);
+  min-width: 220px;
+  display: grid;
+  gap: 2px;
+  padding: var(--pp-space-xs);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 7;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  padding: 7px var(--pp-space-sm);
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  cursor: pointer;
+  user-select: none;
+}
+
+.option:hover {
+  background: var(--pp-surface-muted);
+}
+
+.everyone {
+  justify-self: start;
+  margin: 2px 0 2px var(--pp-space-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  color: var(--pp-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.divide {
+  height: 0;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  border-top: 1px solid var(--pp-line);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+
+.toggle:hover {
+  border-color: var(--pp-line-strong);
+}
+
+.checkbox {
+  margin: 0;
+  accent-color: var(--pp-accent);
+  cursor: pointer;
+}
+
+/*
+ * The narrowed state.
+ *
+ * Quiet — it reports rather than warns, and a filter is something the person
+ * just asked for. The accent is spent on the way out of it instead, because
+ * that is the part they might not know is available.
+ */
+.narrowed {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  margin: 0;
+}
+
+.count {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.clear {
+  padding: 5px 10px;
+  border: 1px solid var(--pp-accent);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.clear:hover {
+  background: var(--pp-accent);
+}

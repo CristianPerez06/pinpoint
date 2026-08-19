@@ -52,7 +52,7 @@ export type {
   MarkerTypeDefinition,
 } from './marker-type'
 
-export { groupCoincident, markerView } from './marker-view'
+export { groupCoincident, markerView, VISITED_OPACITY } from './marker-view'
 export type {
   MarkerAnchor,
   MarkerGroup,

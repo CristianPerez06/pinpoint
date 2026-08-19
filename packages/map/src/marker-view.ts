@@ -52,6 +52,8 @@ MARKER_FAMILY_COLOURS satisfies Record<MarkerFamily, Themed>
 export interface MarkerViewInput extends LngLat {
   name: string
   type?: string | null
+  /** Optional so a draft marker, which has never been anywhere, needs no answer. */
+  visited?: boolean | null
 }
 
 /**
@@ -94,7 +96,31 @@ export interface MarkerView {
    */
   size: { width: number; height: number }
   anchor: MarkerAnchor
+  /** Whether the trip has been here. Drawn as muting, never as a colour. */
+  visited: boolean
+  /**
+   * How solidly to draw this marker, between 0 and 1.
+   *
+   * Here rather than in each application for the same reason the box and anchor
+   * are: two applications choosing their own amount is how they drift apart, and
+   * the specification requires them to produce the same map from the same data.
+   *
+   * Muting rather than recolouring is deliberate. Colour names the family and
+   * only the family — that is what lets the type list grow without the map
+   * turning into confetti — so a second meaning cannot be given to it.
+   */
+  opacity: number
 }
+
+/**
+ * How solidly a visited marker is drawn.
+ *
+ * Low enough to read as done at a glance among unvisited pins, high enough that
+ * the glyph and the family colour are still legible: a visited place is still a
+ * place, and somebody standing in the street may well be looking for the one
+ * they already found.
+ */
+export const VISITED_OPACITY = 0.45
 
 /**
  * Describe one marker.
@@ -117,6 +143,8 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     typeLabel: type.label,
     size: { width: MARKER_SIZE.width, height: MARKER_SIZE.height },
     anchor: { x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y },
+    visited: marker.visited === true,
+    opacity: marker.visited === true ? VISITED_OPACITY : 1,
   }
 }
 

@@ -1,10 +1,16 @@
 'use client'
 
-import { formatPrice, type Marker } from '@pinpoint/core'
+import {
+  formatPrice,
+  type Marker,
+  type MarkerInterest,
+  type TripMember,
+} from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
 import { Button, overlayPanelClass } from '@/app/_components/ui'
 
@@ -42,6 +48,23 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+/**
+ * The same label over a control rather than a sentence.
+ *
+ * Separate from `Field` because that one wraps its value in a `<p>`, which is
+ * right for a note and invalid around a list of people — the browser closes the
+ * paragraph early and hydration disagrees with the server about the shape of
+ * the tree.
+ */
+function ControlField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.field}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <div className={styles.fieldValue}>{children}</div>
+    </div>
+  )
+}
+
 function Absent() {
   return <span className={styles.absent}>Not recorded</span>
 }
@@ -50,6 +73,12 @@ function Details({
   marker,
   view,
   currency,
+  members,
+  interest,
+  ownMemberId,
+  onRecordInterest,
+  onWithdrawInterest,
+  onSetVisited,
   onBack,
   onDismiss,
   onEdit,
@@ -59,6 +88,13 @@ function Details({
   view: MarkerView
   /** Of the city this marker is filed under. Null is shown as a bare amount, never assumed. */
   currency: string | null
+  members: readonly TripMember[]
+  /** This marker's records only. */
+  interest: readonly MarkerInterest[]
+  ownMemberId: string | null
+  onRecordInterest: (interested: boolean) => void
+  onWithdrawInterest: () => void
+  onSetVisited: (visited: boolean) => void
   onBack?: () => void
   onDismiss: () => void
   onEdit: () => void
@@ -87,6 +123,20 @@ function Details({
       </div>
 
       <div className={styles.fields}>
+        <ControlField label="Who wants to go">
+          <InterestRows
+            members={members}
+            interest={interest}
+            ownMemberId={ownMemberId}
+            onRecord={onRecordInterest}
+            onWithdraw={onWithdrawInterest}
+          />
+        </ControlField>
+
+        <ControlField label="Visited">
+          <VisitedToggle visited={marker.visited} onChange={onSetVisited} />
+        </ControlField>
+
         <Field label="Note">{marker.note ?? <Absent />}</Field>
         <Field label="Link">
           {marker.link === null ? (
@@ -191,6 +241,12 @@ export interface Selection {
 export function MarkerDetails({
   selection,
   currencyOf,
+  members,
+  interestFor,
+  ownMemberId,
+  onRecordInterest,
+  onWithdrawInterest,
+  onSetVisited,
   onChoose,
   onBack,
   onDismiss,
@@ -200,6 +256,13 @@ export function MarkerDetails({
   selection: Selection
   /** The currency of the city a marker is filed under, or null when there is none. */
   currencyOf: (marker: Marker) => string | null
+  members: readonly TripMember[]
+  /** One marker's records, so this component never sees the whole trip's. */
+  interestFor: (marker: Marker) => readonly MarkerInterest[]
+  ownMemberId: string | null
+  onRecordInterest: (marker: Marker, interested: boolean) => void
+  onWithdrawInterest: (marker: Marker) => void
+  onSetVisited: (marker: Marker, visited: boolean) => void
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
@@ -219,6 +282,12 @@ export function MarkerDetails({
       marker={marker}
       view={group.views[index]!}
       currency={currencyOf(marker)}
+      members={members}
+      interest={interestFor(marker)}
+      ownMemberId={ownMemberId}
+      onRecordInterest={(interested) => onRecordInterest(marker, interested)}
+      onWithdrawInterest={() => onWithdrawInterest(marker)}
+      onSetVisited={(visited) => onSetVisited(marker, visited)}
       onBack={group.count > 1 ? onBack : undefined}
       onDismiss={onDismiss}
       onEdit={() => onEdit(marker)}
