@@ -87,14 +87,55 @@ Two of those columns are the whole product:
 
 ## Next
 
-### 1. Mobile reader
+The phone gets everything the laptop has. **Decided deliberately, reversing what
+this file said for the first four changes** — that mobile would read and never
+write, because planning happens at a laptop and a second capture surface would
+cost as much as the first.
 
-Map, filters, mark visited, and **what's near me right now** — the one thing a
-spreadsheet fundamentally cannot do.
+That asymmetry was the entire reason this was ever "a fraction of the work of a
+second full client". Removing it means it is a second full client, and the
+estimate should be read that way rather than inherited.
 
-No add flow, no editing. Planning happens at a laptop; the mobile app is for
-standing in a street during the trip. That asymmetry makes it a fraction of the
-work of a second full client.
+Two settled requirements say the opposite and are deleted rather than amended as
+the work lands: `marker-capture`'s "Capture is offered by the web application
+only", and `marker-interest`'s equivalent for recording interest and visited.
+Both were written anticipating this — each says lifting the restriction should be
+"a change to one application rather than a reimplementation". That promise is
+about to be tested, which is the useful part of doing the reading half first.
+
+Sequenced rather than proposed as one change. A single proposal covering all of
+it produces a task list nobody can review and a branch that cannot be tested
+until the end, which is the opposite of how the last three shipped.
+
+### 1. Mobile reads what web writes
+
+Interest rows, the visited toggle, and the filter — on the phone, drawn in its
+own idiom. Parity over logic that is already settled and already shared, so this
+is drawing rather than deciding.
+
+Smallest of the three and deliberately first: it is the change that proves the
+"one application, not a reimplementation" claim, and it is worth knowing whether
+that holds before committing to the two larger ones.
+
+### 2. What's near me right now
+
+The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
+design work in the sequence: location permission, a denied state that is not a
+dead end, and distance — none of which exists anywhere yet.
+
+Brings a **distance-sorted list**, which forces a question deferred twice: web
+still has no list at all, though this file has called list and map co-equal since
+the beginning. Building it here first makes the phone the better client for
+scanning. That may well be right — standing in a street, a sorted list is the
+primary view and the map is secondary, the reverse of the laptop — but it should
+be chosen rather than arrived at.
+
+### 3. Mobile capture
+
+Search, drop, the marker form, cities. The largest of the three and the one whose
+value is least certain, which is why it is last: typing a note and a price into a
+phone while standing outside a temple is the moment this product has always
+assumed does not arise.
 
 ## Decisions that shape all of the above
 
