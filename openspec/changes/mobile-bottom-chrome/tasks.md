@@ -15,20 +15,21 @@
 
 ## 3. The bottom row
 
-- [x] 3.1 Add a row of pills floating over the map at the bottom, carrying the
-      filter control and `Clear`, clearing `insets.bottom`. Pills rather than a
-      solid bar — there is no text field to give a surface to yet (design.md).
+- [x] 3.1 Add a bar over the bottom of the map carrying the filter control and
+      `Clear`, with a top border and a surface behind it. (Built as floating pills
+      first and reversed after looking at it on a phone — see design.md. The credit
+      stays above the bar rather than inside it.)
 - [x] 3.2 Move the filter control and `Clear` into it unchanged. `Clear` keeps
       being permanent, inert via `accessibilityState` when no filter is applied,
       and differing from its live state by more than colour.
 - [x] 3.3 Do not render the row while a marker is selected. Not rendered rather
       than hidden, so nothing shows behind the sheet's rounded corners.
-- [x] 3.4 Stack the bottom edge as MapLibre's ornaments, then the credit, then the
-      row — so the credit's offset is untouched in both cases and the row is what
-      accommodates. The row clears `ORNAMENT_CLEARANCE` as well, or it lands on
-      MapLibre's own wordmark, which is the defect that constant exists to prevent.
-      (Revised during implementation; see design.md — the original wording had the
-      credit moving to clear the row, which is backwards for a licence condition.)
+- [x] 3.4 Make the bar the floor at `bottom: 0` and lift the rest of the edge off
+      it with one `lift` value — MapLibre's ornaments at `lift + SPACE.sm` via
+      `logoPosition`/`attributionPosition`, our credit above those. (Revised twice
+      during implementation; see design.md. Both earlier attempts tried to fit the
+      bar between things already at that edge, and both put it over somebody's
+      credit.)
 
 ## 4. Checks
 
@@ -46,15 +47,16 @@ Every task here means holding a phone. None is satisfied by reading the diff.
       narrowest device available, a long trip name truncates rather than pushing
       `☰` off the edge.
 - [ ] 5.2 `☰` opens the sheet, Sign out works from it, and the backdrop dismisses.
-- [ ] 5.3 The bottom row sits above the home indicator, not under it, and both
-      controls are comfortably reachable with one thumb.
+- [ ] 5.3 The bar sits above the home indicator, not under it, reads as a surface
+      rather than as floating controls, and both controls are comfortably reachable
+      with one thumb.
 - [ ] 5.4 Apply a filter from the row. `Clear` goes live, nothing moves, and the
       map narrows — the rule survived the move.
-- [ ] 5.5 **The attribution, both states.** With no marker selected it sits where
-      it always has, with the row above it and MapLibre's own wordmark below —
-      three things at one edge, none covering another. With a marker selected it
-      is unchanged. This is a licence condition, so look at it rather than
-      reasoning about the offsets.
+- [ ] 5.5 **The credits, both states.** With no marker selected, the bar is flush
+      to the screen edge, MapLibre's wordmark and info button sit above it, and our
+      OpenMapTiles credit above those — four things at one edge, none covering
+      another. With a marker selected, the same holds against the sheet. This is a
+      licence condition, so look at it rather than reasoning about the offsets.
 - [ ] 5.6 Select a marker with a filter applied. The row disappears, nothing peeks
       out behind the sheet's rounded corners, and dismissing the sheet brings back
       both the filter control and a live `Clear`.

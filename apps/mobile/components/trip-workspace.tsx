@@ -315,7 +315,7 @@ export function TripWorkspace({
                       : theme.colour.lineStrong,
                     backgroundColor: narrowed
                       ? theme.colour.accentWash
-                      : theme.colour.surface,
+                      : 'transparent',
                   },
                 ]}
               >
@@ -348,9 +348,7 @@ export function TripWorkspace({
                   styles.pill,
                   {
                     borderColor: narrowed ? theme.colour.accent : 'transparent',
-                    backgroundColor: narrowed
-                      ? theme.colour.accentWash
-                      : theme.colour.surface,
+                    backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
                   },
                 ]}
               >
@@ -488,18 +486,15 @@ const styles = StyleSheet.create({
   menuGlyph: { fontSize: 19, lineHeight: 22 },
 
   /*
-   * The row a thumb reaches.
-   *
-   * Pills rather than a solid bar: a bar is a surface for a text field, and
-   * there is no text field until mobile capture brings one. Pills keep the map
-   * whole, and are what the header already used, so nothing new is invented for
-   * two controls.
+   * The contents of the row a thumb reaches. The bar behind it belongs to the
+   * map, which owns this edge; this is only what stands on it.
    */
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
     paddingHorizontal: SPACE.md,
+    paddingVertical: 11,
   },
   pill: {
     borderWidth: 1,

@@ -50,9 +50,24 @@ proportions before the controls that determine them exist. Capture reshapes a ro
 it will own anyway, which is one change adjusting its own work rather than two
 changes negotiating.
 
-The row is therefore **pills floating over the map**, not a solid surface. A solid
-bar is a surface for a text field, and there is no text field yet; pills keep the
-map whole and are what the header already uses, so nothing new is invented.
+**Reversed after looking at it.** The row was first built as pills floating over
+the map, on the argument that a solid surface exists to hold a text field and there
+is no text field until capture. That reasoning is fine on paper and did not survive
+a phone: two pills over open map read as debris rather than as chrome. It is a bar.
+
+Three things the bar buys that the argument for pills did not weigh. Legibility is
+guaranteed rather than dependent on what the map happens to be drawing underneath.
+A top border frames the map with the same edge the header gives it, so the map is
+bounded the same way at both ends instead of fading out at one. And it is the
+surface search and a drop control land on, so capture adds controls rather than
+inventing a container for them.
+
+The cost is that a bar takes its height from the map permanently, where pills only
+obscured. On a phone that is around fifty points, and it is worth it.
+
+The credit stays **above** the bar rather than inside it. Inside would be tidier,
+but it would make the one piece of layout that is a licence condition depend on a
+container built for controls — and a container that is sometimes not drawn at all.
 
 ### The row is not rendered while a marker is selected
 
@@ -65,25 +80,42 @@ were considered:
 - **Row above the sheet.** Rejected outright: it would sit over the thing just
   opened.
 - **Row not rendered.** Chosen. Reading a place is not narrowing a trip, so nothing
-  useful is lost. It costs nothing in the attribution arithmetic — with the row
-  gone, the selected case is exactly what it is today, so the two cases stay two.
+  useful is lost — and with the bar gone in that case, the sheet is simply what
+  holds the floor instead, which is what lets one expression serve both.
 
 Not rendered rather than rendered-and-hidden: the row must not peek out from behind
 the sheet's rounded top corners, and an unmounted row cannot.
 
-**Corrected while implementing.** This section originally had the credit moving up
-to clear the row. That is backwards. The order at this edge is MapLibre's own
-ornaments, then our credit, then the controls — so the credit's offset does not
-change at all, and the row is what accommodates. Two reasons: the credit is the
-licence condition, so it should be the thing nothing else is allowed to push
-around; and a row that is not drawn in the selected case cannot then be a term in
-an expression that has to be right in both. The row measures the credit rather
-than the reverse.
+### The bar is the floor, and everything else at that edge rises off it
 
-The first attempt also put the row at `SPACE.sm + insets.bottom`, directly on top
-of MapLibre's own wordmark. `ORNAMENT_CLEARANCE` exists precisely because our
-credit did that once, and its comment says hiding another project's branding to fix
-our layout is not a trade to make. The row clears it too.
+Settled after two wrong attempts, both of which tried to fit the bar *between*
+things already living at the bottom.
+
+A bar that stops short of the screen edge is not a bar — it is a wide pill with a
+gap under it, and the gap fills with whatever it was trying to clear. So the bar
+goes flush to `bottom: 0`, carries `insets.bottom` in its own padding so its
+contents clear the home indicator, and becomes the floor rather than another
+tenant. MapLibre's ornaments sit above it, and our credit above those.
+
+That collapses the whole edge to one number:
+
+```
+lift = selection ? sheetHeight : barHeight      // never a sum; never both drawn
+
+  our credit          lift + SPACE.sm + ORNAMENT_CLEARANCE
+  their ornaments     lift + SPACE.sm
+  the floor           0
+```
+
+One expression covering both cases, rather than two offsets that have to be kept
+in agreement — and the sheet case gains something it did not have: MapLibre's own
+wordmark used to disappear under an open marker sheet, and now rises with
+everything else.
+
+Their ornaments are positioned explicitly, via `logoPosition` and
+`attributionPosition`, rather than left where the renderer puts them. Anything left
+at the bottom would be underneath the bar. Moving somebody's credit is fine;
+covering it is the trade `ORNAMENT_CLEARANCE` exists to refuse.
 
 The spec delta covers this, because the requirement as written says the declaring
 control is always present and did not contemplate something covering it. What it
