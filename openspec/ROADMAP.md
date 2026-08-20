@@ -133,8 +133,9 @@ Two of those columns are the whole product:
 
 ## Next
 
-Three items. The first stands alone; the second and third are what remains of the
-mobile parity sequence.
+Five items. The first three are the phone becoming a real client — its own chrome,
+then capture, then the same chrome on a web browser held in a hand. The fourth
+stands alone. The fifth is the only genuinely new design work.
 
 **On parity: the phone gets everything the laptop has.** Decided deliberately,
 reversing what this file said for the first four changes — that mobile would read
@@ -156,7 +157,80 @@ Sequenced rather than proposed as one change. A single proposal covering the who
 parity gap produces a task list nobody can review and a branch that cannot be
 tested until the end, which is the opposite of how the last four shipped.
 
-### 1. Making a trip, and inviting somebody to it
+### 1. Mobile chrome — the bottom layout
+
+No new capability. The phone's controls move off the top strip and down to where a
+thumb reaches, so that the item below has somewhere to land.
+
+The header is a single row holding a dot, a wordmark, the trip name, the filter
+control and Sign out, and it is close to full at 375pt before anything is added.
+Capture needs a city selector, a search box and a drop-a-pin control — roughly
+four hundred points of new controls into fifty points of spare. No arrangement of
+one row survives that, so the shelf is the wrong answer rather than a small one.
+
+The stronger argument is not arithmetic. Every interactive control on the phone
+currently sits in the strip a thumb cannot reach one-handed. That was tolerable
+while the phone only *showed* a map — you look, you do not touch. Capture is the
+change that makes it wrong, because the moment it is built for is standing
+somewhere holding the phone in one hand.
+
+So: the top of the screen becomes map, a bar sits at the bottom, and a `☰` opens a
+sheet. The sheet holds Sign out and nothing else for now, which is the point — it
+is the place the account things go so they stop competing with the planning things
+for the row that matters.
+
+Two cheap reclamations come with it. The wordmark goes: inside the pinpoint app it
+says nothing, and the dot already is the mark. Sign out leaves the row for the
+sheet. Together that is a third of the strip, spent on things nobody touches while
+planning a trip.
+
+Not decided, and belongs to the change rather than to this file: what sits in the
+bar against what floats as a chip row above it, and where the trip name goes once
+there is no header to hold it.
+
+### 2. Mobile capture
+
+Search, drop, the marker form, cities. The largest of the three, and **moved to
+the front from last**, reversing what this file argued a change ago.
+
+The reason it was last was that its value is least certain: typing a note and a
+price into a phone while standing outside a temple is the moment this product has
+always assumed does not arise. That assumption has never been tested, and the
+first trip is the thing that would test it — which is an argument for having the
+capability before the trip rather than an argument for the ordering that deferred
+it. Ordering by certainty put the one item the trip could settle behind two it
+could not.
+
+What forced the question was noticing the phone has no search box at all. On the
+web, search is not a separate feature: choosing a result goes straight into
+creating a marker, so search *is* the front door to capture. "Add the search box
+to the phone" is therefore not separable from porting the capture flow, unless
+search is redefined as moving the camera without saving — a different feature,
+not a port, and rejected here.
+
+This is the change that deletes `marker-capture`'s "Capture is offered by the web
+application only", the last of the two requirements named above.
+
+What it costs to move: the product still cannot be given to anybody until item 4
+lands, and that is now three changes away rather than none.
+
+### 3. Responsive web — the phone layout at a narrow window
+
+The web application has one layout, built for a laptop, and a browser window the
+width of a phone gets a toolbar that wraps badly. This gives it the same bottom
+layout the phone gets, at narrow widths only; a wide window keeps its header and
+its toolbar.
+
+Third rather than first because it is a port of a shape that will by then have
+been built and used, rather than a guess at one. And separate from the item above
+rather than folded into it: it is a different application with different
+mechanics — a sheet a finger drags is not a sheet a browser draws — and pretending
+otherwise is how one of them ends up with the other's compromises.
+
+This is the item that could slide behind the two below without costing anything.
+Nothing is blocked by a narrow browser window rendering untidily.
+
+### 4. Making a trip, and inviting somebody to it
 
 **Moved here from the loose ends, where it did not belong.** "You cannot create a
 trip" is a missing feature, and in a list of nits it was going to keep being
@@ -171,13 +245,17 @@ trip, seeded by a migration, and its second member was seeded too. Nobody can
 make another trip, and nobody new can ever be invited to this one — the app has
 no way to gain a user who is not already in the database.
 
-Arguably belongs before the two below, and this file is not deciding that yet.
-It is the only item here without which the product cannot be given to anybody,
-and it unblocks two loose ends: cross-trip isolation cannot be tested until a
-second trip can exist, and the disposable Kyoto seed cannot be deleted while it
-is the only trip there is.
+This file spent a change declining to decide whether this belongs first. It is
+now decided, and against it: the whole mobile sequence goes first. That is worth
+stating plainly rather than burying, because this is still the only item here
+without which the product cannot be given to anybody, and it still unblocks two
+loose ends — cross-trip isolation cannot be tested until a second trip can exist,
+and the disposable Kyoto seed cannot be deleted while it is the only trip there
+is. All of that stays true three changes longer than it needed to, and the number
+grew once already. If it grows again, that is the signal to stop and take this
+one.
 
-### 2. What's near me right now
+### 5. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work in the sequence: location permission, a denied state that is not a
@@ -190,15 +268,18 @@ scanning. That may well be right — standing in a street, a sorted list is the
 primary view and the map is secondary, the reverse of the laptop — but it should
 be chosen rather than arrived at.
 
-### 3. Mobile capture
-
-Search, drop, the marker form, cities. The largest of the three and the one whose
-value is least certain, which is why it is last: typing a note and a price into a
-phone while standing outside a temple is the moment this product has always
-assumed does not arise.
-
 ## Decisions that shape all of the above
 
+- **Chrome follows the screen shape, not the platform.** A phone-shaped screen puts
+  its controls at the bottom, within a thumb's reach, with the map above them; a
+  laptop-shaped one has a header and a toolbar. The web application gets both,
+  chosen by window width, so a browser held in a hand looks like the phone
+  application because it *is* a phone — not because anybody remembered to mirror
+  it. This replaces "web is one thing and mobile is another", which had no test
+  and drifted; the new rule has an obvious one. It does not weaken the older rule
+  that meaning is shared and controls are native: what converges here is the
+  arrangement a *shape* calls for, and each platform still builds it with its own
+  parts.
 - **Wishlist, not itinerary.** The broken dimension is *where*, not *when*. If days
   ever arrive they arrive as a second, independent grouping — a marker can be
   "Kyoto" *and* "day 3" — never as a level underneath City. Trip planners that grew
