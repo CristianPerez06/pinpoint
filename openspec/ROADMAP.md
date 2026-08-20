@@ -251,9 +251,9 @@ it does untidily.
 
 ## Loose ends
 
-Debt, known limitations and one defect. Nothing here is a missing feature: each is
-something already built that is untidy, unverified, or correct only at the scale
-the product runs at today.
+Debt and known limitations. Nothing here is a missing feature, and nothing here is
+a defect — each is something already built that is untidy, or correct only at the
+scale the product runs at today.
 
 - [ ] **Concurrent edits are last-write-wins, with no way to detect a collision.**
       There is no `updated_at` on a marker to compare. Correct at two travellers, and
