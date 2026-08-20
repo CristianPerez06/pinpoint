@@ -21,7 +21,13 @@
 - [ ] 2.2 Rewrite `.toolbar` in `trip-workspace.module.css`: drop `flex-wrap: wrap`,
       make it a column of two flex rows, and let search take the free space in row two
       with the button pinned right.
-- [ ] 2.3 Confirm the map overlay's "No places match this filter" and its inline way
+- [ ] 2.3 Add a holding rule for narrow windows: below the breakpoint, let each row
+      wrap and let the search input take a full line, so a phone-width browser
+      degrades to what it does today rather than clipping controls. Comment it as
+      temporary and name its successor — the roadmap's "Responsive web" item
+      replaces it with the phone layout, and this exists so that item is not a
+      prerequisite for shipping the two rows.
+- [ ] 2.4 Confirm the map overlay's "No places match this filter" and its inline way
       out are untouched — they are a separate requirement and stay.
 
 ## 3. Mobile
@@ -49,19 +55,22 @@ the diff.
 
 - [ ] 5.1 Web: apply a member filter and watch the toolbar. Nothing appears, nothing
       disappears, and no control beside `Clear` moves. Clear it and watch the same.
-- [ ] 5.2 Web: at a narrow window and a wide one, confirm the toolbar is two rows in
-      both and that row two's search grows rather than wrapping.
-- [ ] 5.3 Web: tab to `Clear` with a filter applied and with none, using VoiceOver.
+- [ ] 5.2 Web: at a wide window, confirm the toolbar is two rows and that row two's
+      search grows rather than wrapping.
+- [ ] 5.3 Web: at a phone-width window, confirm nothing is clipped or unreachable —
+      every control is on screen and pressable. It is allowed to look cramped; it is
+      not allowed to lose a control.
+- [ ] 5.4 Web: tab to `Clear` with a filter applied and with none, using VoiceOver.
       It is reachable in both, and the announced state differs.
-- [ ] 5.4 Web: view the toolbar in greyscale — macOS Display accessibility filters, or
+- [ ] 5.5 Web: view the toolbar in greyscale — macOS Display accessibility filters, or
       a `filter: grayscale(1)` on the body — and confirm a narrowed view is still
       distinguishable from an unfiltered one.
-- [ ] 5.5 Web: apply a filter that matches nothing and confirm the map overlay still
+- [ ] 5.6 Web: apply a filter that matches nothing and confirm the map overlay still
       says so and still offers a way out.
-- [ ] 5.6 Mobile: on a real device at the narrowest width, confirm the header holds
+- [ ] 5.7 Mobile: on a real device at the narrowest width, confirm the header holds
       wordmark, trip name, `Clear`, filter pill and sign out without overflow, and
       that the trip name is what truncates.
-- [ ] 5.7 Mobile: apply and clear a filter from the sheet, and confirm the map gains
+- [ ] 5.8 Mobile: apply and clear a filter from the sheet, and confirm the map gains
       the vertical band the strip used to occupy.
-- [ ] 5.8 Both: narrow the same trip the same way on each and confirm the same markers
+- [ ] 5.9 Both: narrow the same trip the same way on each and confirm the same markers
       are shown — untouched by this change, and the cheapest way to prove it.
