@@ -21,6 +21,18 @@ export type WriteOutcome<T> =
   | { ok: true; data: T }
   | { ok: false; kind: 'invalid-input'; fieldErrors: FieldErrors }
   | { ok: false; kind: 'rejected'; message: string }
+  /**
+   * Somebody else changed the row while this edit was being written.
+   *
+   * Its own case rather than a `rejected` with recognisable wording. Matching on
+   * a message would put the meaning in a string, and a string is not a contract
+   * — the first reword or translation silently breaks the branch.
+   *
+   * Three refusals call for three different things from the person: correct what
+   * you typed, you may not do this, and somebody else changed it while you were
+   * working. Only the third is nobody's mistake.
+   */
+  | { ok: false; kind: 'conflict'; message: string }
 
 export function wrote<T>(data: T): WriteOutcome<T> {
   return { ok: true, data }
@@ -40,4 +52,16 @@ export function invalidInput<T>(fieldErrors: FieldErrors): WriteOutcome<T> {
  */
 export function rejected<T>(message: string): WriteOutcome<T> {
   return { ok: false, kind: 'rejected', message }
+}
+
+/**
+ * The row moved underneath this write, so nothing was applied.
+ *
+ * Nothing here decides what happens next. Merging two versions, or choosing
+ * between them, would replace a disagreement two people can see with one they
+ * cannot — and which version is right is a question about a trip rather than
+ * about data.
+ */
+export function conflicted<T>(message: string): WriteOutcome<T> {
+  return { ok: false, kind: 'conflict', message }
 }

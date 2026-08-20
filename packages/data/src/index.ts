@@ -22,6 +22,7 @@ export {
   deleteMarker,
   fetchTripMarkers,
   MARKER_DELETE_FAILED_MESSAGE,
+  MARKER_CONFLICT_MESSAGE,
   MARKER_SAVE_FAILED_MESSAGE,
   MARKERS_FAILED_MESSAGE,
   updateMarker,
@@ -42,5 +43,5 @@ export {
 
 export { fetchTrips, TRIPS_FAILED_MESSAGE } from './trips'
 
-export { invalidInput, rejected, wrote } from './write-outcome'
+export { conflicted, invalidInput, rejected, wrote } from './write-outcome'
 export type { WriteOutcome } from './write-outcome'

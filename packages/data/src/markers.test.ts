@@ -48,6 +48,7 @@ const ROW = {
   price: 0,
   visited: false,
   created_at: '2026-08-08T00:00:00.000Z',
+  updated_at: '2026-08-09T00:00:00.000Z',
 }
 
 describe('fetchTripMarkers', () => {
@@ -68,6 +69,11 @@ describe('fetchTripMarkers', () => {
       lat: 34.9671,
       type: 'temple',
       createdAt: ROW.created_at,
+      // Deliberately a different value from `created_at`, so this asserts the
+      // column made it through rather than passing on a coincidence. With
+      // `toMatchObject` a missing field is simply absent, so a fixture without
+      // one would have gone on passing after the column was added.
+      updatedAt: ROW.updated_at,
     })
   })
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { markerSchema, newMarkerSchema } from './marker'
+import { markerPatchSchema, markerSchema, newMarkerSchema } from './marker'
 
 const VALID = {
   id: '00000000-0000-4000-8000-000000000000',
@@ -15,6 +15,7 @@ const VALID = {
   price: null,
   visited: false,
   createdAt: '2026-08-02T12:00:00.000Z',
+  updatedAt: '2026-08-02T12:00:00.000Z',
 }
 
 describe('markerSchema', () => {
@@ -55,6 +56,28 @@ describe('markerSchema', () => {
 
   it('rejects a non-uuid id', () => {
     expect(markerSchema.safeParse({ ...VALID, id: 'nope' }).success).toBe(false)
+  })
+
+  it('requires the version an edit would be checked against', () => {
+    // Not optional, and not defaulted. A marker without a last-changed time
+    // cannot be edited safely, and accepting one here would let a caller send a
+    // patch with nothing to compare against.
+    const { updatedAt: _dropped, ...without } = VALID
+    expect(markerSchema.safeParse(without).success).toBe(false)
+  })
+
+  it('keeps the version out of a patch', () => {
+    // A precondition of a write is not a field somebody edits. Accepting it in
+    // a patch would let a caller assert the very value the check exists to
+    // verify, which is the whole guarantee handed back.
+    const parsed = markerPatchSchema.safeParse({
+      name: 'Somewhere',
+      updatedAt: '2030-01-01T00:00:00.000Z',
+    })
+
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) throw new Error('unreachable')
+    expect(parsed.data).not.toHaveProperty('updatedAt')
   })
 
   it('rejects a non-ISO createdAt', () => {

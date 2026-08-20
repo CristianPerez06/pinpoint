@@ -151,6 +151,16 @@ export function TripWorkspace({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
   /**
+   * Somebody else changed this place while it was being edited.
+   *
+   * Held apart from `message` because it is not the same kind of event. A
+   * message above a form means the form is wrong; this means the world moved,
+   * which is nobody's mistake and calls for a different next action — look at
+   * their version, then decide. Sharing one channel would make the two
+   * indistinguishable exactly where the difference matters.
+   */
+  const [conflict, setConflict] = useState<string | null>(null)
+  /**
    * What the camera has been asked to show, and how many times it has been
    * asked. Nothing else moves it.
    *
@@ -398,6 +408,7 @@ export function TripWorkspace({
     }
     setFieldErrors({})
     setMessage(null)
+    setConflict(null)
     setPanel({
       kind: 'create',
       initial: {
@@ -420,19 +431,29 @@ export function TripWorkspace({
     setDropping(false)
     setFieldErrors({})
     setMessage(null)
+    setConflict(null)
   }
 
   async function save(values: MarkerFormValues) {
     setBusy(true)
     setFieldErrors({})
     setMessage(null)
+    setConflict(null)
 
     const outcome =
       panel.kind === 'edit'
-        ? await updateMarker(supabase, panel.marker.id, {
-            ...values,
-            ...(draft ? { lng: draft.lng, lat: draft.lat } : {}),
-          })
+        ? await updateMarker(
+            supabase,
+            panel.marker.id,
+            {
+              ...values,
+              ...(draft ? { lng: draft.lng, lat: draft.lat } : {}),
+            },
+            // The version this edit was based on — captured when the form was
+            // opened, not read again now. Re-reading it here would make the
+            // check pass by construction and guarantee nothing.
+            panel.marker.updatedAt,
+          )
         : await createMarker(supabase, {
             ...values,
             tripId: trip.id,
@@ -446,7 +467,10 @@ export function TripWorkspace({
       // Everything typed, and the marker's position, survive a rejection.
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
+      else if (outcome.kind === 'conflict') setConflict(outcome.message)
       else setMessage(outcome.message)
+      // Nothing is written to `markers` on any of these paths, so the map keeps
+      // showing what is stored while the form keeps what was typed.
       return
     }
 
@@ -663,6 +687,7 @@ export function TripWorkspace({
               setDraft({ lng: marker.lng, lat: marker.lat })
               setFieldErrors({})
               setMessage(null)
+              setConflict(null)
               setPanel({ kind: 'edit', marker, initial: valuesOf(marker) })
             }}
             onDelete={(marker) => void remove(marker)}
@@ -677,6 +702,7 @@ export function TripWorkspace({
             busy={busy}
             fieldErrors={fieldErrors}
             message={message}
+            notice={conflict}
             onSubmit={(values) => void save(values)}
             onCancel={cancel}
             onCreateCity={addCity}

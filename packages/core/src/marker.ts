@@ -30,6 +30,16 @@ export const markerSchema = z.object({
   /** Shared by the whole trip: travelling companions visit a place together. */
   visited: z.boolean(),
   createdAt: z.iso.datetime(),
+  /**
+   * When this place was last changed, maintained by the database.
+   *
+   * Read as the version an edit is based on: a save states the value it started
+   * from, and one that no longer matches is refused rather than applied. It is
+   * deliberately absent from `markerPatchSchema` below — a precondition of a
+   * write is not a field somebody edits, and accepting it there would let a
+   * caller assert the very thing the check exists to verify.
+   */
+  updatedAt: z.iso.datetime(),
 })
 
 export type Marker = z.infer<typeof markerSchema>
