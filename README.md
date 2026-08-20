@@ -7,14 +7,26 @@ First trip is Japan, but nothing in it is Japan-specific.
 
 ## Status
 
-Both apps render a read-only map of a trip's markers, driven by the same shared
-camera, style and marker logic. That was the founding risk: one zero-dependency
-package producing the same map through two bundlers and two renderers. It holds —
-`@maplibre/maplibre-react-native` accepts the same style **URL** as `maplibre-gl`, so
-there is one style source rather than two.
+**The app replaces the spreadsheet.** Places can be searched for, dropped on the map,
+edited and removed, grouped into cities; each traveller records whether they want to go
+somewhere; a place can be marked visited; and the map narrows to the places a chosen set
+of people all want.
 
-No writing yet. Adding, editing and deleting markers, place search, cities and
-filtering are the changes after this one — see `openspec/ROADMAP.md`.
+Web does all of it. Mobile reads everything web writes and records interest, visited and
+filters — it has no capture flow yet. That gap is closing rather than permanent: see
+`openspec/ROADMAP.md`.
+
+The founding risk was one zero-dependency package producing the same map through two
+bundlers and two renderers, and it holds. The original form of the claim does not:
+`@maplibre/maplibre-react-native` does accept the same style **URL** as `maplibre-gl`, but
+neither app uses one any more. OpenFreeMap publishes no dark style, so the document is
+fetched and patched before either renderer sees it.
+
+What survived is the part that mattered. Both apps fetch the same document and pass it
+through the **same shared transformation**, so there is still one style source rather than
+two — the transformation is shared even though the fetching cannot be, because a package
+with no third-party dependencies cannot fetch. Camera, marker geometry and the filter
+predicate are shared the same way, and neither application decides any of them.
 
 ## Layout
 
@@ -29,7 +41,8 @@ pinpoint/
     ├── core/         domain types and validation
     ├── supabase/     Supabase client factory and database types
     ├── auth/         sign in, sign up, sign out — takes a client, returns a result
-    └── data/         reads of trips and markers — same shape as auth
+    ├── data/         reads and writes — trips, markers, cities, interest, visited
+    └── geocode/      place search against Photon — ranked, never filtered
 ```
 
 Both apps import `@pinpoint/map` and render the same `fitBounds()` result. That's
@@ -75,15 +88,28 @@ mobile prebuild` regenerates them from `app.json`.
 
 **A new native dependency means another native build.** `pnpm dev:mobile` reloads
 JavaScript and nothing else, so installing a package that contains native code —
-`react-native-svg`, say — leaves the dev build on the device without it. The app then
-fails at the first component that needs it, with a message about a missing native
-component that reads like a JavaScript error and is not one. Rebuild:
+`react-native-svg`, say — leaves the dev build on the device without it.
+
+**It does not always fail politely.** The best case is a message about a missing native
+component, which reads like a JavaScript error and is not one. The worst case looks
+nothing like a dependency problem at all: adding `react-native-svg` and `expo-font` here
+produced `EXC_CRASH (SIGABRT)` at launch, inside Hermes, with **no JavaScript error, no
+red screen and a clean Metro log** — because the generated codegen artifacts and the Pods
+project had drifted apart. Roughly a day went into diagnosing it as a Hermes bug before
+the cause turned out to be a stale build.
+
+So treat a native crash after adding a dependency as a stale build until proven otherwise,
+and rebuild properly rather than incrementally:
 
 ```bash
 rm -rf apps/mobile/ios            # its Pods are stale, and it is generated anyway
 pnpm --filter mobile prebuild
 pnpm --filter mobile ios
 ```
+
+`ios/build/` holds generated codegen sources, not just object files — deleting it without
+re-running `pod install` produces `Build input file cannot be found:
+.../rnworklets-generated.mm`. If you clear it by hand, `npx pod-install` afterwards.
 
 **Run these through `pnpm --filter mobile`, not a bare `npx expo`.** A bare `npx expo
 run:ios` uses whatever directory you are standing in, and from the repository root
@@ -165,12 +191,19 @@ pnpm check:cycles  # workspace dependency graph
 pnpm check:specs   # OpenSpec specs and active changes
 pnpm check:tokens  # the derived token files are current
 pnpm check:fonts   # both apps bundle the same typeface
+pnpm check:rls     # every table has row level security enabled
 ```
 
-The last two exist because styling fails quietly. A hand-edit to a generated token
-file survives forever without the first, and a missing or mismatched font file falls
+The last three exist because their failures are silent. A hand-edit to a generated
+token file survives forever without the first. A missing or mismatched font file falls
 back to a system face without the second — changing every measurement on screen while
 no build, typecheck, lint or test has anything to say about it.
+
+The third is the one that matters most and shows least. Postgres tables are readable by
+default and every signed-in browser holds a key that reaches the database directly, so a
+migration that forgets `enable row level security` ships a table any account can read and
+write in full. The app still works, the tests still pass, and the only symptom is data
+being available to people who should not have it.
 
 All of these run on every pull request, along with a web production build and a gate
 that fails if two versions of React or React Native end up installed.
@@ -193,7 +226,9 @@ Everything here is free at the scale this app will ever run at.
 
 - React Native + Expo, using a dev build (not Expo Go)
 - [`@maplibre/maplibre-react-native`](https://github.com/maplibre/maplibre-react-native) — takes the same style
-  URL and a near-identical marker/camera API, so the map layer ports over instead of being rewritten
+  *document* and a near-identical marker/camera API, so the map layer ports over instead of
+  being rewritten. It accepts a style URL too, which is how this started; theming ended that,
+  because the document has to be patched before either renderer sees it
 
 **Maybe**
 

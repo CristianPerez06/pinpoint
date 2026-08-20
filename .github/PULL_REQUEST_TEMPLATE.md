@@ -59,7 +59,8 @@ Change: `openspec/changes/<name>/`
 - [ ] Typecheck passes for web and mobile (`pnpm typecheck` + `pnpm typecheck:mobile`)
 - [ ] Package tests pass (`pnpm test`)
 - [ ] Web production build passes (`pnpm build`)
-- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts` and `pnpm check:specs` pass
+- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls` and
+      `pnpm check:specs` pass
 - [ ] If I touched dependencies: `pnpm-lock.yaml` is updated and committed
 - [ ] If I touched dependencies: `react` and `react-native` are not duplicated in the
       workspace. **No local script covers this** — only the Workspace health job, so a

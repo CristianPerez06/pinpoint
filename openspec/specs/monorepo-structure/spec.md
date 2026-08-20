@@ -1,7 +1,13 @@
 # monorepo-structure Specification
 
 ## Purpose
-TBD - created by archiving change establish-monorepo-skeleton. Update Purpose after archive.
+
+Define how the repository is divided — two applications over a set of shared packages —
+and the boundaries that keep the sharing honest: what may live at the root, what an
+application may import, and what a shared package may depend on. These are the rules that
+make one definition of a marker, a camera or a colour serve two platforms, rather than
+becoming two definitions that drift.
+
 ## Requirements
 ### Requirement: The repository is a single workspace with apps and shared packages
 
