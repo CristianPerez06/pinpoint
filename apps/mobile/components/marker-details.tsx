@@ -1,4 +1,9 @@
-import { formatPrice, type Marker } from '@pinpoint/core'
+import {
+  formatPrice,
+  type Marker,
+  type MarkerInterest,
+  type TripMember,
+} from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // Deep import, not the package root — see marker-icon.tsx. One value
@@ -7,6 +12,7 @@ import X from 'lucide-react-native/icons/x'
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { InterestRows, VisitedToggle } from '@/components/interest'
 import { MarkerGlyph } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -158,6 +164,12 @@ export interface Selection {
 export function MarkerDetails({
   selection,
   currencyOf,
+  members,
+  interestFor,
+  ownMemberId,
+  onRecordInterest,
+  onWithdrawInterest,
+  onSetVisited,
   onChoose,
   onBack,
   onDismiss,
@@ -166,6 +178,13 @@ export function MarkerDetails({
   selection: Selection
   /** The currency of the city a marker is filed under, or null when there is none. */
   currencyOf: (marker: Marker) => string | null
+  members: readonly TripMember[]
+  /** One marker's records, so this component never sees the whole trip's. */
+  interestFor: (marker: Marker) => readonly MarkerInterest[]
+  ownMemberId: string | null
+  onRecordInterest: (marker: Marker, interested: boolean) => void
+  onWithdrawInterest: (marker: Marker) => void
+  onSetVisited: (marker: Marker, visited: boolean) => void
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
@@ -283,6 +302,29 @@ export function MarkerDetails({
         can see. The fix is a sheet with real detents, which is its own change.
       */}
       <View>
+        <View style={styles.field}>
+          <Text style={[styles.fieldLabel, { color: theme.colour.inkFaint }]}>
+            Who wants to go
+          </Text>
+          <InterestRows
+            members={members}
+            interest={interestFor(marker)}
+            ownMemberId={ownMemberId}
+            onRecord={(interested) => onRecordInterest(marker, interested)}
+            onWithdraw={() => onWithdrawInterest(marker)}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.fieldLabel, { color: theme.colour.inkFaint }]}>
+            Visited
+          </Text>
+          <VisitedToggle
+            visited={marker.visited}
+            onChange={(visited) => onSetVisited(marker, visited)}
+          />
+        </View>
+
         <Field label="Note" value={marker.note} />
         <Field label="Link" value={marker.link} />
 

@@ -61,18 +61,33 @@ Rejected — the platforms do not share a state layer today, and inventing one t
 call sites would put a new abstraction between every screen and its data for the benefit
 of this change alone.
 
-### The query seeds state once, and never overwrites it afterwards
+### State holds what writes changed, not a copy of the query
 
-Marker and interest state are initialised from the query when it first becomes ready, and
-are not re-seeded when the query object changes identity.
+**Revised during implementation.** This decision originally said to seed marker and
+interest state from the query once and never re-seed, mirroring web. That was wrong, and
+the React linter said so before anything was run: copying a query result into state inside
+an effect is the pattern React tells you not to write, and it carried the exact hazard it
+was introduced to avoid — a later seed replacing an answer somebody had just recorded.
 
-The alternative is the defect this exists to avoid: a re-render re-seeds from a query
-result captured before the last write, and an answer somebody just recorded silently
-reverts. The web workspace does not have this problem because its data arrives once from a
-server render; the phone fetches on the client, so the hazard is new to it.
+What is held instead is the overrides: a map of marker id to local visited value, and a
+map of marker id to the reader's own answer, where `null` means withdrawn. The query
+result is read directly and the overrides are laid over it on the way out.
 
-Re-seeding on a genuine refetch — a different trip, a pull to refresh — is correct and out
-of scope, because neither exists yet.
+This is better than the web workspace's shape rather than merely equivalent to it:
+
+- There is nothing to re-seed, because nothing is copied. The hazard does not exist rather
+  than being avoided by a rule somebody has to keep.
+- A refetch is respected for free, which the original decision explicitly deferred.
+- Reverting a refused write drops the override, restoring **what is stored** rather than a
+  snapshot captured before the write. Web restores a captured copy, which is correct today
+  and would resurrect a stale value if anything else had changed in between.
+
+Withdrawn has to be a value the map can hold rather than an absent key: absence means "no
+local opinion", and withdrawing is very much an opinion.
+
+**Worth noting for the two changes after this one:** the same shape would suit web, and
+the web workspace is where the snapshot-restore still lives. Not changed here — this
+change does not touch web — but it is the better pattern and the reason is written down.
 
 ### The filter lives behind a control in the header, not in a bar under it
 
