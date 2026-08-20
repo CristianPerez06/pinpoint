@@ -13,14 +13,6 @@
   gap: var(--pp-space-sm);
 }
 
-.label {
-  font-size: var(--pp-type-label-size);
-  font-weight: var(--pp-type-label-weight);
-  letter-spacing: var(--pp-type-label-tracking);
-  text-transform: uppercase;
-  color: var(--pp-ink-faint);
-}
-
 /* Positioned, because the list hangs from it. */
 .picker {
   position: relative;
@@ -144,25 +136,15 @@
 }
 
 /*
- * The narrowed state.
+ * The narrowed state, carried by the way out of it.
  *
- * Quiet — it reports rather than warns, and a filter is something the person
- * just asked for. The accent is spent on the way out of it instead, because
- * that is the part they might not know is available.
+ * `Clear` is always in the row, so this is two states of one control rather
+ * than something that arrives. The live one is the accent; the inert one is
+ * plain — and they differ by a border and a weight as well as by colour,
+ * because a signal that survives only in hue does not survive a greyscale
+ * display or a colour-blind reader. The same reason a visited marker is drawn
+ * as visited without changing its colour.
  */
-.narrowed {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-  margin: 0;
-}
-
-.count {
-  font-size: var(--pp-type-note-size);
-  color: var(--pp-ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .clear {
   padding: 5px 10px;
   border: 1px solid var(--pp-accent);
@@ -173,9 +155,19 @@
   font-size: var(--pp-type-note-size);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.clear:hover {
+.clear:hover:not([aria-disabled='true']) {
   background: var(--pp-accent);
+}
+
+.clear[aria-disabled='true'] {
+  border-color: transparent;
+  background: none;
+  color: var(--pp-ink-faint);
+  font-weight: var(--pp-type-control-weight);
+  cursor: default;
 }

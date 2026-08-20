@@ -1,8 +1,6 @@
 import {
   type InterestFilter,
-  isFiltered,
   type MarkerFilter,
-  NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
@@ -23,6 +21,10 @@ import { role } from '@/lib/type'
  * moment the sheet is dismissed, and a trip looking emptier than it is with
  * nothing on screen explaining why is the defect this control could most easily
  * ship with.
+ *
+ * Which is why clearing is not offered here. `Clear` lives in the header, where
+ * it is visible without opening anything — a way out behind a control the person
+ * has to already suspect is on is not a way out.
  *
  * A modal rather than a positioned view, unlike the marker sheet. That sheet
  * must not cover the map — it describes a pin the person is looking at — while
@@ -65,15 +67,6 @@ const styles = StyleSheet.create({
   },
   tick: { fontSize: 13, fontWeight: '800' },
   divide: { height: 1, marginVertical: SPACE.xs },
-  clear: {
-    alignSelf: 'flex-start',
-    marginTop: SPACE.sm,
-    borderWidth: 1,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  clearText: { ...role(TYPE.control), fontWeight: '600' },
 })
 
 export function FilterSheet({
@@ -181,18 +174,6 @@ export function FilterSheet({
               })
             }
           />
-
-          {isFiltered(filter) ? (
-            <Pressable
-              onPress={() => onChange(NO_FILTER)}
-              accessibilityRole="button"
-              style={[styles.clear, { borderColor: theme.colour.accent }]}
-            >
-              <Text style={[styles.clearText, { color: theme.colour.accentInk }]}>
-                Clear the filter
-              </Text>
-            </Pressable>
-          ) : null}
         </Pressable>
       </Pressable>
     </Modal>
@@ -235,35 +216,3 @@ function Option({
   )
 }
 
-/**
- * What the closed control says.
- *
- * Names rather than a count, up to the point where they stop fitting a header.
- * "Two people" answers a question nobody asked — the reason interest is stored
- * per member is that *which* of you is the interesting part.
- */
-export function summariseFilter(
-  filter: MarkerFilter,
-  members: readonly TripMember[],
-  ownMemberId: string | null,
-): string {
-  const nameOf = (member: TripMember) =>
-    member.id === ownMemberId ? 'You' : member.displayName
-
-  const interest = filter.interest
-  const visited = filter.visited === 'unvisited' ? ' · Unvisited' : ''
-
-  if (interest.kind === 'anyone') {
-    return filter.visited === 'unvisited' ? 'Unvisited' : 'Filter'
-  }
-  if (interest.kind === 'unanswered') return `Nobody yet${visited}`
-
-  const names = members
-    .filter((member) => interest.members.includes(member.id))
-    .map(nameOf)
-
-  if (names.length === 0) return `Filter${visited}`
-  if (names.length === 1) return `${names[0]}${visited}`
-  if (names.length === 2) return `${names[0]} and ${names[1]}${visited}`
-  return `${names.length} people${visited}`
-}

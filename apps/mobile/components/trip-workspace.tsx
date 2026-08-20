@@ -7,7 +7,7 @@ import type {
   Trip,
   TripMember,
 } from '@pinpoint/core'
-import { matchesFilter, NO_FILTER } from '@pinpoint/core'
+import { isFiltered, matchesFilter, NO_FILTER } from '@pinpoint/core'
 import {
   fetchTripCities,
   fetchTripInterest,
@@ -23,7 +23,7 @@ import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { FilterSheet, summariseFilter } from '@/components/filter-sheet'
+import { FilterSheet } from '@/components/filter-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { FailedState, LoadingState } from '@/components/states'
 import { TripMap } from '@/components/trip-map'
@@ -159,7 +159,17 @@ export function TripWorkspace({
     [held, interest, filter],
   )
 
-  const narrowed = visible.length !== held.length
+  /**
+   * Whether a filter is applied — not whether it happens to be hiding anything.
+   *
+   * These come apart: tick everybody on a trip where everybody wants everything
+   * and the counts match while a filter is very much on. Deriving this from the
+   * counts left the control inert, and so left the person with no way out of a
+   * state they were in. It mattered less when this only drove a strip reporting
+   * "showing N of M", which is genuinely about counts; it is wrong now that the
+   * control is what declares the filter.
+   */
+  const narrowed = isFiltered(filter)
 
   /**
    * Laying an override on, and taking it off again if the database disagrees.
@@ -246,6 +256,39 @@ export function TripWorkspace({
           {trip.name}
         </Text>
 
+        {/*
+          The declaration, and the way out, in one control.
+
+          Always in the row, so applying a filter never rearranges the header
+          that applied it. Live only while something is hidden — which is what
+          says a filter is on, because the choice itself is inside a sheet and
+          invisible the moment it closes.
+
+          Inert rather than absent, and inert through `accessibilityState`
+          rather than `disabled`, so a screen reader still reaches it and is
+          told which state it is in. A signal carried only in colour is no
+          signal to a reader who cannot see it.
+        */}
+        <Pressable
+          onPress={() => {
+            if (narrowed) setFilter(NO_FILTER)
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Clear the filter"
+          accessibilityState={{ disabled: !narrowed }}
+          hitSlop={8}
+          style={{ marginLeft: 'auto' }}
+        >
+          <Text
+            style={[
+              narrowed ? styles.clearText : styles.clearTextInert,
+              { color: narrowed ? theme.colour.accentInk : theme.colour.inkFaint },
+            ]}
+          >
+            Clear
+          </Text>
+        </Pressable>
+
         <Pressable
           onPress={() => setFilterOpen(true)}
           accessibilityRole="button"
@@ -256,7 +299,6 @@ export function TripWorkspace({
             {
               borderColor: narrowed ? theme.colour.accent : theme.colour.lineStrong,
               backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
-              marginLeft: 'auto',
             },
           ]}
         >
@@ -267,7 +309,7 @@ export function TripWorkspace({
             ]}
             numberOfLines={1}
           >
-            {summariseFilter(filter, members, ownMemberId)}
+            Filter
           </Text>
         </Pressable>
 
@@ -281,33 +323,6 @@ export function TripWorkspace({
           </Text>
         </Pressable>
       </View>
-
-      {/*
-        A narrowed view says it is narrowed, and clears from where it says so.
-
-        This strip exists only while something is hidden, so it costs the map no
-        permanent space — and it is the requirement a sheet-based control is most
-        likely to miss. The choice itself is invisible once the sheet closes; a
-        trip looking emptier than it is with nothing explaining why is the defect
-        this prevents.
-      */}
-      {narrowed ? (
-        <View
-          style={[
-            styles.narrowed,
-            { backgroundColor: theme.colour.accentWash, borderColor: theme.colour.line },
-          ]}
-        >
-          <Text style={[styles.narrowedText, { color: theme.colour.accentInk }]}>
-            Showing {visible.length} of {held.length}
-          </Text>
-          <Pressable onPress={() => setFilter(NO_FILTER)} accessibilityRole="button" hitSlop={8}>
-            <Text style={[styles.clearText, { color: theme.colour.accentInk }]}>
-              Clear
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       <View style={styles.body}>
         <Body
@@ -440,15 +455,10 @@ const styles = StyleSheet.create({
   },
   filterText: { ...role(TYPE.control) },
   signOutText: { ...role(TYPE.control) },
-  narrowed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.md,
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-  },
-  narrowedText: { ...role(TYPE.note), fontWeight: '600' },
+  // Two states of one control. They differ by weight as well as by colour, so
+  // the declaration survives a greyscale screen and a colour-blind reader —
+  // the same reason a visited marker is drawn visited without changing colour.
   clearText: { ...role(TYPE.control), fontWeight: '700' },
+  clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
   body: { flex: 1 },
 })

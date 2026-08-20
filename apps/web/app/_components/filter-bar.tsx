@@ -17,8 +17,12 @@ import styles from './filter-bar.module.css'
  * One list, whose entries are the people on the trip. Ticking two names asks for
  * the places they agree on, which is the question the product exists to answer —
  * not the places either of them wants, which is a different and much longer
- * list. The button says which it is, because the two readings are both plausible
- * and only one is right.
+ * list.
+ *
+ * The closed control does not say who is ticked. A label naming people grows as
+ * people are ticked, so applying a filter rearranged the bar that applied it —
+ * and the ticks are the state anyway, one press away. What reports that a filter
+ * is on is `Clear`, which is always here and becomes live.
  *
  * A native `<select multiple>` would be the obvious control and is not usable:
  * it renders as a scrolling box that is always open, loses its selection to a
@@ -34,17 +38,12 @@ export function FilterBar({
   onChange,
   members,
   ownMemberId,
-  shown,
-  total,
 }: {
   filter: MarkerFilter
   onChange: (filter: MarkerFilter) => void
   members: readonly TripMember[]
   /** So the reader is named the way the detail card names them. */
   ownMemberId: string | null
-  /** How many markers survive the filter, and how many the trip holds. */
-  shown: number
-  total: number
 }) {
   const [open, setOpen] = useState(false)
   const wrapper = useRef<HTMLDivElement | null>(null)
@@ -96,11 +95,11 @@ export function FilterBar({
     )
   }
 
+  const narrowed = isFiltered(filter)
+
   return (
     <div className={styles.bar}>
       <div className={styles.picker} ref={wrapper}>
-        <span className={styles.label}>Wanted by</span>
-
         <button
           type="button"
           onClick={() => setOpen((shown) => !shown)}
@@ -108,7 +107,7 @@ export function FilterBar({
           aria-haspopup="true"
           className={styles.select}
         >
-          {summarise(filter.interest, members, nameOf)}
+          Wanted by
           <span aria-hidden className={styles.caret}>
             ▾
           </span>
@@ -187,53 +186,29 @@ export function FilterBar({
       </label>
 
       {/*
-        Said out loud whenever anything is hidden, and cleared from the same
-        place. A filtered trip and a trip that lost its places look identical —
-        fewer pins — and the difference is not one a person can recover alone.
+        The declaration, and the way out, in one control.
+
+        Always here, so applying a filter never rearranges the bar that applied
+        it and the way out is visible before it is needed. Live only while
+        something is hidden — which is what says a filter is on. A filtered trip
+        and a trip that lost its places look identical, fewer pins, and the
+        difference is not one a person can recover alone.
+
+        Inert via `aria-disabled` rather than the `disabled` attribute: a
+        disabled button leaves the tab order and is skipped, so a reader who
+        cannot see the styling would be told nothing at all — the colour-only
+        failure this control exists to avoid, arriving through the back door.
       */}
-      {isFiltered(filter) ? (
-        <p className={styles.narrowed} role="status">
-          <span className={styles.count}>
-            Showing {shown} of {total}
-          </span>
-          <button
-            type="button"
-            onClick={() => onChange(NO_FILTER)}
-            className={styles.clear}
-          >
-            Clear
-          </button>
-        </p>
-      ) : null}
+      <button
+        type="button"
+        aria-disabled={!narrowed}
+        onClick={() => {
+          if (narrowed) onChange(NO_FILTER)
+        }}
+        className={styles.clear}
+      >
+        Clear
+      </button>
     </div>
   )
-}
-
-/**
- * What the closed control says.
- *
- * Names rather than a count, up to the point where the names stop fitting. "Two
- * people" answers a question nobody asked; the whole reason interest is stored
- * per member is that *which* of you is the interesting part.
- *
- * Two names are joined with "and" rather than a comma, because it is the word
- * that carries the meaning — the places you both want, not either of you.
- */
-function summarise(
-  interest: InterestFilter,
-  members: readonly TripMember[],
-  nameOf: (member: TripMember) => string,
-): string {
-  if (interest.kind === 'anyone') return 'Anyone'
-  if (interest.kind === 'unanswered') return 'Nobody yet'
-
-  const names = members
-    .filter((member) => interest.members.includes(member.id))
-    .map(nameOf)
-
-  if (names.length === 0) return 'Anyone'
-  if (names.length === 1) return names[0]!
-  if (names.length === 2) return `${names[0]} and ${names[1]}`
-  if (names.length === members.length) return 'Everyone'
-  return `${names.length} people`
 }
