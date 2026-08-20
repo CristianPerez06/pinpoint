@@ -1,17 +1,74 @@
+/*
+ * Two rows, chosen rather than arrived at.
+ *
+ * This was one row with `flex-wrap: wrap`, which meant it was already one line
+ * or two depending on the window and how long a city's name was. The row count
+ * is a decision now, and only the holding rule at the bottom of this file is
+ * allowed to change it.
+ */
 .toolbar {
   position: relative;
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--pp-space-md);
+  flex-direction: column;
+  gap: var(--pp-space-sm);
   padding: var(--pp-space-sm) var(--pp-space-md);
   border-bottom: 1px solid var(--pp-line);
   background: var(--pp-surface);
   z-index: 6;
 }
 
-.spacer {
-  margin-left: auto;
+.narrowRow,
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-md);
+}
+
+/*
+ * Sized to the input rather than to the row.
+ *
+ * Search and the drop button are the two ways to create a marker, and the point
+ * of putting them on one row is that they read as a pair. Letting search take
+ * the whole row and pinning the button right undid that at a wide window: at
+ * 1680px they sat about eleven hundred pixels apart, which is the arrangement
+ * this row was made to fix, with whitespace where the filter used to be.
+ *
+ * So it stops at the input's own width and the button sits beside it. The right
+ * of the row is simply empty, which is what a toolbar of two controls looks
+ * like.
+ */
+.search {
+  display: flex;
+  flex: 0 1 420px;
+  min-width: 0;
+}
+
+/*
+ * Temporary, and named as such so it is not mistaken for a decision later.
+ *
+ * Two fixed rows are a laptop arrangement: at a phone-width window the first
+ * carries four controls and the second a search field and a button, and without
+ * this something clips or leaves the viewport — a lost control, not an untidy
+ * one. Wrapping is roughly what the toolbar did before, kept on purpose and
+ * confined to narrow widths so the wide layout is no longer at its mercy.
+ *
+ * The roadmap's "Responsive web" item replaces this with the phone layout —
+ * a bottom bar within a thumb's reach — and deletes it. It exists so that item
+ * is not a prerequisite for shipping two rows on a laptop.
+ *
+ * 700px is a literal because custom properties do not resolve inside a media
+ * query. It appears once, so the change that replaces it has one place to look.
+ */
+@media (max-width: 700px) {
+  .narrowRow,
+  .addRow {
+    flex-wrap: wrap;
+    gap: var(--pp-space-sm);
+  }
+
+  .search {
+    flex-basis: 100%;
+  }
 }
 
 .stage {

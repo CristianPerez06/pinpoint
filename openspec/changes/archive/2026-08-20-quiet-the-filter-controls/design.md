@@ -30,6 +30,10 @@ frees a band of vertical space over the map, which is the scarcer resource.
   inline way out are a different requirement and stay as they are.
 - A list view. Row two is search and drop-a-pin; the long-deferred web list is not
   in this change.
+- The phone layout on web. A narrow browser window gets a holding rule that keeps
+  every control reachable, not a designed layout — that is the roadmap's
+  "Responsive web" item, and it is deliberately not a prerequisite for shipping
+  two rows on a laptop.
 - Any mobile capture work. Row two exists on web only, because mobile has neither
   a search box nor a drop-a-pin control — that is roadmap item 1 and stays there.
 
@@ -92,6 +96,31 @@ field a new marker is filed under.
 The `flex-wrap: wrap` on `.toolbar` is what makes today's row count accidental, and
 it goes. Each row is its own flex container; row two lets search take the free space
 and pins the button right.
+
+### A narrow window gets a holding rule, not a design
+
+Two fixed rows are a laptop arrangement. At a phone-width browser window, row one
+carries four controls and row two carries a search field and a button, and without
+help something clips or leaves the viewport — which is a lost control, not an
+untidy one.
+
+The rule is therefore the smallest thing that keeps everything reachable: below the
+breakpoint, rows may wrap again and the search input takes a full line. That is
+roughly what the toolbar does today by accident, kept on purpose and confined to
+narrow widths, so the wide layout stops being at its mercy.
+
+Alternatives rejected: designing the phone layout here, which is the roadmap's
+"Responsive web" item and would drag the bottom bar, the sheet and the breakpoint
+question into a change about a filter control; and shipping two rows with no rule
+at all, which trades a real defect for a scheduling convenience.
+
+Comment it as temporary and name its successor. A holding fix nobody labelled is
+indistinguishable from a decision six months later.
+
+One mechanical note: the breakpoint has to be a literal, because CSS custom
+properties do not resolve inside a media query. Around 700px is the conventional
+place for it. Whichever value is used, use it once — the responsive change will
+either adopt it or move it, and both are easier against a single occurrence.
 
 ### Mobile keeps the rule and drops the geometry
 

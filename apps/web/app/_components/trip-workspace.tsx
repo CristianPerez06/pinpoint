@@ -525,38 +525,50 @@ export function TripWorkspace({
 
   return (
     <>
+      {/*
+        Two rows, because they are two thoughts: the first narrows what is on the
+        map, the second adds to it. Narrowing sits on top because a trip is
+        scanned far more often than it is added to.
+
+        Search and the drop button are together because they are the two ways to
+        create a marker. They used to sit at opposite ends of one wrapping row
+        with a filter between them, which is an arrangement flex produced rather
+        than one anybody chose.
+      */}
       <div className={styles.toolbar}>
-        <CityBar
-          cities={cities}
-          markers={markers}
-          selectedCityId={selectedCityId}
-          onSelect={selectCity}
-          onRename={(cityId, name) => void patchCity(cityId, { name })}
-          onSetCurrency={(cityId, currency) => void patchCity(cityId, { currency })}
-          onDelete={(cityId) => void removeCity(cityId)}
-        />
+        <div className={styles.narrowRow}>
+          <CityBar
+            cities={cities}
+            markers={markers}
+            selectedCityId={selectedCityId}
+            onSelect={selectCity}
+            onRename={(cityId, name) => void patchCity(cityId, { name })}
+            onSetCurrency={(cityId, currency) => void patchCity(cityId, { currency })}
+            onDelete={(cityId) => void removeCity(cityId)}
+          />
 
-        <FilterBar
-          filter={filter}
-          onChange={setFilter}
-          members={members}
-          ownMemberId={ownMemberId}
-          shown={visibleMarkers.length}
-          total={markers.length}
-        />
+          <FilterBar
+            filter={filter}
+            onChange={setFilter}
+            members={members}
+            ownMemberId={ownMemberId}
+          />
+        </div>
 
-        <PlaceSearch
-          biasRef={biasRef}
-          onChoose={(candidate: PlaceCandidate) =>
-            beginCreate(
-              { lng: candidate.lng, lat: candidate.lat },
-              { name: candidate.name, type: candidate.typeGuess },
-              true,
-            )
-          }
-        />
+        <div className={styles.addRow}>
+          <span className={styles.search}>
+            <PlaceSearch
+              biasRef={biasRef}
+              onChoose={(candidate: PlaceCandidate) =>
+                beginCreate(
+                  { lng: candidate.lng, lat: candidate.lat },
+                  { name: candidate.name, type: candidate.typeGuess },
+                  true,
+                )
+              }
+            />
+          </span>
 
-        <span className={styles.spacer}>
           <Button
             tone={dropping ? 'danger' : 'primary'}
             onClick={() => {
@@ -568,7 +580,7 @@ export function TripWorkspace({
           >
             {dropping ? 'Cancel — click the map' : '+ Drop a pin'}
           </Button>
-        </span>
+        </div>
       </div>
 
       <div className={styles.stage}>
