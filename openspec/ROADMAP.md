@@ -243,11 +243,14 @@ assumed does not arise.
       went into diagnosing it. Worth saying plainly that a stale build can crash inside
       Hermes or React's C++ and look nothing like a dependency problem, and that the
       fix is `pod install` plus clearing DerivedData — not an incremental rebuild.
-- [ ] The approved look-and-feel mockup no longer matches what shipped. Two deviations
-      were agreed while building — the mobile detail sheet is a plain positioned view
-      rather than a draggable sheet with detents, and web keeps its existing layout
-      rather than the list rail — and the published artifact still shows the original.
-      Republish rather than mint a new URL.
+- [ ] The approved look-and-feel mockup no longer matches what shipped, and the gap is
+      wider than the two agreed deviations. Those were the mobile detail sheet being a
+      plain positioned view rather than draggable with detents, and web keeping its
+      layout rather than the list rail. Since then the interest rows, the visited pin
+      treatment and the filter control have all shipped, and none of them existed when
+      the mockup was approved — so republishing is redesign, not a correction, and it is
+      its own piece of work rather than a documentation fix. Republish to the existing
+      URL rather than minting a new one.
 - [ ] No way to see the places you disagree about. Ticking names asks for agreement,
       and there is no tick meaning "and not the other" — so "only one of you wants
       this", the negotiation pile, is the one thing the rejected filter designs could
