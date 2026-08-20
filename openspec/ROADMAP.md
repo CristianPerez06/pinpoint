@@ -109,25 +109,51 @@ Two of those columns are the whole product:
 
 ## Next
 
-The phone gets everything the laptop has. **Decided deliberately, reversing what
-this file said for the first four changes** — that mobile would read and never
-write, because planning happens at a laptop and a second capture surface would
-cost as much as the first.
+Three items. The first stands alone; the second and third are what remains of the
+mobile parity sequence.
+
+**On parity: the phone gets everything the laptop has.** Decided deliberately,
+reversing what this file said for the first four changes — that mobile would read
+and never write, because planning happens at a laptop and a second capture
+surface would cost as much as the first.
 
 That asymmetry was the entire reason this was ever "a fraction of the work of a
 second full client". Removing it means it is a second full client, and the
-estimate should be read that way rather than inherited.
+estimate should be read that way rather than inherited. The reading half is done
+and cost little, because nothing under `packages/` had to change; that is
+evidence about the remaining half, not proof.
 
-Two settled requirements said the opposite and are deleted rather than amended as
-the work lands: `marker-capture`'s "Capture is offered by the web application
-only", and `marker-interest`'s equivalent for recording interest and visited.
-The second is now gone; the first goes with mobile capture.
+Two settled requirements said the opposite and are deleted as the work lands:
+`marker-capture`'s "Capture is offered by the web application only", and
+`marker-interest`'s equivalent for recording interest and visited. The second is
+gone; the first goes with mobile capture.
 
-Sequenced rather than proposed as one change. A single proposal covering all of
-it produces a task list nobody can review and a branch that cannot be tested
-until the end, which is the opposite of how the last three shipped.
+Sequenced rather than proposed as one change. A single proposal covering the whole
+parity gap produces a task list nobody can review and a branch that cannot be
+tested until the end, which is the opposite of how the last four shipped.
 
-### 1. What's near me right now
+### 1. Making a trip, and inviting somebody to it
+
+**Moved here from the loose ends, where it did not belong.** "You cannot create a
+trip" is a missing feature, and in a list of nits it was going to keep being
+skipped past.
+
+Neither `trips` nor `trip_members` has an insert policy, and the schema records
+why: an insert policy cannot resolve to membership for a trip with no members, so
+it needs a trigger making the creator the first member.
+
+The consequence is easy to miss because the product works. There is exactly one
+trip, seeded by a migration, and its second member was seeded too. Nobody can
+make another trip, and nobody new can ever be invited to this one — the app has
+no way to gain a user who is not already in the database.
+
+Arguably belongs before the two below, and this file is not deciding that yet.
+It is the only item here without which the product cannot be given to anybody,
+and it unblocks two loose ends: cross-trip isolation cannot be tested until a
+second trip can exist, and the disposable Kyoto seed cannot be deleted while it
+is the only trip there is.
+
+### 2. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work in the sequence: location permission, a denied state that is not a
@@ -140,7 +166,7 @@ scanning. That may well be right — standing in a street, a sorted list is the
 primary view and the map is secondary, the reverse of the laptop — but it should
 be chosen rather than arrived at.
 
-### 2. Mobile capture
+### 3. Mobile capture
 
 Search, drop, the marker form, cities. The largest of the three and the one whose
 value is least certain, which is why it is last: typing a note and a price into a
@@ -225,10 +251,6 @@ assumed does not arise.
 - [ ] Concurrent edits are last-write-wins with no way to detect a collision — there is
       no `updated_at` on a marker to compare. Correct at two travellers, and the thing
       to revisit before there are more.
-- [ ] Creating a trip and inviting people is still impossible from the product.
-      Neither `trips` nor `trip_members` has an insert policy, and the schema records
-      why: an insert policy cannot resolve to membership for a trip with no members, so
-      it needs a trigger making the creator the first member.
 - [ ] `README.md`'s "Status" describes a product two changes ago. It says "No writing
       yet" when markers can be added, edited and deleted, and it says both platforms
       take the same style **URL** — which stopped being true when the themed basemap
