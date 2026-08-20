@@ -85,16 +85,67 @@ Two of those columns are the whole product:
   clicking. Static checks have now been green over a real defect on three
   consecutive changes.
 
+- **The phone records and filters** — interest, visited and narrowing, on mobile.
+  The first change under the parity decision below, and deliberately the smallest,
+  because it was the one that tested a claim.
+
+  **The claim held.** Not one file under `packages/` changed. `matchesFilter`, the
+  three write functions, `ownMemberOf` and `MarkerView`'s visited all worked
+  unchanged under Metro — so the two "web only" requirements were telling the
+  truth when they promised that lifting them would be a change to one application
+  rather than a reimplementation. The two larger items below can be estimated on
+  that basis rather than on hope.
+
+  What was *not* a port: the phone had nowhere for a write to live. `useQuery`
+  returned a result and it went straight into the map, which is everything a
+  read-only screen needs. It now has a workspace, like web.
+
+  And it holds something better than web's. The plan was to seed state from the
+  query once — the React linter rejected that before anything ran, and it was
+  right. Holding the overrides instead means nothing is copied, so nothing can
+  re-seed; a refetch is respected for free; and reverting a refused write restores
+  what is *stored* rather than a snapshot taken beforehand. Web still does the
+  snapshot, which is correct today and is the weaker of the two.
+
 ## Next
 
-### 1. Mobile reader
+The phone gets everything the laptop has. **Decided deliberately, reversing what
+this file said for the first four changes** — that mobile would read and never
+write, because planning happens at a laptop and a second capture surface would
+cost as much as the first.
 
-Map, filters, mark visited, and **what's near me right now** — the one thing a
-spreadsheet fundamentally cannot do.
+That asymmetry was the entire reason this was ever "a fraction of the work of a
+second full client". Removing it means it is a second full client, and the
+estimate should be read that way rather than inherited.
 
-No add flow, no editing. Planning happens at a laptop; the mobile app is for
-standing in a street during the trip. That asymmetry makes it a fraction of the
-work of a second full client.
+Two settled requirements said the opposite and are deleted rather than amended as
+the work lands: `marker-capture`'s "Capture is offered by the web application
+only", and `marker-interest`'s equivalent for recording interest and visited.
+The second is now gone; the first goes with mobile capture.
+
+Sequenced rather than proposed as one change. A single proposal covering all of
+it produces a task list nobody can review and a branch that cannot be tested
+until the end, which is the opposite of how the last three shipped.
+
+### 1. What's near me right now
+
+The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
+design work in the sequence: location permission, a denied state that is not a
+dead end, and distance — none of which exists anywhere yet.
+
+Brings a **distance-sorted list**, which forces a question deferred twice: web
+still has no list at all, though this file has called list and map co-equal since
+the beginning. Building it here first makes the phone the better client for
+scanning. That may well be right — standing in a street, a sorted list is the
+primary view and the map is secondary, the reverse of the laptop — but it should
+be chosen rather than arrived at.
+
+### 2. Mobile capture
+
+Search, drop, the marker form, cities. The largest of the three and the one whose
+value is least certain, which is why it is last: typing a note and a price into a
+phone while standing outside a temple is the moment this product has always
+assumed does not arise.
 
 ## Decisions that shape all of the above
 

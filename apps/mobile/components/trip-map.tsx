@@ -5,7 +5,7 @@ import {
   type Anchor,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native'
-import type { Marker } from '@pinpoint/core'
+import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
 import {
   ATTRIBUTION,
   fitBounds,
@@ -111,12 +111,44 @@ const styles = StyleSheet.create({
 export function TripMap({
   markers,
   currencyOf,
+  members,
+  interestFor,
+  ownMemberId,
+  onRecordInterest,
+  onWithdrawInterest,
+  onSetVisited,
 }: {
+  /**
+   * Already narrowed by the filter. The map draws what it is given and knows
+   * nothing about why something is missing — which is what stops it and the
+   * workspace disagreeing about what the trip contains.
+   */
   markers: readonly Marker[]
   /** Passed straight through to the details sheet; the map itself has no use for it. */
   currencyOf: (marker: Marker) => string | null
+  members: readonly TripMember[]
+  interestFor: (marker: Marker) => readonly MarkerInterest[]
+  ownMemberId: string | null
+  onRecordInterest: (marker: Marker, interested: boolean) => void
+  onWithdrawInterest: (marker: Marker) => void
+  onSetVisited: (marker: Marker, visited: boolean) => void
 }) {
-  const [selection, setSelection] = useState<Selection | null>(null)
+  /**
+   * What is open, said in identities rather than in positions.
+   *
+   * Not the group itself, which would be a snapshot: marking a place visited
+   * changes the marker, the map redraws from the new groups, and a sheet holding
+   * the old copy goes on saying "Mark visited" beside a pin that has already
+   * faded. Web shipped exactly that defect and fixed it the same way.
+   *
+   * The index is not stored either. A filter can shrink a group out from under
+   * an open sheet, and an index into the shrunken group addresses a different
+   * place — silently, and looking entirely correct.
+   */
+  const [open, setOpen] = useState<{
+    groupKey: string
+    markerId: string | null
+  } | null>(null)
   const theme = useTheme()
   const mode = useThemeMode()
   // The map is full-bleed, so everything drawn over it has to hold itself clear
@@ -152,6 +184,24 @@ export function TripMap({
   const [sheetHeight, setSheetHeight] = useState(0)
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
+
+  /**
+   * The open sheet's marker, re-resolved against current state every render.
+   *
+   * Null when what was open is no longer there — the filter now hides it, or it
+   * was removed — and the sheet closes rather than showing something else in its
+   * place.
+   */
+  const selection: Selection | null = useMemo(() => {
+    if (!open) return null
+
+    const group = groups.find((each) => each.key === open.groupKey)
+    if (!group) return null
+    if (open.markerId === null) return { group, index: null }
+
+    const index = group.markers.findIndex((marker) => marker.id === open.markerId)
+    return index === -1 ? null : { group, index }
+  }, [open, groups])
   const camera = useMemo(
     () => (viewport ? fitBounds([...markers], { viewport }) : null),
     // Deliberately not depending on `markers`: the frame is decided by the
@@ -229,13 +279,16 @@ export function TripMap({
               // drift defect lived exactly in two apps choosing their own.
               anchor={anchorName(group.view.anchor)}
               onPress={() =>
-                setSelection({ group, index: group.count === 1 ? 0 : null })
+                setOpen({
+                  groupKey: group.key,
+                  markerId: group.count === 1 ? group.markers[0]!.id : null,
+                })
               }
             >
               <Pin
                 view={group.view}
                 count={group.count}
-                selected={selection?.group.key === group.key}
+                selected={open?.groupKey === group.key}
               />
             </MapLibreMarker>
           ))}
@@ -269,11 +322,22 @@ export function TripMap({
         <MarkerDetails
           currencyOf={currencyOf}
           selection={selection}
-          onChoose={(index) => setSelection({ ...selection, index })}
-          onBack={() => setSelection({ ...selection, index: null })}
+          members={members}
+          interestFor={interestFor}
+          ownMemberId={ownMemberId}
+          onRecordInterest={onRecordInterest}
+          onWithdrawInterest={onWithdrawInterest}
+          onSetVisited={onSetVisited}
+          onChoose={(index) =>
+            setOpen({
+              groupKey: selection.group.key,
+              markerId: selection.group.markers[index]!.id,
+            })
+          }
+          onBack={() => setOpen({ groupKey: selection.group.key, markerId: null })}
           onHeight={setSheetHeight}
           // Nothing here touches the camera, so dismissing cannot move it.
-          onDismiss={() => setSelection(null)}
+          onDismiss={() => setOpen(null)}
         />
       ) : null}
     </View>
