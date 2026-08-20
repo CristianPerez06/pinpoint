@@ -107,6 +107,30 @@ Two of those columns are the whole product:
   what is *stored* rather than a snapshot taken beforehand. Web still does the
   snapshot, which is correct today and is the weaker of the two.
 
+- **Edits stop overwriting each other silently** — markers carry a last-changed
+  time, maintained by a trigger, and a save based on a stale read is refused and
+  said out loud rather than applied.
+
+  The first migration since the initial schema, and the change before this one
+  had written that needing one would mean something had been misunderstood. Here
+  it was the point: there was no value to compare against, so the application
+  could not have detected the overwrite even if it had wanted to.
+
+  Two decisions worth carrying forward. The version goes into the update as a
+  filter rather than a check beforehand, so Postgres matches and writes in one
+  statement — reading first and comparing in application code leaves exactly the
+  window the guarantee is about. And `conflict` is its own outcome rather than a
+  rejection with recognisable wording, because matching on a message puts the
+  meaning in prose and the first reword breaks the branch in silence.
+
+  The trigger deliberately fires for visited too, so marking a place visited can
+  invalidate somebody's concurrent edit of its name. Over-eager, and the right way
+  to be wrong: a spurious conflict costs one retry, a missed one destroys work.
+
+  This defect was invisible by construction — a silent overwrite leaves no error,
+  no log line and no failing test — so the only way to know the fix works was to
+  make two browsers collide on purpose and watch. Budget for looking, again.
+
 ## Next
 
 Three items. The first stands alone; the second and third are what remains of the
@@ -255,20 +279,10 @@ Debt and known limitations. Nothing here is a missing feature, and nothing here 
 a defect — each is something already built that is untidy, or correct only at the
 scale the product runs at today.
 
-- [ ] **Concurrent edits are last-write-wins, with no way to detect a collision.**
-      There is no `updated_at` on a marker to compare. Correct at two travellers, and
-      the thing to revisit before there are more.
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it now needs the rows
       gone as well as the file, since removing a migration leaves the remote's history
       untouched. Also blocked on trip creation — it is the only trip there is.
-- [ ] **TypeScript is a major version behind what Expo expects** — 5.9.3 against the
-      ~6.0.3 `npx expo install --check` asks for. Left behind deliberately when the
-      Expo packages were caught up: TypeScript is declared by all nine workspace
-      members and resolves to a single version, so bumping it for the phone alone
-      would fork it across the repository, and bumping it everywhere is a major
-      version change to every typecheck in the build. It is its own piece of work,
-      and nothing is broken meanwhile.
 
 ## Open design questions
 

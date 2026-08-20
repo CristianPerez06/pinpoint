@@ -37,16 +37,24 @@
 
 ## 5. Checks, and looking
 
-- [ ] 5.1 Edit a place in two browsers: save in one, then save in the other, and confirm
+Run against two browsers by the author. Worth stating for this change in
+particular: the defect it fixes is invisible by construction — a silent overwrite
+leaves no error, no log line and no failing test — so the only way to know the
+guarantee works is to make two people collide on purpose and watch.
+
+- [x] 5.1 Edit a place in two browsers: save in one, then save in the other, and confirm
       the second is refused and the first survives
-- [ ] 5.2 Confirm what was typed is still in the form after the refusal
-- [ ] 5.3 Confirm an ordinary edit — nobody else touching it — still saves
-- [ ] 5.4 Delete a marker in one browser and edit it in the other; confirm it does not
+- [x] 5.2 Confirm what was typed is still in the form after the refusal
+- [x] 5.3 Confirm an ordinary edit — nobody else touching it — still saves
+- [x] 5.4 Delete a marker in one browser and edit it in the other; confirm it does not
       report a conflict, because that is not what happened
-- [ ] 5.5 Mark a place visited in one browser while editing it in the other, and confirm
+- [x] 5.5 Mark a place visited in one browser while editing it in the other, and confirm
       the edit is refused. Over-eager and intended — the row did change
-- [ ] 5.6 Confirm the mobile app still reads, still shows markers, and still builds
-- [ ] 5.7 Run `pnpm lint`, `pnpm lint:mobile`, `pnpm typecheck`, `pnpm typecheck:mobile`,
+- [x] 5.6 Confirm the mobile app still reads, still shows markers, and still builds
+- [x] 5.7 The migration was applied with `pnpm db:push`, and `pnpm db:types` regenerated
+      `database.types.ts` against the real database. The diff was **empty** — the column
+      hand-added to keep the build compiling matched what the migration actually produced.
+- [x] 5.9 Run `pnpm lint`, `pnpm lint:mobile`, `pnpm typecheck`, `pnpm typecheck:mobile`,
       `pnpm test`, `pnpm build`, `pnpm check:cycles`, `pnpm check:tokens`,
       `pnpm check:fonts`, `pnpm check:rls` and `pnpm check:specs`
-- [ ] 5.8 Run `openspec validate detect-conflicting-edits --strict`
+- [x] 5.8 Run `openspec validate detect-conflicting-edits --strict`
