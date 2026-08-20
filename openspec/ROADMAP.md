@@ -216,10 +216,11 @@ lands, and that is now three changes away rather than none.
 
 ### 3. Responsive web — the phone layout at a narrow window
 
-The web application has one layout, built for a laptop, and a browser window the
-width of a phone gets a toolbar that wraps badly. This gives it the same bottom
-layout the phone gets, at narrow widths only; a wide window keeps its header and
-its toolbar.
+The web application has one layout, built for a laptop. A browser window the width
+of a phone is held together by a media query that lets the toolbar wrap and gives
+search a line of its own — enough that no control is lost, and no more than that.
+This gives it the same bottom layout the phone gets, at narrow widths only; a wide
+window keeps its header and its toolbar, and the holding rule is deleted.
 
 Third rather than first because it is a port of a shape that will by then have
 been built and used, rather than a guess at one. And separate from the item above
@@ -360,6 +361,13 @@ Debt and known limitations. Nothing here is a missing feature, and nothing here 
 a defect — each is something already built that is untidy, or correct only at the
 scale the product runs at today.
 
+- [ ] **A holding media query keeps the web toolbar usable at phone width.** The
+      toolbar is two deliberate rows now, which is a laptop arrangement; below
+      700px the rows wrap again and search takes a line of its own, so nothing
+      clips or leaves the viewport. It is labelled temporary in the stylesheet and
+      names its successor. Closed by "Responsive web" above, which replaces it with
+      the phone layout rather than tuning it. The breakpoint is a literal, because
+      custom properties do not resolve inside a media query, and appears once.
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it now needs the rows
       gone as well as the file, since removing a migration leaves the remote's history
