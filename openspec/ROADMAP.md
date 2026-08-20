@@ -255,35 +255,20 @@ Debt, known limitations and one defect. Nothing here is a missing feature: each 
 something already built that is untidy, unverified, or correct only at the scale
 the product runs at today.
 
-- [ ] **A long note is clipped rather than scrolled in the mobile detail sheet.**
-      A defect, and the only one on this list. The sheet sizes to its content, and a
-      `ScrollView` inside a content-sized parent collapses; the fix is a sheet with a
-      real height, which is its own change.
-- [ ] **Cross-trip isolation is untested.** Verifying that a member of trip A is
-      refused trip B needs a second trip to exist — so this is blocked on the first
-      item under `Next` rather than waiting on anybody.
 - [ ] **Concurrent edits are last-write-wins, with no way to detect a collision.**
       There is no `updated_at` on a marker to compare. Correct at two travellers, and
       the thing to revisit before there are more.
-- [ ] **Email confirmation is off**, so sign-up is open to anyone who finds the URL.
-      They see nothing without a membership, but the account exists. Revisit before
-      the app has a public address.
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it now needs the rows
       gone as well as the file, since removing a migration leaves the remote's history
       untouched. Also blocked on trip creation — it is the only trip there is.
-- [ ] **The look-and-feel mockup is a historical record, and is now labelled as one.**
-      It carries a notice naming what diverged: the mobile sheet's detents, web's
-      list rail, and the interest, visited and filter work that shipped after it was
-      approved. What remains open is whether a *current* visual reference is wanted at
-      all — and if so, screenshots of the running app are the honest form, because they
-      cannot drift.
-- [ ] **Six Expo packages lag the SDK:** `expo` 57.0.9 against ~57.0.12, plus
-      `expo-router`, `expo-constants`, `expo-dev-client` and `expo-linking`
-      (`npx expo install --check` lists them). Worth doing deliberately, with a clean
-      rebuild afterwards, rather than picking them up incidentally alongside other
-      work — a stale native build fails in ways that look nothing like a dependency
-      problem.
+- [ ] **TypeScript is a major version behind what Expo expects** — 5.9.3 against the
+      ~6.0.3 `npx expo install --check` asks for. Left behind deliberately when the
+      Expo packages were caught up: TypeScript is declared by all nine workspace
+      members and resolves to a single version, so bumping it for the phone alone
+      would fork it across the repository, and bumping it everywhere is a major
+      version change to every typecheck in the build. It is its own piece of work,
+      and nothing is broken meanwhile.
 
 ## Open design questions
 
