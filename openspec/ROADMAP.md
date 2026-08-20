@@ -232,58 +232,58 @@ assumed does not arise.
   reason interactive search now shows how far away each result is, is that this
   is the only fact distinguishing them.
 
+## Not built yet
+
+Missing product capability, as distinct from the debt below. These are small
+features rather than roadmap items — nobody is blocked, and none is large enough
+to earn a place in `Next` — but they are things the product cannot do, not things
+it does untidily.
+
+- [ ] **Self-service password recovery.** Resetting a password is a dashboard
+      operation somebody with Supabase access has to perform. Fine at two users who
+      know each other; not fine the moment a third person is added by invitation.
+- [ ] **A way to see the places you disagree about.** Ticking names asks for
+      agreement, and there is no tick meaning "and not the other" — so "only one of
+      you wants this", the negotiation pile, is the one thing the rejected filter
+      designs could express and the shipped one cannot. Revisit once it has been
+      missed in real use rather than in anticipation. The predicate is a pure
+      function in `@pinpoint/core`, so the cost is a control, not a model.
+
 ## Loose ends
 
-- [ ] `monorepo-structure` still carries a `TBD - created by archiving` purpose.
-      `styling` had one too, replaced when the visual language landed.
-- [ ] Cross-trip isolation is untested — verifying that a member of trip A is
-      refused trip B needs a second trip to exist.
-- [ ] Password recovery is a dashboard operation. Fine at two users.
-- [ ] Email confirmation is off, so sign-up is open to anyone who finds the URL.
+Debt, known limitations and one defect. Nothing here is a missing feature: each is
+something already built that is untidy, unverified, or correct only at the scale
+the product runs at today.
+
+- [ ] **A long note is clipped rather than scrolled in the mobile detail sheet.**
+      A defect, and the only one on this list. The sheet sizes to its content, and a
+      `ScrollView` inside a content-sized parent collapses; the fix is a sheet with a
+      real height, which is its own change.
+- [ ] **Cross-trip isolation is untested.** Verifying that a member of trip A is
+      refused trip B needs a second trip to exist — so this is blocked on the first
+      item under `Next` rather than waiting on anybody.
+- [ ] **Concurrent edits are last-write-wins, with no way to detect a collision.**
+      There is no `updated_at` on a marker to compare. Correct at two travellers, and
+      the thing to revisit before there are more.
+- [ ] **Email confirmation is off**, so sign-up is open to anyone who finds the URL.
       They see nothing without a membership, but the account exists. Revisit before
       the app has a public address.
-- [ ] The disposable Kyoto seed migration is still applied. It was kept deliberately so
-      there was something to look at; deleting it now needs the rows gone as well as
-      the file, since removing a migration leaves the remote's history untouched.
-- [ ] A long note is clipped rather than scrolled in the mobile detail sheet. The sheet
-      sizes to its content, and a `ScrollView` inside a content-sized parent collapses;
-      the fix is a sheet with a real height, which is its own change.
-- [ ] Concurrent edits are last-write-wins with no way to detect a collision — there is
-      no `updated_at` on a marker to compare. Correct at two travellers, and the thing
-      to revisit before there are more.
-- [ ] `README.md`'s "Status" describes a product two changes ago. It says "No writing
-      yet" when markers can be added, edited and deleted, and it says both platforms
-      take the same style **URL** — which stopped being true when the themed basemap
-      landed, because the document is now fetched and patched before either renderer
-      sees it. That URL claim is the founding portability argument, so stating it
-      wrongly misrepresents the thing the repository exists to demonstrate.
-- [ ] `README.md`'s "A new native dependency means another native build" understates
-      how it fails. It promises "a missing native component" message; adding
-      `react-native-svg` and `expo-font` instead produced `EXC_CRASH (SIGABRT)` at
-      launch with no JavaScript error, no red screen and a clean Metro log, because the
-      generated codegen artifacts and the Pods project had drifted apart. Roughly a day
-      went into diagnosing it. Worth saying plainly that a stale build can crash inside
-      Hermes or React's C++ and look nothing like a dependency problem, and that the
-      fix is `pod install` plus clearing DerivedData — not an incremental rebuild.
-- [ ] The approved look-and-feel mockup no longer matches what shipped, and the gap is
-      wider than the two agreed deviations. Those were the mobile detail sheet being a
-      plain positioned view rather than draggable with detents, and web keeping its
-      layout rather than the list rail. Since then the interest rows, the visited pin
-      treatment and the filter control have all shipped, and none of them existed when
-      the mockup was approved — so republishing is redesign, not a correction, and it is
-      its own piece of work rather than a documentation fix. Republish to the existing
-      URL rather than minting a new one.
-- [ ] No way to see the places you disagree about. Ticking names asks for agreement,
-      and there is no tick meaning "and not the other" — so "only one of you wants
-      this", the negotiation pile, is the one thing the rejected filter designs could
-      express and the shipped one cannot. Revisit once it has been missed in real use
-      rather than in anticipation; the predicate is a pure function in
-      `@pinpoint/core`, so the cost is a control, not a model.
-- [ ] Six Expo packages lag the SDK: `expo` 57.0.9 against ~57.0.12, plus
+- [ ] **The disposable Kyoto seed migration is still applied.** It was kept
+      deliberately so there was something to look at; deleting it now needs the rows
+      gone as well as the file, since removing a migration leaves the remote's history
+      untouched. Also blocked on trip creation — it is the only trip there is.
+- [ ] **The look-and-feel mockup is a historical record, and is now labelled as one.**
+      It carries a notice naming what diverged: the mobile sheet's detents, web's
+      list rail, and the interest, visited and filter work that shipped after it was
+      approved. What remains open is whether a *current* visual reference is wanted at
+      all — and if so, screenshots of the running app are the honest form, because they
+      cannot drift.
+- [ ] **Six Expo packages lag the SDK:** `expo` 57.0.9 against ~57.0.12, plus
       `expo-router`, `expo-constants`, `expo-dev-client` and `expo-linking`
       (`npx expo install --check` lists them). Worth doing deliberately, with a clean
       rebuild afterwards, rather than picking them up incidentally alongside other
-      work — see the codegen loose end above for why.
+      work — a stale native build fails in ways that look nothing like a dependency
+      problem.
 
 ## Open design questions
 
