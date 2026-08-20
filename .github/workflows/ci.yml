@@ -131,6 +131,14 @@ jobs:
       - name: Check the bundled typeface
         run: pnpm check:fonts
 
+      # A migration that creates a table and forgets row level security ships a
+      # table any signed-in account can read and write in full — the browser
+      # holds a key that reaches the database directly. Nothing else catches it:
+      # the app works, the tests pass, and the only symptom is data being
+      # available to people who should not have it.
+      - name: Check row level security on every table
+        run: pnpm check:rls
+
       # Two versions of a dually-bundled runtime crash the bundle in ways that
       # look unrelated to dependencies — the classic symptom is
       # "Cannot read property 'useRef' of null" from deep inside a navigation

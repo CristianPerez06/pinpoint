@@ -208,9 +208,6 @@ assumed does not arise.
 
 ## Loose ends
 
-- [ ] No CI guard that every table has row-level security enabled. A migration that
-      forgets it ships a wide-open table and nothing catches it. Static check over
-      `supabase/migrations/*.sql`; needs no database.
 - [ ] `monorepo-structure` still carries a `TBD - created by archiving` purpose.
       `styling` had one too, replaced when the visual language landed.
 - [ ] Cross-trip isolation is untested — verifying that a member of trip A is

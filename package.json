@@ -15,6 +15,7 @@
     "test": "pnpm --filter \"./packages/*\" test",
     "check:cycles": "node .github/scripts/check-cycles.mjs",
     "check:fonts": "node .github/scripts/check-fonts.mjs",
+    "check:rls": "node .github/scripts/check-rls.mjs",
     "check:tokens": "pnpm --filter @pinpoint/tokens check:derived",
     "check:specs": "openspec validate --all --strict",
     "db:login": "supabase login",
