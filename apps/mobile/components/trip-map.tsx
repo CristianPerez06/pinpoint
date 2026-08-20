@@ -13,7 +13,7 @@ import {
   type Viewport,
 } from '@pinpoint/map'
 import { RADIUS, SPACE } from '@pinpoint/tokens'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   attributionText: { fontSize: 10 },
+  bottomRow: { position: 'absolute', left: 0, right: 0 },
   failure: {
     flex: 1,
     alignItems: 'center',
@@ -117,6 +118,7 @@ export function TripMap({
   onRecordInterest,
   onWithdrawInterest,
   onSetVisited,
+  bottomRow,
 }: {
   /**
    * Already narrowed by the filter. The map draws what it is given and knows
@@ -132,6 +134,16 @@ export function TripMap({
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
   onSetVisited: (marker: Marker, visited: boolean) => void
+  /**
+   * The trip's controls, drawn over the bottom of the map when nothing is
+   * selected.
+   *
+   * Handed in rather than built here: what is in the row is the workspace's
+   * business, and where it sits is this component's, because this is where the
+   * bottom edge is already negotiated between a sheet that rises from it and a
+   * credit that must stay legible above both.
+   */
+  bottomRow: ReactNode
 }) {
   /**
    * What is open, said in identities rather than in positions.
@@ -182,6 +194,17 @@ export function TripMap({
    * content up to a cap, so there is no fixed height to offset by.
    */
   const [sheetHeight, setSheetHeight] = useState(0)
+
+  /**
+   * How tall the credit is, so the trip's controls can sit above it.
+   *
+   * The stack at this edge is MapLibre's own ornaments, then our credit, then
+   * the controls — deliberately in that order. It leaves the credit's offset
+   * exactly as it was, which matters because that offset is a licence
+   * condition: the controls move to accommodate it rather than the other way
+   * round, and a row that is not drawn yet cannot push a credit out of view.
+   */
+  const [creditHeight, setCreditHeight] = useState(0)
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
 
@@ -299,6 +322,7 @@ export function TripMap({
 
       {/* A licence condition, not a default. Drawn rather than relied upon. */}
       <View
+        onLayout={(event) => setCreditHeight(event.nativeEvent.layout.height)}
         style={[
           styles.attribution,
           {
@@ -306,6 +330,11 @@ export function TripMap({
             opacity: 0.85,
             // An open sheet already carries the bottom inset in its own
             // padding, so adding it again here would float the credit.
+            //
+            // Unchanged by the arrival of the trip's controls, and that is the
+            // point: they sit above this rather than below it, so the one piece
+            // of layout that is a licence condition still has exactly two cases
+            // and neither depends on how tall a row of controls happens to be.
             bottom: selection
               ? sheetHeight + SPACE.sm
               : SPACE.sm + insets.bottom + ORNAMENT_CLEARANCE,
@@ -317,6 +346,31 @@ export function TripMap({
           {ATTRIBUTION}
         </Text>
       </View>
+
+      {/*
+        Not rendered while a marker is selected, rather than rendered and
+        hidden: the sheet has rounded top corners, and a row behind them would
+        show through at the edges. Reading a place is not narrowing a trip, so
+        nothing useful is lost — and dismissing the sheet brings the row back,
+        which is what keeps the declaration and the way out concealed together
+        rather than one without the other.
+      */}
+      {selection === null ? (
+        <View
+          style={[
+            styles.bottomRow,
+            {
+              // Above MapLibre's own ornaments and above our credit, in that
+              // order. Landing on either would be the same defect: covering
+              // somebody's attribution to make room for our own controls.
+              bottom:
+                SPACE.sm + insets.bottom + ORNAMENT_CLEARANCE + creditHeight + SPACE.sm,
+            },
+          ]}
+        >
+          {bottomRow}
+        </View>
+      ) : null}
 
       {selection ? (
         <MarkerDetails

@@ -71,6 +71,20 @@ were considered:
 Not rendered rather than rendered-and-hidden: the row must not peek out from behind
 the sheet's rounded top corners, and an unmounted row cannot.
 
+**Corrected while implementing.** This section originally had the credit moving up
+to clear the row. That is backwards. The order at this edge is MapLibre's own
+ornaments, then our credit, then the controls — so the credit's offset does not
+change at all, and the row is what accommodates. Two reasons: the credit is the
+licence condition, so it should be the thing nothing else is allowed to push
+around; and a row that is not drawn in the selected case cannot then be a term in
+an expression that has to be right in both. The row measures the credit rather
+than the reverse.
+
+The first attempt also put the row at `SPACE.sm + insets.bottom`, directly on top
+of MapLibre's own wordmark. `ORNAMENT_CLEARANCE` exists precisely because our
+credit did that once, and its comment says hiding another project's branding to fix
+our layout is not a trade to make. The row clears it too.
+
 The spec delta covers this, because the requirement as written says the declaring
 control is always present and did not contemplate something covering it. What it
 now says is that the declaration and the way out are concealed **together or not at
