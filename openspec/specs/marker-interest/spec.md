@@ -96,18 +96,69 @@ record who marked it, because the model defines visiting as shared.
 - **WHEN** a member unmarks a visited marker
 - **THEN** it is no longer visited for anyone on the trip
 
-### Requirement: Recording interest and visited is offered by the web application only
+### Requirement: Both applications offer recording interest and marking visited
 
-The web application SHALL offer recording interest and marking visited. The mobile
-application SHALL NOT, in this change.
+Every application that displays a trip's markers SHALL offer recording interest,
+withdrawing it, and marking a place visited.
 
-Rationale: planning happens at a laptop, which is the same reason capture is web-only.
-The shared reading and writing functions SHALL remain usable from either platform, so
-that offering them on the phone later is a matter of drawing controls rather than moving
-logic.
+Each application SHALL present these in the form native to it and SHALL NOT share rendered
+markup with the other. What is shared is the behaviour that reads and writes them, which
+SHALL remain a single implementation usable from either platform.
 
-#### Scenario: The mobile application shows interest without offering to change it
+An application SHALL NOT offer a control for recording interest attributed to a member
+other than the reader, on any platform. This mirrors what the stored policies enforce
+rather than restating it in words somebody has to read.
 
-- **WHEN** a marker is opened in the mobile application
-- **THEN** no control for recording interest or marking visited is offered
-- **AND** the shared functions that would perform it remain importable on that platform
+Rationale: interest and visited are per-member facts about a shared trip, and a person
+carrying a phone is as entitled to record one as a person at a laptop — more so for
+visited, which is decided in the street. Two applications that disagree about whether an
+answer can be given would make the trip's records depend on which device was to hand.
+
+#### Scenario: Recording interest on either platform
+
+- **WHEN** a member opens a marker on either application
+- **THEN** they are offered a way to record that they want to go, that they do not, and to
+  withdraw what they recorded
+
+#### Scenario: Marking visited on either platform
+
+- **WHEN** a member opens a marker on either application
+- **THEN** they are offered a way to mark it visited and to unmark it
+
+#### Scenario: Another member's record
+
+- **WHEN** a marker's recorded interest is displayed on either application
+- **THEN** every member's state is shown
+- **AND** no control is offered for changing anybody's record but the reader's own
+
+#### Scenario: A record written on one platform is seen on the other
+
+- **WHEN** a member records interest on one application and the trip is opened on the other
+- **THEN** the record is present
+- **AND** it is indistinguishable from one recorded on that platform
+
+### Requirement: A recorded answer appears without re-reading the trip
+
+When a member records interest, withdraws it, or changes whether a place is visited, the
+application SHALL show the new state immediately rather than after re-reading the trip.
+
+If the write is refused, the application SHALL restore what was displayed before and
+SHALL report the failure. It SHALL NOT leave the display asserting something the stored
+data does not say.
+
+Rationale: these are the smallest writes in the product and the ones made in the largest
+number in a row — going through a whole trip marking what you want to see. A control that
+waited for a round trip before changing would be worse than the spreadsheet this replaces,
+and one that never corrected itself would quietly lie.
+
+#### Scenario: An answer is recorded
+
+- **WHEN** a member records interest in a marker
+- **THEN** their state changes immediately
+- **AND** the trip is not re-read to show it
+
+#### Scenario: A write is refused
+
+- **WHEN** a recorded answer is refused by the stored policies
+- **THEN** the displayed state returns to what it was before
+- **AND** the failure is reported rather than passed over

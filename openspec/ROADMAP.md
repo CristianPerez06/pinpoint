@@ -85,6 +85,28 @@ Two of those columns are the whole product:
   clicking. Static checks have now been green over a real defect on three
   consecutive changes.
 
+- **The phone records and filters** — interest, visited and narrowing, on mobile.
+  The first change under the parity decision below, and deliberately the smallest,
+  because it was the one that tested a claim.
+
+  **The claim held.** Not one file under `packages/` changed. `matchesFilter`, the
+  three write functions, `ownMemberOf` and `MarkerView`'s visited all worked
+  unchanged under Metro — so the two "web only" requirements were telling the
+  truth when they promised that lifting them would be a change to one application
+  rather than a reimplementation. The two larger items below can be estimated on
+  that basis rather than on hope.
+
+  What was *not* a port: the phone had nowhere for a write to live. `useQuery`
+  returned a result and it went straight into the map, which is everything a
+  read-only screen needs. It now has a workspace, like web.
+
+  And it holds something better than web's. The plan was to seed state from the
+  query once — the React linter rejected that before anything ran, and it was
+  right. Holding the overrides instead means nothing is copied, so nothing can
+  re-seed; a refetch is respected for free; and reverting a refused write restores
+  what is *stored* rather than a snapshot taken beforehand. Web still does the
+  snapshot, which is correct today and is the weaker of the two.
+
 ## Next
 
 The phone gets everything the laptop has. **Decided deliberately, reversing what
@@ -96,28 +118,16 @@ That asymmetry was the entire reason this was ever "a fraction of the work of a
 second full client". Removing it means it is a second full client, and the
 estimate should be read that way rather than inherited.
 
-Two settled requirements say the opposite and are deleted rather than amended as
+Two settled requirements said the opposite and are deleted rather than amended as
 the work lands: `marker-capture`'s "Capture is offered by the web application
 only", and `marker-interest`'s equivalent for recording interest and visited.
-Both were written anticipating this — each says lifting the restriction should be
-"a change to one application rather than a reimplementation". That promise is
-about to be tested, which is the useful part of doing the reading half first.
+The second is now gone; the first goes with mobile capture.
 
 Sequenced rather than proposed as one change. A single proposal covering all of
 it produces a task list nobody can review and a branch that cannot be tested
 until the end, which is the opposite of how the last three shipped.
 
-### 1. Mobile reads what web writes
-
-Interest rows, the visited toggle, and the filter — on the phone, drawn in its
-own idiom. Parity over logic that is already settled and already shared, so this
-is drawing rather than deciding.
-
-Smallest of the three and deliberately first: it is the change that proves the
-"one application, not a reimplementation" claim, and it is worth knowing whether
-that holds before committing to the two larger ones.
-
-### 2. What's near me right now
+### 1. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work in the sequence: location permission, a denied state that is not a
@@ -130,7 +140,7 @@ scanning. That may well be right — standing in a street, a sorted list is the
 primary view and the map is secondary, the reverse of the laptop — but it should
 be chosen rather than arrived at.
 
-### 3. Mobile capture
+### 2. Mobile capture
 
 Search, drop, the marker form, cities. The largest of the three and the one whose
 value is least certain, which is why it is last: typing a note and a price into a
