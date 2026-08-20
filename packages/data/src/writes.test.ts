@@ -13,30 +13,68 @@ import { createMarker, deleteMarker, updateMarker } from './markers'
  * words a person can read rather than as the database's own error text, and that
  * a success hands back the stored row so a caller need not re-read anything.
  */
-function stubClient(response: { data?: unknown; error?: unknown } = {}) {
+function stubClient(
+  response: { data?: unknown; error?: unknown } = {},
+  /**
+   * What the row looks like when the write is asked about afterwards.
+   *
+   * `updateMarker` re-reads on a failed match to tell "somebody changed this"
+   * from "this is gone", and the two answers are the presence or absence of a
+   * row here. Defaults to absent, which is the older and more common case.
+   */
+  recheck: { data?: unknown; error?: unknown } = {},
+) {
   const result = {
     data: response.data === undefined ? null : response.data,
     error: response.error ?? null,
   }
+  const recheckResult = {
+    data: recheck.data === undefined ? null : recheck.data,
+    error: recheck.error ?? null,
+  }
 
   const single = vi.fn(() => Promise.resolve(result))
-  const select = vi.fn(() => ({ single }))
-  const insert = vi.fn(() => ({ select }))
-  const eqAfterUpdate = vi.fn(() => ({ select }))
-  const update = vi.fn(() => ({ eq: eqAfterUpdate }))
+  const maybeSingle = vi.fn(() => Promise.resolve(recheckResult))
+
+  /*
+   * A filter that can be applied any number of times and still be followed by
+   * a select or a terminator. `updateMarker` now applies two — the id and the
+   * version it expects — so a stub that allowed exactly one would fail for the
+   * shape of the chain rather than for anything the test is about.
+   */
+  const filterable: Record<string, unknown> = {}
+  const eqAfterUpdate = vi.fn(() => filterable)
+  const select = vi.fn(() => filterable)
+  Object.assign(filterable, { eq: eqAfterUpdate, select, single, maybeSingle })
+
+  const insert = vi.fn(() => ({ select: vi.fn(() => ({ single })) }))
+  const update = vi.fn(() => filterable)
   const eqAfterDelete = vi.fn(() => Promise.resolve(result))
   const del = vi.fn(() => ({ eq: eqAfterDelete }))
   const from = vi.fn(() => ({ insert, update, delete: del, select }))
 
   return {
     client: { from } as unknown as PinpointClient,
-    calls: { from, insert, update, del, select, single, eqAfterUpdate, eqAfterDelete },
+    calls: {
+      from,
+      insert,
+      update,
+      del,
+      select,
+      single,
+      maybeSingle,
+      eqAfterUpdate,
+      eqAfterDelete,
+    },
   }
 }
 
 const TRIP_ID = '22222222-2222-4222-8222-222222222222'
 const CITY_ID = '33333333-3333-4333-8333-333333333333'
 const MARKER_ID = '11111111-1111-4111-8111-111111111111'
+
+/** The version an edit says it started from. */
+const VERSION = '2026-08-10T00:00:00.000Z'
 
 const MARKER_ROW = {
   id: MARKER_ID,
@@ -51,6 +89,7 @@ const MARKER_ROW = {
   price: null,
   visited: false,
   created_at: '2026-08-10T00:00:00.000Z',
+  updated_at: '2026-08-10T00:00:00.000Z',
 }
 
 const CITY_ROW = {
@@ -144,7 +183,7 @@ describe('updateMarker', () => {
   it('sends only the fields that changed', async () => {
     const { client, calls } = stubClient({ data: MARKER_ROW })
 
-    await updateMarker(client, MARKER_ID, { name: 'Nishiki' })
+    await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
 
     expect(calls.update).toHaveBeenCalledWith({ name: 'Nishiki' })
   })
@@ -152,7 +191,7 @@ describe('updateMarker', () => {
   it('distinguishes clearing a field from leaving it alone', async () => {
     const { client, calls } = stubClient({ data: MARKER_ROW })
 
-    await updateMarker(client, MARKER_ID, { note: null })
+    await updateMarker(client, MARKER_ID, { note: null }, VERSION)
 
     expect(calls.update).toHaveBeenCalledWith({ note: null })
   })
@@ -162,9 +201,82 @@ describe('updateMarker', () => {
     // could change it is an edit that could put the row out of reach.
     const { client, calls } = stubClient({ data: MARKER_ROW })
 
-    await updateMarker(client, MARKER_ID, { tripId: CITY_ID, name: 'Nishiki' })
+    await updateMarker(client, MARKER_ID, { tripId: CITY_ID, name: 'Nishiki' }, VERSION)
 
     expect(calls.update).toHaveBeenCalledWith({ name: 'Nishiki' })
+  })
+
+  it('asks the database to match the version it is editing from', async () => {
+    // The point of the filter rather than a check beforehand: Postgres matches
+    // and writes in one statement, so nothing can change in between.
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
+
+    expect(calls.eqAfterUpdate).toHaveBeenCalledWith('id', MARKER_ID)
+    expect(calls.eqAfterUpdate).toHaveBeenCalledWith('updated_at', VERSION)
+  })
+
+  it('reports a conflict when the row is still there but has moved on', async () => {
+    // Nothing matched, and asking afterwards finds the row present — so
+    // somebody else changed it.
+    const { client } = stubClient(
+      { error: { message: 'no rows' } },
+      { data: { updated_at: '2026-08-11T00:00:00.000Z' } },
+    )
+
+    const outcome = await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
+
+    if (outcome.ok) throw new Error('expected a refusal')
+    expect(outcome.kind).toBe('conflict')
+  })
+
+  it('does not call a deleted marker a conflict', async () => {
+    // The same failed match, and asking afterwards finds nothing. Telling
+    // somebody to go and look at another version of a place that no longer
+    // exists would send them after something unfindable.
+    const { client } = stubClient({ error: { message: 'no rows' } }, { data: null })
+
+    const outcome = await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
+
+    if (outcome.ok) throw new Error('expected a refusal')
+    expect(outcome.kind).toBe('rejected')
+  })
+
+  it('leaves an uncontested edit alone', async () => {
+    const { client } = stubClient({ data: MARKER_ROW })
+
+    const outcome = await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
+
+    expect(outcome.ok).toBe(true)
+  })
+
+  it('tells the three refusals apart without reading a message', async () => {
+    // The reason `conflict` is its own kind rather than a `rejected` with
+    // recognisable wording: matching on a string puts the meaning in prose, and
+    // the first reword breaks the branch silently.
+    const invalid = await updateMarker(
+      stubClient({ data: MARKER_ROW }).client,
+      MARKER_ID,
+      { name: '' },
+      VERSION,
+    )
+    const conflict = await updateMarker(
+      stubClient({ error: { message: 'no rows' } }, { data: { updated_at: 'x' } }).client,
+      MARKER_ID,
+      { name: 'Nishiki' },
+      VERSION,
+    )
+    const refused = await updateMarker(
+      stubClient({ error: { message: 'permission denied' } }).client,
+      MARKER_ID,
+      { name: 'Nishiki' },
+      VERSION,
+    )
+
+    const kinds = [invalid, conflict, refused].map((o) => (o.ok ? 'ok' : o.kind))
+    expect(kinds).toEqual(['invalid-input', 'conflict', 'rejected'])
+    expect(new Set(kinds).size).toBe(3)
   })
 })
 

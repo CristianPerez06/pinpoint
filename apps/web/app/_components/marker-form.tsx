@@ -53,6 +53,7 @@ export function MarkerForm({
   busy,
   fieldErrors,
   message,
+  notice,
   onSubmit,
   onCancel,
   onCreateCity,
@@ -63,6 +64,13 @@ export function MarkerForm({
   busy: boolean
   fieldErrors: FieldErrors
   message: string | null
+  /**
+   * Something outside the form changed, rather than something in it being
+   * wrong. Separate from `message` because the two ask for different things:
+   * one says correct what you typed, the other says look at what somebody else
+   * did and then decide.
+   */
+  notice: string | null
   onSubmit: (values: MarkerFormValues) => void
   onCancel: () => void
   onCreateCity: (name: string, currency: string | null) => Promise<City | null>
@@ -136,6 +144,11 @@ export function MarkerForm({
       </div>
 
       {message ? <FormError message={message} /> : null}
+      {notice ? (
+        <p role="status" className={styles.notice}>
+          {notice}
+        </p>
+      ) : null}
 
       <TextField
         label="Name"

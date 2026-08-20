@@ -120,6 +120,7 @@ export type Database = {
           price: number | null
           trip_id: string
           type: string
+          updated_at: string
           visited: boolean
         }
         Insert: {
@@ -134,6 +135,7 @@ export type Database = {
           price?: number | null
           trip_id: string
           type?: string
+          updated_at?: string
           visited?: boolean
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           price?: number | null
           trip_id?: string
           type?: string
+          updated_at?: string
           visited?: boolean
         }
         Relationships: [

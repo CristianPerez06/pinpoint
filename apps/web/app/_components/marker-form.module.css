@@ -128,3 +128,23 @@
   gap: var(--pp-space-sm);
   margin-top: var(--pp-space-xs);
 }
+
+/*
+ * Something outside the form changed while it was open.
+ *
+ * Amber rather than red, and `status` rather than `alert`: nothing here is the
+ * person's mistake and nothing they typed has been lost. Red would say they had
+ * done something wrong, which would be both untrue and the wrong instruction —
+ * what is wanted is that they go and look.
+ */
+.notice {
+  margin: 0;
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  border: 1px solid var(--pp-accent);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  font-weight: 550;
+}
