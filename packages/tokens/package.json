@@ -16,7 +16,7 @@
   },
   "comment": "dependencies is intentionally absent. This package holds platform-neutral literals and pure functions over them — the single source of truth the styling spec requires. src/ is authoritative and hand-written; src/generated/ is derived from it by scripts/derive.ts and must never be edited, and CI fails on a diff. The direction is one way: nothing recovers a token by parsing the generated stylesheet. Adding a runtime dependency here means something other than a token value has been put in it.",
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "~6.0.3",
     "vitest": "^3.2.4"
   }
 }
