@@ -8,11 +8,14 @@ import { role } from '@/lib/type'
 /**
  * Where the account and the trip live, rather than the trip's controls.
  *
- * Deliberately near-empty. One item is honest about how little belongs here
- * today, and the point of the sheet is not what it holds — it is that Sign out
- * has somewhere to be that is not the row a thumb reaches. Trip switching and
- * inviting land here when those exist, and neither has to relocate Sign out a
- * second time to do it.
+ * Two items now. It was left near-empty on the expectation that trip-scoped rare
+ * things would land here, and Cities is the first of them — arriving without
+ * having to relocate Sign out, which is what the expectation was for. Trip
+ * switching and inviting land here too when those exist.
+ *
+ * What makes something belong here rather than in the bar at the bottom is how
+ * often it is touched, not what it is about. A city is named once and corrected
+ * almost never; the filter is touched constantly.
  *
  * A modal in the shape `filter-sheet.tsx` uses, for the same reason that one is:
  * a decision made and dismissed, with the map dimmed behind it to say it is
@@ -39,17 +42,21 @@ const styles = StyleSheet.create({
   doneText: { ...role(TYPE.control), fontWeight: '700' },
   item: { paddingVertical: 13 },
   itemText: { ...role(TYPE.body) },
+  divide: { height: 1 },
 })
 
 export function MenuSheet({
   open,
   onClose,
   onSignOut,
+  onOpenCities,
   tripName,
 }: {
   open: boolean
   onClose: () => void
   onSignOut: () => void
+  /** Opens the sheet where a trip's cities are corrected. */
+  onOpenCities: () => void
   /** Named here as well as in the header, because a sheet that covers the
       header should still say which trip it belongs to. */
   tripName: string
@@ -81,6 +88,19 @@ export function MenuSheet({
               </Text>
             </Pressable>
           </View>
+
+          {/* The first of the trip-scoped things this sheet was left empty for.
+              Rare enough to belong up here rather than in the row a thumb
+              reaches: a city is named once and corrected almost never. */}
+          <Pressable
+            onPress={onOpenCities}
+            accessibilityRole="button"
+            style={styles.item}
+          >
+            <Text style={[styles.itemText, { color: theme.colour.ink }]}>Cities</Text>
+          </Pressable>
+
+          <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
 
           <Pressable
             onPress={onSignOut}

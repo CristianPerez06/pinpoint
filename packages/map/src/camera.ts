@@ -37,6 +37,48 @@ function mercatorY(lat: number): number {
   return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)
 }
 
+/** Inverse of `mercatorY`: a normalized northing back to a latitude. */
+function latitudeAt(y: number): number {
+  // mercatorY is 0.5 - artanh(sin φ) / 2π, so this undoes it in one step.
+  return (Math.asin(Math.tanh((0.5 - y) * 2 * Math.PI)) * 180) / Math.PI
+}
+
+/**
+ * The centre that puts a point somewhere other than the middle of the view.
+ *
+ * Needed because a map is not always looked at whole. When a sheet covers the
+ * lower half of the screen, the middle of the *view* is behind it, so centring on
+ * a point is exactly how to hide the point — which is the shape of a defect the
+ * phone shipped: choosing a search result centred the camera on it and the form
+ * that opened next drew over it.
+ *
+ * Pure, and shared for the same reason `fitBounds` is: the arithmetic is Web
+ * Mercator rather than anything about a renderer, and the second application is
+ * going to need it the moment a browser window is narrow enough to want the same
+ * sheet. Two implementations of this would be two chances to get a sign wrong.
+ *
+ * `dx` and `dy` are pixel offsets applied to the centre in screen terms — `dy`
+ * positive moves the centre down the screen, which moves the drawn point up.
+ */
+export function offsetCenter(
+  center: LngLat,
+  zoom: number,
+  dx: number,
+  dy: number,
+): LngLat {
+  const worldSize = TILE_SIZE * Math.pow(2, zoom)
+
+  const x = ((normalizeLongitude(center.lng) + 180) / 360) * worldSize + dx
+  const y = mercatorY(center.lat) * worldSize + dy
+
+  return {
+    lng: normalizeLongitude((x / worldSize) * 360 - 180),
+    // Clamped by `latitudeAt` through `tanh`, so an offset that would run off
+    // the top of the projection lands at the pole rather than producing NaN.
+    lat: latitudeAt(y / worldSize),
+  }
+}
+
 /**
  * Smallest bounding box containing every point.
  *

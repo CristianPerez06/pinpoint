@@ -1,11 +1,50 @@
-# marker-capture Specification
+## ADDED Requirements
 
-## Purpose
+### Requirement: Both applications offer capture
 
-Define how a place gets onto a trip's map and how it is changed afterwards: the
-two ways of starting, the unsaved marker they both produce, the fields captured
-when it is saved, and editing and removing a marker once it exists.
-## Requirements
+Every application that displays a trip's markers SHALL offer adding a place,
+editing one, and removing one.
+
+Each application SHALL present these in the form native to it and SHALL NOT share
+rendered markup with the other. What is shared is the behaviour that validates and
+writes them, which SHALL remain a single implementation usable from either
+platform.
+
+An application SHALL NOT be the only place a capability of this specification can
+be exercised. Either application SHALL be sufficient on its own: a person SHALL be
+able to plan an entire trip from one of them and never open the other.
+
+Rationale: this replaces the requirement that capture was offered by the web
+application only, and it is deliberately stated as the positive rule rather than
+left as an absence. The earlier asymmetry was the whole reason a second platform
+was ever "a fraction of the work"; removing it means each application is a full
+client, and a rule that says so is what stops the next change quietly reintroducing
+a laptop-only capability.
+
+#### Scenario: Adding a place on either platform
+
+- **WHEN** a person opens a trip on either application
+- **THEN** they are offered both ways of adding a place
+- **AND** both lead to a form capturing the same fields
+
+#### Scenario: Editing and removing on either platform
+
+- **WHEN** a person opens a marker on either application
+- **THEN** they are offered a way to edit it and a way to remove it
+
+#### Scenario: A place saved on one platform is seen on the other
+
+- **WHEN** a person saves a place on one application and the trip is opened on the other
+- **THEN** the place is present
+- **AND** it is indistinguishable from one saved on that platform
+
+#### Scenario: One application is never opened
+
+- **WHEN** a person uses only one of the applications for an entire trip
+- **THEN** no capability of this specification is unavailable to them
+
+## MODIFIED Requirements
+
 ### Requirement: A place can be added by searching or by pointing at the map
 
 The system SHALL provide two ways to begin adding a place: choosing a candidate
@@ -119,47 +158,6 @@ position is placed wherever a finger or cursor landed.
 - **THEN** they can correct the position before saving
 - **AND** no separate correction step is needed afterwards
 
-### Requirement: Saving a place captures its name, note, city, type, link, and price
-
-One form SHALL capture a place's name, note, city, type, link, and price, and the
-same form SHALL be used when editing an existing marker.
-
-A name and a position SHALL be required. Every other field SHALL be optional, and
-an optional field left blank SHALL be recorded as absent rather than as empty
-text.
-
-When a submission is rejected, the system SHALL name the offending field and SHALL
-preserve everything the person typed. A rejection SHALL NOT discard the unsaved
-marker or its position.
-
-On success the saved place SHALL appear among the trip's markers without the
-person having to reload or navigate away.
-
-#### Scenario: Saving with only the required fields
-
-- **WHEN** a person saves a place with a name and a position and nothing else
-- **THEN** it is stored
-- **AND** it appears among the trip's markers
-
-#### Scenario: Optional fields left blank
-
-- **WHEN** a person saves a place leaving the note, link, and price blank
-- **THEN** those fields are recorded as absent
-- **AND** they are not recorded as empty text
-
-#### Scenario: A submission is rejected
-
-- **WHEN** a person saves a place with no name
-- **THEN** the submission is rejected
-- **AND** the rejection names the name field
-- **AND** the other values they typed and the marker's position are preserved
-
-#### Scenario: A place is saved successfully
-
-- **WHEN** saving succeeds
-- **THEN** the place is drawn on the map as an ordinary marker
-- **AND** the person is not made to reload the trip to see it
-
 ### Requirement: A place is filed under a city chosen as it is saved
 
 The form SHALL offer the trip's existing cities and SHALL default to the city the
@@ -209,40 +207,6 @@ rather than being hidden until it is filed.
 - **THEN** they can save it unassigned
 - **AND** they can create the trip's first city without leaving the form
 
-### Requirement: A city can be renamed, given a currency, and removed
-
-Any member of a trip SHALL be able to change a city's name and its currency after
-it has been created, and SHALL be able to remove a city.
-
-A city created while saving a place is created with whatever was known at that
-moment, which is frequently just a name. Without a way to change it afterwards, a
-city typed in a hurry is permanent, and a currency not chosen at creation can
-never be chosen at all.
-
-Changing a city's currency SHALL NOT alter any stored price amount. Removing a
-city SHALL leave its markers in place, unassigned, and SHALL NOT remove them.
-Removal SHALL require an explicit confirmation naming how many markers it will
-unassign, because the consequence falls on records the person is not looking at.
-
-#### Scenario: A city is renamed
-
-- **WHEN** a member changes a city's name
-- **THEN** the new name is shown wherever that city appears
-- **AND** the markers filed under it stay filed under it
-
-#### Scenario: A currency is set after the fact
-
-- **WHEN** a member sets a currency on a city that had none
-- **THEN** the prices of the markers filed under it are presented in that currency
-- **AND** no stored amount is changed
-
-#### Scenario: A city is removed
-
-- **WHEN** a member confirms removing a city that holds markers
-- **THEN** the confirmation states how many markers will become unassigned
-- **AND** those markers remain among the trip's markers afterwards
-- **AND** they are grouped as unassigned
-
 ### Requirement: A marker can be edited and removed by any member of the trip
 
 Any member of a trip SHALL be able to edit and to remove any of that trip's
@@ -283,113 +247,21 @@ rejected and the later write wins. That was superseded by "A save based on a sta
 read is refused" below and left behind, so the two requirements contradicted each
 other. It is corrected here to agree.
 
-### Requirement: A marker records when it was last changed
+## REMOVED Requirements
 
-Every marker SHALL carry the time it was last modified, and that value SHALL be maintained
-where the data is stored rather than supplied by whoever writes.
+### Requirement: Capture is offered by the web application only
 
-Rationale: a value a caller supplies is a value a caller can forget, reuse or fabricate,
-and the guarantee below is only worth having if it holds for every writer rather than for
-the ones that remembered. It is the same reasoning that puts row-level security in the
-database rather than in the interface.
+**Reason**: Reversed deliberately. The asymmetry was justified on the grounds that
+planning happens at a laptop and a second capture surface would cost as much as
+the first. The first half was never tested — whether somebody standing outside a
+place will type into a phone is exactly what the first trip settles, and the
+capability has to exist before the trip in order to find out. The second half was
+tested by the mobile interest change and came back cheaper than claimed: not one
+file under `packages/` changed, which is what the deleted requirement's own second
+half promised would happen.
 
-#### Scenario: A marker is changed
-
-- **WHEN** any field of a marker is modified
-- **THEN** its last-changed time is updated
-- **AND** the writer does not have to supply it
-
-#### Scenario: A marker is read
-
-- **WHEN** a marker is read
-- **THEN** its last-changed time is part of what is returned
-
-### Requirement: A save based on a stale read is refused
-
-A request to modify a marker SHALL state the last-changed time the edit was based on. If
-the marker has been modified since, the system SHALL refuse the write and SHALL NOT apply
-any part of it.
-
-The refusal SHALL be reported distinctly from a validation failure and from a permission
-refusal, because the three call for different things from the person: correct what you
-typed, you may not do this, and somebody else changed this while you were working.
-
-What was entered SHALL be preserved when a save is refused this way. The person has typed
-something they still want, and losing it would make the safeguard more expensive than the
-problem it prevents.
-
-The system SHALL NOT merge the two versions, and SHALL NOT choose between them. Which
-version is right is a question about a trip, and answering it automatically would replace
-a visible disagreement with an invisible one.
-
-Rationale: two people editing the same place at once is ordinary for a product built for
-travellers planning together. Without this, the later save wins silently — the person
-whose work vanished never learns, and the person who overwrote it never knows they did.
-
-#### Scenario: Two members edit the same marker
-
-- **WHEN** two members read the same marker, and one saves a change
-- **AND** the other then saves a change based on what they read before
-- **THEN** the second save is refused
-- **AND** the first member's change remains
-
-#### Scenario: A refused save keeps what was typed
-
-- **WHEN** a save is refused because the marker changed underneath it
-- **THEN** the person is told that somebody else changed the place
-- **AND** what they entered is still there
-
-#### Scenario: An ordinary edit is unaffected
-
-- **WHEN** a member saves a change to a marker nobody else has touched since they read it
-- **THEN** the save is applied
-
-#### Scenario: A conflict is not a validation error
-
-- **WHEN** a save is refused because the marker changed underneath it
-- **THEN** the report distinguishes it from a field being invalid
-- **AND** from the write being refused by policy
-
-### Requirement: Both applications offer capture
-
-Every application that displays a trip's markers SHALL offer adding a place,
-editing one, and removing one.
-
-Each application SHALL present these in the form native to it and SHALL NOT share
-rendered markup with the other. What is shared is the behaviour that validates and
-writes them, which SHALL remain a single implementation usable from either
-platform.
-
-An application SHALL NOT be the only place a capability of this specification can
-be exercised. Either application SHALL be sufficient on its own: a person SHALL be
-able to plan an entire trip from one of them and never open the other.
-
-Rationale: this replaces the requirement that capture was offered by the web
-application only, and it is deliberately stated as the positive rule rather than
-left as an absence. The earlier asymmetry was the whole reason a second platform
-was ever "a fraction of the work"; removing it means each application is a full
-client, and a rule that says so is what stops the next change quietly reintroducing
-a laptop-only capability.
-
-#### Scenario: Adding a place on either platform
-
-- **WHEN** a person opens a trip on either application
-- **THEN** they are offered both ways of adding a place
-- **AND** both lead to a form capturing the same fields
-
-#### Scenario: Editing and removing on either platform
-
-- **WHEN** a person opens a marker on either application
-- **THEN** they are offered a way to edit it and a way to remove it
-
-#### Scenario: A place saved on one platform is seen on the other
-
-- **WHEN** a person saves a place on one application and the trip is opened on the other
-- **THEN** the place is present
-- **AND** it is indistinguishable from one saved on that platform
-
-#### Scenario: One application is never opened
-
-- **WHEN** a person uses only one of the applications for an entire trip
-- **THEN** no capability of this specification is unavailable to them
-
+**Migration**: Replaced by "Both applications offer capture", added above, which
+states the parity rule positively rather than leaving it as an absence. The
+deleted requirement's insistence that the restriction be a property of the
+applications rather than of the shared code is carried forward there, and is what
+made this deletion a change to one application rather than a reimplementation.
