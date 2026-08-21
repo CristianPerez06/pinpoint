@@ -37,14 +37,6 @@
   box-shadow: 0 0 0 3px var(--pp-accent-ring);
 }
 
-.trip {
-  padding-left: var(--pp-space-md);
-  border-left: 1px solid var(--pp-line);
-  color: var(--pp-ink-muted);
-  font-size: var(--pp-type-note-size);
-  white-space: nowrap;
-}
-
 .signOutForm {
   margin-left: auto;
 }

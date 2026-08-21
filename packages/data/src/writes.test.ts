@@ -2,6 +2,7 @@ import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCity, updateCity } from './cities'
+import { inviteMember, MEMBER_DUPLICATE_MESSAGE } from './interest'
 import { createMarker, deleteMarker, updateMarker } from './markers'
 
 /**
@@ -359,5 +360,87 @@ describe('updateCity', () => {
     await updateCity(client, CITY_ID, { tripId: MARKER_ID, name: 'Osaka' })
 
     expect(calls.update).toHaveBeenCalledWith({ name: 'Osaka' })
+  })
+})
+
+const MEMBER_ROW = {
+  id: '44444444-4444-4444-8444-444444444444',
+  trip_id: '22222222-2222-4222-8222-222222222222',
+  display_name: 'Julieta',
+  email: 'julieta@example.com',
+  user_id: null,
+  created_at: '2026-08-21T00:00:00.000Z',
+}
+
+describe('inviteMember', () => {
+  it('adds a member with no account attached', async () => {
+    const { client, calls } = stubClient({ data: MEMBER_ROW })
+
+    const outcome = await inviteMember(client, {
+      tripId: MEMBER_ROW.trip_id,
+      displayName: 'Julieta',
+      email: 'julieta@example.com',
+    })
+
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) throw new Error('unreachable')
+    // `user_id` null is the invitation. Nothing is sent, and nothing is
+    // pending anywhere else — the address is the whole mechanism, and
+    // `claim_trip_memberships()` links it at the next sign-in.
+    expect(outcome.data.userId).toBeNull()
+    expect(calls.insert).toHaveBeenCalledWith({
+      trip_id: MEMBER_ROW.trip_id,
+      display_name: 'Julieta',
+      email: 'julieta@example.com',
+    })
+  })
+
+  it('rejects an address that is not one', async () => {
+    const { client, calls } = stubClient({ data: MEMBER_ROW })
+
+    const outcome = await inviteMember(client, {
+      tripId: MEMBER_ROW.trip_id,
+      displayName: 'Julieta',
+      email: 'not-an-address',
+    })
+
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) throw new Error('unreachable')
+    expect(outcome.kind).toBe('invalid-input')
+    expect(calls.insert).not.toHaveBeenCalled()
+  })
+
+  it('names the email field when the address is already on the trip', async () => {
+    // 23505 is the unique index on (trip_id, lower(email)). Matched on the
+    // code, never on the message: a string is not a contract.
+    const { client } = stubClient({ error: { code: '23505', message: 'dup' } })
+
+    const outcome = await inviteMember(client, {
+      tripId: MEMBER_ROW.trip_id,
+      displayName: 'Julieta',
+      email: 'julieta@example.com',
+    })
+
+    expect(outcome).toEqual({
+      ok: false,
+      kind: 'invalid-input',
+      fieldErrors: { email: MEMBER_DUPLICATE_MESSAGE },
+    })
+  })
+
+  it('reports any other refusal as a message, not as a field error', async () => {
+    // What a non-member attempting to invite looks like from here: the insert
+    // policy refuses it, and that is not something to mark a field up about.
+    const { client } = stubClient({ error: { code: '42501', message: 'denied' } })
+
+    const outcome = await inviteMember(client, {
+      tripId: MEMBER_ROW.trip_id,
+      displayName: 'Julieta',
+      email: 'julieta@example.com',
+    })
+
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) throw new Error('unreachable')
+    expect(outcome.kind).toBe('rejected')
   })
 })

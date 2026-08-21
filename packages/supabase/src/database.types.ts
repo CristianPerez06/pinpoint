@@ -232,6 +232,10 @@ export type Database = {
     }
     Functions: {
       claim_trip_memberships: { Args: never; Returns: number }
+      create_trip: {
+        Args: { member_name: string; trip_name: string }
+        Returns: string
+      }
       is_member_of_marker_trip: {
         Args: { target_marker: string }
         Returns: boolean

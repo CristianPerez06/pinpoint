@@ -9,11 +9,8 @@ import {
 import { Suspense } from 'react'
 
 import { signOutAction } from '@/app/_actions/auth'
-import {
-  EmptyState,
-  FailedState,
-  LoadingState,
-} from '@/app/_components/states'
+import { FailedState, LoadingState } from '@/app/_components/states'
+import { TripSetup } from '@/app/_components/trip-setup'
 import { TripWorkspace } from '@/app/_components/trip-workspace'
 import { requireUserId } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
@@ -31,19 +28,29 @@ import styles from './page.module.css'
  * account is a member of, and the markers and cities of a trip it may see. If
  * that were wrong, a filter here would hide it rather than fix it.
  *
- * "The current trip" is the first one, because there is one. Choosing between
- * trips is a later change, and building a chooser for a list of length one
- * would be building the wrong thing early.
+ * Which trip is being looked at comes from the URL, beside the selected city, so
+ * it survives a reload and can be linked. An absent or unrecognised `trip`
+ * parameter falls back to the first — unrecognised covers both a stale link and
+ * a trip this account is no longer on, and neither should be an error page.
+ *
+ * There is no membership check on the fallback. The list came from the database
+ * having already applied it, so a trip that is in `trips.data` is one this
+ * account may see, by construction rather than by a second opinion.
  *
  * Everything is read on the server and handed down once. From that point the
  * workspace owns it, because a place saved from the browser has to appear
  * without re-reading the trip to find the one row that changed.
  */
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const userId = await requireUserId()
 
   const supabase = await createClient()
   const trips = await fetchTrips(supabase)
+  const requestedTripId = (await searchParams).trip
 
   if (trips.status === 'failed') {
     return (
@@ -55,17 +62,20 @@ export default async function Home() {
     )
   }
 
+  // No longer a dead end: this is where a first trip is made, and where
+  // somebody who expected to be on one is told what to check.
   if (trips.status === 'empty') {
     return (
       <Shell>
         <Centred>
-          <EmptyState>You are not on any trips yet.</EmptyState>
+          <TripSetup />
         </Centred>
       </Shell>
     )
   }
 
-  const trip = trips.data[0]!
+  const trip =
+    trips.data.find((each) => each.id === requestedTripId) ?? trips.data[0]!
 
   // Independent reads, so they wait on each other only for as long as the slower
   // one takes.
@@ -98,10 +108,23 @@ export default async function Home() {
    * person reads before the words.
    */
   return (
-    <Shell title={trip.name}>
+    <Shell>
       <Suspense fallback={<Centred><LoadingState /></Centred>}>
         <TripWorkspace
+          /*
+            Keyed by the trip, so changing trips remounts rather than re-renders.
+
+            The workspace seeds its client state from these props once, on mount
+            — markers, cities, interest, members. Without a key, navigating to
+            another trip would hand it new props that no state initialiser ever
+            reads again, and it would go on showing the previous trip's places
+            under the new trip's name. The filter goes with it, which is what the
+            specification asks for: a filter naming the old trip's members
+            matches nothing in the new one, for a reason nobody could see.
+          */
+          key={trip.id}
           trip={trip}
+          trips={trips.data}
           initialMarkers={markers.status === 'ready' ? markers.data : []}
           initialCities={cities.status === 'ready' ? cities.data : []}
           members={memberList}
@@ -120,8 +143,14 @@ export default async function Home() {
   )
 }
 
-/** The frame around whatever state the page is in. Web's own idiom, shared values. */
-function Shell({ title, children }: { title?: string; children: React.ReactNode }) {
+/**
+ * The frame around whatever state the page is in. Web's own idiom, shared values.
+ *
+ * It no longer names the trip. The name is a control now — it can be renamed and
+ * it can be switched — and this is a server component that cannot follow either.
+ * The workspace shows it, beside the things that change it.
+ */
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className={styles.shell}>
       <header className={styles.header}>
@@ -129,7 +158,6 @@ function Shell({ title, children }: { title?: string; children: React.ReactNode 
           <span className={styles.dot} aria-hidden />
           pinpoint
         </span>
-        {title ? <span className={styles.trip}>{title}</span> : null}
         <form action={signOutAction} className={styles.signOutForm}>
           <button type="submit" className={styles.signOut}>
             Sign out

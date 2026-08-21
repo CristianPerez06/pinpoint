@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { newTripSchema, tripSchema } from './trip'
+import { newTripSchema, tripPatchSchema, tripSchema } from './trip'
 
 const VALID = {
   id: '00000000-0000-4000-8000-000000000000',
@@ -30,11 +30,65 @@ describe('tripSchema', () => {
 })
 
 describe('newTripSchema', () => {
-  it('needs only a name', () => {
-    expect(newTripSchema.safeParse({ name: 'Japan 2026' }).success).toBe(true)
+  it('needs a trip name and a name for the creator', () => {
+    expect(
+      newTripSchema.safeParse({ name: 'Japan 2026', displayName: 'Cristian' })
+        .success,
+    ).toBe(true)
+  })
+
+  /*
+   * This used to pass with only a name, and no longer does.
+   *
+   * A trip cannot exist without a member, so creating one always creates a
+   * membership too — and that membership needs a name somebody chose. Accepting
+   * a trip name alone would mean the database had to invent the other, which is
+   * how a member list ends up reading `cristian.ap84`.
+   */
+  it('rejects a trip name with no name for the creator', () => {
+    expect(newTripSchema.safeParse({ name: 'Japan 2026' }).success).toBe(false)
   })
 
   it('still enforces the name rules', () => {
-    expect(newTripSchema.safeParse({ name: '' }).success).toBe(false)
+    expect(
+      newTripSchema.safeParse({ name: '', displayName: 'Cristian' }).success,
+    ).toBe(false)
+  })
+
+  it('enforces the member name rules the member schema defines', () => {
+    expect(
+      newTripSchema.safeParse({ name: 'Japan 2026', displayName: '' }).success,
+    ).toBe(false)
+    expect(
+      newTripSchema.safeParse({
+        name: 'Japan 2026',
+        displayName: 'x'.repeat(61),
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('tripPatchSchema', () => {
+  it('accepts a rename', () => {
+    expect(tripPatchSchema.safeParse({ name: 'Japan 2027' }).success).toBe(true)
+  })
+
+  it('accepts an empty patch', () => {
+    expect(tripPatchSchema.safeParse({}).success).toBe(true)
+  })
+
+  it('still enforces the name rules', () => {
+    expect(tripPatchSchema.safeParse({ name: '' }).success).toBe(false)
+  })
+
+  /*
+   * `archived` is modelled on a trip and deliberately not writable. Archiving is
+   * the answer to "delete a trip" and is its own change; accepting it here would
+   * offer a capability nothing can currently reach.
+   */
+  it('ignores archived', () => {
+    const parsed = tripPatchSchema.safeParse({ archived: true })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && 'archived' in parsed.data).toBe(false)
   })
 })

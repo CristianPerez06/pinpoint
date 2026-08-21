@@ -1,13 +1,19 @@
 import {
   type MarkerInterest,
   newMarkerInterestSchema,
+  newTripMemberSchema,
   type TripMember,
 } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
 
 import { failed, readyOrEmpty, type SettledQueryState } from './query-state'
 import { validate } from './validate'
-import { rejected, type WriteOutcome, wrote } from './write-outcome'
+import {
+  invalidInput,
+  rejected,
+  type WriteOutcome,
+  wrote,
+} from './write-outcome'
 
 /**
  * Reading and writing who wants to go where.
@@ -94,6 +100,70 @@ export async function fetchTripMembers(
       createdAt: row.created_at,
     })),
   )
+}
+
+export const MEMBER_INVITE_FAILED_MESSAGE = 'Could not add that person.'
+export const MEMBER_DUPLICATE_MESSAGE =
+  'Somebody with that email address is already on this trip.'
+
+/**
+ * Add somebody to a trip.
+ *
+ * An invitation is one row and nothing else. No token, no expiry, no invitation
+ * table, and nothing sent: `user_id` stays null and
+ * `claim_trip_memberships()` links the row on that person's next successful
+ * authentication — not only at sign-up, so being invited long after signing up
+ * works with no branch. The address is the whole mechanism.
+ *
+ * The consequence is that delivery is out of band, and a mistyped address
+ * produces an invitation nobody can claim while both screens look correct. The
+ * database cannot prevent that; what the applications do about it is show which
+ * members have not joined yet, and at what address, so the one person who can
+ * fix it is looking at it.
+ *
+ * A duplicate address on one trip is refused by a unique index rather than by a
+ * check here. Reading first and inserting second would leave the window the
+ * index exists to close, and it is the same reasoning that puts the stale-read
+ * check in the update statement rather than before it.
+ */
+export async function inviteMember(
+  client: PinpointClient,
+  input: unknown,
+): Promise<WriteOutcome<TripMember>> {
+  const validated = validate(newTripMemberSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { data, error } = await client
+    .from('trip_members')
+    .insert({
+      trip_id: validated.data.tripId,
+      display_name: validated.data.displayName,
+      email: validated.data.email,
+    })
+    .select('id, trip_id, display_name, email, user_id, created_at')
+    .single()
+
+  if (error) {
+    // 23505 is a unique violation, which here can only be the one index on
+    // (trip_id, lower(email)). Matched on the code rather than on the message
+    // for the reason `conflict` is its own outcome: a string is not a contract
+    // and the first reword breaks the branch in silence.
+    if (error.code === '23505') {
+      return invalidInput({ email: MEMBER_DUPLICATE_MESSAGE })
+    }
+    return rejected(MEMBER_INVITE_FAILED_MESSAGE)
+  }
+
+  if (!data) return rejected(MEMBER_INVITE_FAILED_MESSAGE)
+
+  return wrote({
+    id: data.id,
+    tripId: data.trip_id,
+    displayName: data.display_name,
+    email: data.email,
+    userId: data.user_id,
+    createdAt: data.created_at,
+  })
 }
 
 /**

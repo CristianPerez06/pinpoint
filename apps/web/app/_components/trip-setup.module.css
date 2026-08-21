@@ -1,0 +1,42 @@
+.setup {
+  display: grid;
+  gap: var(--pp-space-md);
+  width: min(420px, 100%);
+  padding: var(--pp-space-xl);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-md);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--pp-type-display-size);
+  font-weight: var(--pp-type-display-weight);
+  letter-spacing: var(--pp-type-display-tracking);
+  color: var(--pp-ink);
+}
+
+.lead {
+  margin: 0;
+  font-size: var(--pp-type-body-size);
+  line-height: var(--pp-type-body-leading);
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * The other reason somebody is on this screen.
+ *
+ * Separated by a rule rather than by spacing alone: it is addressed to a
+ * different person than everything above it — somebody who does not want to
+ * create anything and is trying to work out why what they were promised is not
+ * here.
+ */
+.note {
+  margin: 0;
+  padding-top: var(--pp-space-md);
+  border-top: 1px solid var(--pp-line);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  color: var(--pp-ink-muted);
+}
