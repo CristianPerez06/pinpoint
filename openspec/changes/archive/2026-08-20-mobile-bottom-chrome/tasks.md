@@ -43,25 +43,25 @@
 
 Every task here means holding a phone. None is satisfied by reading the diff.
 
-- [ ] 5.1 The header holds the dot, the trip name and `☰`, and nothing else. On the
+- [x] 5.1 The header holds the dot, the trip name and `☰`, and nothing else. On the
       narrowest device available, a long trip name truncates rather than pushing
       `☰` off the edge.
-- [ ] 5.2 `☰` opens the sheet, Sign out works from it, and the backdrop dismisses.
-- [ ] 5.3 The bar sits above the home indicator, not under it, reads as a surface
+- [x] 5.2 `☰` opens the sheet, Sign out works from it, and the backdrop dismisses.
+- [x] 5.3 The bar sits above the home indicator, not under it, reads as a surface
       rather than as floating controls, and both controls are comfortably reachable
       with one thumb.
-- [ ] 5.4 Apply a filter from the row. `Clear` goes live, nothing moves, and the
+- [x] 5.4 Apply a filter from the row. `Clear` goes live, nothing moves, and the
       map narrows — the rule survived the move.
-- [ ] 5.5 **The credits, both states.** With no marker selected, the bar is flush
+- [x] 5.5 **The credits, both states.** With no marker selected, the bar is flush
       to the screen edge, MapLibre's wordmark and info button sit above it, and our
       OpenMapTiles credit above those — four things at one edge, none covering
       another. With a marker selected, the same holds against the sheet. This is a
       licence condition, so look at it rather than reasoning about the offsets.
-- [ ] 5.6 Select a marker with a filter applied. The row disappears, nothing peeks
+- [x] 5.6 Select a marker with a filter applied. The row disappears, nothing peeks
       out behind the sheet's rounded corners, and dismissing the sheet brings back
       both the filter control and a live `Clear`.
-- [ ] 5.7 Both themes. Light and dark are separate designs here, and a change that
+- [x] 5.7 Both themes. Light and dark are separate designs here, and a change that
       only looks right on one is a defect this repo has shipped before.
-- [ ] 5.8 With a filter applied that matches nothing, the map still says so and
+- [x] 5.8 With a filter applied that matches nothing, the map still says so and
       still offers a way out — the zero-match note is a different requirement from
       the row and is not replaced by it.

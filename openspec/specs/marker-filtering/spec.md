@@ -160,6 +160,18 @@ already in force elsewhere — a visited marker is drawn as visited without chan
 colour — because a signal that survives only in hue does not survive a greyscale
 display, a colour-blind reader, or a screen reader.
 
+An interface MAY conceal the narrowing controls while something else occupies their
+place — a sheet describing a selected marker, for instance. Where it does, the
+declaration and the way out SHALL be concealed together, and either SHALL become
+available again by dismissing whatever concealed them.
+
+Rationale: hiding both is honest, because nothing is then claiming that a narrowed
+trip is a whole one. Hiding only the way out would leave somebody able to see that
+places are missing with no means of getting them back, which is the failure this
+requirement exists to prevent, arriving by a route the wording did not cover. The
+permanence required above is permanence within the controls, not a claim that the
+controls are always on screen.
+
 When a filter matches no markers, the system SHALL say that nothing matches the filter,
 and SHALL NOT present it as a trip with no markers. This SHALL remain true wherever the
 absence is visible, including in place of the markers themselves, which is a different
@@ -188,6 +200,13 @@ in a way the first is not.
 - **WHEN** a filter is applied
 - **AND** the interface is read without colour
 - **THEN** the fact that the view is narrowed is still conveyed
+
+#### Scenario: The narrowing controls are covered by something else
+
+- **WHEN** a filter is applied
+- **AND** a sheet describing a selected marker takes the place of the narrowing controls
+- **THEN** neither the declaration nor the way out is shown
+- **AND** dismissing the sheet restores both
 
 #### Scenario: A filter matches nothing
 
