@@ -13,7 +13,7 @@ import {
   type Viewport,
 } from '@pinpoint/map'
 import { RADIUS, SPACE } from '@pinpoint/tokens'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -83,6 +83,11 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
  * the wordmark and both become hard to read. Lifting ours is deliberate rather
  * than turning theirs off: hiding another project's branding to fix our own
  * layout is not a trade this change gets to make.
+ *
+ * Their ornaments are now positioned explicitly rather than left where the
+ * renderer puts them, because the bar of controls holds the bottom edge and
+ * anything left down there would end up underneath it. Moving somebody's credit
+ * is fine; covering it is the thing this constant exists to refuse.
  */
 const ORNAMENT_CLEARANCE = 28
 
@@ -97,6 +102,23 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   attributionText: { fontSize: 10 },
+  /*
+   * A surface, not floating controls.
+   *
+   * Two pills over open map read as debris rather than as chrome — visible on
+   * a phone in a way no amount of reasoning about it predicted. A bar guarantees
+   * legibility over whatever the map happens to be drawing underneath, frames
+   * the map with the same edge the header gives it at the top, and is the
+   * surface search and a drop control land on rather than inventing a container
+   * for themselves.
+   */
+  bottomRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 1,
+  },
   failure: {
     flex: 1,
     alignItems: 'center',
@@ -117,6 +139,7 @@ export function TripMap({
   onRecordInterest,
   onWithdrawInterest,
   onSetVisited,
+  bottomRow,
 }: {
   /**
    * Already narrowed by the filter. The map draws what it is given and knows
@@ -132,6 +155,16 @@ export function TripMap({
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
   onSetVisited: (marker: Marker, visited: boolean) => void
+  /**
+   * The trip's controls, drawn over the bottom of the map when nothing is
+   * selected.
+   *
+   * Handed in rather than built here: what is in the row is the workspace's
+   * business, and where it sits is this component's, because this is where the
+   * bottom edge is already negotiated between a sheet that rises from it and a
+   * credit that must stay legible above both.
+   */
+  bottomRow: ReactNode
 }) {
   /**
    * What is open, said in identities rather than in positions.
@@ -183,6 +216,9 @@ export function TripMap({
    */
   const [sheetHeight, setSheetHeight] = useState(0)
 
+  /** How tall the bar of controls is, for the same reason and by the same means. */
+  const [barHeight, setBarHeight] = useState(0)
+
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
 
   /**
@@ -202,6 +238,20 @@ export function TripMap({
     const index = group.markers.findIndex((marker) => marker.id === open.markerId)
     return index === -1 ? null : { group, index }
   }, [open, groups])
+
+  /**
+   * Whatever is currently sitting on the bottom edge, and so how far everything
+   * else at that edge has to rise.
+   *
+   * The bar goes flush to the bottom of the screen, which makes it the floor
+   * rather than another tenant: MapLibre's own ornaments sit above it, and our
+   * credit above those. One expression covers both cases — a bar when nothing is
+   * selected, a sheet when something is — instead of two offsets that have to be
+   * kept in agreement with each other.
+   *
+   * Never a sum, because the bar is not drawn while a sheet is open.
+   */
+  const lift = selection ? sheetHeight : barHeight
   const camera = useMemo(
     () => (viewport ? fitBounds([...markers], { viewport }) : null),
     // Deliberately not depending on `markers`: the frame is decided by the
@@ -246,6 +296,13 @@ export function TripMap({
           // until it is pressed. It stays on because it opens the full notice,
           // but the visible credit below is what satisfies the licence.
           attribution
+          // Their branding rises with ours. Leaving it at the bottom would put
+          // the bar on top of another project's credit, which is the same trade
+          // ORNAMENT_CLEARANCE exists to refuse — moving it is fine, covering
+          // it is not.
+          attributionPosition={{ bottom: lift + SPACE.sm, right: SPACE.sm }}
+          logo
+          logoPosition={{ bottom: lift + SPACE.sm, left: SPACE.sm }}
           //
           // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
           // annotation carries its own tap recogniser (MLRNPointAnnotation
@@ -304,11 +361,11 @@ export function TripMap({
           {
             backgroundColor: theme.colour.surface,
             opacity: 0.85,
-            // An open sheet already carries the bottom inset in its own
-            // padding, so adding it again here would float the credit.
-            bottom: selection
-              ? sheetHeight + SPACE.sm
-              : SPACE.sm + insets.bottom + ORNAMENT_CLEARANCE,
+            // Above MapLibre's ornaments, which are themselves above whatever
+            // holds the floor. Both the bar and the sheet carry the bottom
+            // inset in their own padding, so adding it again here would float
+            // the credit.
+            bottom: lift + SPACE.sm + ORNAMENT_CLEARANCE,
           },
         ]}
         pointerEvents="none"
@@ -317,6 +374,32 @@ export function TripMap({
           {ATTRIBUTION}
         </Text>
       </View>
+
+      {/*
+        Not rendered while a marker is selected, rather than rendered and
+        hidden: the sheet has rounded top corners, and a row behind them would
+        show through at the edges. Reading a place is not narrowing a trip, so
+        nothing useful is lost — and dismissing the sheet brings the row back,
+        which is what keeps the declaration and the way out concealed together
+        rather than one without the other.
+      */}
+      {selection === null ? (
+        <View
+          onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}
+          style={[
+            styles.bottomRow,
+            {
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.line,
+              // Flush to the bottom of the screen, carrying the inset in its own
+              // padding so its contents clear the home indicator.
+              paddingBottom: insets.bottom,
+            },
+          ]}
+        >
+          {bottomRow}
+        </View>
+      ) : null}
 
       {selection ? (
         <MarkerDetails

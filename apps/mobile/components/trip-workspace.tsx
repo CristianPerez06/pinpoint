@@ -19,11 +19,12 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { FilterSheet } from '@/components/filter-sheet'
+import { MenuSheet } from '@/components/menu-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { FailedState, LoadingState } from '@/components/states'
 import { TripMap } from '@/components/trip-map'
@@ -96,6 +97,7 @@ export function TripWorkspace({
   )
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
   const members: readonly TripMember[] =
@@ -248,79 +250,32 @@ export function TripWorkspace({
           { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
         ]}
       >
-        {/* The mark is a pin reduced to the point it names, in the one colour
-            that is not a marker family. */}
+        {/*
+          What is rare, and one thing that is not a control.
+
+          The wordmark is gone: inside the pinpoint application it says nothing
+          the reader does not know, and the dot beside it is already the mark —
+          a pin reduced to the point it names, in the one colour that is not a
+          marker family. The trip name says which trip, which becomes a real
+          question the moment more than one can exist.
+
+          Being out of a thumb's reach up here is correct rather than wasteful.
+          Nobody wants Sign out under their thumb; the controls that are touched
+          while planning are in the row at the bottom.
+        */}
         <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-        <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
-        <Text style={[styles.tripName, { color: theme.colour.inkMuted }]}>
+        <Text style={[styles.tripName, { color: theme.colour.ink }]} numberOfLines={1}>
           {trip.name}
         </Text>
 
-        {/*
-          The declaration, and the way out, in one control.
-
-          Always in the row, so applying a filter never rearranges the header
-          that applied it. Live only while something is hidden — which is what
-          says a filter is on, because the choice itself is inside a sheet and
-          invisible the moment it closes.
-
-          Inert rather than absent, and inert through `accessibilityState`
-          rather than `disabled`, so a screen reader still reaches it and is
-          told which state it is in. A signal carried only in colour is no
-          signal to a reader who cannot see it.
-        */}
         <Pressable
-          onPress={() => {
-            if (narrowed) setFilter(NO_FILTER)
-          }}
+          onPress={() => setMenuOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel="Clear the filter"
-          accessibilityState={{ disabled: !narrowed }}
+          accessibilityLabel="Menu"
           hitSlop={8}
           style={{ marginLeft: 'auto' }}
         >
-          <Text
-            style={[
-              narrowed ? styles.clearText : styles.clearTextInert,
-              { color: narrowed ? theme.colour.accentInk : theme.colour.inkFaint },
-            ]}
-          >
-            Clear
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setFilterOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Filter this trip"
-          hitSlop={6}
-          style={[
-            styles.filter,
-            {
-              borderColor: narrowed ? theme.colour.accent : theme.colour.lineStrong,
-              backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              { color: narrowed ? theme.colour.accentInk : theme.colour.ink },
-            ]}
-            numberOfLines={1}
-          >
-            Filter
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => void signOut(supabase)}
-          accessibilityRole="button"
-          hitSlop={8}
-        >
-          <Text style={[styles.signOutText, { color: theme.colour.inkMuted }]}>
-            Sign out
-          </Text>
+          <Text style={[styles.menuGlyph, { color: theme.colour.ink }]}>☰</Text>
         </Pressable>
       </View>
 
@@ -338,6 +293,76 @@ export function TripWorkspace({
           onWithdrawInterest={(marker) => void unanswer(marker)}
           onSetVisited={(marker, visited) => void markVisited(marker, visited)}
           onClearFilter={() => setFilter(NO_FILTER)}
+          /*
+            Handed to the map rather than rendered beside it, because the bottom
+            of the map is already choreographed — the attribution is a licence
+            condition with its own offset, and the marker sheet rises from the
+            same edge. The map decides where this sits and when it yields; this
+            component only decides what is in it.
+          */
+          bottomRow={
+            <View style={styles.bottomRow}>
+              <Pressable
+                onPress={() => setFilterOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Filter this trip"
+                hitSlop={6}
+                style={[
+                  styles.pill,
+                  {
+                    borderColor: narrowed
+                      ? theme.colour.accent
+                      : theme.colour.lineStrong,
+                    backgroundColor: narrowed
+                      ? theme.colour.accentWash
+                      : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    { color: narrowed ? theme.colour.accentInk : theme.colour.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Filter
+                </Text>
+              </Pressable>
+
+              {/*
+                The declaration, and the way out, in one control — unchanged by
+                the move. Permanent, live only while something is hidden, and
+                inert through `accessibilityState` rather than `disabled` so a
+                screen reader still reaches it and is told which state it is in.
+              */}
+              <Pressable
+                onPress={() => {
+                  if (narrowed) setFilter(NO_FILTER)
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear the filter"
+                accessibilityState={{ disabled: !narrowed }}
+                hitSlop={8}
+                style={[
+                  styles.pill,
+                  {
+                    borderColor: narrowed ? theme.colour.accent : 'transparent',
+                    backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    narrowed ? styles.clearText : styles.clearTextInert,
+                    { color: narrowed ? theme.colour.accentInk : theme.colour.inkFaint },
+                  ]}
+                >
+                  Clear
+                </Text>
+              </Pressable>
+            </View>
+          }
         />
 
         {/* A refused write, said out loud. Dismissible, because the state it
@@ -356,6 +381,13 @@ export function TripWorkspace({
         onClose={() => setFilterOpen(false)}
         members={members}
         ownMemberId={ownMemberId}
+      />
+
+      <MenuSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onSignOut={() => void signOut(supabase)}
+        tripName={trip.name}
       />
     </View>
   )
@@ -382,6 +414,7 @@ function Body({
   onWithdrawInterest,
   onSetVisited,
   onClearFilter,
+  bottomRow,
 }: {
   loading: boolean
   failed: string | null
@@ -395,6 +428,8 @@ function Body({
   onWithdrawInterest: (marker: Marker) => void
   onSetVisited: (marker: Marker, visited: boolean) => void
   onClearFilter: () => void
+  /** Handed on to the map, which owns the bottom edge. */
+  bottomRow: ReactNode
 }) {
   if (failed !== null && total === 0) return <FailedState message={failed} />
   if (loading) return <LoadingState />
@@ -402,6 +437,7 @@ function Body({
   return (
     <>
       <TripMap
+        bottomRow={bottomRow}
         markers={visible}
         currencyOf={currencyOf}
         members={members}
@@ -444,20 +480,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   dot: { width: 9, height: 9, borderRadius: 5 },
-  brand: { ...role(TYPE.title), fontWeight: '800', letterSpacing: -0.5 },
-  tripName: { ...role(TYPE.note), flexShrink: 1 },
-  filter: {
+  // Carries the prominence the wordmark used to, and stays the only element
+  // that yields, so a long name truncates instead of pushing the menu off.
+  tripName: { ...role(TYPE.title), flexShrink: 1 },
+  menuGlyph: { fontSize: 19, lineHeight: 22 },
+
+  /*
+   * The contents of the row a thumb reaches. The bar behind it belongs to the
+   * map, which owns this edge; this is only what stands on it.
+   */
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: 11,
+  },
+  pill: {
     borderWidth: 1,
     borderRadius: RADIUS.pill,
-    paddingVertical: 5,
-    paddingHorizontal: 11,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
     maxWidth: 150,
   },
   filterText: { ...role(TYPE.control) },
-  signOutText: { ...role(TYPE.control) },
-  // Two states of one control. They differ by weight as well as by colour, so
-  // the declaration survives a greyscale screen and a colour-blind reader —
-  // the same reason a visited marker is drawn visited without changing colour.
+  // Two states of one control. They differ by weight and by border as well as
+  // by colour, so the declaration survives a greyscale screen and a
+  // colour-blind reader — the same reason a visited marker is drawn visited
+  // without changing colour.
   clearText: { ...role(TYPE.control), fontWeight: '700' },
   clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
   body: { flex: 1 },

@@ -131,11 +131,38 @@ Two of those columns are the whole product:
   no log line and no failing test — so the only way to know the fix works was to
   make two browsers collide on purpose and watch. Budget for looking, again.
 
+- **The phone's controls come within reach** — the filter control and `Clear` move
+  off the top strip and into a bar across the bottom of the map; the header keeps
+  the dot, the trip name and a menu holding Sign out. No new capability. It is the
+  shell capture lands in, and it was sequenced first because capture needed
+  somewhere to land rather than because it was urgent on its own.
+
+  The header was nearly full at 375pt and capture needs roughly four hundred points
+  of new controls, so the arithmetic said the strip was the wrong answer rather than
+  a small one. The stronger argument was reach: every control sat where a thumb
+  cannot get one-handed, which is tolerable for a map you only look at and wrong
+  for the moment capture is built for.
+
+  An earlier plan deleted the header outright, on the grounds that it spent its
+  width on things nobody touches. That is only true while it competes with frequent
+  controls. Once those leave, what remains is exactly what should be hard to reach
+  by accident — nobody wants Sign out under a thumb. Rare at the top, frequent at
+  the bottom, and that split is the durable part.
+
+  Two corrections came from looking rather than from building, and both were about
+  somebody else's credit. The controls shipped first as pills floating over the map
+  and read as debris; they are a bar. And the bar had to become the *floor* — flush
+  to the screen edge, with MapLibre's ornaments and our own credit rising off it —
+  because both earlier attempts tried to fit it between things already living at
+  that edge, and both ended up on top of an attribution. A bar that stops short of
+  the edge is a wide pill with a gap under it, and the gap fills with whatever it
+  was clearing.
+
 ## Next
 
-Five items. The first three are the phone becoming a real client — its own chrome,
-then capture, then the same chrome on a web browser held in a hand. The fourth
-stands alone. The fifth is the only genuinely new design work.
+Four items. The first two are what remains of the phone becoming a real client —
+capture, then the same chrome on a web browser held in a hand. The third stands
+alone. The fourth is the only genuinely new design work.
 
 **On parity: the phone gets everything the laptop has.** Decided deliberately,
 reversing what this file said for the first four changes — that mobile would read
@@ -157,41 +184,11 @@ Sequenced rather than proposed as one change. A single proposal covering the who
 parity gap produces a task list nobody can review and a branch that cannot be
 tested until the end, which is the opposite of how the last four shipped.
 
-### 1. Mobile chrome — the bottom layout
+### 1. Mobile capture
 
-No new capability. The phone's controls move off the top strip and down to where a
-thumb reaches, so that the item below has somewhere to land.
-
-The header is a single row holding a dot, a wordmark, the trip name, the filter
-control and Sign out, and it is close to full at 375pt before anything is added.
-Capture needs a city selector, a search box and a drop-a-pin control — roughly
-four hundred points of new controls into fifty points of spare. No arrangement of
-one row survives that, so the shelf is the wrong answer rather than a small one.
-
-The stronger argument is not arithmetic. Every interactive control on the phone
-currently sits in the strip a thumb cannot reach one-handed. That was tolerable
-while the phone only *showed* a map — you look, you do not touch. Capture is the
-change that makes it wrong, because the moment it is built for is standing
-somewhere holding the phone in one hand.
-
-So: the top of the screen becomes map, a bar sits at the bottom, and a `☰` opens a
-sheet. The sheet holds Sign out and nothing else for now, which is the point — it
-is the place the account things go so they stop competing with the planning things
-for the row that matters.
-
-Two cheap reclamations come with it. The wordmark goes: inside the pinpoint app it
-says nothing, and the dot already is the mark. Sign out leaves the row for the
-sheet. Together that is a third of the strip, spent on things nobody touches while
-planning a trip.
-
-Not decided, and belongs to the change rather than to this file: what sits in the
-bar against what floats as a chip row above it, and where the trip name goes once
-there is no header to hold it.
-
-### 2. Mobile capture
-
-Search, drop, the marker form, cities. The largest of the three, and **moved to
-the front from last**, reversing what this file argued a change ago.
+Search, drop, the marker form, cities. The largest item on this list, and **moved
+to the front from last**, reversing what this file argued two changes ago. The
+chrome it lands in is built; this is the capability.
 
 The reason it was last was that its value is least certain: typing a note and a
 price into a phone while standing outside a temple is the moment this product has
@@ -211,10 +208,10 @@ not a port, and rejected here.
 This is the change that deletes `marker-capture`'s "Capture is offered by the web
 application only", the last of the two requirements named above.
 
-What it costs to move: the product still cannot be given to anybody until item 4
-lands, and that is now three changes away rather than none.
+What it costs to move: the product still cannot be given to anybody until item 3
+lands, and that is now two changes away rather than none.
 
-### 3. Responsive web — the phone layout at a narrow window
+### 2. Responsive web — the phone layout at a narrow window
 
 The web application has one layout, built for a laptop. A browser window the width
 of a phone is held together by a media query that lets the toolbar wrap and gives
@@ -231,7 +228,7 @@ otherwise is how one of them ends up with the other's compromises.
 This is the item that could slide behind the two below without costing anything.
 Nothing is blocked by a narrow browser window rendering untidily.
 
-### 4. Making a trip, and inviting somebody to it
+### 3. Making a trip, and inviting somebody to it
 
 **Moved here from the loose ends, where it did not belong.** "You cannot create a
 trip" is a missing feature, and in a list of nits it was going to keep being
@@ -252,11 +249,11 @@ stating plainly rather than burying, because this is still the only item here
 without which the product cannot be given to anybody, and it still unblocks two
 loose ends — cross-trip isolation cannot be tested until a second trip can exist,
 and the disposable Kyoto seed cannot be deleted while it is the only trip there
-is. All of that stays true three changes longer than it needed to, and the number
-grew once already. If it grows again, that is the signal to stop and take this
-one.
+is. All of that stays true two changes longer than it needed to. The number grew
+once and has been coming down since; if it ever grows again, that is the signal to
+stop and take this one.
 
-### 5. What's near me right now
+### 4. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work in the sequence: location permission, a denied state that is not a
