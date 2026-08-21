@@ -18,11 +18,13 @@ import {
   fetchTripInterest,
   fetchTripMarkers,
   fetchTripMembers,
+  inviteMember,
   ownMemberOf,
   recordInterest,
   setMarkerVisited,
   updateCity,
   updateMarker,
+  updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
@@ -47,6 +49,7 @@ import {
   openingHeight,
 } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
+import { PeopleSheet } from '@/components/people-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState, LoadingState } from '@/components/states'
@@ -112,10 +115,24 @@ function valuesOf(marker: Marker): MarkerFormValues {
 }
 
 export function TripWorkspace({
-  trip,
+  trip: storedTrip,
+  trips,
+  onSelectTrip,
+  onCreated,
   userId,
 }: {
   trip: Trip
+  /**
+   * Every trip this account belongs to, so one can be chosen without another
+   * read. One is the ordinary case and will be for a long time.
+   */
+  trips: readonly Trip[]
+  onSelectTrip: (tripId: string) => void
+  /**
+   * A trip was made from in here. The route has to re-read its list before it
+   * can show it, so this is more than a selection and is kept separate from one.
+   */
+  onCreated: (tripId: string) => void
   /**
    * Whose account is reading. Passed in rather than reached for, because the
    * route has already established there is one — a component that could be
@@ -128,6 +145,16 @@ export function TripWorkspace({
   // into. Without this the wordmark sits under the clock and the Dynamic Island.
   const insets = useSafeAreaInsets()
   const windowHeight = useWindowDimensions().height
+
+  /**
+   * A rename this device made, laid over the trip it was handed.
+   *
+   * Null means no local opinion, which is the same shape as every other override
+   * here — nothing is copied, so a refetch is respected and there is nothing to
+   * re-seed.
+   */
+  const [renamed, setRenamed] = useState<Trip | null>(null)
+  const trip = renamed?.id === storedTrip.id ? renamed : storedTrip
 
   const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
   const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
@@ -162,6 +189,7 @@ export function TripWorkspace({
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [citiesOpen, setCitiesOpen] = useState(false)
+  const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
@@ -234,8 +262,18 @@ export function TripWorkspace({
    */
   const centreRef = useRef<LngLat | null>(null)
 
-  const members: readonly TripMember[] =
-    memberQuery.status === 'ready' ? memberQuery.data : []
+  /** People invited from this device, over what the query returned. */
+  const [invited, setInvited] = useState<readonly TripMember[]>([])
+
+  const members: readonly TripMember[] = useMemo(() => {
+    const base = memberQuery.status === 'ready' ? memberQuery.data : []
+    if (invited.length === 0) return base
+
+    // Anything the query has caught up on is dropped from the overrides rather
+    // than shown twice.
+    const known = new Set(base.map((member) => member.id))
+    return [...base, ...invited.filter((member) => !known.has(member.id))]
+  }, [memberQuery, invited])
   /**
    * Which member the reader is, or null when their account matches none.
    *
@@ -601,6 +639,50 @@ export function TripWorkspace({
     cancelPanel()
   }
 
+  async function renameTrip(name: string) {
+    const previous = renamed
+    setRenamed({ ...trip, name })
+
+    const outcome = await updateTrip(supabase, trip.id, { name })
+    if (!outcome.ok) {
+      setRenamed(previous)
+      setProblem(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
+      )
+      return
+    }
+    setRenamed(outcome.data)
+  }
+
+  /**
+   * Add somebody to the trip.
+   *
+   * Returns the offending field rather than setting a message here, because the
+   * sheet that called it is what has to mark it up — a duplicate address is a
+   * fact about the email box, not about the trip.
+   */
+  async function invite(displayName: string, email: string) {
+    const outcome = await inviteMember(supabase, {
+      tripId: trip.id,
+      displayName,
+      email,
+    })
+
+    if (!outcome.ok) {
+      if (outcome.kind === 'invalid-input') {
+        const [field, message] = Object.entries(outcome.fieldErrors)[0] ?? [
+          '_',
+          'Could not add that person.',
+        ]
+        return { field, message }
+      }
+      return { field: '_', message: outcome.message }
+    }
+
+    setInvited((current) => [...current, outcome.data])
+    return null
+  }
+
   async function addCity(name: string, currency: string | null) {
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
     if (!outcome.ok) return null
@@ -936,7 +1018,25 @@ export function TripWorkspace({
           setMenuOpen(false)
           setCitiesOpen(true)
         }}
-        tripName={trip.name}
+        onOpenPeople={() => {
+          setMenuOpen(false)
+          setPeopleOpen(true)
+        }}
+        trip={trip}
+        trips={trips}
+        onSelectTrip={onSelectTrip}
+        onCreated={onCreated}
+        onRename={(name) => void renameTrip(name)}
+        busy={busy}
+      />
+
+      <PeopleSheet
+        open={peopleOpen}
+        onClose={() => setPeopleOpen(false)}
+        members={members}
+        ownMemberId={ownMemberId}
+        busy={busy}
+        onInvite={invite}
       />
 
       <CitySheet

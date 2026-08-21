@@ -101,6 +101,19 @@ placeholders.
   never compiles the file and never meets the bug. "It builds on the other laptop" is
   evidence about a cache, not about a toolchain. Anything that moves `RN_ROOT` — a
   second React Native, a worktree — re-exposes whatever the slice was hiding.
+- **A write that cannot resolve to an existing membership goes through a
+  `SECURITY DEFINER` function, not a widened policy.** Creating a trip is the only
+  such case: the membership an insert policy would resolve to is the one being
+  created. `public.create_trip()` writes the trip and the creator's membership in
+  one block, takes the account from `auth.jwt()` rather than from an argument, and
+  is the reason `trips` has no insert policy at all. Doing it as two client
+  statements leaves a trip with no members if the second fails — unreachable by
+  every select policy and unremovable, since there is no delete policy either.
+- **`is_trip_member` is `SECURITY DEFINER` so that policies on `trip_members` can
+  consult `trip_members`.** Without it the insert policy added for inviting would
+  re-enter its own policy and recurse. The initial schema says this about the
+  select policy; it applies to every policy on that table, and it is why the
+  invite policy is a one-liner rather than a problem.
 - **Centring the camera on a point is how to hide it, once anything covers the map.**
   A map with a sheet over its lower half is not being looked at whole, so the middle
   of the *view* — which is what `center` means to both renderers — is behind the

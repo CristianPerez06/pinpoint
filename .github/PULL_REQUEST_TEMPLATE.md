@@ -53,10 +53,13 @@ Change: `openspec/changes/<name>/`
 
 #### Local validations (the same ones CI runs)
 
-<!-- CI runs five jobs on every PR to `main`: Lint & typecheck, Package tests, Web production build, Workspace health, and OpenSpec validation. Run them locally before opening the PR. -->
+<!-- CI runs five jobs on every PR to `main`: Lint & typecheck, Package tests, Web production build, Workspace health, and OpenSpec validation. `pnpm verify` runs all of it in one command — prefer it, because the individual scripts below are narrower than they sound and it is possible to run every one of them and still miss a CI step. -->
 
+- [ ] `pnpm verify` passes, or every box below was checked individually
 - [ ] Lint passes for web and mobile (`pnpm lint` + `pnpm lint:mobile`)
-- [ ] Typecheck passes for web and mobile (`pnpm typecheck` + `pnpm typecheck:mobile`)
+- [ ] Typecheck passes for **web, mobile and the packages** (`pnpm typecheck` +
+      `pnpm typecheck:mobile` + `pnpm typecheck:packages` — the first two are
+      each one app, and the packages are a separate CI step)
 - [ ] Package tests pass (`pnpm test`)
 - [ ] Web production build passes (`pnpm build`)
 - [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls` and

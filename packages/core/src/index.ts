@@ -32,8 +32,8 @@ export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filte
 // marker's appearance comes from.
 export { markerTypeSchema } from './marker-type'
 
-export { newTripSchema, tripSchema } from './trip'
-export type { NewTrip, Trip } from './trip'
+export { newTripSchema, tripPatchSchema, tripSchema } from './trip'
+export type { NewTrip, Trip, TripPatch } from './trip'
 
 export { newTripMemberSchema, tripMemberSchema } from './trip-member'
 export type { NewTripMember, TripMember } from './trip-member'

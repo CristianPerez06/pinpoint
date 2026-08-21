@@ -15,10 +15,12 @@ import {
   createMarker,
   deleteCity,
   deleteMarker,
+  inviteMember,
   recordInterest,
   setMarkerVisited,
   updateCity,
   updateMarker,
+  updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
@@ -41,6 +43,7 @@ import {
   type MarkerFormValues,
 } from '@/app/_components/marker-form'
 import { PlaceSearch } from '@/app/_components/place-search'
+import { TripBar } from '@/app/_components/trip-bar'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
 import { Button } from '@/app/_components/ui'
@@ -92,15 +95,21 @@ function valuesOf(marker: Marker): MarkerFormValues {
 }
 
 export function TripWorkspace({
-  trip,
+  trip: initialTrip,
+  trips,
   initialMarkers,
   initialCities,
-  members,
+  members: initialMembers,
   initialInterest,
   ownMemberId,
   notice,
 }: {
   trip: Trip
+  /**
+   * Every trip this account belongs to, so one can be chosen without another
+   * read. One is the ordinary case and will be for a long time.
+   */
+  trips: readonly Trip[]
   initialMarkers: readonly Marker[]
   initialCities: readonly City[]
   members: readonly TripMember[]
@@ -124,6 +133,17 @@ export function TripWorkspace({
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  /**
+   * The trip, its name, and the people on it — client state now, because all
+   * three can change without leaving the page.
+   *
+   * The server hands them down once and this owns them from there, which is the
+   * same trade the markers make: a rename or an invitation has to show
+   * immediately, and re-reading the whole trip to see one row change is a poor
+   * exchange.
+   */
+  const [trip, setTrip] = useState<Trip>(initialTrip)
+  const [members, setMembers] = useState<readonly TripMember[]>(initialMembers)
   const [markers, setMarkers] = useState<readonly Marker[]>(initialMarkers)
   const [cities, setCities] = useState<readonly City[]>(initialCities)
   const [interest, setInterest] = useState<readonly MarkerInterest[]>(initialInterest)
@@ -356,6 +376,69 @@ export function TripWorkspace({
     }
   }
 
+  /**
+   * Move to another trip.
+   *
+   * A navigation rather than a state change, because everything on this screen
+   * is scoped to a trip and was fetched on the server for one. Reaching for the
+   * URL means the server re-reads the new trip's markers, cities, members and
+   * interest — and it means the choice survives a reload and can be linked, in
+   * the same way the selected city already does.
+   *
+   * The city goes with it. A city id belongs to the trip it was created under,
+   * so carrying one across would select nothing and read as broken. The filter
+   * goes for the same reason and is handled by the page remounting this.
+   */
+  function selectTrip(nextTripId: string) {
+    if (nextTripId === trip.id) return
+    router.replace(`/?trip=${nextTripId}`)
+    router.refresh()
+  }
+
+  async function renameTrip(name: string) {
+    const previous = trip
+    setTrip({ ...trip, name })
+
+    const outcome = await updateTrip(supabase, trip.id, { name })
+    if (!outcome.ok) {
+      setTrip(previous)
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
+      )
+      return
+    }
+    setTrip(outcome.data)
+  }
+
+  /**
+   * Add somebody to the trip.
+   *
+   * Returns the offending field rather than setting a message here, because the
+   * form that called it is the thing that has to mark it up — a duplicate
+   * address is a fact about the email box, not about the trip.
+   */
+  async function invite(displayName: string, email: string) {
+    const outcome = await inviteMember(supabase, {
+      tripId: trip.id,
+      displayName,
+      email,
+    })
+
+    if (!outcome.ok) {
+      if (outcome.kind === 'invalid-input') {
+        const [field, message] = Object.entries(outcome.fieldErrors)[0] ?? [
+          '_',
+          'Could not add that person.',
+        ]
+        return { field, message }
+      }
+      return { field: '_', message: outcome.message }
+    }
+
+    setMembers((current) => [...current, outcome.data])
+    return null
+  }
+
   function selectCity(cityId: string | null) {
     const params = new URLSearchParams(searchParams.toString())
     if (cityId === null) params.delete('city')
@@ -536,6 +619,23 @@ export function TripWorkspace({
         than one anybody chose.
       */}
       <div className={styles.toolbar}>
+        {/*
+          Which trip, what it is called, and who is on it — above the controls
+          that narrow it and the ones that add to it, because it is what those
+          two are about. It used to be a static line in the page header, which
+          is rendered on the server and cannot follow a rename.
+        */}
+        <TripBar
+          trip={trip}
+          trips={trips}
+          members={members}
+          busy={busy}
+          onSelect={selectTrip}
+          onRename={(name) => void renameTrip(name)}
+          onInvite={invite}
+          onCreated={selectTrip}
+        />
+
         <div className={styles.narrowRow}>
           <CityBar
             cities={cities}

@@ -1,0 +1,124 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.select {
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.select:hover {
+  border-color: var(--pp-line-strong);
+}
+
+/*
+ * The trip's name when there is nothing to choose between.
+ *
+ * Carries the prominence the page header used to give it. It is not a control,
+ * so it is not styled as one — the two beside it are.
+ */
+.name {
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+  color: var(--pp-ink);
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * A panel that hangs below the toolbar, in the shape the city editor already
+ * uses. Both are detours from the row they open under, and looking alike is what
+ * says so.
+ */
+.detour {
+  position: absolute;
+  top: 100%;
+  left: var(--pp-space-md);
+  margin-top: var(--pp-space-xs);
+  width: 340px;
+  display: grid;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-md);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 5;
+}
+
+.row {
+  display: flex;
+  gap: var(--pp-space-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--pp-space-xs);
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: var(--pp-space-xs);
+  border-bottom: 1px solid var(--pp-line);
+}
+
+.personName {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  color: var(--pp-ink);
+}
+
+/*
+ * Somebody who was added and has never signed in.
+ *
+ * Muted rather than alarming: it is the ordinary state of an invitation that has
+ * not been acted on yet, and most of them are that for a while. What it has to
+ * do is show the address, because a mistyped one is indistinguishable from a
+ * correct one until it is read.
+ */
+.pending {
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  color: var(--pp-ink-muted);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  color: var(--pp-ink-muted);
+}

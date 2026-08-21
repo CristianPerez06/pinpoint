@@ -33,6 +33,9 @@ export {
   fetchTripMembers,
   INTEREST_FAILED_MESSAGE,
   INTEREST_SAVE_FAILED_MESSAGE,
+  inviteMember,
+  MEMBER_DUPLICATE_MESSAGE,
+  MEMBER_INVITE_FAILED_MESSAGE,
   MEMBERS_FAILED_MESSAGE,
   ownMemberOf,
   recordInterest,
@@ -41,7 +44,14 @@ export {
   withdrawInterest,
 } from './interest'
 
-export { fetchTrips, TRIPS_FAILED_MESSAGE } from './trips'
+export {
+  createTrip,
+  fetchTrips,
+  TRIP_CREATE_FAILED_MESSAGE,
+  TRIP_SAVE_FAILED_MESSAGE,
+  TRIPS_FAILED_MESSAGE,
+  updateTrip,
+} from './trips'
 
 export { conflicted, invalidInput, rejected, wrote } from './write-outcome'
 export type { WriteOutcome } from './write-outcome'

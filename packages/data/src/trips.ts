@@ -1,4 +1,8 @@
-import type { Trip } from '@pinpoint/core'
+import {
+  newTripSchema,
+  type Trip,
+  tripPatchSchema,
+} from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
 
 import {
@@ -6,6 +10,8 @@ import {
   readyOrEmpty,
   type SettledQueryState,
 } from './query-state'
+import { validate } from './validate'
+import { rejected, type WriteOutcome, wrote } from './write-outcome'
 
 const TRIP_COLUMNS = 'id, name, archived, created_at'
 
@@ -52,4 +58,86 @@ export async function fetchTrips(
   if (error || !data) return failed(TRIPS_FAILED_MESSAGE)
 
   return readyOrEmpty(data.map(toTrip))
+}
+
+export const TRIP_CREATE_FAILED_MESSAGE = 'Could not create that trip.'
+export const TRIP_SAVE_FAILED_MESSAGE = 'Could not save that trip.'
+
+/**
+ * Make a trip, and become its first member.
+ *
+ * Through a database function rather than an insert, and that is the whole
+ * design rather than a detail. A trip cannot exist without a member — every
+ * select policy in the schema resolves to membership, so a memberless trip is
+ * unreachable and, with no delete policy, unremovable. Two writes from here
+ * could leave exactly that behind if the second failed. `create_trip` writes
+ * both rows in one statement block, so there is no such window and `trips` needs
+ * no insert policy at all.
+ *
+ * The creator's email is not a parameter. The function reads it from the
+ * verified session, which is what makes creating a trip as somebody else
+ * impossible rather than merely unlikely.
+ *
+ * Returns the stored row, so the trip can be opened immediately without
+ * re-reading the list — the same reason `createCity` returns one.
+ */
+export async function createTrip(
+  client: PinpointClient,
+  input: unknown,
+): Promise<WriteOutcome<Trip>> {
+  const validated = validate(newTripSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { data: tripId, error } = await client.rpc('create_trip', {
+    trip_name: validated.data.name,
+    member_name: validated.data.displayName,
+  })
+
+  // Null rather than an error is what the function returns when there is no
+  // session, so it has to be treated as a refusal rather than as success.
+  if (error || !tripId) return rejected(TRIP_CREATE_FAILED_MESSAGE)
+
+  // Read back rather than assembled here. The row carries `created_at` and
+  // `archived` from the database, and constructing them locally would be
+  // inventing values that only look right.
+  const { data, error: readError } = await client
+    .from('trips')
+    .select(TRIP_COLUMNS)
+    .eq('id', tripId)
+    .single()
+
+  if (readError || !data) return rejected(TRIP_CREATE_FAILED_MESSAGE)
+
+  return wrote(toTrip(data))
+}
+
+/**
+ * Rename a trip.
+ *
+ * Permitted by `trips_update_member`, which has existed since the initial schema
+ * and until now had no caller — a policy written for a capability that was not
+ * built for another five changes.
+ *
+ * A partial patch, like a city's: a field left out is left alone. `archived` is
+ * not among them, deliberately; archiving is the answer to removing a trip and
+ * is its own change.
+ */
+export async function updateTrip(
+  client: PinpointClient,
+  tripId: string,
+  patch: unknown,
+): Promise<WriteOutcome<Trip>> {
+  const validated = validate(tripPatchSchema, patch)
+  if (!validated.ok) return validated.outcome
+
+  const { data, error } = await client
+    .from('trips')
+    .update(validated.data)
+    .eq('id', tripId)
+    .select(TRIP_COLUMNS)
+    .single()
+
+  if (error || !data) return rejected(TRIP_SAVE_FAILED_MESSAGE)
+
+  return wrote(toTrip(data))
 }

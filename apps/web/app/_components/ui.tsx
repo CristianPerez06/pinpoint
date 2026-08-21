@@ -71,7 +71,7 @@ export function TextField({
   onChange: (value: string) => void
   error?: string
   placeholder?: string
-  type?: 'text' | 'url' | 'number'
+  type?: 'text' | 'url' | 'number' | 'email'
   multiline?: boolean
   autoFocus?: boolean
   hint?: string

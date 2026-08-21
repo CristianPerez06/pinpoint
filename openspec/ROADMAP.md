@@ -212,10 +212,60 @@ Two of those columns are the whole product:
   browser window is narrow enough to want the same sheet, and two implementations
   of that arithmetic would be two chances to get a sign backwards.
 
+- **Making a trip, and inviting somebody** — a trip can be created, renamed, and
+  shared, and the empty state that used to say "You are not on any trips yet" and
+  stop is where a first trip is now made. **The product can be given to somebody
+  who is not already in the database**, which was the thing this file kept
+  deferring and the only item without which nothing else mattered.
+
+  Most of it turned out to be built already. `claim_trip_memberships()` has
+  matched an account to a member row by verified email since the auth change, and
+  on *every* sign-in rather than only at sign-up — so being invited long after
+  signing up needed no branch. `trip_members` already carried a mandatory email
+  and a nullable account. `newTripMemberSchema` already described an invitation
+  and had never been called, and `trips_update_member` had permitted renaming
+  since the initial schema with no caller. Inviting is one insert; renaming needed
+  no migration at all.
+
+  **The schema guessed wrong about its own future, and asking one question
+  exposed it.** The initial migration predicted "insert allowed, with a trigger
+  adding the creator as the first member". Deciding that the person names
+  themselves rules that out: a trigger on `trips` sees the trip's columns and
+  `auth.jwt()`, and a name somebody chose is in neither. Deriving one from the
+  email's local part is how a member list ends up reading `cristian.ap84`,
+  permanently, with no later moment that asks.
+
+  Two client statements fail for the original reason — the membership's insert
+  policy checks a membership that does not exist yet — and leave a worse failure
+  behind: a trip with no members is unreachable by every select policy and
+  unremovable, because there is no delete policy either. So creation is a
+  `SECURITY DEFINER` function taking both names, and **`trips` gets no insert
+  policy at all**. That is the difference between loosening a rule and declining
+  to state one, and it makes "a trip always has at least one member" structural
+  instead of remembered.
+
+  It cost a specification change, which is the right way round: `trips` required
+  every policy to resolve to membership, and a write that deliberately resolves to
+  no policy would have contradicted it in silence.
+
+  The invitation design has one sharp edge and it is now visible rather than
+  fixed. Delivery is out of band — nothing is sent, the address is the claim key —
+  so a mistyped address produces two screens that both look correct: the inviter
+  sees the name they typed, the invited person sees an empty trip list. Neither
+  can diagnose it and only the inviter can fix it. `TripMember.userId` had been
+  fetched since the interest change and displayed nowhere; showing "not joined
+  yet" with the address is the whole feedback loop, and it cost no query.
+
 ## Next
 
-Three items. The parity work is finished — the phone is a full client — so what
-remains is one port, one missing feature, and one piece of genuinely new design.
+Two items. The parity work is finished, the product can be given to somebody,
+and what remains is one port and one piece of genuinely new design.
+
+**The product can be handed to a person now.** That was true of nothing until
+trip creation landed: there was one trip, inserted by a migration, and two member
+rows inserted by the same one. Every item below is an improvement to something
+somebody can already use, which is a different kind of list than this file has
+held before.
 
 **On parity: the phone gets everything the laptop has.** Decided deliberately,
 reversing what this file said for the first four changes — that mobile would read
@@ -264,36 +314,11 @@ because it has no room for a map beside it. A browser window at 375px has the sa
 problem and a browser window at 900px does not, so the layout that follows the
 shape is not simply the phone's copied over.
 
-This is the item that could slide behind the two below without costing anything.
-Nothing is blocked by a narrow browser window rendering untidily.
+This is still the item that could slide without costing anything — nothing is
+blocked by a narrow browser window rendering untidily — but it is now the only
+one it could slide behind.
 
-### 2. Making a trip, and inviting somebody to it
-
-**Moved here from the loose ends, where it did not belong.** "You cannot create a
-trip" is a missing feature, and in a list of nits it was going to keep being
-skipped past.
-
-Neither `trips` nor `trip_members` has an insert policy, and the schema records
-why: an insert policy cannot resolve to membership for a trip with no members, so
-it needs a trigger making the creator the first member.
-
-The consequence is easy to miss because the product works. There is exactly one
-trip, seeded by a migration, and its second member was seeded too. Nobody can
-make another trip, and nobody new can ever be invited to this one — the app has
-no way to gain a user who is not already in the database.
-
-This file spent two changes declining to put this first, then decided against it
-so that the mobile sequence could go ahead of it. That sequence is done, and the
-argument for deferring it again has run out.
-
-It is the only item here without which the product cannot be given to anybody, and
-it still unblocks two loose ends — cross-trip isolation cannot be tested until a
-second trip can exist, and the disposable Kyoto seed cannot be deleted while it is
-the only trip there is. Item 1 above is explicitly slideable and this one is not,
-which is the whole argument for taking this next: **the ordering that has been
-deferring it no longer has anything in front of it.**
-
-### 3. What's near me right now
+### 2. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work left: location permission, a denied state that is not a dead end, and
@@ -403,15 +428,16 @@ it does untidily.
 - [ ] **Self-service password recovery.** Resetting a password is a dashboard
       operation somebody with Supabase access has to perform. Fine at two users who
       know each other; not fine the moment a third person is added by invitation.
-- [ ] **The phone forgets which city you last used, on a cold launch.** The form
-      defaults to the city a place was last filed under, which is what the laptop
-      gets from its selected city. It is held in memory, so it lasts a session and
-      starts empty after a restart — while `marker-capture` says "on that device",
-      which is a stronger promise. It matters least where it is weakest: the case
-      the default exists for is saving four places while walking a neighbourhood,
-      which is one session. Closing it needs somewhere to persist a preference,
-      and this app has no such store today — `expo-secure-store` is for the
-      session token and a city id is not a secret.
+- [ ] **The phone has nowhere to remember a preference, and two things now want
+      one.** The capture form defaults to the city a place was last filed under,
+      and the app opens on whichever trip comes first — both held in memory, so
+      both reset on a cold launch. `marker-capture` says the city default is
+      remembered "on that device", which is the stronger promise of the two.
+      Neither matters much on its own: saving four places while walking a
+      neighbourhood is one session, and this product will have one trip for a long
+      time. What has changed is that it is one missing capability rather than two
+      workarounds — `expo-secure-store` holds the session token and neither a city
+      id nor a trip id is a secret, so closing it means choosing a store.
 - [ ] **A way to see the places you disagree about.** Ticking names asks for
       agreement, and there is no tick meaning "and not the other" — so "only one of
       you wants this", the negotiation pile, is the one thing the rejected filter
@@ -433,9 +459,12 @@ scale the product runs at today.
       the phone layout rather than tuning it. The breakpoint is a literal, because
       custom properties do not resolve inside a media query, and appears once.
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
-      deliberately so there was something to look at; deleting it now needs the rows
-      gone as well as the file, since removing a migration leaves the remote's history
-      untouched. Also blocked on trip creation — it is the only trip there is.
+      deliberately so there was something to look at; deleting it needs the rows
+      gone as well as the file, since removing a migration leaves the remote's
+      history untouched. **No longer blocked** — a real trip can be made now, so
+      the seeded one is not the only thing there is to look at. Left for its own
+      change because it is a migration that deletes rows, which is worth doing on
+      its own rather than alongside something else.
 
 ## Open design questions
 
