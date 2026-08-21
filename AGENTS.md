@@ -101,13 +101,27 @@ placeholders.
   never compiles the file and never meets the bug. "It builds on the other laptop" is
   evidence about a cache, not about a toolchain. Anything that moves `RN_ROOT` — a
   second React Native, a worktree — re-exposes whatever the slice was hiding.
+- **Centring the camera on a point is how to hide it, once anything covers the map.**
+  A map with a sheet over its lower half is not being looked at whole, so the middle
+  of the *view* — which is what `center` means to both renderers — is behind the
+  sheet. Centring on a place therefore puts it exactly where it cannot be seen. Use
+  `offsetCenter` from `@pinpoint/map` to shift the centre by half the covered height;
+  do **not** reach for MapLibre's camera `padding`, which persists in the camera state
+  and then changes what `center` reports, which is the one thing the mobile drop
+  sight depends on being geometrically true. **Learn the shape of this one**: the
+  camera animates, something visibly happens, and the pin is simply not there — it
+  reads as the marker failing to render and never is.
 - **A `ScrollView` inside a content-sized container collapses.** React Native's
   `ScrollView` has no intrinsic content height, so a parent that sizes to its children —
   a sheet pinned to the bottom with `maxHeight` and no fixed height, say — asks how tall
   it is and is told almost nothing. The parent closes up and everything past the first
   row is clipped. **Learn the shape of this one too**: the children render perfectly and
   are simply given nowhere to draw, so it reads as a data problem and never is. Either
-  give the container a definite height or do not scroll.
+  give the container a definite height or do not scroll. Note the actual condition:
+  a container sizing to its *children*. A sheet whose height is a fraction of the
+  window is definite and does not have this problem — reading the rule more broadly
+  than it says is how the capture form was first built as a full screen when it
+  should have been a sheet.
 - **A composite foreign key needs `on delete set null (column_list)`.** A bare `on delete
   set null` nulls *every* referencing column, so `(city_id, trip_id) references cities
   (id, trip_id)` would also null `markers.trip_id` — which is `not null`, making the
