@@ -7,9 +7,7 @@ and attribution, the camera that frames a trip's markers, how a marker's type be
 something visible, and what happens when two markers occupy the same point. Covers
 both applications, which use different rendering libraries and must produce the same
 map from the same data.
-
 ## Requirements
-
 ### Requirement: Both applications render the same map from the same shared logic
 
 Each application SHALL render an interactive map that can be panned and zoomed.
@@ -321,16 +319,30 @@ action: save something, retry, or widen the filter.
 
 ### Requirement: An unsaved marker is drawn distinguishably from saved ones
 
-While a place is being added, the map SHALL draw the unsaved marker at its current
-position and SHALL make it distinguishable at a glance from the trip's saved markers.
+While a place is being added, the map SHALL show the position being added and SHALL
+make it distinguishable at a glance from the trip's saved markers.
 
-The unsaved marker SHALL be drawn above saved markers, so that placing one at or near
-an existing marker leaves it visible and movable rather than buried.
+What is drawn SHALL follow the shape of the screen rather than the platform. Where
+the position is indicated directly it SHALL be drawn as an unsaved marker at that
+position. Where the position is indicated by framing the map under a fixed sight,
+the sight SHALL be what shows it, and the saved markers SHALL remain visible
+beneath — the point of showing the position at all is that it can be read against
+the places already on the trip.
+
+The position being added SHALL be drawn above saved markers, so that placing one at
+or near an existing marker leaves it visible and correctable rather than buried.
+
+The position SHALL remain visible while the form that saves it is open. A form
+that covers the map entirely leaves a geocoded result unconfirmable: the candidate
+carried a name and a claim about where it is, and looking at where it landed is
+the only way to check the claim. Where the form cannot sit beside the map it SHALL
+leave enough of it showing for the drawn position to be read against what is
+around it.
 
 It SHALL NOT be counted among the trip's markers: it SHALL NOT contribute to framing,
 and it SHALL NOT be included wherever the trip's markers are counted or listed.
 
-When the place is abandoned the unsaved marker SHALL disappear and the map SHALL be
+When the place is abandoned the unsaved position SHALL disappear and the map SHALL be
 exactly as it was. When the place is saved it SHALL become an ordinary marker and SHALL
 be drawn like every other.
 
@@ -338,7 +350,17 @@ be drawn like every other.
 
 - **WHEN** a person points at the map to place somewhere
 - **THEN** the map draws its position distinguishably from the saved markers
-- **AND** the camera does not move, because they chose a point they were already looking at
+- **AND** the camera does not re-frame, because they chose a point they were
+  already looking at
+- **AND** it moves only far enough, if at all, to keep that position clear of
+  anything drawn over the map
+
+#### Scenario: A position is shown by a fixed sight
+
+- **WHEN** a person frames the map under a fixed sight to place somewhere
+- **THEN** the sight is distinguishable at a glance from the trip's saved markers
+- **AND** the saved markers stay visible beneath it
+- **AND** the application does not move the camera while the sight is armed
 
 #### Scenario: An unsaved marker is placed by choosing a search result
 
@@ -350,13 +372,19 @@ be drawn like every other.
 
 - **WHEN** a person places an unsaved marker at the position of an existing marker
 - **THEN** the unsaved marker is drawn above it
-- **AND** it can still be moved
+- **AND** it can still be corrected
 
 #### Scenario: The place is abandoned
 
 - **WHEN** a person abandons the place they were adding
-- **THEN** the unsaved marker disappears
+- **THEN** the unsaved position disappears
 - **AND** the trip's markers are drawn exactly as before
+
+#### Scenario: The form for the place is open
+
+- **WHEN** a person is filling in the form for a place being added
+- **THEN** the position being added is still drawn on the map
+- **AND** enough of the map is visible to read that position against its surroundings
 
 #### Scenario: The place is saved
 
@@ -521,3 +549,4 @@ reports matches, which is the same indistinguishable-empty problem from the othe
 - **WHEN** a filter is cleared
 - **THEN** every marker is shown again
 - **AND** the camera stays where it was
+

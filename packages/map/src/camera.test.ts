@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { boundsOf, boundsWidth, fitBounds, normalizeLongitude } from './camera'
+import {
+  boundsOf,
+  boundsWidth,
+  fitBounds,
+  normalizeLongitude,
+  offsetCenter,
+} from './camera'
 import { DEFAULT_CAMERA, MAX_ZOOM, SINGLE_MARKER_ZOOM } from './constants'
 
 describe('normalizeLongitude', () => {
@@ -154,5 +160,68 @@ describe('fitBounds', () => {
       { lng: 170, lat: 89 },
     ])
     expect(Number.isFinite(camera.zoom)).toBe(true)
+  })
+})
+
+describe('offsetCenter', () => {
+  const kyoto = { lng: 135.7681, lat: 35.0116 }
+
+  it('returns the same point for no offset', () => {
+    const same = offsetCenter(kyoto, 14, 0, 0)
+    expect(same.lng).toBeCloseTo(kyoto.lng, 10)
+    expect(same.lat).toBeCloseTo(kyoto.lat, 10)
+  })
+
+  it('moves the centre south when the offset is down the screen', () => {
+    // The sign is the whole point of this function: a positive `dy` pushes the
+    // centre down the screen, which is what lifts the drawn point clear of a
+    // sheet covering the bottom. Getting it backwards hides the pin *further*,
+    // and looks exactly as plausible.
+    const shifted = offsetCenter(kyoto, 14, 0, 200)
+    expect(shifted.lat).toBeLessThan(kyoto.lat)
+    expect(shifted.lng).toBeCloseTo(kyoto.lng, 10)
+  })
+
+  it('moves the centre east when the offset is right', () => {
+    const shifted = offsetCenter(kyoto, 14, 200, 0)
+    expect(shifted.lng).toBeGreaterThan(kyoto.lng)
+    expect(shifted.lat).toBeCloseTo(kyoto.lat, 10)
+  })
+
+  it('is reversible', () => {
+    const there = offsetCenter(kyoto, 14, 120, 260)
+    const back = offsetCenter(there, 14, -120, -260)
+    expect(back.lng).toBeCloseTo(kyoto.lng, 9)
+    expect(back.lat).toBeCloseTo(kyoto.lat, 9)
+  })
+
+  it('moves less ground per pixel as the zoom increases', () => {
+    const far = offsetCenter(kyoto, 10, 0, 256)
+    const near = offsetCenter(kyoto, 16, 0, 256)
+    expect(kyoto.lat - far.lat).toBeGreaterThan(kyoto.lat - near.lat)
+  })
+
+  it('halves the ground covered for each zoom level gained', () => {
+    // One tile is TILE_SIZE pixels at every zoom, so the same pixel offset must
+    // cover exactly half the distance one level in.
+    const coarse = kyoto.lat - offsetCenter(kyoto, 10, 0, 256).lat
+    const fine = kyoto.lat - offsetCenter(kyoto, 11, 0, 256).lat
+    expect(coarse / fine).toBeCloseTo(2, 2)
+  })
+
+  it('stays a real latitude when pushed past the projection edge', () => {
+    // A small viewport at zoom 0 can ask for an offset that runs off the top of
+    // the world. That has to land at the pole rather than returning NaN.
+    const overshot = offsetCenter(kyoto, 0, 0, -100_000)
+    expect(Number.isFinite(overshot.lat)).toBe(true)
+    expect(overshot.lat).toBeGreaterThan(80)
+    expect(overshot.lat).toBeLessThanOrEqual(90)
+  })
+
+  it('wraps longitude rather than running off the end of the world', () => {
+    const nearEdge = { lng: 179.9, lat: 0 }
+    const past = offsetCenter(nearEdge, 8, 5_000, 0)
+    expect(past.lng).toBeGreaterThanOrEqual(-180)
+    expect(past.lng).toBeLessThan(180)
   })
 })

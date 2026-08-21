@@ -22,6 +22,7 @@ export {
   boundsWidth,
   fitBounds,
   normalizeLongitude,
+  offsetCenter,
 } from './camera'
 export type { FitBoundsOptions } from './camera'
 

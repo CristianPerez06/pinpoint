@@ -58,6 +58,51 @@ const styles = StyleSheet.create({
   },
 })
 
+/**
+ * The place being added, before it is a place.
+ *
+ * The same teardrop as a saved marker, drawn hollow with a dashed outline and a
+ * plus where a type glyph would be — so it reads at a glance as "not yet one of
+ * these" rather than as a marker of some family nobody recognises. Web draws the
+ * identical treatment from its own stylesheet; the duplication is the `styling`
+ * spec working as intended, since an SVG path in a shared package would be
+ * shared rendered markup.
+ *
+ * No family colour, deliberately. Colour on this map means a type, and the type
+ * is being chosen in the form at the moment this is on screen — a coloured draft
+ * would be claiming an answer that has not been given.
+ */
+export function DraftPin() {
+  const theme = useTheme()
+  const { width, height } = { width: 32, height: 42 }
+
+  return (
+    <View
+      // Explicit size for the same reason `Pin` has one: the iOS annotation
+      // derives its frame from this view and bails out on a zero dimension.
+      style={{ width, height }}
+      accessibilityLabel="The place being added"
+    >
+      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <Path
+          d={PATH}
+          fill={theme.colour.surface}
+          stroke={theme.colour.ink}
+          strokeWidth={2}
+          strokeDasharray="4 3"
+        />
+        <Path
+          d="M16 11v8M12 15h8"
+          stroke={theme.colour.ink}
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          fill="none"
+        />
+      </Svg>
+    </View>
+  )
+}
+
 export function Pin({
   view,
   count = 1,

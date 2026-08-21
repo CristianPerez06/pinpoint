@@ -158,11 +158,64 @@ Two of those columns are the whole product:
   the edge is a wide pill with a gap under it, and the gap fills with whatever it
   was clearing.
 
+- **The phone captures** — search, dropping a pin, the whole six-field form,
+  editing, removing, and cities. **The phone is a full client**, which is what the
+  parity decision below was reversed in order to make true.
+
+  The plan said this was a port. Most of it was, and one part of it could not be.
+  `@maplibre/maplibre-react-native`'s `Marker` has no `draggable` and no drag
+  events, so the laptop's mechanism — a pin you pick up and put down — has no
+  counterpart on this renderer at all. What replaced it is a fixed sight the map
+  moves under, and the deciding argument was not ergonomics. The obvious
+  alternative, tapping the map to place a pin, needs `onPress` on `Map`, which
+  the mobile map deliberately does not have: on iOS the annotation's tap
+  recogniser and the map's own can both fire for one tap, and that already cost
+  this project a change where tapping a pin did nothing at all. A sight is a
+  `View` drawn over the map, so it touches no recogniser. The library decided
+  this, not taste.
+
+  That forced the second difference. The laptop does position and fields at the
+  same time — a draggable pin beside a live form — and a phone cannot, because
+  six fields, an eleven-pin type grid and a keyboard leave no map on screen. So
+  the phone does them in sequence, and the correction step is reachable *from*
+  the form rather than sitting before it. Search skips it entirely: the
+  geocoder's dangerous failure is the confidently wrong result, which the
+  distance in the candidate list already catches, and what survives choosing
+  correctly is a building's centroid instead of its door — metres, on a map whose
+  question is which three things fit in one afternoon.
+
+  **Nothing under `packages/` had to change to make any of it work.** The write
+  functions, the validation, the geocoder and the shared framing all ran unchanged
+  under Metro, and `@pinpoint/geocode` had never been bundled by Metro before this.
+  That is now evidence rather than hope, and the remaining items can be estimated
+  on it. One function was *added* there afterwards, which is a different thing —
+  see below.
+
+  Budget for looking is still the rule, and it held twice more after the change
+  was otherwise finished. The form shipped as a full screen and had to become a
+  half-height sheet: covering the map made a geocoded result unconfirmable, since
+  the only way to check that the place found is the place meant is to look at
+  where it landed. And once it was a sheet, the pin was invisible — the camera
+  centres on the middle of the map *view*, and the sheet covers that middle, so
+  centring on a place is exactly how to hide it. Neither was findable by reading.
+
+  The static checks earned something too: the React linter rejected refs read
+  during render three separate times across this change, each in state handling
+  that had been reasoned into place. That is now the second platform where the
+  linter has caught what reasoning produced — the first was seeding state from a
+  query in the interest change — and all of them were wrong in the same direction.
+
+  One thing under `packages/` did change in the end, after the claim above held
+  through the whole port. `offsetCenter` is new shared camera derivation, not a
+  port of anything: no platform previously needed to centre on a point while
+  something covered part of the map. Responsive web will need it the moment a
+  browser window is narrow enough to want the same sheet, and two implementations
+  of that arithmetic would be two chances to get a sign backwards.
+
 ## Next
 
-Four items. The first two are what remains of the phone becoming a real client —
-capture, then the same chrome on a web browser held in a hand. The third stands
-alone. The fourth is the only genuinely new design work.
+Three items. The parity work is finished — the phone is a full client — so what
+remains is one port, one missing feature, and one piece of genuinely new design.
 
 **On parity: the phone gets everything the laptop has.** Decided deliberately,
 reversing what this file said for the first four changes — that mobile would read
@@ -171,47 +224,22 @@ surface would cost as much as the first.
 
 That asymmetry was the entire reason this was ever "a fraction of the work of a
 second full client". Removing it means it is a second full client, and the
-estimate should be read that way rather than inherited. The reading half is done
-and cost little, because nothing under `packages/` had to change; that is
-evidence about the remaining half, not proof.
+estimate should be read that way rather than inherited.
 
-Two settled requirements said the opposite and are deleted as the work lands:
-`marker-capture`'s "Capture is offered by the web application only", and
-`marker-interest`'s equivalent for recording interest and visited. The second is
-gone; the first goes with mobile capture.
+**Done, and it cost less than the reversal warned.** Nothing under `packages/`
+changed across either half. The estimate above was written to be pessimistic and
+should be remembered as having been, when the next platform question comes up.
+
+Both settled requirements that said otherwise are gone: `marker-interest`'s went
+with mobile interest, `marker-capture`'s with mobile capture. In its place is a
+positive rule rather than an absence — see the decision below.
 
 Sequenced rather than proposed as one change. A single proposal covering the whole
 parity gap produces a task list nobody can review and a branch that cannot be
-tested until the end, which is the opposite of how the last four shipped.
+tested until the end, which is the opposite of how the last four shipped. Two
+changes, and the second was reviewable.
 
-### 1. Mobile capture
-
-Search, drop, the marker form, cities. The largest item on this list, and **moved
-to the front from last**, reversing what this file argued two changes ago. The
-chrome it lands in is built; this is the capability.
-
-The reason it was last was that its value is least certain: typing a note and a
-price into a phone while standing outside a temple is the moment this product has
-always assumed does not arise. That assumption has never been tested, and the
-first trip is the thing that would test it — which is an argument for having the
-capability before the trip rather than an argument for the ordering that deferred
-it. Ordering by certainty put the one item the trip could settle behind two it
-could not.
-
-What forced the question was noticing the phone has no search box at all. On the
-web, search is not a separate feature: choosing a result goes straight into
-creating a marker, so search *is* the front door to capture. "Add the search box
-to the phone" is therefore not separable from porting the capture flow, unless
-search is redefined as moving the camera without saving — a different feature,
-not a port, and rejected here.
-
-This is the change that deletes `marker-capture`'s "Capture is offered by the web
-application only", the last of the two requirements named above.
-
-What it costs to move: the product still cannot be given to anybody until item 3
-lands, and that is now two changes away rather than none.
-
-### 2. Responsive web — the phone layout at a narrow window
+### 1. Responsive web — the phone layout at a narrow window
 
 The web application has one layout, built for a laptop. A browser window the width
 of a phone is held together by a media query that lets the toolbar wrap and gives
@@ -219,16 +247,27 @@ search a line of its own — enough that no control is lost, and no more than th
 This gives it the same bottom layout the phone gets, at narrow widths only; a wide
 window keeps its header and its toolbar, and the holding rule is deleted.
 
-Third rather than first because it is a port of a shape that will by then have
-been built and used, rather than a guess at one. And separate from the item above
-rather than folded into it: it is a different application with different
-mechanics — a sheet a finger drags is not a sheet a browser draws — and pretending
-otherwise is how one of them ends up with the other's compromises.
+It waited for the phone deliberately, and the wait paid: there is now a built
+shape to port rather than a guess at one. It stayed a separate change for the same
+reason it was worth waiting — a different application with different mechanics, a
+sheet a finger drags against a sheet a browser draws, and pretending otherwise is
+how one of them ends up with the other's compromises.
+
+Two things the phone learned that this should inherit rather than rediscover. The
+bottom row is the floor, flush to the edge, or whatever it clears fills the gap
+underneath it. And the camera moves by one imperative call rather than by a
+`{ points, token }` value threaded through state — the phone's version is the
+better one, and this is where web could take it back.
+
+One thing it must **not** inherit: the phone puts the form on its own screen
+because it has no room for a map beside it. A browser window at 375px has the same
+problem and a browser window at 900px does not, so the layout that follows the
+shape is not simply the phone's copied over.
 
 This is the item that could slide behind the two below without costing anything.
 Nothing is blocked by a narrow browser window rendering untidily.
 
-### 3. Making a trip, and inviting somebody to it
+### 2. Making a trip, and inviting somebody to it
 
 **Moved here from the loose ends, where it did not belong.** "You cannot create a
 trip" is a missing feature, and in a list of nits it was going to keep being
@@ -243,21 +282,22 @@ trip, seeded by a migration, and its second member was seeded too. Nobody can
 make another trip, and nobody new can ever be invited to this one — the app has
 no way to gain a user who is not already in the database.
 
-This file spent a change declining to decide whether this belongs first. It is
-now decided, and against it: the whole mobile sequence goes first. That is worth
-stating plainly rather than burying, because this is still the only item here
-without which the product cannot be given to anybody, and it still unblocks two
-loose ends — cross-trip isolation cannot be tested until a second trip can exist,
-and the disposable Kyoto seed cannot be deleted while it is the only trip there
-is. All of that stays true two changes longer than it needed to. The number grew
-once and has been coming down since; if it ever grows again, that is the signal to
-stop and take this one.
+This file spent two changes declining to put this first, then decided against it
+so that the mobile sequence could go ahead of it. That sequence is done, and the
+argument for deferring it again has run out.
 
-### 4. What's near me right now
+It is the only item here without which the product cannot be given to anybody, and
+it still unblocks two loose ends — cross-trip isolation cannot be tested until a
+second trip can exist, and the disposable Kyoto seed cannot be deleted while it is
+the only trip there is. Item 1 above is explicitly slideable and this one is not,
+which is the whole argument for taking this next: **the ordering that has been
+deferring it no longer has anything in front of it.**
+
+### 3. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
-design work in the sequence: location permission, a denied state that is not a
-dead end, and distance — none of which exists anywhere yet.
+design work left: location permission, a denied state that is not a dead end, and
+distance — none of which exists anywhere yet.
 
 Brings a **distance-sorted list**, which forces a question deferred twice: web
 still has no list at all, though this file has called list and map co-equal since
@@ -268,6 +308,24 @@ be chosen rather than arrived at.
 
 ## Decisions that shape all of the above
 
+- **Either application is sufficient on its own.** A person may use one and never
+  open the other, and nothing this product can do may be reachable from only one
+  of them. This is stronger than "the phone gets everything the laptop has", which
+  is a statement about a direction of travel and was satisfied the moment the gap
+  closed; this is a standing rule about what may be built next, and it is the one
+  that decided that city management comes to the phone rather than being left as a
+  laptop errand.
+
+  It bounds convenience, not arrangement. The laptop's selected city is a
+  *convenience* — it frames, biases and defaults in one control — and the phone
+  declines it while still offering every capability underneath: the map frames on
+  open, search biases on the visible map, and the form defaults to the city last
+  used. That is allowed. What is not allowed is a place where the answer is "do
+  that on the other one".
+
+  Recorded here because it was decided in conversation while scoping mobile
+  capture and existed nowhere in this repository, which is exactly how a rule with
+  real consequences gets quietly forgotten.
 - **Chrome follows the screen shape, not the platform.** A phone-shaped screen puts
   its controls at the bottom, within a thumb's reach, with the map above them; a
   laptop-shaped one has a header and a toolbar. The web application gets both,
@@ -345,6 +403,15 @@ it does untidily.
 - [ ] **Self-service password recovery.** Resetting a password is a dashboard
       operation somebody with Supabase access has to perform. Fine at two users who
       know each other; not fine the moment a third person is added by invitation.
+- [ ] **The phone forgets which city you last used, on a cold launch.** The form
+      defaults to the city a place was last filed under, which is what the laptop
+      gets from its selected city. It is held in memory, so it lasts a session and
+      starts empty after a restart — while `marker-capture` says "on that device",
+      which is a stronger promise. It matters least where it is weakest: the case
+      the default exists for is saving four places while walking a neighbourhood,
+      which is one session. Closing it needs somewhere to persist a preference,
+      and this app has no such store today — `expo-secure-store` is for the
+      session token and a city id is not a secret.
 - [ ] **A way to see the places you disagree about.** Ticking names asks for
       agreement, and there is no tick meaning "and not the other" — so "only one of
       you wants this", the negotiation pile, is the one thing the rejected filter

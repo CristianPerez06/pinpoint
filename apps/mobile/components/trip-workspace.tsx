@@ -1,6 +1,7 @@
 import { signOut } from '@pinpoint/auth'
 import type {
   City,
+  FieldErrors,
   Marker,
   MarkerFilter,
   MarkerInterest,
@@ -9,6 +10,10 @@ import type {
 } from '@pinpoint/core'
 import { isFiltered, matchesFilter, NO_FILTER } from '@pinpoint/core'
 import {
+  createCity,
+  createMarker,
+  deleteCity,
+  deleteMarker,
   fetchTripCities,
   fetchTripInterest,
   fetchTripMarkers,
@@ -16,18 +21,36 @@ import {
   ownMemberOf,
   recordInterest,
   setMarkerVisited,
+  updateCity,
+  updateMarker,
   withdrawInterest,
 } from '@pinpoint/data'
+import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
+import { FALLBACK_MARKER_TYPE, type LngLat } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { type ReactNode, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { type ReactNode, type Ref, useMemo, useRef, useState } from 'react'
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { CitySheet } from '@/components/city-sheet'
 import { FilterSheet } from '@/components/filter-sheet'
+import {
+  MarkerFormSheet,
+  type MarkerFormValues,
+  openingHeight,
+} from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
+import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState, LoadingState } from '@/components/states'
-import { TripMap } from '@/components/trip-map'
+import { TripMap, type TripMapRef } from '@/components/trip-map'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -49,6 +72,45 @@ import { useQuery } from '@/lib/use-query'
  * the redirect.
  */
 
+/**
+ * What is open over the map, said in values rather than in flags.
+ *
+ * `position` is held beside the form rather than inside it, because it is the
+ * one thing the form cannot edit — it is corrected out at the sight and comes
+ * back. Keeping it here is what lets a trip out to the map and back preserve
+ * everything typed: the values go out with the panel and return unchanged.
+ *
+ * `marker` on an edit is the version the form was opened against. Its
+ * `updatedAt` is what the stale-read check is made against, and it deliberately
+ * survives a trip to the sight — re-reading it at save time would make the check
+ * pass by construction and guarantee nothing.
+ */
+type Panel =
+  | { kind: 'none' }
+  | { kind: 'create'; position: LngLat; initial: MarkerFormValues }
+  | { kind: 'edit'; marker: Marker; position: LngLat; initial: MarkerFormValues }
+
+/**
+ * What the sight is doing, and what it returns to.
+ *
+ * Two jobs rather than one. A fresh drop starts here and ends in a new form; a
+ * correction arrives from a form that already exists and has to go back to it
+ * with its values intact. Modelling the second as "dropping, but remember this"
+ * is what stops a correction being indistinguishable from starting again.
+ */
+type Sight = { kind: 'new' } | { kind: 'adjusting'; panel: Panel } | null
+
+function valuesOf(marker: Marker): MarkerFormValues {
+  return {
+    name: marker.name,
+    note: marker.note,
+    cityId: marker.cityId,
+    type: marker.type,
+    link: marker.link,
+    price: marker.price,
+  }
+}
+
 export function TripWorkspace({
   trip,
   userId,
@@ -65,6 +127,7 @@ export function TripWorkspace({
   // The header is the top of the screen, so it owns the space the system draws
   // into. Without this the wordmark sits under the clock and the Dynamic Island.
   const insets = useSafeAreaInsets()
+  const windowHeight = useWindowDimensions().height
 
   const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
   const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
@@ -98,7 +161,78 @@ export function TripWorkspace({
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [citiesOpen, setCitiesOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
+
+  /**
+   * Markers this device has written, laid over what the query returned.
+   *
+   * The same shape as the overrides above and for the same reason — nothing is
+   * copied, so nothing can go stale and a refetch is respected for free. `null`
+   * means removed, which absence cannot express: absence is "no local opinion",
+   * and having removed something is very much an opinion.
+   *
+   * Unlike `visitedWrites` these are written *after* the database agrees rather
+   * than before it. A toggle that waited for a round trip would feel worse than
+   * the spreadsheet this replaces; a save that appeared to succeed and then
+   * vanished would be worse than either.
+   */
+  const [markerWrites, setMarkerWrites] = useState<ReadonlyMap<string, Marker | null>>(
+    new Map(),
+  )
+  /** Cities this device has written, over the query, in the same shape. */
+  const [cityWrites, setCityWrites] = useState<ReadonlyMap<string, City | null>>(
+    new Map(),
+  )
+
+  const [panel, setPanel] = useState<Panel>({ kind: 'none' })
+  const [sight, setSight] = useState<Sight>(null)
+  const [busy, setBusy] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [formMessage, setFormMessage] = useState<string | null>(null)
+  /**
+   * Somebody else changed this place while it was being edited.
+   *
+   * Held apart from `formMessage` because it is not the same kind of event. A
+   * message above a form means the form is wrong; this means the world moved,
+   * which is nobody's mistake and calls for a different next action — look at
+   * their version, then decide. Sharing one channel would make the two
+   * indistinguishable exactly where the difference matters.
+   */
+  const [conflict, setConflict] = useState<string | null>(null)
+
+  /**
+   * The city a place was last filed under on this device.
+   *
+   * What the laptop gets from its selected city, which this platform does not
+   * have. Adding several places in a row is the case that matters — walking a
+   * neighbourhood, saving four things — and they are almost always the same city.
+   *
+   * In memory rather than stored: it lasts a session and starts empty on a cold
+   * launch. See the note in the change's report; the specification says "on that
+   * device", which is a stronger promise than this keeps.
+   */
+  const [lastCityId, setLastCityId] = useState<string | null>(null)
+
+  /**
+   * How tall the open form is, so the map can lift its credit clear of it.
+   *
+   * Held here rather than in the map because the form reports it and the map
+   * consumes it, and this is what sits between them. Zero when no form is open,
+   * which is also what the map falls back to.
+   */
+  const [formHeight, setFormHeight] = useState(0)
+
+  const mapRef = useRef<TripMapRef>(null)
+  /**
+   * Where the map is, written by the map on every settle.
+   *
+   * A ref rather than state: this changes on every frame a pan settles into, and
+   * a re-render per frame would be absurd. Everything that reads it does so at
+   * the moment of a press.
+   */
+  const centreRef = useRef<LngLat | null>(null)
 
   const members: readonly TripMember[] =
     memberQuery.status === 'ready' ? memberQuery.data : []
@@ -111,20 +245,66 @@ export function TripWorkspace({
    */
   const ownMemberId = ownMemberOf(members, userId)?.id ?? null
 
-  const cities: readonly City[] = cityQuery.status === 'ready' ? cityQuery.data : []
+  /** The stored cities, with this device's writes laid over them. */
+  const cities: readonly City[] = useMemo(() => {
+    const base = cityQuery.status === 'ready' ? cityQuery.data : []
+    if (cityWrites.size === 0) return base
+
+    const merged: City[] = []
+    for (const city of base) {
+      const written = cityWrites.get(city.id)
+      if (written === null) continue
+      merged.push(written ?? city)
+    }
+    // Cities created here, which the query has never seen.
+    const known = new Set(base.map((city) => city.id))
+    for (const [id, written] of cityWrites) {
+      if (written !== null && !known.has(id)) merged.push(written)
+    }
+    return merged
+  }, [cityQuery, cityWrites])
+
+  const cityIds = useMemo(() => new Set(cities.map((city) => city.id)), [cities])
+
   const currencyOf = (marker: Marker) =>
     cities.find((city) => city.id === marker.cityId)?.currency ?? null
 
-  /** The stored markers, with any local visited write laid over them. */
+  /** The stored markers, with this device's writes laid over them. */
   const held = useMemo(() => {
     const base = markerQuery.status === 'ready' ? markerQuery.data : []
-    if (visitedWrites.size === 0) return base
-    return base.map((marker) =>
-      visitedWrites.has(marker.id)
+
+    const lay = (marker: Marker): Marker => {
+      const withVisited = visitedWrites.has(marker.id)
         ? { ...marker, visited: visitedWrites.get(marker.id)! }
-        : marker,
-    )
-  }, [markerQuery, visitedWrites])
+        : marker
+
+      /*
+        A marker filed under a city that no longer exists is unassigned, and that
+        is derived rather than written down.
+
+        Removing a city unassigns its markers in the database, and the screen has
+        to say the same without re-reading the trip. Deriving it means no
+        override per affected marker — sixteen of them for one removal — and no
+        set of overrides to keep in agreement with the city list. A dangling
+        reference simply cannot be displayed, because nothing can look it up.
+      */
+      return withVisited.cityId !== null && !cityIds.has(withVisited.cityId)
+        ? { ...withVisited, cityId: null }
+        : withVisited
+    }
+
+    const merged: Marker[] = []
+    for (const marker of base) {
+      const written = markerWrites.get(marker.id)
+      if (written === null) continue
+      merged.push(lay(written ?? marker))
+    }
+    const known = new Set(base.map((marker) => marker.id))
+    for (const [id, written] of markerWrites) {
+      if (written !== null && !known.has(id)) merged.push(lay(written))
+    }
+    return merged
+  }, [markerQuery, visitedWrites, markerWrites, cityIds])
 
   /** The stored records, with the reader's own local answers laid over them. */
   const interest = useMemo(() => {
@@ -242,6 +422,251 @@ export function TripWorkspace({
     }
   }
 
+  /**
+   * Where place search should look first.
+   *
+   * The visible map, always. Web can also derive this from the selected city's
+   * markers; there is no selection here, so this takes the branch the
+   * `place-search` specification names as the fallback — which is that
+   * requirement being satisfied rather than an exception to it.
+   *
+   * A function behind a ref rather than a value, so that panning does not
+   * re-render the search screen and re-running a query is not provoked by
+   * nudging the map.
+   *
+   * Built once and never replaced. It closes over `centreRef` rather than over a
+   * value, so it reads the current centre at the moment it is called without
+   * anything having to keep it up to date — an earlier version reassigned it on
+   * every render, which the React linter rejected outright and was right to.
+   */
+  const biasRef = useRef<() => SearchBias | undefined>(
+    () => centreRef.current ?? undefined,
+  )
+
+  /** Starting a new place, from either entry path. */
+  function beginCreate(position: LngLat, initial: Partial<MarkerFormValues>) {
+    setFieldErrors({})
+    setFormMessage(null)
+    setConflict(null)
+    setSight(null)
+    setPanel({
+      kind: 'create',
+      position,
+      initial: {
+        name: '',
+        note: null,
+        // The city last filed under, which is almost always right when several
+        // places are being added in a row, and one tap away when it is not.
+        cityId: lastCityId,
+        type: FALLBACK_MARKER_TYPE,
+        link: null,
+        price: null,
+        ...initial,
+      },
+    })
+  }
+
+  function cancelPanel() {
+    setPanel({ kind: 'none' })
+    setSight(null)
+    setFieldErrors({})
+    setFormMessage(null)
+    setConflict(null)
+  }
+
+  /**
+   * Out to the sight and back, with everything typed still in hand.
+   *
+   * The values come from the form rather than from what it was opened with, so a
+   * name typed and then a position corrected keeps the name. The panel is put
+   * away while the sight is up — the map has to be visible to be aimed — and the
+   * sight carries it so that confirming or cancelling both know where to return.
+   */
+  function adjustPosition(values: MarkerFormValues) {
+    const returning: Panel =
+      panel.kind === 'edit'
+        ? { ...panel, initial: values }
+        : panel.kind === 'create'
+          ? { ...panel, initial: values }
+          : { kind: 'none' }
+
+    setPanel({ kind: 'none' })
+    setSight({ kind: 'adjusting', panel: returning })
+  }
+
+  /** What the sight is aimed at, or nothing if the map has not settled yet. */
+  function confirmSight() {
+    const position = centreRef.current
+    if (!position || sight === null) return
+
+    if (sight.kind === 'new') {
+      beginCreate(position, {})
+      return
+    }
+
+    const returning = sight.panel
+    setSight(null)
+    if (returning.kind === 'none') return
+    setPanel({ ...returning, position })
+  }
+
+  function cancelSight() {
+    const returning = sight?.kind === 'adjusting' ? sight.panel : null
+    setSight(null)
+    // A correction abandoned goes back to the form it came from, at the position
+    // it already had. Only a fresh drop leaves nothing behind.
+    if (returning && returning.kind !== 'none') setPanel(returning)
+  }
+
+  async function save(values: MarkerFormValues) {
+    if (panel.kind === 'none') return
+
+    setBusy(true)
+    setFieldErrors({})
+    setFormMessage(null)
+    setConflict(null)
+
+    const outcome =
+      panel.kind === 'edit'
+        ? await updateMarker(
+            supabase,
+            panel.marker.id,
+            { ...values, lng: panel.position.lng, lat: panel.position.lat },
+            // The version this edit was based on, captured when the form was
+            // opened and carried through any trip out to the sight. Re-reading it
+            // here would make the check pass by construction.
+            panel.marker.updatedAt,
+          )
+        : await createMarker(supabase, {
+            ...values,
+            tripId: trip.id,
+            lng: panel.position.lng,
+            lat: panel.position.lat,
+          })
+
+    setBusy(false)
+
+    if (!outcome.ok) {
+      // Everything typed, and the marker's position, survive a rejection.
+      // Retyping a name is a nuisance; re-finding a spot on a map is worse.
+      if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
+      else if (outcome.kind === 'conflict') setConflict(outcome.message)
+      else setFormMessage(outcome.message)
+      // The panel is left exactly as it was, so nothing typed is lost and the
+      // map keeps showing what is actually stored.
+      return
+    }
+
+    const saved = outcome.data
+    setMarkerWrites((current) => new Map(current).set(saved.id, saved))
+    // The stored row is now authoritative about this marker, including whether it
+    // is visited, so an optimistic override for it would only be able to be
+    // wrong from here on.
+    setVisitedWrites((current) => withoutOverride(current, saved.id))
+    setLastCityId(saved.cityId)
+    cancelPanel()
+  }
+
+  /**
+   * Removing a place, confirmed and said plainly.
+   *
+   * "Cannot be undone" rather than a softer word, because it cannot: there is no
+   * archive, no trash, and nothing that would let a member get a marker back.
+   * The platform's destructive styling is a signal, not a substitute for saying
+   * it.
+   *
+   * One function for both routes in — the details sheet and the form — so the
+   * two cannot drift into asking differently about the same act.
+   */
+  function confirmRemove(marker: Marker) {
+    Alert.alert(`Remove ${marker.name}?`, 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => void remove(marker),
+      },
+    ])
+  }
+
+  async function remove(marker: Marker) {
+    const outcome = await deleteMarker(supabase, marker.id)
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.',
+      )
+      return
+    }
+    setMarkerWrites((current) => new Map(current).set(marker.id, null))
+    cancelPanel()
+  }
+
+  async function addCity(name: string, currency: string | null) {
+    const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
+    if (!outcome.ok) return null
+    setCityWrites((current) => new Map(current).set(outcome.data.id, outcome.data))
+    return outcome.data
+  }
+
+  async function patchCity(
+    cityId: string,
+    patch: { name?: string; currency?: string | null },
+  ) {
+    const outcome = await updateCity(supabase, cityId, patch)
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
+      )
+      return
+    }
+    setCityWrites((current) => new Map(current).set(cityId, outcome.data))
+  }
+
+  async function removeCity(cityId: string) {
+    const outcome = await deleteCity(supabase, cityId)
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that city.',
+      )
+      return
+    }
+    setCityWrites((current) => new Map(current).set(cityId, null))
+    // Markers filed under it become unassigned without being written to — see the
+    // derivation in `held`.
+    if (lastCityId === cityId) setLastCityId(null)
+  }
+
+  /**
+   * The form, built here and drawn by the map.
+   *
+   * Handed down rather than rendered beside the map for the reason the bar and
+   * the marker sheet already are: the bottom edge is choreographed, and a licence
+   * credit has to stay legible above whatever is standing on it. Now that the
+   * form is a sheet rather than a full screen, it is one of those things.
+   */
+  const formSheet =
+    panel.kind === 'create' || panel.kind === 'edit' ? (
+      <MarkerFormSheet
+        // Remounted per place, so the fields re-seed from `initial` when a
+        // different marker is opened. Without it, editing one place after
+        // another would show the first one's values in the second one's form.
+        key={panel.kind === 'edit' ? panel.marker.id : 'create'}
+        title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
+        initial={panel.initial}
+        cities={cities}
+        busy={busy}
+        fieldErrors={fieldErrors}
+        message={formMessage}
+        notice={conflict}
+        onSubmit={(values) => void save(values)}
+        onCancel={cancelPanel}
+        onAdjustPosition={adjustPosition}
+        onCreateCity={addCity}
+        onDelete={panel.kind === 'edit' ? () => confirmRemove(panel.marker) : undefined}
+        onHeight={setFormHeight}
+      />
+    ) : null
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.colour.surface }]}>
       <View
@@ -281,6 +706,84 @@ export function TripWorkspace({
 
       <View style={styles.body}>
         <Body
+          mapRef={mapRef}
+          centreRef={centreRef}
+          dropping={sight !== null}
+          draft={panel.kind === 'none' ? null : panel.position}
+          formSheet={formSheet}
+          formHeight={formHeight}
+          onEditMarker={(marker) => {
+            setFieldErrors({})
+            setFormMessage(null)
+            setConflict(null)
+            setPanel({
+              kind: 'edit',
+              marker,
+              position: { lng: marker.lng, lat: marker.lat },
+              initial: valuesOf(marker),
+            })
+          }}
+          onDeleteMarker={confirmRemove}
+          /*
+            Tapping a saved place gives up on the one being added.
+
+            `cancelPanel` already puts everything back: the form closes, the sight
+            disarms, the draft position goes with the panel that held it, and the
+            field errors clear. Nothing was stored, so the trip is exactly as it
+            was — which is what the specification asks of abandoning.
+          */
+          onAbandonCapture={cancelPanel}
+          confirmBar={
+            <View style={styles.bottomRow}>
+              {/*
+                What the sight is waiting for.
+
+                Standing where the trip's controls stand, rather than beside
+                them: the map is doing something other than what it usually does,
+                and replacing the row says so more clearly than any label added
+                to it would.
+              */}
+              <Pressable
+                onPress={cancelSight}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                hitSlop={6}
+                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
+              >
+                <Text style={[styles.filterText, { color: theme.colour.ink }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <Text
+                style={[styles.sightHint, { color: theme.colour.inkMuted }]}
+                numberOfLines={2}
+              >
+                Move the map to put the place under the ring.
+              </Text>
+
+              <Pressable
+                onPress={confirmSight}
+                accessibilityRole="button"
+                accessibilityLabel="Use this spot"
+                hitSlop={6}
+                style={[
+                  styles.pill,
+                  {
+                    borderColor: theme.colour.accent,
+                    backgroundColor: theme.colour.accentWash,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.clearText, { color: theme.colour.accentInk }]}
+                  numberOfLines={1}
+                >
+                  Use this spot
+                </Text>
+              </Pressable>
+            </View>
+          }
           loading={markerQuery.status === 'loading'}
           failed={markerQuery.status === 'failed' ? markerQuery.message : null}
           total={held.length}
@@ -302,6 +805,48 @@ export function TripWorkspace({
           */
           bottomRow={
             <View style={styles.bottomRow}>
+              {/*
+                The two ways of adding a place, first, because the row reads
+                left to right and adding is what somebody came here to do while
+                standing somewhere. Narrowing follows.
+
+                Search is a control that opens a screen rather than a field that
+                lives here. This row is the floor — flush to the bottom edge —
+                and a focused field on the floor is a field under a keyboard.
+              */}
+              <Pressable
+                onPress={() => setSearchOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Search for a place"
+                hitSlop={6}
+                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
+              >
+                <Text
+                  style={[styles.filterText, { color: theme.colour.ink }]}
+                  numberOfLines={1}
+                >
+                  Search
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  cancelPanel()
+                  setSight({ kind: 'new' })
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Drop a pin on the map"
+                hitSlop={6}
+                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
+              >
+                <Text
+                  style={[styles.filterText, { color: theme.colour.ink }]}
+                  numberOfLines={1}
+                >
+                  Drop
+                </Text>
+              </Pressable>
+
               <Pressable
                 onPress={() => setFilterOpen(true)}
                 accessibilityRole="button"
@@ -387,8 +932,50 @@ export function TripWorkspace({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onSignOut={() => void signOut(supabase)}
+        onOpenCities={() => {
+          setMenuOpen(false)
+          setCitiesOpen(true)
+        }}
         tripName={trip.name}
       />
+
+      <CitySheet
+        open={citiesOpen}
+        onClose={() => setCitiesOpen(false)}
+        cities={cities}
+        markers={held}
+        onRename={(cityId, name) => void patchCity(cityId, { name })}
+        onSetCurrency={(cityId, currency) => void patchCity(cityId, { currency })}
+        onDelete={(cityId) => void removeCity(cityId)}
+      />
+
+      <PlaceSearchScreen
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        biasRef={biasRef}
+        onChoose={(candidate: PlaceCandidate) => {
+          const position = { lng: candidate.lng, lat: candidate.lat }
+          /*
+            Moved to, because a searched place is usually not on screen — that is
+            generally why somebody searched. Leaving the camera still would put
+            the place they just chose somewhere they cannot see, and then ask
+            them to save it.
+
+            A dropped pin is the opposite case and gets no movement: it is by
+            definition somewhere they were already looking.
+          */
+          // Told where the sheet will be, not where it is: the form opens in the
+          // same breath as this and does not exist yet to be measured. Without
+          // it the camera centres the place on the middle of the map view, which
+          // is the part the sheet is about to cover.
+          mapRef.current?.flyTo(position, openingHeight(windowHeight))
+          beginCreate(position, {
+            name: candidate.name,
+            type: candidate.typeGuess,
+          })
+        }}
+      />
+
     </View>
   )
 }
@@ -402,6 +989,16 @@ export function TripWorkspace({
  * recover on their own.
  */
 function Body({
+  mapRef,
+  centreRef,
+  dropping,
+  draft,
+  confirmBar,
+  formSheet,
+  formHeight,
+  onEditMarker,
+  onDeleteMarker,
+  onAbandonCapture,
   loading,
   failed,
   total,
@@ -416,6 +1013,16 @@ function Body({
   onClearFilter,
   bottomRow,
 }: {
+  mapRef: Ref<TripMapRef>
+  centreRef: { current: LngLat | null }
+  dropping: boolean
+  draft: LngLat | null
+  confirmBar: ReactNode
+  formSheet: ReactNode
+  formHeight: number
+  onEditMarker: (marker: Marker) => void
+  onDeleteMarker: (marker: Marker) => void
+  onAbandonCapture: () => void
   loading: boolean
   failed: string | null
   total: number
@@ -437,6 +1044,16 @@ function Body({
   return (
     <>
       <TripMap
+        ref={mapRef}
+        centreRef={centreRef}
+        dropping={dropping}
+        draft={draft}
+        confirmBar={confirmBar}
+        formSheet={formSheet}
+        formHeight={formHeight}
+        onEditMarker={onEditMarker}
+        onDeleteMarker={onDeleteMarker}
+        onAbandonCapture={onAbandonCapture}
         bottomRow={bottomRow}
         markers={visible}
         currencyOf={currencyOf}
@@ -504,6 +1121,9 @@ const styles = StyleSheet.create({
     maxWidth: 150,
   },
   filterText: { ...role(TYPE.control) },
+  // The only element in the confirm bar that yields, so the two controls keep
+  // their size and the sentence between them wraps instead of pushing one off.
+  sightHint: { ...role(TYPE.note), flex: 1, textAlign: 'center' },
   // Two states of one control. They differ by weight and by border as well as
   // by colour, so the declaration survives a greyscale screen and a
   // colour-blind reader — the same reason a visited marker is drawn visited

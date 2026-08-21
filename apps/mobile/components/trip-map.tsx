@@ -3,6 +3,7 @@ import {
   Map,
   Marker as MapLibreMarker,
   type Anchor,
+  type CameraRef,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native'
 import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
@@ -10,15 +11,25 @@ import {
   ATTRIBUTION,
   fitBounds,
   groupCoincident,
+  offsetCenter,
+  type LngLat,
   type Viewport,
 } from '@pinpoint/map'
-import { RADIUS, SPACE } from '@pinpoint/tokens'
-import { type ReactNode, useMemo, useState } from 'react'
+import { MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+import {
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerDetails, type Selection } from '@/components/marker-details'
-import { Pin } from '@/components/pin'
+import { DraftPin, Pin } from '@/components/pin'
 import { useThemedBasemap } from '@/lib/basemap'
 import { useTheme, useThemeMode } from '@/lib/theme'
 
@@ -59,6 +70,22 @@ import { useTheme, useThemeMode } from '@/lib/theme'
  * anchored at the bottom is the near-miss and being anchored at the middle is
  * the drift defect all over again.
  */
+/**
+ * The camera centre that puts a point in the middle of what can actually be seen.
+ *
+ * A map with a sheet over its lower half is not being looked at whole, so
+ * centring on a point is precisely how to hide it — the middle of the view is
+ * behind the sheet. Shifting the centre down the screen by half the covered
+ * height lifts the point into the middle of the strip that is left.
+ *
+ * Zero inset gives the ordinary answer back unchanged, so callers with nothing
+ * covering the map do not need a special case.
+ */
+function visibleCentre(center: LngLat, zoom: number, bottomInset: number): LngLat {
+  if (bottomInset <= 0) return center
+  return offsetCenter(center, zoom, 0, bottomInset / 2)
+}
+
 function anchorName(anchor: { x: number; y: number }): Anchor {
   const NAMES: Record<string, Anchor> = {
     '0.5,1': 'bottom',
@@ -119,6 +146,37 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderTopWidth: 1,
   },
+  /*
+   * The sight, and the reason it is a plain overlay rather than a marker.
+   *
+   * `@maplibre/maplibre-react-native`'s `Marker` has no `draggable` and no drag
+   * events, so the laptop's mechanism — a pin you pick up and put down — has no
+   * counterpart here. What replaces it is the map moving under a fixed point.
+   *
+   * Drawn as a `View` over the map rather than as an annotation, which is what
+   * keeps it out of the tap recognisers entirely. That matters more than it
+   * looks: the alternative mechanism, tapping the map to place a pin, needs
+   * `onPress` on `Map`, and the comment further down records what happened the
+   * last time that prop existed.
+   */
+  sightWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sightRing: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sightDot: { width: 7, height: 7, borderRadius: 4 },
   failure: {
     flex: 1,
     alignItems: 'center',
@@ -130,7 +188,36 @@ const styles = StyleSheet.create({
   failureDetail: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
 })
 
+/**
+ * What the workspace can ask the map to do, as opposed to tell it.
+ *
+ * One method, and it exists because search is the one thing that has to move a
+ * camera nobody else may move. Choosing a candidate is usually a request to look
+ * somewhere that is not on screen — that is generally why somebody searched — so
+ * the alternative is asking a person to accept a position they cannot see.
+ *
+ * Imperative rather than a prop, because "go here" is an event and a prop is a
+ * value. Web expresses the same thing as `{ points, token }` in state, where the
+ * token exists only to distinguish "asked again" from "this array is a new
+ * object" on re-render. A method call has no such problem: it happens once,
+ * when it is called.
+ */
+export interface TripMapRef {
+  /**
+   * Move the camera to a position, framed the way a single marker is framed.
+   *
+   * `bottomInset` is how much of the map is about to be covered from the bottom,
+   * in pixels. It is a parameter rather than something read from this component's
+   * own state because the covering thing does not exist yet when this is called:
+   * choosing a search result moves the camera and opens the form together, and by
+   * the time the form has reported its height the camera has already arrived in
+   * the wrong place.
+   */
+  flyTo: (position: LngLat, bottomInset?: number) => void
+}
+
 export function TripMap({
+  ref,
   markers,
   currencyOf,
   members,
@@ -139,8 +226,18 @@ export function TripMap({
   onRecordInterest,
   onWithdrawInterest,
   onSetVisited,
+  onEditMarker,
+  onDeleteMarker,
+  onAbandonCapture,
   bottomRow,
+  dropping,
+  draft,
+  confirmBar,
+  formSheet,
+  formHeight,
+  centreRef,
 }: {
+  ref?: Ref<TripMapRef>
   /**
    * Already narrowed by the filter. The map draws what it is given and knows
    * nothing about why something is missing — which is what stops it and the
@@ -155,6 +252,23 @@ export function TripMap({
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
   onSetVisited: (marker: Marker, visited: boolean) => void
+  /** Passed straight through to the details sheet, which is where they are reached from. */
+  onEditMarker: (marker: Marker) => void
+  onDeleteMarker: (marker: Marker) => void
+  /**
+   * Give up on the place being added, because a saved one is being read instead.
+   *
+   * Reading and adding cannot both be happening: they want the same bottom edge
+   * and they mean opposite things. Rather than letting a tap silently set a
+   * selection nobody can see — which is what it did, and which then produced a
+   * sheet out of nowhere when the form was cancelled — the tap ends the addition
+   * outright.
+   *
+   * Nothing is stored either way, so this costs whatever had been typed and no
+   * more. That is a real cost and it is the deliberate trade: a tap that appears
+   * to do nothing is worse than a tap that does the obvious thing.
+   */
+  onAbandonCapture: () => void
   /**
    * The trip's controls, drawn over the bottom of the map when nothing is
    * selected.
@@ -165,6 +279,54 @@ export function TripMap({
    * credit that must stay legible above both.
    */
   bottomRow: ReactNode
+  /**
+   * Whether the sight is armed.
+   *
+   * Armed is a deliberate state the person entered, never something a gesture
+   * produces: panning and zooming create nothing, which is what the
+   * specification asks for and what an unarmed map has always done.
+   */
+  dropping: boolean
+  /**
+   * The position a place is being saved at, drawn while its form is open.
+   *
+   * Null while nothing is being added. This is what makes the half-height form
+   * worth having: the map behind it is the only way to confirm the place is the
+   * one that was meant, and a map with nothing marked on it confirms nothing.
+   */
+  draft: LngLat | null
+  /**
+   * The form for the place being added, standing on the bottom edge.
+   *
+   * Handed in like `bottomRow` and `confirmBar`, and for the stronger version of
+   * the same reason: it is a second tenant of an edge that already has to keep a
+   * licence credit legible above whatever is standing there.
+   */
+  formSheet: ReactNode
+  /**
+   * How tall the open form has settled at, or 0 when none is open.
+   *
+   * Told rather than measured, unlike the bar and the marker sheet. Those are
+   * whatever their contents make them; this one chooses between two heights it
+   * already knows, and it is the only thing on this edge that a person can resize
+   * by hand.
+   */
+  formHeight: number
+  /**
+   * What stands on the bottom edge while the sight is armed, in place of the
+   * trip's ordinary controls. Handed in for the same reason `bottomRow` is: what
+   * is in it belongs to the workspace, where it sits belongs here.
+   */
+  confirmBar: ReactNode
+  /**
+   * Where the map is centred, written on every settle.
+   *
+   * A ref rather than state because this changes on every settle of every pan,
+   * and re-rendering the workspace for each of them would be absurd — the same
+   * reasoning that made web's search bias a ref. Everything that reads it does so
+   * at the moment of a press, by which point the map has settled.
+   */
+  centreRef: { current: LngLat | null }
 }) {
   /**
    * What is open, said in identities rather than in positions.
@@ -219,6 +381,82 @@ export function TripMap({
   /** How tall the bar of controls is, for the same reason and by the same means. */
   const [barHeight, setBarHeight] = useState(0)
 
+  /**
+   * The camera, held so search can move it.
+   *
+   * The `Camera` below stays uncontrolled — `initialViewState` and nothing else —
+   * because a controlled one re-applies on every render and fights the person
+   * panning. A ref adds the one motion that has to be possible without making the
+   * camera a value that React owns.
+   */
+  const cameraRef = useRef<CameraRef>(null)
+  /** The current zoom, written on every settle. Null until the map first settles. */
+  const zoomRef = useRef<number | null>(null)
+
+  /**
+   * Which draft the camera has already been lifted for.
+   *
+   * Written only from inside the effect below, so it never records an intention
+   * that a render did not carry out. Keyed on the position rather than set as a
+   * flag because correcting a position produces a *new* draft that has to be
+   * lifted again, and clearing the form produces none at all.
+   */
+  const liftedForRef = useRef<string | null>(null)
+
+  /**
+   * Getting the draft clear of the form that just opened over it.
+   *
+   * The fly path handles its own offset, because it knows where it is going
+   * before the form exists. The other two paths do not fly at all: dropping a pin
+   * and correcting one both leave the camera exactly where the person put it, and
+   * the position they chose is the middle of the view — which is the first thing
+   * the sheet covers.
+   *
+   * So this eases, and only far enough. It is not a re-frame: the zoom does not
+   * change and the point they chose does not move. What moves is the amount of it
+   * they can see.
+   */
+  useEffect(() => {
+    if (!draft || formHeight <= 0) {
+      if (!draft) liftedForRef.current = null
+      return
+    }
+
+    const key = `${draft.lng},${draft.lat},${formHeight}`
+    if (liftedForRef.current === key) return
+    liftedForRef.current = key
+
+    const zoom = zoomRef.current
+    if (zoom === null) return
+
+    const target = visibleCentre(draft, zoom, formHeight)
+    cameraRef.current?.easeTo({
+      center: [target.lng, target.lat],
+      duration: 280,
+    })
+  }, [draft, formHeight])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flyTo: (position: LngLat, bottomInset = 0) => {
+        // Framed by the shared derivation rather than a zoom written here. A
+        // single point has no extent to fit, and what that should mean is
+        // already decided once in `@pinpoint/map` for both platforms.
+        const camera = fitBounds([position], viewport ? { viewport } : {})
+        // Centred on the visible strip rather than on the view, so the place
+        // lands above whatever is about to cover the bottom of the map instead
+        // of behind it.
+        const target = visibleCentre(camera.center, camera.zoom, bottomInset)
+        cameraRef.current?.flyTo({
+          center: [target.lng, target.lat],
+          zoom: camera.zoom,
+        })
+      },
+    }),
+    [viewport],
+  )
+
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
 
   /**
@@ -251,7 +489,17 @@ export function TripMap({
    *
    * Never a sum, because the bar is not drawn while a sheet is open.
    */
-  const lift = selection ? sheetHeight : barHeight
+  /*
+   * Whatever is currently standing on the bottom edge.
+   *
+   * Three cases now rather than two, still one expression: the form when a place
+   * is being added, the marker sheet when one is being read, the bar otherwise.
+   * The form wins over the other two because it is the only one of the three that
+   * can be open at the same time as either.
+   *
+   * Never a sum. Exactly one of these is drawn at a time.
+   */
+  const lift = formSheet ? formHeight : selection ? sheetHeight : barHeight
   const camera = useMemo(
     () => (viewport ? fitBounds([...markers], { viewport }) : null),
     // Deliberately not depending on `markers`: the frame is decided by the
@@ -303,6 +551,30 @@ export function TripMap({
           attributionPosition={{ bottom: lift + SPACE.sm, right: SPACE.sm }}
           logo
           logoPosition={{ bottom: lift + SPACE.sm, left: SPACE.sm }}
+          /*
+            Where the map is, written down on every settle.
+            
+            This is what the sight reads when somebody confirms a position, and
+            what place search reads to bias a query. Both read it at the moment of
+            a press, never during the movement, so a ref is enough and no render
+            is provoked by panning.
+
+            The event also carries `userInteraction`, which says whether a person
+            caused this or the camera did. Deliberately not branched on: the
+            position under the sight is wherever the map is, and how it came to be
+            there does not change what is under the sight. Recording only
+            person-driven settles would leave the ref stale after a flight and
+            hand the next press a position from before it.
+          */
+          onRegionDidChange={(event) => {
+            const [lng, lat] = event.nativeEvent.center
+            centreRef.current = { lng, lat }
+            // Kept for the same reason the centre is, and read at the same
+            // moments: how far a pixel reaches on the ground depends entirely on
+            // it, so an offset computed at the wrong zoom is an offset of the
+            // wrong distance.
+            zoomRef.current = event.nativeEvent.zoom
+          }}
           //
           // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
           // annotation carries its own tap recogniser (MLRNPointAnnotation
@@ -319,6 +591,7 @@ export function TripMap({
             // Initial state, not a controlled camera: a controlled one would
             // re-apply on every render and fight the person panning.
             <Camera
+              ref={cameraRef}
               initialViewState={{
                 center: [camera.center.lng, camera.center.lat],
                 zoom: camera.zoom,
@@ -335,12 +608,16 @@ export function TripMap({
               // description. Neither application writes this by hand — the last
               // drift defect lived exactly in two apps choosing their own.
               anchor={anchorName(group.view.anchor)}
-              onPress={() =>
+              onPress={() => {
+                // Whatever was being added is given up first, so that the
+                // selection this sets is never hidden behind a form or competing
+                // with an armed sight.
+                if (formSheet !== null || dropping) onAbandonCapture()
                 setOpen({
                   groupKey: group.key,
                   markerId: group.count === 1 ? group.markers[0]!.id : null,
                 })
-              }
+              }}
             >
               <Pin
                 view={group.view}
@@ -349,10 +626,67 @@ export function TripMap({
               />
             </MapLibreMarker>
           ))}
+
+          {/*
+            The place being added, drawn after the saved markers so it sits above
+            them. Putting one at or near an existing marker has to leave it
+            visible rather than buried.
+
+            It is not among `groups`, so it contributes nothing to framing and is
+            counted nowhere — the trip does not have it yet.
+
+            The anchor comes from the shared token, like every other pin here.
+            Neither application writes this by hand: two apps choosing their own
+            is where the last drift defect lived.
+          */}
+          {draft ? (
+            <MapLibreMarker
+              id="draft"
+              lngLat={[draft.lng, draft.lat]}
+              anchor={anchorName(MARKER_ANCHOR)}
+            >
+              <DraftPin />
+            </MapLibreMarker>
+          ) : null}
         </Map>
       ) : (
         <View style={[styles.fill, { backgroundColor: theme.basemap.land }]} />
       )}
+
+      {/*
+        The sight, at the geometric centre of the map view.
+
+        Centred on the map rather than on the space left visible above the
+        confirm bar, and that distinction is the whole defect this is written to
+        avoid. MapLibre centres its camera on its own view, so the coordinate the
+        map reports as its centre is the one under the middle of the *view* —
+        including the strip the bar is covering. Centring the sight on what the
+        eye reads as the middle would put it a good thirty points away from the
+        position it claims to mark, in the same direction every time, and a pin
+        that lands consistently north of where it was aimed is the drift defect
+        this project has already shipped once.
+
+        `pointerEvents="none"` so it cannot take a touch the map needs. It never
+        needs one: the sight is not what is pressed, the confirm bar is.
+      */}
+      {dropping ? (
+        <View style={styles.sightWrap} pointerEvents="none">
+          <View
+            style={[
+              styles.sightRing,
+              {
+                borderColor: theme.colour.accent,
+                backgroundColor: theme.colour.surface,
+                opacity: 0.9,
+              },
+            ]}
+          >
+            <View
+              style={[styles.sightDot, { backgroundColor: theme.colour.accent }]}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {/* A licence condition, not a default. Drawn rather than relied upon. */}
       <View
@@ -383,7 +717,17 @@ export function TripMap({
         which is what keeps the declaration and the way out concealed together
         rather than one without the other.
       */}
-      {selection === null ? (
+      {/*
+        The form for a place being added, which takes the bottom edge from
+        everything else while it is open.
+
+        Rendered here rather than over the whole screen so that the map it leaves
+        visible is genuinely the map — MapLibre's ornaments and our credit rise
+        off the top of it, exactly as they do off the bar and the marker sheet.
+      */}
+      {formSheet}
+
+      {formSheet === null && selection === null ? (
         <View
           onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}
           style={[
@@ -397,11 +741,20 @@ export function TripMap({
             },
           ]}
         >
-          {bottomRow}
+          {/*
+            The trip's controls, or the confirmation the sight is waiting for.
+
+            One slot rather than two, measured by one `onLayout`, so the credit
+            and MapLibre's ornaments rise off whichever is standing there without
+            either case having to be remembered separately. Arming replaces the
+            controls instead of adding to them, which is also what says the map is
+            doing something other than what it usually does.
+          */}
+          {dropping ? confirmBar : bottomRow}
         </View>
       ) : null}
 
-      {selection ? (
+      {formSheet === null && selection ? (
         <MarkerDetails
           currencyOf={currencyOf}
           selection={selection}
@@ -411,6 +764,8 @@ export function TripMap({
           onRecordInterest={onRecordInterest}
           onWithdrawInterest={onWithdrawInterest}
           onSetVisited={onSetVisited}
+          onEdit={onEditMarker}
+          onDelete={onDeleteMarker}
           onChoose={(index) =>
             setOpen({
               groupKey: selection.group.key,

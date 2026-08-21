@@ -61,6 +61,16 @@ import { role } from '@/lib/type'
 const SHEET_CAP = 0.5
 
 const styles = StyleSheet.create({
+  rowActions: { flexDirection: 'row', gap: SPACE.sm, paddingTop: SPACE.xs },
+  action: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: RADIUS.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  actionText: { ...role(TYPE.control), fontWeight: '700' },
   sheet: {
     position: 'absolute',
     left: 0,
@@ -205,6 +215,8 @@ export function MarkerDetails({
   onBack,
   onDismiss,
   onHeight,
+  onEdit,
+  onDelete,
 }: {
   selection: Selection
   /** The currency of the city a marker is filed under, or null when there is none. */
@@ -219,6 +231,20 @@ export function MarkerDetails({
   onChoose: (index: number) => void
   onBack: () => void
   onDismiss: () => void
+  /**
+   * Correcting or removing what this sheet is describing.
+   *
+   * Reached from here because this is the surface that shows what was recorded,
+   * which is where the specification says editing is reached from — and because
+   * it is where somebody notices the thing that is wrong.
+   */
+  onEdit: (marker: Marker) => void
+  /**
+   * Asks for the removal; it does not perform one. The confirmation lives with
+   * whoever owns the write, so that both routes to removing a place — here and
+   * the form — ask the same question in the same words.
+   */
+  onDelete: (marker: Marker) => void
   /**
    * How tall this sheet ended up, so the map can lift its licence credit clear
    * of it. Reported rather than assumed: the sheet grows with its content up to
@@ -337,6 +363,36 @@ export function MarkerDetails({
 
       <Field label="Note" value={marker.note} />
       <Field label="Link" value={marker.link} />
+
+      {/*
+        Editing and removing, at the bottom rather than in the header.
+
+        The header holds the place's identity and the way out; putting a
+        destructive control up there would sit it beside a dismiss button, where
+        a mis-tap costs a marker instead of a glance. Down here they follow what
+        was recorded, which is the order somebody reads in — see it, then decide
+        it is wrong.
+      */}
+      <View style={styles.rowActions}>
+        <Pressable
+          onPress={() => onEdit(marker)}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${marker.name}`}
+          style={[styles.action, { borderColor: theme.colour.lineStrong }]}
+        >
+          <Text style={[styles.actionText, { color: theme.colour.ink }]}>Edit</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onDelete(marker)}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${marker.name}`}
+          style={[styles.action, { backgroundColor: theme.colour.dangerSurface }]}
+        >
+          <Text style={[styles.actionText, { color: theme.colour.danger }]}>
+            Remove
+          </Text>
+        </Pressable>
+      </View>
 
       {group.count > 1 ? (
         <Pressable
