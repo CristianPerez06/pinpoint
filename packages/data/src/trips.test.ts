@@ -118,7 +118,17 @@ function stubWriteClient(options: {
 
   const update = vi.fn(() => builder)
   const from = vi.fn(() => ({ select, update, eq }))
-  const rpc = vi.fn(() => Promise.resolve(rpcResult))
+  /*
+   * Parameters declared rather than inferred.
+   *
+   * `vi.fn(() => …)` types its recorded calls as `[]`, so reading an argument
+   * back needs a cast — and a cast is exactly what should not stand between a
+   * test and the thing it is asserting. Naming them makes `mock.calls` a real
+   * tuple and the assertion below type-safe.
+   */
+  const rpc = vi.fn((_fn: string, _args: Record<string, unknown>) =>
+    Promise.resolve(rpcResult),
+  )
 
   return {
     client: { from, rpc } as unknown as PinpointClient,
@@ -158,8 +168,9 @@ describe('createTrip', () => {
 
     // The function reads the address from the verified session. Passing one
     // would make creating a trip as somebody else a matter of typing.
-    const [, args] = calls.rpc.mock.calls[0] as [string, Record<string, unknown>]
-    expect(Object.keys(args).sort()).toEqual(['member_name', 'trip_name'])
+    const call = calls.rpc.mock.calls[0]
+    expect(call).toBeDefined()
+    expect(Object.keys(call![1]).sort()).toEqual(['member_name', 'trip_name'])
   })
 
   it('rejects a trip with no name for the creator', async () => {
