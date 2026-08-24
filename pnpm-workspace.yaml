@@ -9,6 +9,11 @@ allowBuilds:
   # it already self-skips when CI=true. The CLI works without it, so there is
   # nothing to gain by running it and one less install script to trust.
   '@fission-ai/openspec': false
+  # Optional DTrace bindings for bunyan, the logger inside eas-cli. They compile
+  # native code to feed a tracing facility nothing here uses, and bunyan detects
+  # their absence and logs identically without them. eas-cli is fully functional
+  # either way, so there is nothing to gain by running the build.
+  dtrace-provider: false
   # Vitest's bundler. Its postinstall fetches the platform binary — without it
   # every test run fails to start.
   esbuild: true

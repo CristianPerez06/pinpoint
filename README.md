@@ -181,6 +181,21 @@ stray root `dependencies` block installed a second React Native, which moved `RN
 which invalidated the hash. The dependency mistake did not cause the failure; it removed
 the thing that had been hiding it.
 
+## Builds
+
+Everything above builds on this machine, for this machine. An installable build — an APK
+someone else can sideload, or an iOS simulator build — comes from
+[EAS](https://docs.expo.dev/eas/), which compiles on Expo's machines: no Android SDK
+locally, and none of the Xcode requirements above.
+
+```bash
+pnpm --filter mobile exec eas build --profile production --platform android
+```
+
+Internal distribution needs no paid account on Android. The configuration, the decisions
+behind it and the failures worth recognising are in
+[`apps/mobile/EAS_SETUP.md`](apps/mobile/EAS_SETUP.md).
+
 ## Checks
 
 ```bash

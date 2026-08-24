@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "pinpoint",
+    "name": "Pinpoint",
     "slug": "pinpoint",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "pinpoint",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,10 +17,21 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pinpoint.app"
+      "bundleIdentifier": "ar.com.pinpoint.app"
     },
     "android": {
-      "package": "com.pinpoint.app"
-    }
+      "package": "ar.com.pinpoint.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A1917"
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c4bfaf7a-165e-4e1a-8a57-1d1ded47be55"
+      }
+    },
+    "owner": "cristian.perez.06"
   }
 }

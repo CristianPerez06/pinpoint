@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.1.1",
+    "eas-cli": "^22.2.0",
     "eslint": "^9",
     "eslint-config-expo": "~57.0.1",
     "typescript": "~6.0.3"
