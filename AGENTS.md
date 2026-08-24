@@ -144,6 +144,24 @@ placeholders.
   raise exception 'RESULT: %', … $$` block does the work, reports through the error
   message, and rolls back everything it touched. That is how the constraint above was
   caught doing the right thing on real data instead of being assumed to.
+- **Two tokens can be the same value on one theme, and a composition that pairs
+  them is invisible there.** `accentInk` and `accent` are different on the light
+  ground and **identical** on the dark one — the pair converges deliberately, because
+  once the bright amber is already the readable one there is nothing to take down. So
+  `Clear`, which fills with `accent` on hover and kept its `accentInk` lettering,
+  painted `#F0AE4A` on `#F0AE4A` and the word vanished under the pointer on exactly
+  one theme. **Learn the shape of this one**: at 1:1 the text is not thin, it is
+  absent, so it reads as the label failing to render and never is. Neither token was
+  wrong and no rule about choosing values against a ground was broken — the failing
+  text was drawn on a *fill*. Anything that fills with a themed colour letters itself
+  in the same rule; text on the accent is `inkOnAccent`.
+- **A token described by how it should feel gets used past the contrast floor.**
+  `inkFaint` said "placeholders, and text that is deliberately hard to notice" and
+  ended up carrying every uppercase label, every placeholder and every dismiss glyph
+  on both platforms, at 2.78:1 and 4.02:1. Every one of those was a correct reading of
+  the sentence. Describe a colour token by what it may be used *for*, not by the
+  impression it should leave, or the description licenses the defect and every reviewer
+  after that sees intent.
 
 ## Styling
 

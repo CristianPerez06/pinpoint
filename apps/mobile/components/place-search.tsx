@@ -194,7 +194,7 @@ export function PlaceSearchScreen({
             value={query}
             onChangeText={setQuery}
             placeholder="Search for a place…"
-            placeholderTextColor={theme.colour.inkFaint}
+            placeholderTextColor={theme.colour.inkMuted}
             accessibilityLabel="Search for a place"
             autoFocus
             autoCorrect={false}

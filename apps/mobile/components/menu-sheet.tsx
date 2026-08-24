@@ -166,7 +166,7 @@ export function MenuSheet({
             */}
             {trips.length > 1 ? (
               <>
-                <Text style={[styles.label, { color: theme.colour.inkFaint }]}>
+                <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
                   Trips
                 </Text>
                 {trips.map((each) => {

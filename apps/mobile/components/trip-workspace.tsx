@@ -982,7 +982,7 @@ export function TripWorkspace({
                 <Text
                   style={[
                     narrowed ? styles.clearText : styles.clearTextInert,
-                    { color: narrowed ? theme.colour.accentInk : theme.colour.inkFaint },
+                    { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
                   ]}
                 >
                   Clear

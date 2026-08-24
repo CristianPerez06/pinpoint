@@ -115,7 +115,21 @@ export const COLOUR = {
   ink: { light: '#1A1917', dark: '#F2F0EC' },
   /** Notes, counts, labels. */
   inkMuted: { light: '#6E6A63', dark: '#A09A91' },
-  /** Placeholders, and text that is deliberately hard to notice. */
+  /**
+   * Not text. A hairline that needs to be darker than `line`, a border on
+   * hover — anything drawn rather than read.
+   *
+   * It said "placeholders, and text that is deliberately hard to notice" and
+   * was used for exactly that: every uppercase field label, every placeholder,
+   * every dismiss glyph, on both platforms. It measures **2.78:1** on the light
+   * ground and **4.02:1** on the dark, so all of it sat under the 4.5:1 floor —
+   * and "deliberately hard to notice" is what made that read as intent instead
+   * of as a defect.
+   *
+   * Deliberately recessive is a real thing to want, and `inkMuted` already is
+   * one: 5.16:1 light and 6.48:1 dark, clearly quieter than `ink` at 16.8:1 and
+   * legible. Recessive text goes there. What stays here is what is not text.
+   */
   inkFaint: { light: '#9C978E', dark: '#7C766D' },
 
   /**
@@ -137,6 +151,25 @@ export const COLOUR = {
    * is already the readable one, so the two values converge.
    */
   accentInk: { light: '#8A5A0B', dark: '#F0AE4A' },
+  /**
+   * Text drawn *on* the accent, which is the opposite problem to `accentInk`.
+   *
+   * The accent is a light surface on both grounds, so the ink over it is dark
+   * on both — this is the second token, after `MARKER_FOREGROUND`, whose two
+   * values are near-neighbours rather than opposites.
+   *
+   * It exists because the obvious choice is wrong in a way nothing reports. A
+   * primary button filled with the accent and lettered in `ground` reads as
+   * correct on the dark theme, where `ground` is near-black and clears 9.35:1,
+   * and is unreadable on the light one, where `ground` is near-white and clears
+   * 2.26:1. One expression, one value, and only half of it legible — so the
+   * ground a button is standing on cannot be the thing that letters it.
+   *
+   * Light is a very dark brown of the accent's own hue rather than a neutral,
+   * because a neutral over amber reads as a printing error. It clears 7.44:1.
+   * Dark is `ink`'s ground, which is what native already drew and is 9.35:1.
+   */
+  inkOnAccent: { light: '#241703', dark: '#171614' },
   /** Behind a selected row. */
   accentWash: { light: '#FBF1DF', dark: '#33291A' },
   /** The focus ring. Alpha, so it reads over a surface or over the map. */

@@ -40,3 +40,8 @@ yarn-error.log*
 # node_modules on every dev and build, so the copy is generated, never edited,
 # and can never drift from the installed version.
 apps/web/public/maplibre/
+
+# Impeccable. `design.json` is the design-system sidecar and is committed beside
+# DESIGN.md; `config.local.json` is per-machine state (hook consent, local
+# overrides) and is not.
+.impeccable/config.local.json

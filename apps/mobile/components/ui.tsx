@@ -71,7 +71,7 @@ export function TextField({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={theme.colour.inkFaint}
+        placeholderTextColor={theme.colour.inkMuted}
         multiline={multiline}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
@@ -122,7 +122,11 @@ export function Button({
         : 'transparent'
   const ink =
     tone === 'primary'
-      ? theme.colour.ground
+      ? // Not `ground`, which is what this was and is only half right: on the
+        // dark theme `ground` is near-black over amber and clears 9.35:1, and
+        // on the light one it is near-white over the same amber and clears
+        // 2.26:1. `inkOnAccent` is the pair chosen against the accent itself.
+        theme.colour.inkOnAccent
       : tone === 'danger'
         ? theme.colour.danger
         : theme.colour.ink

@@ -56,8 +56,10 @@
 .primary {
   background: var(--pp-accent);
   /* Not white: amber is a light surface, and white on it clears about 1.7:1.
-     A very dark brown of the same hue carries at any size. */
-  color: #241703;
+     A very dark brown of the same hue carries at any size. It was a literal
+     here until the phone needed the same value and had nowhere to read it
+     from — see `inkOnAccent` in the tokens. */
+  color: var(--pp-ink-on-accent);
   box-shadow: var(--pp-shadow-sm);
 }
 
@@ -106,7 +108,7 @@
   font-weight: var(--pp-type-label-weight);
   letter-spacing: var(--pp-type-label-tracking);
   text-transform: uppercase;
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 .control {
@@ -125,7 +127,7 @@
 }
 
 .control::placeholder {
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 .control:focus {

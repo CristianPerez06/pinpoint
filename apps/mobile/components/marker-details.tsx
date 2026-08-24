@@ -161,11 +161,11 @@ function Field({ label, value }: { label: string; value: string | null }) {
 
   return (
     <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: theme.colour.inkFaint }]}>
+      <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
         {label}
       </Text>
       {value === null ? (
-        <Text style={[styles.absent, { color: theme.colour.inkFaint }]}>
+        <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
           Not recorded
         </Text>
       ) : (
@@ -186,7 +186,7 @@ function Dismiss({ onDismiss }: { onDismiss: () => void }) {
       style={styles.dismiss}
       hitSlop={8}
     >
-      <X size={18} color={theme.colour.inkFaint} strokeWidth={2.2} />
+      <X size={18} color={theme.colour.inkMuted} strokeWidth={2.2} />
     </Pressable>
   )
 }
@@ -339,7 +339,7 @@ export function MarkerDetails({
   const fields = (
     <>
       <View style={styles.field}>
-        <Text style={[styles.fieldLabel, { color: theme.colour.inkFaint }]}>
+        <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
           Who wants to go
         </Text>
         <InterestRows
@@ -352,7 +352,7 @@ export function MarkerDetails({
       </View>
 
       <View style={styles.field}>
-        <Text style={[styles.fieldLabel, { color: theme.colour.inkFaint }]}>
+        <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
           Visited
         </Text>
         <VisitedToggle

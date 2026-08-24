@@ -87,7 +87,7 @@ export function InterestRows({
   const stateColour: Record<InterestState, string> = {
     interested: theme.colour.accentInk,
     'not-interested': theme.colour.inkMuted,
-    undecided: theme.colour.inkFaint,
+    undecided: theme.colour.inkMuted,
   }
 
   return (

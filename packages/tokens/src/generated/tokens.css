@@ -82,6 +82,7 @@
   --pp-ink-faint: #9C978E;
   --pp-accent: #E39A2B;
   --pp-accent-ink: #8A5A0B;
+  --pp-ink-on-accent: #241703;
   --pp-accent-wash: #FBF1DF;
   --pp-accent-ring: #E39A2B61;
   --pp-danger: #B3261E;
@@ -126,6 +127,7 @@
     --pp-ink-faint: #7C766D;
     --pp-accent: #F0AE4A;
     --pp-accent-ink: #F0AE4A;
+    --pp-ink-on-accent: #171614;
     --pp-accent-wash: #33291A;
     --pp-accent-ring: #F0AE4A6B;
     --pp-danger: #F2857C;
