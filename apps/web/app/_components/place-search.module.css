@@ -21,7 +21,7 @@
 }
 
 .input::placeholder {
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 .input:hover {

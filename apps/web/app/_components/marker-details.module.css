@@ -20,7 +20,7 @@
   border: 0;
   border-radius: var(--pp-radius-sm);
   background: none;
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
   cursor: pointer;
   line-height: 0;
 }
@@ -70,7 +70,7 @@
   font-weight: var(--pp-type-label-weight);
   letter-spacing: var(--pp-type-label-tracking);
   text-transform: uppercase;
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 .fieldValue {
@@ -81,7 +81,7 @@
 }
 
 .absent {
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
   font-style: italic;
 }
 

@@ -19,7 +19,7 @@ export interface ThemeElevation {
 
 export interface Theme {
   readonly mode: 'light' | 'dark'
-  readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'accentWash' | 'accentRing' | 'danger' | 'dangerSurface', string>>
+  readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'inkOnAccent' | 'accentWash' | 'accentRing' | 'danger' | 'dangerSurface', string>>
   readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'boundary' | 'label', string>>
   readonly markerFamily: Readonly<Record<'see' | 'eat' | 'buy' | 'sleep' | 'move', string>>
   readonly markerForeground: string
@@ -40,6 +40,7 @@ export const LIGHT: Theme = {
     "inkFaint": "#9C978E",
     "accent": "#E39A2B",
     "accentInk": "#8A5A0B",
+    "inkOnAccent": "#241703",
     "accentWash": "#FBF1DF",
     "accentRing": "#E39A2B61",
     "danger": "#B3261E",
@@ -101,6 +102,7 @@ export const DARK: Theme = {
     "inkFaint": "#7C766D",
     "accent": "#F0AE4A",
     "accentInk": "#F0AE4A",
+    "inkOnAccent": "#171614",
     "accentWash": "#33291A",
     "accentRing": "#F0AE4A6B",
     "danger": "#F2857C",

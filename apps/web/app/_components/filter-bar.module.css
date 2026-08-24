@@ -51,7 +51,7 @@
 
 .caret {
   font-size: 10px;
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 /* The same panel treatment as the city editor, for the same reason. */
@@ -160,14 +160,30 @@
     border-color 0.15s ease;
 }
 
+/*
+ * Hover fills with the accent, so the lettering has to leave `accent-ink`.
+ *
+ * It did not, and on the dark theme that was invisible rather than merely thin:
+ * `accent-ink` and `accent` are the *same value* there — the pair converges once
+ * the bright amber is already the readable one — so hovering `Clear` painted
+ * #F0AE4A on #F0AE4A at 1:1 and the word disappeared under the pointer. On the
+ * light theme it was 2.52:1, which is the same defect being survivable.
+ */
 .clear:hover:not([aria-disabled='true']) {
   background: var(--pp-accent);
+  color: var(--pp-ink-on-accent);
 }
 
 .clear[aria-disabled='true'] {
   border-color: transparent;
   background: none;
-  color: var(--pp-ink-faint);
+  /*
+   * Inert, not unreadable. `ink-faint` is the recessive value and this control
+   * still has a word in it that has to be legible — the border, the background
+   * and the weight already carry the difference, so the colour does not have to
+   * do it by going below the contrast floor.
+   */
+  color: var(--pp-ink-muted);
   font-weight: var(--pp-type-control-weight);
   cursor: default;
 }

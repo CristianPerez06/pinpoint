@@ -99,14 +99,14 @@ export default function LoginScreen() {
         ) : null}
 
         <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.colour.inkFaint }]}>Email</Text>
+          <Text style={[styles.label, { color: theme.colour.inkMuted }]}>Email</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
-            placeholderTextColor={theme.colour.inkFaint}
+            placeholderTextColor={theme.colour.inkMuted}
             style={field}
           />
           {fieldErrors.email ? (
@@ -117,7 +117,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.colour.inkFaint }]}>
+          <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
             Password
           </Text>
           <TextInput
@@ -125,7 +125,7 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
             autoComplete="current-password"
-            placeholderTextColor={theme.colour.inkFaint}
+            placeholderTextColor={theme.colour.inkMuted}
             style={field}
           />
           {fieldErrors.password ? (
@@ -144,9 +144,9 @@ export default function LoginScreen() {
             { backgroundColor: theme.colour.accent, opacity: submitting ? 0.55 : 1 },
           ]}
         >
-          {/* Not white on amber: that clears about 1.7:1. A very dark brown of
-              the same hue carries at any size. */}
-          <Text style={styles.submitText}>
+          {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
+              pair chosen against the accent on each ground. */}
+          <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
             {submitting ? 'Signing in…' : 'Sign in'}
           </Text>
         </Pressable>
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
   },
-  submitText: { ...role(TYPE.control), fontWeight: '600', color: '#241703' },
+  submitText: { ...role(TYPE.control), fontWeight: '600' },
   footnote: { ...role(TYPE.note), textAlign: 'center' },
 })
 

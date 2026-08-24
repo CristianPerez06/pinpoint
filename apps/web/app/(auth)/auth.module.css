@@ -75,7 +75,7 @@
   font-weight: var(--pp-type-label-weight);
   letter-spacing: var(--pp-type-label-tracking);
   text-transform: uppercase;
-  color: var(--pp-ink-faint);
+  color: var(--pp-ink-muted);
 }
 
 .input {
@@ -127,7 +127,7 @@
   border-radius: var(--pp-radius-pill);
   background: var(--pp-accent);
   /* Not white: amber is a light surface, and white on it clears about 1.7:1. */
-  color: #241703;
+  color: var(--pp-ink-on-accent);
   font-size: var(--pp-type-control-size);
   font-weight: 600;
   cursor: pointer;
