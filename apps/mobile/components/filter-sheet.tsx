@@ -1,6 +1,8 @@
 import {
   type InterestFilter,
+  isFiltered,
   type MarkerFilter,
+  NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
@@ -22,9 +24,18 @@ import { role } from '@/lib/type'
  * nothing on screen explaining why is the defect this control could most easily
  * ship with.
  *
- * Which is why clearing is not offered here. `Clear` lives in the header, where
- * it is visible without opening anything — a way out behind a control the person
- * has to already suspect is on is not a way out.
+ * Clearing lives here now, and the reasoning above is why that is safe rather
+ * than why it was avoided. This comment used to end "which is why clearing is
+ * not offered here" — a way out behind a control you have to already suspect is
+ * on is not a way out. That was correct while nothing else said the trip was
+ * narrowed.
+ *
+ * The toolbar's filter button now says it, permanently and by two signals, so
+ * the half that had to stay visible is visible. What is left is the undo, and
+ * an undo one deliberate tap inside the thing that declares the state is
+ * reachable rather than hidden. The spec was amended to permit exactly this
+ * separation and no wider a one: the control that declares must be the control
+ * that reveals.
  *
  * A modal rather than a positioned view, unlike the marker sheet. That sheet
  * must not cover the map — it describes a pin the person is looking at — while
@@ -67,6 +78,15 @@ const styles = StyleSheet.create({
   },
   tick: { fontSize: 13, fontWeight: '800' },
   divide: { height: 1, marginVertical: SPACE.xs },
+  clear: {
+    marginTop: SPACE.sm,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  clearText: { ...role(TYPE.control), fontWeight: '700' },
+  clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
 })
 
 export function FilterSheet({
@@ -91,6 +111,10 @@ export function FilterSheet({
   const chosen = filter.interest.kind === 'wanted-by' ? filter.interest.members : []
 
   const setInterest = (interest: InterestFilter) => onChange({ ...filter, interest })
+
+  // What the way out below is live for, and what the toolbar's filter button
+  // is drawing its dot for. One predicate, read in both places.
+  const narrowed = isFiltered(filter)
 
   function toggleMember(memberId: string) {
     const next = chosen.includes(memberId)
@@ -174,6 +198,48 @@ export function FilterSheet({
               })
             }
           />
+
+          {/*
+            Permanent and inert rather than absent, which is the requirement and
+            not a preference: a control that arrives on selection moves whatever
+            is beside it, so applying a filter would rearrange the sheet that
+            applied it.
+
+            Inert through `accessibilityState` and a handler that returns, never
+            by being unreachable — a disabled control leaves the tab order and
+            goes silent, which is the colour-only failure arriving by a back
+            door. And the two states differ by fill and by weight as well as by
+            colour, for the same reason.
+          */}
+          <Pressable
+            onPress={() => {
+              if (narrowed) onChange(NO_FILTER)
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear the filter"
+            accessibilityState={{ disabled: !narrowed }}
+            style={[
+              styles.clear,
+              narrowed
+                ? {
+                    borderColor: theme.colour.accent,
+                    backgroundColor: theme.colour.accentWash,
+                  }
+                : {
+                    borderColor: 'transparent',
+                    backgroundColor: theme.colour.surfaceMuted,
+                  },
+            ]}
+          >
+            <Text
+              style={[
+                narrowed ? styles.clearText : styles.clearTextInert,
+                { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
+              ]}
+            >
+              Clear
+            </Text>
+          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>

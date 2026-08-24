@@ -1,3 +1,8 @@
+import MapPinPlus from 'lucide-react-native/icons/map-pin-plus'
+import Search from 'lucide-react-native/icons/search'
+import ChevronDown from 'lucide-react-native/icons/chevron-down'
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
+import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
 import type {
   City,
@@ -24,6 +29,7 @@ import {
   setMarkerVisited,
   updateCity,
   updateMarker,
+  fetchTrips,
   updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
@@ -49,6 +55,7 @@ import {
   openingHeight,
 } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
+import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
@@ -118,6 +125,7 @@ export function TripWorkspace({
   trip: storedTrip,
   trips,
   onSelectTrip,
+  onTripsChanged,
   onCreated,
   userId,
 }: {
@@ -128,6 +136,15 @@ export function TripWorkspace({
    */
   trips: readonly Trip[]
   onSelectTrip: (tripId: string) => void
+  /**
+   * Ask for the trip list again, because this screen changed what is in it.
+   *
+   * Creating already had `onCreated`, which also chooses the new trip. Archiving
+   * needs the re-read without the choosing: the person stays where the resolver
+   * upstream puts them, which for the trip they just archived is the next one
+   * along or the no-trips state.
+   */
+  onTripsChanged: () => void
   /**
    * A trip was made from in here. The route has to re-read its list before it
    * can show it, so this is more than a selection and is kept separate from one.
@@ -188,6 +205,8 @@ export function TripWorkspace({
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [tripsOpen, setTripsOpen] = useState(false)
+  const [archivedTrips, setArchivedTrips] = useState<readonly Trip[] | null>(null)
   const [citiesOpen, setCitiesOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -655,6 +674,51 @@ export function TripWorkspace({
   }
 
   /**
+   * Archive a trip, or put one back.
+   *
+   * The same write as a rename underneath — one column on one row — so it takes
+   * the same shape here: say it happened, and put it back if the database
+   * refuses. What it does not do is ask first. Archiving is reversible by any
+   * member, and a confirmation on a reversible action trains people to dismiss
+   * confirmations on the ones that are not.
+   *
+   * `onTripsChanged` is what moves the person off a trip they just archived.
+   * The list re-reads, the archived trip is no longer in it, and the resolver
+   * upstream falls through to the first remaining one — or to the no-trips
+   * state, which is the screen where a first trip is made. That fall-through
+   * already existed for a trip left behind by other means; archiving simply
+   * arrives at it by a new route.
+   */
+  async function setTripArchived(tripId: string, value: boolean) {
+    const outcome = await updateTrip(supabase, tripId, { archived: value })
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected'
+          ? outcome.message
+          : value
+            ? 'Could not archive this trip.'
+            : 'Could not restore this trip.',
+      )
+      return
+    }
+    // Dropped rather than kept in step: the reveal is re-read from the database
+    // the next time it is asked for, so a restored trip cannot linger in it.
+    setArchivedTrips(null)
+    onTripsChanged()
+  }
+
+  /** Archived trips, once somebody asks. Null until then. */
+  async function revealArchived() {
+    const state = await fetchTrips(supabase, { includeArchived: true })
+    if (state.status === 'failed') {
+      setProblem(state.message)
+      return
+    }
+    const all = state.status === 'ready' ? state.data : []
+    setArchivedTrips(all.filter((each) => each.archived))
+  }
+
+  /**
    * Add somebody to the trip.
    *
    * Returns the offending field rather than setting a message here, because the
@@ -771,9 +835,28 @@ export function TripWorkspace({
           while planning are in the row at the bottom.
         */}
         <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-        <Text style={[styles.tripName, { color: theme.colour.ink }]} numberOfLines={1}>
-          {trip.name}
-        </Text>
+        {/*
+          The name is the way into the trips, and the caret is what says so.
+
+          A label that opens something and looks like a label is a control
+          nobody finds. It is also the only element here that yields, so a long
+          name truncates rather than pushing the menu off the edge.
+        */}
+        <Pressable
+          onPress={() => setTripsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${trip.name}. Switch or manage trips`}
+          hitSlop={6}
+          style={styles.tripButton}
+        >
+          <Text
+            style={[styles.tripName, { color: theme.colour.ink }]}
+            numberOfLines={1}
+          >
+            {trip.name}
+          </Text>
+          <ChevronDown size={16} color={theme.colour.inkMuted} strokeWidth={2.4} />
+        </Pressable>
 
         <Pressable
           onPress={() => setMenuOpen(true)}
@@ -888,106 +971,64 @@ export function TripWorkspace({
           bottomRow={
             <View style={styles.bottomRow}>
               {/*
-                The two ways of adding a place, first, because the row reads
-                left to right and adding is what somebody came here to do while
-                standing somewhere. Narrowing follows.
+                A toolbar, and deliberately not a tab bar.
 
-                Search is a control that opens a screen rather than a field that
-                lives here. This row is the floor — flush to the bottom edge —
-                and a focused field on the floor is a field under a keyboard.
+                A tab bar switches between sections of an application; every one
+                of these fires an action, and drawing them as tab items would
+                promise navigation that does not exist. What was here before was
+                four text pills of equal weight whose borders arrived only under
+                a finger — quiet taken as far as absent, which is why it read as
+                unfinished rather than as restrained.
+
+                Three, not four: `Clear` has moved into the filter sheet, and the
+                filter tool declares the narrowing in its place. Four targets
+                across a phone leaves each one narrow, and `Clear` was the least
+                earned of them — it does nothing at all most of the time.
+
+                All three weigh the same. An earlier pass drew `Drop` in the
+                accent, on the argument that dropping a pin is what somebody
+                opened the application to do while standing in a street. It was
+                rejected on sight and the reason is the durable part: this row
+                sits over a map whose pins are the only saturated colour in the
+                system, and a fourth amber thing at the bottom competes with what
+                it is meant to be serving.
               */}
-              <Pressable
+              <Tool
+                label="Search"
+                hint="Search for a place"
+                icon={Search}
                 onPress={() => setSearchOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Search for a place"
-                hitSlop={6}
-                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
-              >
-                <Text
-                  style={[styles.filterText, { color: theme.colour.ink }]}
-                  numberOfLines={1}
-                >
-                  Search
-                </Text>
-              </Pressable>
-
-              <Pressable
+              />
+              <Tool
+                label="Drop"
+                hint="Drop a pin on the map"
+                icon={MapPinPlus}
                 onPress={() => {
                   cancelPanel()
                   setSight({ kind: 'new' })
                 }}
-                accessibilityRole="button"
-                accessibilityLabel="Drop a pin on the map"
-                hitSlop={6}
-                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
-              >
-                <Text
-                  style={[styles.filterText, { color: theme.colour.ink }]}
-                  numberOfLines={1}
-                >
-                  Drop
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => setFilterOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Filter this trip"
-                hitSlop={6}
-                style={[
-                  styles.pill,
-                  {
-                    borderColor: narrowed
-                      ? theme.colour.accent
-                      : theme.colour.lineStrong,
-                    backgroundColor: narrowed
-                      ? theme.colour.accentWash
-                      : 'transparent',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    { color: narrowed ? theme.colour.accentInk : theme.colour.ink },
-                  ]}
-                  numberOfLines={1}
-                >
-                  Filter
-                </Text>
-              </Pressable>
-
+              />
               {/*
-                The declaration, and the way out, in one control — unchanged by
-                the move. Permanent, live only while something is hidden, and
-                inert through `accessibilityState` rather than `disabled` so a
-                screen reader still reaches it and is told which state it is in.
+                Sliders rather than a funnel. A funnel says "narrow a list";
+                sliders says "options you can change", which is what this opens.
+
+                It carries the declaration `Clear` used to carry, by the accent
+                *and* a dot — two signals, because a state that survives only in
+                hue survives neither a greyscale screen nor a colour-blind
+                reader, which is the same rule that keeps a visited marker from
+                being recoloured.
               */}
-              <Pressable
-                onPress={() => {
-                  if (narrowed) setFilter(NO_FILTER)
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear the filter"
-                accessibilityState={{ disabled: !narrowed }}
-                hitSlop={8}
-                style={[
-                  styles.pill,
-                  {
-                    borderColor: narrowed ? theme.colour.accent : 'transparent',
-                    backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    narrowed ? styles.clearText : styles.clearTextInert,
-                    { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
-                  ]}
-                >
-                  Clear
-                </Text>
-              </Pressable>
+              <Tool
+                label="Filter"
+                hint={
+                  narrowed
+                    ? 'Filter this trip. Some places are hidden'
+                    : 'Filter this trip'
+                }
+                icon={SlidersHorizontal}
+                marked={narrowed}
+                onPress={() => setFilterOpen(true)}
+              />
             </View>
           }
         />
@@ -1010,24 +1051,33 @@ export function TripWorkspace({
         ownMemberId={ownMemberId}
       />
 
+      <TripSheet
+        open={tripsOpen}
+        onClose={() => setTripsOpen(false)}
+        trip={trip}
+        trips={trips}
+        archived={archivedTrips}
+        onRevealArchived={() => void revealArchived()}
+        onSelectTrip={onSelectTrip}
+        onRename={(name) => void renameTrip(name)}
+        onCreated={onCreated}
+        onSetArchived={(tripId, value) => void setTripArchived(tripId, value)}
+        onOpenPeople={() => {
+          setTripsOpen(false)
+          setPeopleOpen(true)
+        }}
+        onOpenCities={() => {
+          setTripsOpen(false)
+          setCitiesOpen(true)
+        }}
+        busy={busy}
+      />
+
       <MenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onSignOut={() => void signOut(supabase)}
-        onOpenCities={() => {
-          setMenuOpen(false)
-          setCitiesOpen(true)
-        }}
-        onOpenPeople={() => {
-          setMenuOpen(false)
-          setPeopleOpen(true)
-        }}
-        trip={trip}
-        trips={trips}
-        onSelectTrip={onSelectTrip}
-        onCreated={onCreated}
-        onRename={(name) => void renameTrip(name)}
-        busy={busy}
+        member={ownMemberOf(members, userId) ?? null}
       />
 
       <PeopleSheet
@@ -1184,6 +1234,68 @@ function Body({
 /** The header's own breathing room, above and below its content. */
 const HEADER_PAD = 11
 
+/**
+ * One button in the bottom toolbar.
+ *
+ * A glyph above its own label, filling a third of the row. The label is not
+ * decoration: an icon alone is a guess, and `sliders` in particular is a
+ * convention rather than a picture of the thing it opens.
+ *
+ * `hint` is what a screen reader is told and is allowed to say more than the
+ * label shows — "Filter this trip. Some places are hidden" is the narrowed
+ * state reaching somebody who cannot see the dot.
+ */
+function Tool({
+  label,
+  hint,
+  icon: Glyph,
+  marked = false,
+  onPress,
+}: {
+  label: string
+  hint: string
+  icon: LucideIcon
+  /** Whether this tool is declaring a state — today, that a filter is applied. */
+  marked?: boolean
+  onPress: () => void
+}) {
+  const theme = useTheme()
+  const ink = marked ? theme.colour.accentInk : theme.colour.inkMuted
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={hint}
+      style={styles.tool}
+    >
+      <View>
+        <Glyph size={24} color={ink} strokeWidth={2} />
+        {/*
+          The second signal. The accent alone would be a state carried by hue,
+          which this project forbids; a dot is a shape that survives greyscale.
+          Ringed in the bar's own surface so it reads as sitting on top of the
+          glyph rather than as part of it.
+        */}
+        {marked ? (
+          <View
+            style={[
+              styles.pip,
+              {
+                backgroundColor: theme.colour.accent,
+                borderColor: theme.colour.surface,
+              },
+            ]}
+          />
+        ) : null}
+      </View>
+      <Text style={[styles.toolLabel, { color: ink }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
@@ -1200,6 +1312,14 @@ const styles = StyleSheet.create({
   // Carries the prominence the wordmark used to, and stays the only element
   // that yields, so a long name truncates instead of pushing the menu off.
   tripName: { ...role(TYPE.title), flexShrink: 1 },
+  tripButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 1,
+    paddingVertical: SPACE.xs,
+    paddingRight: SPACE.xs,
+  },
   menuGlyph: { fontSize: 19, lineHeight: 22 },
 
   /*
@@ -1208,11 +1328,35 @@ const styles = StyleSheet.create({
    */
   bottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    paddingVertical: 11,
+    alignItems: 'stretch',
   },
+  /*
+   * A third of the row each, and at least 44pt tall before the label is
+   * measured. Vertical padding rather than a height, so a larger system text
+   * size grows the button instead of clipping the word inside it — the same
+   * reason the text fields take padding.
+   */
+  tool: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.xs,
+    minHeight: 56,
+    paddingTop: 9,
+    paddingBottom: 7,
+    paddingHorizontal: SPACE.xs,
+  },
+  toolLabel: { ...role(TYPE.label), textTransform: 'none', letterSpacing: 0.07 },
+  pip: {
+    position: 'absolute',
+    top: -1,
+    right: -5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    borderWidth: 2,
+  },
+  /* Kept for the sight's confirm row, which still uses pills. */
   pill: {
     borderWidth: 1,
     borderRadius: RADIUS.pill,

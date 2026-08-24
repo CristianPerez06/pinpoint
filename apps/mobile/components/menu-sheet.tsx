@@ -1,130 +1,55 @@
-import type { Trip } from '@pinpoint/core'
+import type { TripMember } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
-import { useState } from 'react'
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import LogOut from 'lucide-react-native/icons/log-out'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { CreateTripForm } from '@/components/trip-setup'
-import { Button, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
 /**
- * Where the account and the trip live, rather than the trip's controls.
+ * The account, and the way out. Nothing else.
  *
- * What the expectation was for. It was left near-empty on the grounds that
- * trip-scoped rare things would land here, and they now have: choosing between
- * trips, renaming one, the people on it, and its cities — every one of them
- * arriving without Sign out having to move a second time.
+ * It held six things before this — choosing between trips, renaming one,
+ * making one, People, Cities and Sign out — and every one of them was here
+ * because it had nowhere else to go rather than because this was where it
+ * belonged. They are all trip-scoped, and trips now open from the trip's own
+ * name in the header, so what is left is the one thing that is about the
+ * person rather than the trip.
  *
- * What makes something belong here rather than in the bar at the bottom is how
- * often it is touched, not what it is about. A city is named once and corrected
- * almost never; a trip is renamed less often than that; the filter is touched
- * constantly.
+ * Still deliberately out of a thumb's reach. Nobody wants Sign out under their
+ * thumb, and that has not stopped being true now that it is the only thing up
+ * here — if anything it is more true, since it no longer has neighbours to hide
+ * among.
  *
- * A modal in the shape `filter-sheet.tsx` uses, for the same reason that one is:
- * a decision made and dismissed, with the map dimmed behind it to say it is
- * waiting. The marker sheet is the odd one out, and correctly so — it describes
- * a pin somebody is looking at, so it must not cover the map.
+ * There is no first and last name to show. A member has one `displayName`, up
+ * to sixty characters, that they chose or that whoever invited them typed.
  */
-
-/** Fraction of the screen the sheet may grow to before it scrolls instead. */
-const SHEET_CAP = 0.85
-
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderTopWidth: 1,
-    padding: SPACE.md,
-    gap: SPACE.xs,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: SPACE.xs,
-  },
-  title: { ...role(TYPE.title), flex: 1 },
-  done: { paddingVertical: SPACE.xs, paddingHorizontal: SPACE.sm },
-  doneText: { ...role(TYPE.control), fontWeight: '700' },
-  item: { paddingVertical: 13 },
-  itemText: { ...role(TYPE.body) },
-  divide: { height: 1, marginVertical: SPACE.xs },
-  label: { ...role(TYPE.label), paddingTop: SPACE.xs },
-  editor: { gap: SPACE.sm, paddingBottom: SPACE.md },
-  hint: { ...role(TYPE.note) },
-  row: { flexDirection: 'row', gap: SPACE.sm },
-  grow: { flex: 1 },
-})
 
 export function MenuSheet({
   open,
   onClose,
   onSignOut,
-  onOpenCities,
-  onOpenPeople,
-  trip,
-  trips,
-  onSelectTrip,
-  onRename,
-  onCreated,
-  busy,
+  member,
 }: {
   open: boolean
   onClose: () => void
   onSignOut: () => void
-  /** Opens the sheet where a trip's cities are corrected. */
-  onOpenCities: () => void
-  /** Opens the sheet listing who is on the trip, and adding somebody. */
-  onOpenPeople: () => void
   /**
-   * Named here as well as in the header, because a sheet that covers the header
-   * should still say which trip it belongs to.
+   * Who this account is on this trip, or null before the membership is known.
+   *
+   * Null is a real state rather than a defensive one: members load with the
+   * trip, and the sheet can be opened in the moment before they arrive.
    */
-  trip: Trip
-  /** Every trip this account belongs to. One is the ordinary case. */
-  trips: readonly Trip[]
-  onSelectTrip: (tripId: string) => void
-  onRename: (name: string) => void
-  /** Opens the trip that was just made. */
-  onCreated: (tripId: string) => void
-  busy: boolean
+  member: TripMember | null
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
-
-  const [renaming, setRenaming] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [name, setName] = useState(trip.name)
-
-  /** Only one detour open at a time; two forms in one sheet is a mess. */
-  function openDetour(which: 'rename' | 'create' | null) {
-    setRenaming(which === 'rename')
-    setCreating(which === 'create')
-  }
-
-  function close() {
-    openDetour(null)
-    onClose()
-  }
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close">
+        <View
           // The sheet swallows presses so that touching a row does not dismiss
           // through the backdrop underneath it.
           onStartShouldSetResponder={() => true}
@@ -133,184 +58,106 @@ export function MenuSheet({
             {
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.line,
-              // A definite ceiling, so the `ScrollView` inside has something to
-              // resolve against rather than asking a parent that sizes to it.
-              maxHeight: cap,
               paddingBottom: SPACE.md + insets.bottom,
             },
           ]}
         >
-          <View style={styles.headerRow}>
-            <Text
-              style={[styles.title, { color: theme.colour.ink }]}
-              numberOfLines={1}
+          <View style={[styles.account, { borderBottomColor: theme.colour.line }]}>
+            <View
+              style={[
+                styles.avatar,
+                {
+                  backgroundColor: theme.colour.accentWash,
+                  borderColor: theme.colour.accentRing,
+                },
+              ]}
             >
-              {trip.name}
-            </Text>
-            <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
-              <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                Done
+              <Text style={[styles.initials, { color: theme.colour.accentInk }]}>
+                {initialsOf(member?.displayName ?? null)}
               </Text>
-            </Pressable>
+            </View>
+            <View style={styles.who}>
+              <Text
+                style={[styles.name, { color: theme.colour.ink }]}
+                numberOfLines={1}
+              >
+                {member?.displayName ?? 'Signed in'}
+              </Text>
+              {member !== null ? (
+                <Text style={[styles.email, { color: theme.colour.inkMuted }]}>
+                  {member.email}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled">
-            {/*
-              A list of trips only when there is something to choose between.
-
-              Most of the time this product has one trip, and a picker of length
-              one is a control that looks like a choice and is not. The name is
-              still shown above it, because it answers which trip these places
-              belong to — which becomes a real question the moment a second one
-              can exist.
-            */}
-            {trips.length > 1 ? (
-              <>
-                <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-                  Trips
-                </Text>
-                {trips.map((each) => {
-                  const current = each.id === trip.id
-
-                  return (
-                    <Pressable
-                      key={each.id}
-                      onPress={() => {
-                        close()
-                        onSelectTrip(each.id)
-                      }}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: current }}
-                      style={styles.item}
-                    >
-                      <Text
-                        style={[
-                          styles.itemText,
-                          {
-                            color: current
-                              ? theme.colour.accentInk
-                              : theme.colour.ink,
-                            fontWeight: current ? '700' : '400',
-                          },
-                        ]}
-                      >
-                        {each.name}
-                      </Text>
-                    </Pressable>
-                  )
-                })}
-                <View
-                  style={[styles.divide, { backgroundColor: theme.colour.line }]}
-                />
-              </>
-            ) : null}
-
-            <Pressable
-              onPress={() => {
-                setName(trip.name)
-                openDetour(renaming ? null : 'rename')
-              }}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: renaming }}
-              style={styles.item}
-            >
-              <Text style={[styles.itemText, { color: theme.colour.ink }]}>
-                Rename this trip
-              </Text>
-            </Pressable>
-
-            {renaming ? (
-              <View style={styles.editor}>
-                <TextField label="Trip name" value={name} onChange={setName} />
-                <View style={styles.row}>
-                  <View style={styles.grow}>
-                    <Button
-                      label="Save"
-                      tone="primary"
-                      disabled={
-                        busy || name.trim() === '' || name.trim() === trip.name
-                      }
-                      onPress={() => {
-                        onRename(name.trim())
-                        openDetour(null)
-                      }}
-                    />
-                  </View>
-                  <View style={styles.grow}>
-                    <Button label="Cancel" onPress={() => openDetour(null)} />
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            {/*
-              Making another one.
-
-              Here rather than only on the empty state, which is where it was at
-              first and is only half the requirement: any signed-in person may
-              create a trip, not only somebody who has none.
-            */}
-            <Pressable
-              onPress={() => openDetour(creating ? null : 'create')}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: creating }}
-              style={styles.item}
-            >
-              <Text style={[styles.itemText, { color: theme.colour.ink }]}>
-                New trip
-              </Text>
-            </Pressable>
-
-            {creating ? (
-              <View style={styles.editor}>
-                <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  A trip is one shared map, separate from this one. Nothing here
-                  moves across.
-                </Text>
-                <CreateTripForm
-                  onCreated={(tripId) => {
-                    close()
-                    onCreated(tripId)
-                  }}
-                />
-                <Button label="Cancel" onPress={() => openDetour(null)} />
-              </View>
-            ) : null}
-
-            <Pressable
-              onPress={onOpenPeople}
-              accessibilityRole="button"
-              style={styles.item}
-            >
-              <Text style={[styles.itemText, { color: theme.colour.ink }]}>
-                People
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={onOpenCities}
-              accessibilityRole="button"
-              style={styles.item}
-            >
-              <Text style={[styles.itemText, { color: theme.colour.ink }]}>
-                Cities
-              </Text>
-            </Pressable>
-
-            <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
-
-            <Pressable
-              onPress={onSignOut}
-              accessibilityRole="button"
-              style={styles.item}
-            >
-              <Text style={[styles.itemText, { color: theme.colour.ink }]}>
-                Sign out
-              </Text>
-            </Pressable>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          <Pressable
+            onPress={onSignOut}
+            accessibilityRole="button"
+            style={styles.signOut}
+          >
+            <LogOut size={18} color={theme.colour.danger} strokeWidth={2} />
+            <Text style={[styles.signOutText, { color: theme.colour.danger }]}>
+              Sign out
+            </Text>
+          </Pressable>
+        </View>
       </Pressable>
     </Modal>
   )
 }
+
+/**
+ * Up to two initials from whatever the person is called.
+ *
+ * Deliberately naive, and correct for that: it takes the first character of the
+ * first and last whitespace-separated parts. A name in a script this does not
+ * anticipate still yields its first character, which is a mark rather than a
+ * mistake. `Array.from` rather than indexing, so a name beginning with an emoji
+ * or an astral character is not cut in half.
+ */
+function initialsOf(name: string | null): string {
+  if (name === null) return '·'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '·'
+  const first = Array.from(parts[0]!)[0] ?? ''
+  const last = parts.length > 1 ? (Array.from(parts.at(-1)!)[0] ?? '') : ''
+  return (first + last).toUpperCase()
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    paddingTop: SPACE.sm,
+  },
+  account: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    padding: SPACE.md,
+    borderBottomWidth: 1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initials: { ...role(TYPE.title), letterSpacing: -0.02 },
+  who: { flex: 1, minWidth: 0 },
+  name: { ...role(TYPE.title) },
+  email: { ...role(TYPE.note) },
+  signOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm + 2,
+    paddingVertical: 15,
+    paddingHorizontal: SPACE.md,
+  },
+  signOutText: { ...role(TYPE.rowName) },
+})

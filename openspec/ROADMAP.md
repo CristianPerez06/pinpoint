@@ -256,6 +256,44 @@ Two of those columns are the whole product:
   fetched since the interest change and displayed nowhere; showing "not joined
   yet" with the address is the whole feedback loop, and it cost no query.
 
+- **The phone gets a toolbar** — three icon buttons where four text pills were,
+  trips opening from the trip's own name, and a trip that can be archived. The
+  first change on this surface driven by a complaint rather than by a gap: the
+  controls looked *unfinished*, explicitly not cluttered and not badly ordered.
+
+  That diagnosis was worth more than the fix. The pills were built to be quiet at
+  rest — right, over a map whose pins are the only saturated colour — and quiet
+  had been taken as far as absent, so a control drew nothing until it was already
+  being touched. The row was also a shape nobody recognises. It was called a tab
+  bar, which is what it looked like and is not what it was: a tab bar switches
+  between sections and every one of these fires an action, so drawing them as tab
+  items would have made it confidently wrong instead of quietly wrong.
+
+  **An HTML mock did the deciding, and that is the transferable part.** Written
+  descriptions of the same design had failed twice. The mock — real tokens, real
+  Figtree, real icons, real seeded data — settled three things in one pass that
+  argument had not: all three tools weigh the same (an amber `Drop` was rejected
+  on sight, because a fourth amber thing at the bottom competes with the pins it
+  is meant to serve), the merged filter-and-trips sheet ran past the bottom of the
+  screen and had to split, and the trip name beats a fourth icon in a row that
+  should stay at three. Its sources are committed beside the proposal. Budget for
+  drawing, not only for looking.
+
+  Two things cost nothing because somebody had already thought about them.
+  `updateTrip` took a partial patch, so archiving needed no write of its own —
+  only the schema widened. And archiving the trip being viewed needed no handling
+  at all: `index.tsx` already fell through for "a trip that was left behind —
+  removed", and archiving arrives there by a new route.
+
+  Two tests failed the moment the decision widened — `does not write archived,
+  even when asked` and `ignores archived`, both holding since the initial schema.
+  They are inverted rather than deleted, each saying it was retired on purpose.
+  A guard that fires when a decision is reversed is a guard working.
+
+  The static set was green throughout and proved nothing again: the `styling`
+  requirements this change leans on were written a day earlier, off four contrast
+  defects that CI had been green over for months.
+
 ## Next
 
 Two items. The parity work is finished, the product can be given to somebody,
@@ -458,6 +496,12 @@ scale the product runs at today.
       names its successor. Closed by "Responsive web" above, which replaces it with
       the phone layout rather than tuning it. The breakpoint is a literal, because
       custom properties do not resolve inside a media query, and appears once.
+- [ ] **The phone's narrowed state has not been read in greyscale.** The filter tool
+      declares a narrowed trip with the accent *and* a dot, and the dot is what is
+      supposed to carry it for a colour-blind reader or a greyscale screen. That it does
+      is reasoning, not observation: the check was specified and not run. Cheap to close
+      — apply a filter, turn on the macOS or simulator colour filter, and look at whether
+      the tool still reads as on.
 - [ ] **A control's border does not clear the non-text contrast floor.**
       `lineStrong` on `surface` measures about 1.5:1, under the 3:1 WCAG asks for
       the visual information that identifies a control — so every default button

@@ -81,6 +81,13 @@ in a way the first is not.
 - **AND** the interface is read without colour
 - **THEN** the fact that the view is narrowed is still conveyed
 
+#### Scenario: The narrowing controls are covered by something else
+
+- **WHEN** a filter is applied
+- **AND** a sheet describing a selected marker takes the place of the narrowing controls
+- **THEN** neither the declaration nor the way out is shown
+- **AND** dismissing the sheet restores both
+
 #### Scenario: A filter matches nothing
 
 - **WHEN** an applied filter matches no markers on a trip that has markers
