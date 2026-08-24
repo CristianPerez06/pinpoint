@@ -467,10 +467,6 @@ scale the product runs at today.
       contrast fix. Not urgent: every affected control also carries a fill and a
       label, so none of them is unidentifiable, which is the difference between
       this and the four defects that were fixed.
-- [ ] **The light theme has not been looked at since the contrast fix.** Every
-      light-ground ratio in that change is computed and none was seen; the browser
-      used for verification was in dark mode. Cheap to close — open the app in the
-      light theme once and look at a form, the toolbar and a filled button.
 
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it needs the rows

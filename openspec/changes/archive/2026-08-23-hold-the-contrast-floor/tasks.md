@@ -57,5 +57,9 @@
 - [x] 5.3 Confirm the same pass covers the primary button and a moved label:
       `+ Drop a pin` at `#171614` on `#f0ae4a`, `TRIP` at `#a09a91` rather than
       `#7c766d`.
-- [ ] 5.4 Light theme by eye. Every light-ground ratio is computed and recorded in the
-      proposal, but the browser used was in dark mode and no light rendering was seen.
+- [x] 5.4 Light theme by eye, and mobile by eye. Every light-ground ratio was computed
+      before this was seen, and the browser used for 5.2 was in dark mode, so both the
+      light theme and the whole mobile application were unverified when the change was
+      written. Both were checked by the author against the list in the pull request —
+      the primary button on the phone in the light theme first, since that was the
+      worst defect on the platform this session could not reach.
