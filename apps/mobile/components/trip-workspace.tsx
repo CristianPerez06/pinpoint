@@ -899,7 +899,7 @@ export function TripWorkspace({
           */
           onAbandonCapture={cancelPanel}
           confirmBar={
-            <View style={styles.bottomRow}>
+            <View style={styles.confirmRow}>
               {/*
                 What the sight is waiting for.
 
@@ -1234,6 +1234,33 @@ function Body({
 /** The header's own breathing room, above and below its content. */
 const HEADER_PAD = 11
 
+/** A tool's glyph, and the room above and below the pair it makes with its label. */
+const TOOL_GLYPH = 24
+const TOOL_PAD_TOP = 9
+const TOOL_PAD_BOTTOM = 7
+
+/**
+ * The height of whatever stands on the bottom edge.
+ *
+ * One number rather than two, because the toolbar and the sight's confirm row
+ * swap places in the same slot: a shorter confirm row made the bar shrink under
+ * the thumb at the moment the map was asking for a decision, which read as the
+ * chrome flinching.
+ *
+ * Derived rather than chosen, because it has to be the height a tool already
+ * comes to on its own. A tool is laid out from its parts, and a minimum below
+ * their sum changes nothing — which is how a round 56 that read as
+ * authoritative still left the confirm row two points short of the toolbar it
+ * replaces. Both rows take this as a minimum, so a larger system text size
+ * grows whichever one is standing there rather than clipping it.
+ */
+const BAR_HEIGHT =
+  TOOL_PAD_TOP +
+  TOOL_GLYPH +
+  SPACE.xs +
+  TYPE.label.size * TYPE.label.lineHeight +
+  TOOL_PAD_BOTTOM
+
 /**
  * One button in the bottom toolbar.
  *
@@ -1270,7 +1297,7 @@ function Tool({
       style={styles.tool}
     >
       <View>
-        <Glyph size={24} color={ink} strokeWidth={2} />
+        <Glyph size={TOOL_GLYPH} color={ink} strokeWidth={2} />
         {/*
           The second signal. The accent alone would be a state carried by hue,
           which this project forbids; a dot is a shape that survives greyscale.
@@ -1331,19 +1358,20 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   /*
-   * A third of the row each, and at least 44pt tall before the label is
-   * measured. Vertical padding rather than a height, so a larger system text
-   * size grows the button instead of clipping the word inside it — the same
-   * reason the text fields take padding.
+   * A third of the row each, and `BAR_HEIGHT` tall — which is derived from
+   * exactly these parts, so the minimum is the height a tool reaches anyway and
+   * binds only on the row that replaces this one. Vertical padding rather than
+   * a height, so a larger system text size grows the button instead of clipping
+   * the word inside it — the same reason the text fields take padding.
    */
   tool: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.xs,
-    minHeight: 56,
-    paddingTop: 9,
-    paddingBottom: 7,
+    minHeight: BAR_HEIGHT,
+    paddingTop: TOOL_PAD_TOP,
+    paddingBottom: TOOL_PAD_BOTTOM,
     paddingHorizontal: SPACE.xs,
   },
   toolLabel: { ...role(TYPE.label), textTransform: 'none', letterSpacing: 0.07 },
@@ -1355,6 +1383,28 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
     borderWidth: 2,
+  },
+  /*
+   * The sight's confirm row, standing in the same slot as the toolbar.
+   *
+   * Centred rather than stretched, because these are pills and a pill stretched
+   * to the height of the bar puts its own label at the top of itself. The
+   * horizontal inset is the row's, not the buttons': the toolbar's thirds run
+   * edge to edge and are read as one band, whereas two pills hard against the
+   * screen's corners read as having fallen off it.
+   *
+   * The gap matches that inset, so the sentence is held off the two controls by
+   * as much as they are held off the screen. It is the only element here that
+   * yields, so widening the gap narrows the sentence rather than moving a
+   * button — which is what keeps `Cancel` and `Use this spot` where a thumb
+   * last found them.
+   */
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: BAR_HEIGHT,
+    paddingHorizontal: SPACE.md,
+    gap: SPACE.md,
   },
   /* Kept for the sight's confirm row, which still uses pills. */
   pill: {
