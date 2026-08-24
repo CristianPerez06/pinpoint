@@ -1,0 +1,767 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-23T23:59:55.323Z",
+  "title": "Design System: Pinpoint",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "dark": "#171614",
+        "tonalRamp": [
+          "oklch(15.0% 0.003 84.6)",
+          "oklch(26.4% 0.003 84.6)",
+          "oklch(37.9% 0.003 84.6)",
+          "oklch(49.3% 0.003 84.6)",
+          "oklch(60.7% 0.003 84.6)",
+          "oklch(72.1% 0.003 84.6)",
+          "oklch(83.6% 0.003 84.6)",
+          "oklch(95.0% 0.003 84.6)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Raised White",
+        "dark": "#201E1B",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "Muted Fill",
+        "dark": "#2A2724",
+        "tonalRamp": [
+          "oklch(15.0% 0.004 91.4)",
+          "oklch(26.4% 0.004 91.4)",
+          "oklch(37.9% 0.004 91.4)",
+          "oklch(49.3% 0.004 91.4)",
+          "oklch(60.7% 0.004 91.4)",
+          "oklch(72.1% 0.004 91.4)",
+          "oklch(83.6% 0.004 91.4)",
+          "oklch(95.0% 0.004 91.4)"
+        ]
+      },
+      "surface-sunk": {
+        "role": "neutral",
+        "displayName": "Sunk Fill",
+        "dark": "#1B1A17",
+        "tonalRamp": [
+          "oklch(15.0% 0.007 88.6)",
+          "oklch(26.4% 0.007 88.6)",
+          "oklch(37.9% 0.007 88.6)",
+          "oklch(49.3% 0.007 88.6)",
+          "oklch(60.7% 0.007 88.6)",
+          "oklch(72.1% 0.007 88.6)",
+          "oklch(83.6% 0.007 88.6)",
+          "oklch(95.0% 0.007 88.6)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "dark": "#34302B",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 91.5)",
+          "oklch(26.4% 0.008 91.5)",
+          "oklch(37.9% 0.008 91.5)",
+          "oklch(49.3% 0.008 91.5)",
+          "oklch(60.7% 0.008 91.5)",
+          "oklch(72.1% 0.008 91.5)",
+          "oklch(83.6% 0.008 91.5)",
+          "oklch(95.0% 0.008 91.5)"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Stated Edge",
+        "dark": "#443F38",
+        "tonalRamp": [
+          "oklch(15.0% 0.011 89.7)",
+          "oklch(26.4% 0.011 89.7)",
+          "oklch(37.9% 0.011 89.7)",
+          "oklch(49.3% 0.011 89.7)",
+          "oklch(60.7% 0.011 89.7)",
+          "oklch(72.1% 0.011 89.7)",
+          "oklch(83.6% 0.011 89.7)",
+          "oklch(95.0% 0.011 89.7)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "dark": "#F2F0EC",
+        "tonalRamp": [
+          "oklch(15.0% 0.004 84.6)",
+          "oklch(26.4% 0.004 84.6)",
+          "oklch(37.9% 0.004 84.6)",
+          "oklch(49.3% 0.004 84.6)",
+          "oklch(60.7% 0.004 84.6)",
+          "oklch(72.1% 0.004 84.6)",
+          "oklch(83.6% 0.004 84.6)",
+          "oklch(95.0% 0.004 84.6)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "dark": "#A09A91",
+        "tonalRamp": [
+          "oklch(15.0% 0.012 81.8)",
+          "oklch(26.4% 0.012 81.8)",
+          "oklch(37.9% 0.012 81.8)",
+          "oklch(49.3% 0.012 81.8)",
+          "oklch(60.7% 0.012 81.8)",
+          "oklch(72.1% 0.012 81.8)",
+          "oklch(83.6% 0.012 81.8)",
+          "oklch(95.0% 0.012 81.8)"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "dark": "#7C766D",
+        "tonalRamp": [
+          "oklch(15.0% 0.014 82.4)",
+          "oklch(26.4% 0.014 82.4)",
+          "oklch(37.9% 0.014 82.4)",
+          "oklch(49.3% 0.014 82.4)",
+          "oklch(60.7% 0.014 82.4)",
+          "oklch(72.1% 0.014 82.4)",
+          "oklch(83.6% 0.014 82.4)",
+          "oklch(95.0% 0.014 82.4)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Signal Amber",
+        "dark": "#F0AE4A",
+        "tonalRamp": [
+          "oklch(15.0% 0.146 72.0)",
+          "oklch(26.4% 0.146 72.0)",
+          "oklch(37.9% 0.146 72.0)",
+          "oklch(49.3% 0.146 72.0)",
+          "oklch(60.7% 0.146 72.0)",
+          "oklch(72.1% 0.146 72.0)",
+          "oklch(83.6% 0.146 72.0)",
+          "oklch(95.0% 0.146 72.0)"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Deep Amber Ink",
+        "dark": "#F0AE4A",
+        "tonalRamp": [
+          "oklch(15.0% 0.105 71.9)",
+          "oklch(26.4% 0.105 71.9)",
+          "oklch(37.9% 0.105 71.9)",
+          "oklch(49.3% 0.105 71.9)",
+          "oklch(60.7% 0.105 71.9)",
+          "oklch(72.1% 0.105 71.9)",
+          "oklch(83.6% 0.105 71.9)",
+          "oklch(95.0% 0.105 71.9)"
+        ]
+      },
+      "accent-wash": {
+        "role": "primary",
+        "displayName": "Amber Wash",
+        "dark": "#33291A",
+        "tonalRamp": [
+          "oklch(15.0% 0.026 82.4)",
+          "oklch(26.4% 0.026 82.4)",
+          "oklch(37.9% 0.026 82.4)",
+          "oklch(49.3% 0.026 82.4)",
+          "oklch(60.7% 0.026 82.4)",
+          "oklch(72.1% 0.026 82.4)",
+          "oklch(83.6% 0.026 82.4)",
+          "oklch(95.0% 0.026 82.4)"
+        ]
+      },
+      "accent-ring": {
+        "role": "primary",
+        "displayName": "Amber Ring",
+        "dark": "#F0AE4A6B"
+      },
+      "ink-on-accent": {
+        "role": "primary",
+        "displayName": "Ink on Amber",
+        "dark": "#171614",
+        "tonalRamp": [
+          "oklch(15.0% 0.040 76.9)",
+          "oklch(26.4% 0.040 76.9)",
+          "oklch(37.9% 0.040 76.9)",
+          "oklch(49.3% 0.040 76.9)",
+          "oklch(60.7% 0.040 76.9)",
+          "oklch(72.1% 0.040 76.9)",
+          "oklch(83.6% 0.040 76.9)",
+          "oklch(95.0% 0.040 76.9)"
+        ]
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "Danger",
+        "dark": "#F2857C",
+        "tonalRamp": [
+          "oklch(15.0% 0.178 28.7)",
+          "oklch(26.4% 0.178 28.7)",
+          "oklch(37.9% 0.178 28.7)",
+          "oklch(49.3% 0.178 28.7)",
+          "oklch(60.7% 0.178 28.7)",
+          "oklch(72.1% 0.178 28.7)",
+          "oklch(83.6% 0.178 28.7)",
+          "oklch(95.0% 0.178 28.7)"
+        ]
+      },
+      "danger-surface": {
+        "role": "neutral",
+        "displayName": "Danger Surface",
+        "dark": "#33211F",
+        "tonalRamp": [
+          "oklch(15.0% 0.016 22.1)",
+          "oklch(26.4% 0.016 22.1)",
+          "oklch(37.9% 0.016 22.1)",
+          "oklch(49.3% 0.016 22.1)",
+          "oklch(60.7% 0.016 22.1)",
+          "oklch(72.1% 0.016 22.1)",
+          "oklch(83.6% 0.016 22.1)",
+          "oklch(95.0% 0.016 22.1)"
+        ]
+      },
+      "family-see": {
+        "role": "secondary",
+        "displayName": "Quiet Slate",
+        "dark": "#98A3B0",
+        "tonalRamp": [
+          "oklch(15.0% 0.025 252.3)",
+          "oklch(26.4% 0.025 252.3)",
+          "oklch(37.9% 0.025 252.3)",
+          "oklch(49.3% 0.025 252.3)",
+          "oklch(60.7% 0.025 252.3)",
+          "oklch(72.1% 0.025 252.3)",
+          "oklch(83.6% 0.025 252.3)",
+          "oklch(95.0% 0.025 252.3)"
+        ]
+      },
+      "family-eat": {
+        "role": "secondary",
+        "displayName": "Burnt Orange",
+        "dark": "#F0653A",
+        "tonalRamp": [
+          "oklch(15.0% 0.184 35.5)",
+          "oklch(26.4% 0.184 35.5)",
+          "oklch(37.9% 0.184 35.5)",
+          "oklch(49.3% 0.184 35.5)",
+          "oklch(60.7% 0.184 35.5)",
+          "oklch(72.1% 0.184 35.5)",
+          "oklch(83.6% 0.184 35.5)",
+          "oklch(95.0% 0.184 35.5)"
+        ]
+      },
+      "family-buy": {
+        "role": "secondary",
+        "displayName": "Violet",
+        "dark": "#A97BFF",
+        "tonalRamp": [
+          "oklch(15.0% 0.258 294.9)",
+          "oklch(26.4% 0.258 294.9)",
+          "oklch(37.9% 0.258 294.9)",
+          "oklch(49.3% 0.258 294.9)",
+          "oklch(60.7% 0.258 294.9)",
+          "oklch(72.1% 0.258 294.9)",
+          "oklch(83.6% 0.258 294.9)",
+          "oklch(95.0% 0.258 294.9)"
+        ]
+      },
+      "family-sleep": {
+        "role": "secondary",
+        "displayName": "Deep Blue",
+        "dark": "#4A8FE8",
+        "tonalRamp": [
+          "oklch(15.0% 0.190 258.9)",
+          "oklch(26.4% 0.190 258.9)",
+          "oklch(37.9% 0.190 258.9)",
+          "oklch(49.3% 0.190 258.9)",
+          "oklch(60.7% 0.190 258.9)",
+          "oklch(72.1% 0.190 258.9)",
+          "oklch(83.6% 0.190 258.9)",
+          "oklch(95.0% 0.190 258.9)"
+        ]
+      },
+      "family-move": {
+        "role": "secondary",
+        "displayName": "Teal",
+        "dark": "#16A99C",
+        "tonalRamp": [
+          "oklch(15.0% 0.098 184.7)",
+          "oklch(26.4% 0.098 184.7)",
+          "oklch(37.9% 0.098 184.7)",
+          "oklch(49.3% 0.098 184.7)",
+          "oklch(60.7% 0.098 184.7)",
+          "oklch(72.1% 0.098 184.7)",
+          "oklch(83.6% 0.098 184.7)",
+          "oklch(95.0% 0.098 184.7)"
+        ]
+      },
+      "marker-foreground": {
+        "role": "secondary",
+        "displayName": "Pin Glyph",
+        "dark": "#171614",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "map-land": {
+        "role": "tertiary",
+        "displayName": "Map Land",
+        "dark": "#1A1815",
+        "tonalRamp": [
+          "oklch(15.0% 0.007 97.4)",
+          "oklch(26.4% 0.007 97.4)",
+          "oklch(37.9% 0.007 97.4)",
+          "oklch(49.3% 0.007 97.4)",
+          "oklch(60.7% 0.007 97.4)",
+          "oklch(72.1% 0.007 97.4)",
+          "oklch(83.6% 0.007 97.4)",
+          "oklch(95.0% 0.007 97.4)"
+        ]
+      },
+      "map-block": {
+        "role": "tertiary",
+        "displayName": "Map Block",
+        "dark": "#262218",
+        "tonalRamp": [
+          "oklch(15.0% 0.011 95.2)",
+          "oklch(26.4% 0.011 95.2)",
+          "oklch(37.9% 0.011 95.2)",
+          "oklch(49.3% 0.011 95.2)",
+          "oklch(60.7% 0.011 95.2)",
+          "oklch(72.1% 0.011 95.2)",
+          "oklch(83.6% 0.011 95.2)",
+          "oklch(95.0% 0.011 95.2)"
+        ]
+      },
+      "map-road": {
+        "role": "tertiary",
+        "displayName": "Map Road",
+        "dark": "#3D372D",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "map-road-casing": {
+        "role": "tertiary",
+        "displayName": "Map Road Casing",
+        "dark": "#2C271E",
+        "tonalRamp": [
+          "oklch(15.0% 0.014 88.7)",
+          "oklch(26.4% 0.014 88.7)",
+          "oklch(37.9% 0.014 88.7)",
+          "oklch(49.3% 0.014 88.7)",
+          "oklch(60.7% 0.014 88.7)",
+          "oklch(72.1% 0.014 88.7)",
+          "oklch(83.6% 0.014 88.7)",
+          "oklch(95.0% 0.014 88.7)"
+        ]
+      },
+      "map-water": {
+        "role": "tertiary",
+        "displayName": "Map Water",
+        "dark": "#16242C",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 221.4)",
+          "oklch(26.4% 0.013 221.4)",
+          "oklch(37.9% 0.013 221.4)",
+          "oklch(49.3% 0.013 221.4)",
+          "oklch(60.7% 0.013 221.4)",
+          "oklch(72.1% 0.013 221.4)",
+          "oklch(83.6% 0.013 221.4)",
+          "oklch(95.0% 0.013 221.4)"
+        ]
+      },
+      "map-park": {
+        "role": "tertiary",
+        "displayName": "Map Park",
+        "dark": "#1F241F",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 126.4)",
+          "oklch(26.4% 0.013 126.4)",
+          "oklch(37.9% 0.013 126.4)",
+          "oklch(49.3% 0.013 126.4)",
+          "oklch(60.7% 0.013 126.4)",
+          "oklch(72.1% 0.013 126.4)",
+          "oklch(83.6% 0.013 126.4)",
+          "oklch(95.0% 0.013 126.4)"
+        ]
+      },
+      "map-boundary": {
+        "role": "tertiary",
+        "displayName": "Map Boundary",
+        "dark": "#2A251E",
+        "tonalRamp": [
+          "oklch(15.0% 0.014 88.7)",
+          "oklch(26.4% 0.014 88.7)",
+          "oklch(37.9% 0.014 88.7)",
+          "oklch(49.3% 0.014 88.7)",
+          "oklch(60.7% 0.014 88.7)",
+          "oklch(72.1% 0.014 88.7)",
+          "oklch(83.6% 0.014 88.7)",
+          "oklch(95.0% 0.014 88.7)"
+        ]
+      },
+      "map-label": {
+        "role": "tertiary",
+        "displayName": "Map Label",
+        "dark": "#8A8378",
+        "tonalRamp": [
+          "oklch(15.0% 0.015 78.2)",
+          "oklch(26.4% 0.015 78.2)",
+          "oklch(37.9% 0.015 78.2)",
+          "oklch(49.3% 0.015 78.2)",
+          "oklch(60.7% 0.015 78.2)",
+          "oklch(72.1% 0.015 78.2)",
+          "oklch(83.6% 0.015 78.2)",
+          "oklch(95.0% 0.015 78.2)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "A place name given the whole panel. The largest thing on a screen."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "A selected place's name, a form heading, a trip name."
+      },
+      "rowName": {
+        "displayName": "Row Name",
+        "purpose": "A place's name in a list or a search result."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "A note, read rather than scanned."
+      },
+      "note": {
+        "displayName": "Note",
+        "purpose": "A note reduced to one line under a name; hints and secondary meta."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "A city header or a field label. Uppercase, spaced, and the most deliberate small text in the system."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "A price or a count. Tabular figures so a column does not shift row to row."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Text inside an input or a button."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sm",
+        "value": "0 1px 2px #1A19170F",
+        "dark": "0 1px 2px #00000066",
+        "purpose": "A control, or a row lifted off its surface."
+      },
+      {
+        "name": "md",
+        "value": "0 4px 12px #1A19171A",
+        "dark": "0 4px 12px #00000075",
+        "purpose": "A card, a sheet header, anything the eye should read as floating."
+      },
+      {
+        "name": "lg",
+        "value": "0 12px 32px #1A191729",
+        "dark": "0 12px 32px #00000094",
+        "purpose": "A panel over the map, where the thing beneath is busy."
+      },
+      {
+        "name": "pin",
+        "value": "0 2px 5px #1A19174D",
+        "dark": "0 2px 5px #0000008C",
+        "purpose": "A pin against cartography. Tighter and darker than sm because it separates a small shape from road casings rather than from a flat surface."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control",
+        "value": "160ms ease",
+        "purpose": "Background and shadow on a button or a control."
+      },
+      {
+        "name": "field",
+        "value": "150ms ease",
+        "purpose": "Background and border on an input, a pill, or a toggle."
+      },
+      {
+        "name": "press",
+        "value": "120ms ease",
+        "purpose": "A control's 1px depress on :active."
+      },
+      {
+        "name": "pin-select",
+        "value": "180ms cubic-bezier(0.2, 0.8, 0.3, 1)",
+        "purpose": "A pin scaling to 1.2 and its selection halo fading in."
+      },
+      {
+        "name": "pin-drop",
+        "value": "420ms cubic-bezier(0.2, 1.2, 0.4, 1)",
+        "purpose": "A draft pin arriving. Deliberately overshoots — the one playful moment in the system."
+      },
+      {
+        "name": "spinner",
+        "value": "800ms linear infinite",
+        "purpose": "The loading ring."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Every animation and transition collapses under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "700px",
+        "purpose": "Below this the web toolbar wraps. Explicitly a holding rule, not a decision — the phone bottom-bar layout replaces it."
+      }
+    ],
+    "sheetDetents": [
+      {
+        "name": "half",
+        "value": "52%",
+        "purpose": "Enough map to recognise a street corner, enough sheet to show the name field and the type grid."
+      },
+      {
+        "name": "full",
+        "value": "92%",
+        "purpose": "Stops short of the top so the sheet still reads as covering the map rather than having replaced it."
+      }
+    ],
+    "markerGeometry": {
+      "size": {
+        "width": 32,
+        "height": 42
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "glyphCentre": {
+        "x": 0.5,
+        "y": 0.35714285714285715
+      },
+      "glyphSize": 15,
+      "badgeSize": 18,
+      "purpose": "A teardrop rather than a disc: the point sits on the coordinate, so there is no question whether the middle or the bottom of the pin is the place. Both applications pass the normalised anchor to their renderer instead of writing an offset."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action on a surface. Amber fill, dark-brown ink — never white.",
+      "html": "<button class=\"ds-btn-primary\">Save place</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border:1px solid transparent;border-radius:var(--pp-radius-pill, 999px);background:var(--pp-accent, #E39A2B);color:#241703;font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:13.5px;font-weight:500;line-height:1.3;cursor:pointer;white-space:nowrap;box-shadow:var(--pp-shadow-sm, 0 1px 2px #1A19170F);transition:background-color .16s ease,box-shadow .16s ease,transform .12s ease}.ds-btn-primary:hover{box-shadow:var(--pp-shadow-md, 0 4px 12px #1A19171A)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--pp-accent, #E39A2B);outline-offset:2px}"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "The ordinary action. A stated edge at rest; fills to the muted surface on hover.",
+      "html": "<button class=\"ds-btn-default\">Edit</button>",
+      "css": ".ds-btn-default{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border:1px solid var(--pp-line-strong, #D3D0C8);border-radius:var(--pp-radius-pill, 999px);background:var(--pp-surface, #FFFFFF);color:var(--pp-ink, #1A1917);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:13.5px;font-weight:500;line-height:1.3;cursor:pointer;white-space:nowrap;transition:background-color .16s ease,transform .12s ease}.ds-btn-default:hover{background:var(--pp-surface-muted, #F3F2EF)}.ds-btn-default:active{transform:translateY(1px)}.ds-btn-default:focus-visible{outline:2px solid var(--pp-accent, #E39A2B);outline-offset:2px}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "States nothing at rest. Used wherever a control should not compete with the map.",
+      "html": "<button class=\"ds-btn-quiet\">Cancel</button>",
+      "css": ".ds-btn-quiet{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border:1px solid transparent;border-radius:var(--pp-radius-pill, 999px);background:transparent;color:var(--pp-ink-muted, #6E6A63);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:13.5px;font-weight:500;line-height:1.3;cursor:pointer;white-space:nowrap;transition:background-color .16s ease,color .16s ease,transform .12s ease}.ds-btn-quiet:hover{background:var(--pp-surface-muted, #F3F2EF);color:var(--pp-ink, #1A1917)}.ds-btn-quiet:active{transform:translateY(1px)}.ds-btn-quiet:focus-visible{outline:2px solid var(--pp-accent, #E39A2B);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field-input",
+      "description": "Label above, muted fill, and a focus state that brightens the field rather than dimming its surroundings.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Place name</span><input class=\"ds-field-input\" placeholder=\"Fushimi Inari\" /></label>",
+      "css": ".ds-field{display:grid;gap:5px;font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif)}.ds-field-label{font-size:11px;font-weight:700;letter-spacing:.1em;line-height:1.3;text-transform:uppercase;color:var(--pp-ink-muted, #6E6A63)}.ds-field-input{box-sizing:border-box;width:100%;padding:8px 11px;background:var(--pp-surface-muted, #F3F2EF);color:var(--pp-ink, #1A1917);border:1px solid transparent;border-radius:var(--pp-radius-md, 10px);font-family:inherit;font-size:13.5px;line-height:1.3;transition:background-color .15s ease,border-color .15s ease}.ds-field-input::placeholder{color:var(--pp-ink-muted, #6E6A63)}.ds-field-input:focus{outline:none;background:var(--pp-surface, #FFFFFF);border-color:var(--pp-accent, #E39A2B);box-shadow:0 0 0 3px var(--pp-accent-ring, #E39A2B61)}"
+    },
+    {
+      "name": "Selector Pill",
+      "kind": "chip",
+      "refersTo": "pill-select",
+      "description": "The resting shape of the chrome. Transparent border at rest; a stated edge appears on hover or while open.",
+      "html": "<button class=\"ds-pill-select\" aria-expanded=\"false\">Kyoto <span class=\"ds-pill-caret\">▾</span></button>",
+      "css": ".ds-pill-select{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid transparent;border-radius:var(--pp-radius-pill, 999px);background:var(--pp-surface-muted, #F3F2EF);color:var(--pp-ink, #1A1917);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:13.5px;font-weight:500;line-height:1.3;cursor:pointer;transition:border-color .15s ease}.ds-pill-select:hover,.ds-pill-select[aria-expanded=\"true\"]{border-color:var(--pp-line-strong, #D3D0C8)}.ds-pill-select:focus-visible{outline:2px solid var(--pp-accent, #E39A2B);outline-offset:2px}.ds-pill-caret{font-size:10px;color:var(--pp-ink-muted, #6E6A63)}"
+    },
+    {
+      "name": "Filter Clear (live / inert)",
+      "kind": "chip",
+      "refersTo": "clear-live",
+      "description": "Two states of one permanent control. They differ by border and weight as well as by colour, so the narrowing survives a greyscale display.",
+      "html": "<span class=\"ds-clear-row\"><button class=\"ds-clear\">Clear</button><button class=\"ds-clear ds-clear-inert\" aria-disabled=\"true\">Clear</button></span>",
+      "css": ".ds-clear-row{display:inline-flex;gap:8px;align-items:center}.ds-clear{padding:5px 10px;border:1px solid var(--pp-accent, #E39A2B);border-radius:var(--pp-radius-pill, 999px);background:var(--pp-accent-wash, #FBF1DF);color:var(--pp-accent-ink, #8A5A0B);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:12.5px;font-weight:600;line-height:1.35;cursor:pointer;transition:background .15s ease,border-color .15s ease}.ds-clear:hover{background:var(--pp-accent, #E39A2B);color:var(--pp-ink-on-accent, #241703)}.ds-clear-inert,.ds-clear-inert:hover{border-color:transparent;background:none;color:var(--pp-ink-muted, #6E6A63);font-weight:500;cursor:default}"
+    },
+    {
+      "name": "Interest Choice",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "A traveller saying they want to go. Active uses the wash-and-ink pair, never the raw accent.",
+      "html": "<span class=\"ds-choices\"><button class=\"ds-choice ds-choice-active\">Want to go</button><button class=\"ds-choice\">Not for me</button></span>",
+      "css": ".ds-choices{display:inline-flex;gap:4px}.ds-choice{border:1px solid var(--pp-line-strong, #D3D0C8);background:transparent;color:var(--pp-ink-muted, #6E6A63);border-radius:var(--pp-radius-pill, 999px);padding:3px 10px;font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:13.5px;font-weight:500;line-height:1.3;cursor:pointer;white-space:nowrap;transition:border-color .15s ease,color .15s ease}.ds-choice:hover{border-color:var(--pp-ink-faint, #9C978E);color:var(--pp-ink, #1A1917)}.ds-choice-active,.ds-choice-active:hover{background:var(--pp-accent-wash, #FBF1DF);border-color:var(--pp-accent-ink, #8A5A0B);color:var(--pp-accent-ink, #8A5A0B)}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A surface floating over cartography. 14px corners, a hairline border, and the lg shadow that says how far it sits off the map.",
+      "html": "<div class=\"ds-panel\"><h3 class=\"ds-panel-title\">Fushimi Inari Taisha</h3><span class=\"ds-tag\">Temple</span><p class=\"ds-panel-note\">Go before eight or the gates are a queue.</p></div>",
+      "css": ".ds-panel{width:328px;max-width:100%;padding:16px;background:var(--pp-surface, #FFFFFF);color:var(--pp-ink, #1A1917);border:1px solid var(--pp-line, #E4E2DC);border-radius:var(--pp-radius-lg, 14px);box-shadow:var(--pp-shadow-lg, 0 12px 32px #1A191729);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif)}.ds-panel-title{margin:0 0 11px;font-size:17px;font-weight:700;letter-spacing:-.022em;line-height:1.22}.ds-tag{display:inline-block;padding:3px 9px;border-radius:var(--pp-radius-pill, 999px);background:var(--pp-surface-muted, #F3F2EF);color:var(--pp-ink-muted, #6E6A63);font-size:12.5px;font-weight:600;line-height:1.35}.ds-panel-note{margin:13px 0 0;font-size:13.5px;line-height:1.52;color:var(--pp-ink, #1A1917)}"
+    },
+    {
+      "name": "Overlay Note",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A transient message centred over the map. A pill, so it reads as floating rather than as chrome.",
+      "html": "<p class=\"ds-overlay-note\">Tap the map to place the pin.</p>",
+      "css": ".ds-overlay-note{margin:0;display:inline-block;padding:8px 16px;border-radius:var(--pp-radius-pill, 999px);background:var(--pp-surface, #FFFFFF);border:1px solid var(--pp-line, #E4E2DC);box-shadow:var(--pp-shadow-md, 0 4px 12px #1A19171A);color:var(--pp-ink-muted, #6E6A63);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:12.5px;line-height:1.35;text-align:center}"
+    },
+    {
+      "name": "Marker Pin",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The system's signature and the only place saturated colour is allowed. The real 32x42 teardrop, anchored at its point, with a 15px Lucide glyph on the head. Shown saved (with a count badge ringed against the tiles), saved without a badge, and as an unsaved draft — hollow, dashed and carrying no type icon, because it is not yet a place.",
+      "html": "<span class=\"ds-pin-row\"><span class=\"ds-pin ds-pin-eat\"><svg viewBox=\"0 0 32 42\" class=\"ds-pin-body\" aria-hidden=\"true\"><path class=\"ds-pin-drop\" d=\"M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z\"/><g class=\"ds-pin-glyph\" transform=\"translate(8.5 7.5) scale(0.625)\"><path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2z\"/></g></svg><span class=\"ds-pin-badge\">3</span></span><span class=\"ds-pin ds-pin-see\"><svg viewBox=\"0 0 32 42\" class=\"ds-pin-body\" aria-hidden=\"true\"><path class=\"ds-pin-drop\" d=\"M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z\"/><g class=\"ds-pin-glyph\" transform=\"translate(8.5 7.5) scale(0.625)\"><path d=\"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z\"/></g></svg></span><span class=\"ds-pin ds-pin-draft\"><svg viewBox=\"0 0 32 42\" class=\"ds-pin-body\" aria-hidden=\"true\"><path class=\"ds-pin-drop-draft\" d=\"M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z\"/><path class=\"ds-pin-plus\" d=\"M16 11v8M12 15h8\"/></svg></span></span>",
+      "css": ".ds-pin-row{display:inline-flex;gap:22px;align-items:flex-end}.ds-pin{position:relative;display:block;width:32px;height:42px;filter:drop-shadow(var(--pp-shadow-pin, 0 2px 5px #1A19174D));transform-origin:50% 100%;transition:transform .18s cubic-bezier(.2,.8,.3,1)}.ds-pin:hover{transform:scale(1.2)}.ds-pin-body{display:block;width:100%;height:100%;overflow:visible}.ds-pin-eat .ds-pin-drop{fill:var(--pp-family-eat, #D2451E)}.ds-pin-see .ds-pin-drop{fill:var(--pp-family-see, #7C8896)}.ds-pin-glyph{stroke:var(--pp-marker-foreground, #FFFFFF);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.ds-pin-drop-draft{fill:var(--pp-surface, #FFFFFF);stroke:var(--pp-ink, #1A1917);stroke-width:2;stroke-dasharray:4 3}.ds-pin-plus{stroke:var(--pp-ink, #1A1917);fill:none;stroke-width:2.4;stroke-linecap:round}.ds-pin-draft{animation:ds-pin-drop .42s cubic-bezier(.2,1.2,.4,1)}@keyframes ds-pin-drop{from{transform:translateY(-14px);opacity:0}to{transform:translateY(0);opacity:1}}.ds-pin-badge{position:absolute;top:-2px;right:-6px;min-width:18px;height:18px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--pp-ink, #1A1917);color:var(--pp-ground, #FBFAF8);border:2px solid var(--pp-map-land, #EFEEE9);font-family:var(--pp-font, 'Figtree',ui-sans-serif,system-ui,sans-serif);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Warmed Basemap",
+    "overview": "Most map products arrive as two designs stapled together: somebody else’s grey cartography, and an interface floating above it in an unrelated palette. Pinpoint refuses that seam. The upstream style document is rewritten before either renderer sees it, so the land, the roads and the water are drawn in the same warm neutrals as the panels sitting on top of them. The map is not a backdrop the interface stands on. It is the ground, and everything else is a surface lifted off it.\n\nEverything follows from making that ground quiet. The neutrals carry a warm bias rather than being a pure grey ramp; the chrome is muted fills, hairlines and pill-shaped controls that state nothing until touched; the basemap’s own labels are deliberately recessive. All of that restraint exists to buy one thing — five saturated marker families that are the only strong colour anywhere on screen. When somebody scans this interface, the pins are what they see, because nothing else is competing.\n\nThe mood is warm, quiet and precise. Warm in the literal sense that there is no neutral grey in the system. Quiet because the interface is a tool used while deciding something else. Precise in the fractional type sizes (13.5px, 12.5px), the tabular figures, the hairline dividers, and the fact that every value was chosen against the ground it renders on rather than derived from its opposite. This must never read as a generic consumer travel app: no full-bleed hero photography, no gradient buttons, no oversized rounded cards, no illustrated empty states. The radius range stops deliberately short of that look.",
+    "keyCharacteristics": [
+      "One warm ground shared by the map and the interface, never two palettes meeting.",
+      "Five saturated marker families, ranked by deliberate prominence, as the only strong colour.",
+      "Amber as the single accent, chosen so it can never be mistaken for a sixth family.",
+      "Every colour chosen twice, once against each ground; no theme is derived from the other.",
+      "One typeface doing all the work, at eight named roles.",
+      "Depth measured as distance from the map, not applied as decoration.",
+      "Controls quiet at rest, responsive on contact."
+    ],
+    "rules": [
+      {
+        "name": "The Sixth Family Rule",
+        "body": "There are exactly five colour families and one accent. Never introduce a new saturated hue into the interface: any colour a person could mistake for a marker family breaks the map’s vocabulary. New types join an existing family; they never bring a colour.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ranking Rule",
+        "body": "see is the most recessive value in both themes and the other four are prominent in both. A dark value that is legible but wrongly ranked does not satisfy this system. Changing the ranking is a product change, not a palette refresh.",
+        "section": "colors"
+      },
+      {
+        "name": "The Amber Pair Rule",
+        "body": "Never write text in accent. Anything amber and legible uses accent-ink, and anything amber and filled uses accent-wash beneath it. Text sitting on the accent uses ink-on-accent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Converged-Pair Rule",
+        "body": "accent-ink and accent are the same value on the dark ground — the pair converges once the bright amber is already the readable one. So any state that fills with accent must also change its lettering, or it paints amber on amber at 1:1. Filling with the accent means lettering with ink-on-accent, always.",
+        "section": "colors"
+      },
+      {
+        "name": "The Chosen-Twice Rule",
+        "body": "Every colour is defined for both grounds, each chosen against the ground it will be drawn on. A theme is never derived by inverting or lightening the other. Contrast ratio is the wrong instrument at the dark end of the range — it reads near 1.0 between any two dark colours by construction. Judge dark values by perceived lightness (CIE L*) distance instead, with a floor of about 4.5 L* for a fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Area Rule",
+        "body": "Judge a fill by the area it will actually cover, not by a swatch. A green at chroma 16 measured a comfortable +7.8 L* from the land and still swamped the map, because at city zoom woodland covers most of the viewport.",
+        "section": "colors"
+      },
+      {
+        "name": "The Round Hundreds Rule",
+        "body": "Weights use only steps both platforms resolve identically. Figtree is variable and a browser will happily set 620; React Native maps a weight to the nearest resolved face, so 620 and 600 render the same on a phone and differently on a laptop. Never specify a weight the scale does not already contain.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ratio Rule",
+        "body": "Letter-spacing and line height are stored as multiples of the role’s own size, never as absolute units. CSS wants em and a unitless leading; React Native wants points. A token committed to either unit is unusable on the other platform.",
+        "section": "typography"
+      },
+      {
+        "name": "The Column Rule",
+        "body": "Any number that stacks into a column takes tabular figures. With proportional digits a 1 is narrower than a 7, so a column of prices shifts horizontally row to row and stops being scannable — which is the one thing a list has to beat a spreadsheet at.",
+        "section": "typography"
+      },
+      {
+        "name": "The Offset Centre Rule",
+        "body": "When something covers part of the map, centring the camera on a point is exactly how to hide it — the middle of the view is behind the sheet. Shift the centre by half the covered height using offsetCenter; never use the renderer’s camera padding, which persists in camera state and changes what center reports.",
+        "section": "layout"
+      },
+      {
+        "name": "The Absent-Light Rule",
+        "body": "Dark-theme shadows are near-black at a higher alpha, never the light theme’s warm ink lightened. On a dark ground a shadow works by absence of light, and a tinted one reads as a smudge.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Cartography Rule",
+        "body": "A pin’s shadow is tighter and darker than sm even though it sits closer, because it separates a small shape from road casings and building blocks rather than from a flat surface. A soft shadow simply disappears there.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Outline Rule",
+        "body": "A shadow follows the drawn outline, not the bounding box. The pin uses filter: drop-shadow(), because box-shadow on a teardrop draws a rectangle’s worth of shade.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do read every colour, space, radius and type value from @pinpoint/tokens. A literal in a component is a value that cannot be themed and will not survive the next derivation.",
+      "Do choose a new colour twice, once against each ground, and judge the dark value by CIE L* distance rather than by contrast ratio.",
+      "Do pair accent-wash with accent-ink for any active or selected state, and reserve the raw accent for fills, the focus ring, and the pin halo.",
+      "Do carry every state in something besides hue. Clear differs from its inert twin by border and weight as well as colour; a visited marker is drawn visited without changing colour. A signal that survives only in hue survives neither a greyscale display nor a colour-blind reader.",
+      "Do keep an unavailable control in the tab order with aria-disabled=\"true\" (web) or accessibilityState={{ disabled: true }} (native), styled inert with a no-op handler. The disabled attribute leaves the tab order and is skipped by screen readers.",
+      "Do give the smallest text the most deliberate treatment: label is 11px/700/+0.1em uppercase, never a shrunken body style.",
+      "Do use tabular figures for anything that stacks — prices, counts, distances.",
+      "Do restyle MapLibre’s attribution rather than hiding it. It is a licence condition of the tiles, not decoration.",
+      "Do verify by looking. Static checks in this project have been green over a real visual defect on five consecutive changes."
+    ],
+    "donts": [
+      "Don’t introduce a sixth saturated hue. New marker types join an existing family and bring an icon, never a colour.",
+      "Don’t write text in --pp-accent, and don’t letter an accent fill with ground or with white — white clears 2.26:1 on it. Amber text is accent-ink; text on amber is ink-on-accent.",
+      "Don’t use ink-faint for text of any kind, placeholders included. It measures 2.78:1 on the light ground and 4.02:1 on the dark, both below WCAG AA. Recessive text is ink-muted (5.16:1 / 6.48:1); ink-faint is for what is drawn, not read.",
+      "Don’t emit a value the host has to resolve — var(), color-mix(), currentColor — into anything native consumes. It occupies correct layout space and renders nothing, and no typecheck, lint or non-pixel test will catch it.",
+      "Don’t add a cross-platform styling runtime, or share a component between the two applications. Share token values; a <div> and a <View> are not the same something.",
+      "Don’t specify a font weight outside the scale’s round hundreds, or a letter-spacing or line height in absolute units.",
+      "Don’t let a bottom bar stop short of the screen edge. The gap fills with whatever the bar was clearing.",
+      "Don’t centre the camera on a point while a sheet covers the map. Use offsetCenter.",
+      "Don’t permanently label every marker on the map. Density here is a text problem, not a geometry problem — which is why this system forbids labels rather than requiring clustering.",
+      "Don’t reach for the consumer-travel-app vocabulary: full-bleed hero photography, gradient fills, glassmorphism, oversized rounded cards, decorative blur, illustrated empty states, or emoji standing in for iconography."
+    ]
+  }
+}
