@@ -458,6 +458,20 @@ scale the product runs at today.
       names its successor. Closed by "Responsive web" above, which replaces it with
       the phone layout rather than tuning it. The breakpoint is a literal, because
       custom properties do not resolve inside a media query, and appears once.
+- [ ] **A control's border does not clear the non-text contrast floor.**
+      `lineStrong` on `surface` measures about 1.5:1, under the 3:1 WCAG asks for
+      the visual information that identifies a control — so every default button
+      and outlined chip is bounded by an edge that is decoration rather than a
+      boundary. Found while fixing the text floor and deliberately left out of it,
+      because moving `lineStrong` is a palette revision and that change was a
+      contrast fix. Not urgent: every affected control also carries a fill and a
+      label, so none of them is unidentifiable, which is the difference between
+      this and the four defects that were fixed.
+- [ ] **The light theme has not been looked at since the contrast fix.** Every
+      light-ground ratio in that change is computed and none was seen; the browser
+      used for verification was in dark mode. Cheap to close — open the app in the
+      light theme once and look at a form, the toolbar and a filled button.
+
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it needs the rows
       gone as well as the file, since removing a migration leaves the remote's
