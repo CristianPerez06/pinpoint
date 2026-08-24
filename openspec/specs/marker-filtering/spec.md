@@ -5,9 +5,7 @@
 Define how a trip's markers are narrowed to a subset worth looking at — by who wants to
 go and by whether the place has been visited — and the guarantees that keep a narrowed
 view from being mistaken for the whole trip.
-
 ## Requirements
-
 ### Requirement: A trip can be narrowed by who is interested
 
 The system SHALL offer narrowing a trip's markers to those **wanted by a named set of
@@ -144,11 +142,11 @@ what the trip contains, and the person would have to work out which to believe.
 ### Requirement: A narrowed view declares that it is narrowed
 
 Whenever a filter is applied, the system SHALL indicate that fact, and SHALL make
-clearing it available from where the narrowing is visible.
+clearing it reachable from where the narrowing is visible.
 
-The indication SHALL be carried by a control that is present whether or not a filter
-is applied, through a change in that control's state rather than by appearing beside
-the controls when a filter is applied and vanishing when it is cleared.
+The indication SHALL be carried by a control that is present whether or not a filter is
+applied, through a change in that control's state rather than by appearing beside the
+controls when a filter is applied and vanishing when it is cleared.
 
 Rationale: a control that appears on selection moves everything beside it, so applying
 a filter rearranges the interface that applied it. It also makes the way out of a
@@ -159,6 +157,20 @@ The indication SHALL NOT be carried by colour alone. Rationale: this repeats a d
 already in force elsewhere — a visited marker is drawn as visited without changing its
 colour — because a signal that survives only in hue does not survive a greyscale
 display, a colour-blind reader, or a screen reader.
+
+**The declaration and the way out MAY be separated.** The declaration SHALL remain on a
+control that is visible while the narrowed result is visible. The way out MAY instead
+live inside what that control opens, provided the control that declares the narrowing is
+also the one that reveals the way out, and provided reaching it costs a single
+deliberate action.
+
+Rationale: a permanent way out costs a slot in the one row a thumb can reach, and the
+declaration is the half that has to be permanent — a person who cannot tell they are
+narrowed does not know to look for the way out, while a person who can tell will look.
+Binding the two together was an artefact of one control doing both jobs, not a
+conclusion about either. What SHALL NOT happen is the two being carried by different
+controls, which would leave somebody able to see that places are missing and hunting for
+where to undo it.
 
 An interface MAY conceal the narrowing controls while something else occupies their
 place — a sheet describing a selected marker, for instance. Where it does, the
@@ -186,12 +198,19 @@ in a way the first is not.
 
 - **WHEN** any filter is applied
 - **THEN** the interface indicates that the view is narrowed
-- **AND** clearing the filter is available from there
+- **AND** clearing the filter is reachable from there
+
+#### Scenario: The way out of a narrowed view lives one action away
+
+- **WHEN** the way out is not itself on screen beside the narrowed result
+- **THEN** the control that declares the narrowing is on screen
+- **AND** that same control reveals the way out
+- **AND** no second control has to be found first
 
 #### Scenario: The way out is offered before it is needed
 
 - **WHEN** a trip is opened unfiltered
-- **THEN** the control that clears the filter is already present
+- **THEN** the control that clears the filter is already present wherever the way out lives
 - **AND** applying a filter does not add a control beside it
 - **AND** clearing the filter does not remove one
 
@@ -276,3 +295,4 @@ properties of filtering rather than of a platform.
 - **THEN** it indicates that the view is narrowed
 - **AND** clearing the filter is available from there
 - **AND** a filter matching nothing is not presented as a trip with no markers
+

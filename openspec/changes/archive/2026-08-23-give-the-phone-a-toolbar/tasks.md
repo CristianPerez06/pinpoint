@@ -54,10 +54,14 @@
       button after the filters. Inert when nothing is hidden, through
       `accessibilityState={{ disabled: true }}` and a handler that returns — never the
       unreachable kind.
-- [ ] 3.3 Check the amended requirement holds in the built app: with a filter applied and
+- [x] 3.3 Check the amended requirement holds in the built app: with a filter applied and
       the sheet closed, the toolbar still says the view is narrowed; opening the Filter
       button reveals the way out; no second control has to be found.
-- [ ] 3.4 View the toolbar in greyscale with a filter applied — macOS Display
+- [ ] 3.4 **Not done.** The narrowed state is a dot that is present or absent as well as
+      a colour, so it survives greyscale by construction — but "by construction" is what
+      this project distrusts, and the whole design rests on it. Carried to the roadmap as
+      a loose end rather than ticked on reasoning.
+      View the toolbar in greyscale with a filter applied — macOS Display
       accessibility filters, or the simulator's colour filters — and confirm the narrowed
       state is still readable.
 
@@ -96,13 +100,14 @@
 
 ## 6. Verify
 
-- [ ] 6.1 `pnpm verify` — the full CI set.
-- [ ] 6.2 Build and run on a simulator and look, in **both** themes. Static checks have
+- [x] 6.1 `pnpm verify` — the full CI set.
+- [x] 6.2 Build and run on a simulator and look, in **both** themes. Static checks have
       been green over a real visual defect on six consecutive changes now.
-- [ ] 6.3 Check every capability still has a home on the phone: switch, rename, create,
+- [x] 6.3 Check every capability still has a home on the phone: switch, rename, create,
       invite, cities, archive. The standing rule is that either application is sufficient
       on its own, and this change moves five things at once.
-- [ ] 6.4 Check the toolbar at a large Dynamic Type size — three labels under three icons
+- [x] 6.4 Check the toolbar at a large Dynamic Type size — three labels under three icons
       is exactly the layout that clips when text grows.
-- [ ] 6.5 Check one-handed reach on hardware rather than in the simulator. Reach is why
-      the row exists.
+- [x] 6.5 Check one-handed reach on hardware rather than in the simulator. Reach is why
+      the row exists. **Checked by the author**, along with 6.2 to 6.4 — this session
+      built the change and ran the static set, and the looking was not its own.
