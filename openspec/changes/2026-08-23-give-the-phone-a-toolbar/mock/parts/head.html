@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinpoint — phone toolbar mock</title>
+<style>
+@font-face{font-family:'Figtree';src:url(data:font/ttf;base64,__FONT__) format('truetype');font-weight:300 900;font-style:normal;font-display:block}
+
+/* ─── tokens, straight from @pinpoint/tokens ─────────────────────────────── */
+:root{
+  --space-xs:4px; --space-sm:8px; --space-md:16px; --space-lg:24px; --space-xl:32px;
+  --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+  --font:'Figtree',ui-sans-serif,system-ui,sans-serif;
+
+  --ground:#FBFAF8; --surface:#FFFFFF; --surface-muted:#F3F2EF; --surface-sunk:#EFEDE8;
+  --line:#E4E2DC; --line-strong:#D3D0C8;
+  --ink:#1A1917; --ink-muted:#6E6A63; --ink-faint:#9C978E;
+  --accent:#E39A2B; --accent-ink:#8A5A0B; --accent-wash:#FBF1DF; --accent-ring:#E39A2B61;
+  --ink-on-accent:#241703;
+  --danger:#B3261E; --danger-surface:#FCEDEC;
+  --map-land:#EFEEE9; --map-block:#E3E1D9; --map-road:#FFFFFF; --map-road-casing:#DAD6CC;
+  --map-water:#CBD6DA; --map-park:#E1E5DC; --map-boundary:#DEDAD0; --map-label:#9A948B;
+  --see:#7C8896; --eat:#D2451E; --buy:#8A3FFC; --sleep:#0B5FD0; --move:#00857A;
+  --marker-fg:#FFFFFF;
+  --shadow-sm:0 1px 2px #1A19170F; --shadow-md:0 4px 12px #1A19171A;
+  --shadow-lg:0 12px 32px #1A191729; --shadow-pin:0 2px 5px #1A19174D;
+}
+.dark{
+  --ground:#171614; --surface:#201E1B; --surface-muted:#2A2724; --surface-sunk:#1B1A17;
+  --line:#34302B; --line-strong:#443F38;
+  --ink:#F2F0EC; --ink-muted:#A09A91; --ink-faint:#7C766D;
+  --accent:#F0AE4A; --accent-ink:#F0AE4A; --accent-wash:#33291A; --accent-ring:#F0AE4A6B;
+  --ink-on-accent:#171614;
+  --danger:#F2857C; --danger-surface:#33211F;
+  --map-land:#1A1815; --map-block:#262218; --map-road:#3D372D; --map-road-casing:#2C271E;
+  --map-water:#16242C; --map-park:#1F241F; --map-boundary:#2A251E; --map-label:#8A8378;
+  --see:#98A3B0; --eat:#F0653A; --buy:#A97BFF; --sleep:#4A8FE8; --move:#16A99C;
+  --marker-fg:#171614;
+  --shadow-sm:0 1px 2px #00000066; --shadow-md:0 4px 12px #00000075;
+  --shadow-lg:0 12px 32px #00000094; --shadow-pin:0 2px 5px #0000008C;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#F3F2EF;color:#1A1917;font-family:var(--font);
+     font-size:13.5px;line-height:1.52;-webkit-font-smoothing:antialiased}
+
+/* ─── page chrome (not part of the design — just the mock's own scaffolding) ── */
+.page{max-width:1180px;margin:0 auto;padding:40px 24px 80px}
+.masthead{max-width:660px;margin-bottom:8px}
+.masthead h1{font-size:32px;font-weight:800;letter-spacing:-.033em;line-height:1.1;margin:0 0 12px}
+.masthead p{margin:0 0 12px;color:#4A4642;font-size:15px;line-height:1.55}
+.masthead strong{font-weight:650;color:#1A1917}
+.judge{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 0;padding:0;list-style:none}
+.judge li{flex:1 1 220px;padding:12px 14px;border-radius:10px;background:#fff;border:1px solid #E4E2DC;font-size:12.5px;line-height:1.45;color:#4A4642}
+.judge b{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6E6A63;margin-bottom:4px}
+.judge.no b{color:#8A5A0B}
+
+h2{font-size:22px;font-weight:750;letter-spacing:-.024em;margin:64px 0 6px}
+h2 .n{display:inline-block;min-width:26px;color:#9C978E;font-weight:600}
+.lede{max-width:640px;margin:0 0 26px;color:#4A4642;font-size:14px;line-height:1.55}
+.rail{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.slot{display:flex;flex-direction:column;gap:10px}
+.cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6E6A63}
+.cap em{font-style:normal;color:#9C978E;font-weight:600;letter-spacing:0;text-transform:none}
+.note{max-width:640px;margin:22px 0 0;padding:14px 16px;border-radius:10px;
+      background:#FBF1DF;border:1px solid #E5D4AE;color:#5C441A;font-size:13px;line-height:1.5}
+.note b{font-weight:700}
+
+/* ─── the phone ──────────────────────────────────────────────────────────── */
+.phone{width:320px;height:660px;border-radius:34px;overflow:hidden;position:relative;
+       background:var(--map-land);box-shadow:0 18px 44px rgba(26,25,23,.20),0 0 0 1px rgba(26,25,23,.10);
+       font-family:var(--font);color:var(--ink);isolation:isolate}
+.phone.dark{box-shadow:0 18px 44px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.09)}
+
+/* the map underneath — enough ground to judge colour against, not a real map */
+.map{position:absolute;inset:0;background:var(--map-land)}
+.water{position:absolute;background:var(--map-water)}
+.park{position:absolute;background:var(--map-park);border-radius:40% 55% 45% 50%}
+.block{position:absolute;background:var(--map-block);border-radius:2px}
+.road{position:absolute;background:var(--map-road);box-shadow:0 0 0 1px var(--map-road-casing)}
+
+/* header — unchanged by this work, shown so the frame reads as the real screen */
+.hdr{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;gap:8px;
+     padding:52px 16px 11px;background:var(--surface);border-bottom:1px solid var(--line)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-ring);flex:none}
+.trip{font-size:17px;font-weight:700;letter-spacing:-.022em;flex:1;min-width:0;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tripbtn{display:flex;align-items:center;gap:5px;flex:1;min-width:0;padding:4px 7px 4px 2px;margin-left:-2px;border-radius:8px;cursor:pointer}
+.caret{width:16px;height:16px;stroke:var(--ink-muted);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.trip{flex:0 1 auto}
+.burger{display:grid;place-items:center;width:32px;height:32px;color:var(--ink-muted);flex:none}
+.burger svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
