@@ -1,0 +1,17 @@
+{
+  "cli": {
+    "version": ">= 22.2.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "environment": "production",
+      "node": "22.13.0",
+      "pnpm": "11.18.0",
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" }
+    }
+  }
+}
