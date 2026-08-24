@@ -28,8 +28,9 @@ export default function Index() {
   const { session, loading } = useSession()
 
   /**
-   * Bumped when a trip is made here, which is the only thing that adds to this
-   * list from inside the app.
+   * Bumped when this app changes what is in the trip list — making a trip, and
+   * now archiving or restoring one. It was only ever creation until archiving
+   * gave the list a way to shrink as well as grow.
    *
    * `useQuery` re-runs when its dependencies change and offers no other way to
    * ask again — deliberately, since every other query in this app is keyed on
@@ -101,6 +102,10 @@ export default function Index() {
         setChosenTripId(tripId)
         setCreatedCount((count) => count + 1)
       }}
+      // Re-read without choosing. Archiving the trip being viewed leaves
+      // `chosenTripId` pointing at something no longer in the list, and the
+      // resolver above already falls through for exactly that case.
+      onTripsChanged={() => setCreatedCount((count) => count + 1)}
       userId={session.user.id}
     />
   )

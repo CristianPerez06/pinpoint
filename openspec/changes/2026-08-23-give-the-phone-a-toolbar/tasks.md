@@ -63,31 +63,36 @@
 
 ## 4. Trips, from the trip name
 
-- [ ] 4.1 Make the header's trip name a control: a caret beside it so it says it opens
+- [x] 4.1 Make the header's trip name a control: a caret beside it so it says it opens
       something, an accessible label naming what it does, and it stays the only element
       in the header that yields so a long name truncates instead of pushing the menu off.
-- [ ] 4.2 New `apps/mobile/components/trip-sheet.tsx`: the trips the person belongs to,
-      current one ticked, place count beside each, tapping a row switches. Then `New
-      trip`. Then, for the trip being viewed, `Rename`, `People`, `Cities` and `Archive
-      trip`.
-- [ ] 4.3 Move trip switching, rename and create out of `menu-sheet.tsx` into it, and
+- [x] 4.2 New `apps/mobile/components/trip-sheet.tsx`: the trips the person belongs to,
+      current one ticked, tapping a row switches. Then `New trip`. Then, for the trip
+      being viewed, `Rename`, `People`, `Cities` and `Archive trip`.
+      **Without the place count the mock showed.** A trip carries no marker count, so
+      each row would need an aggregate (`markers(count)`) added to `fetchTrips`, its row
+      type, and its tests — real work in the data layer for a number that is decoration
+      on a list of one. Left out deliberately rather than forgotten; it is a small
+      follow-up if the list ever holds enough trips to need distinguishing.
+
+- [x] 4.3 Move trip switching, rename and create out of `menu-sheet.tsx` into it, and
       move `People` and `Cities` across unchanged — they are existing sheets reached from
       a new place, not new screens.
-- [ ] 4.4 Reveal archived trips behind a deliberate act in this sheet, and let them be
+- [x] 4.4 Reveal archived trips behind a deliberate act in this sheet, and let them be
       restored from there. A person who has archived everything must still be able to
       find them.
-- [ ] 4.5 Archiving the trip being viewed moves to another trip they belong to, or to the
+- [x] 4.5 Archiving the trip being viewed moves to another trip they belong to, or to the
       no-trips state. Nothing belonging to the archived trip stays on screen.
-- [ ] 4.6 Draw `Archive trip` in the danger colour and put it last, separated from the
+- [x] 4.6 Draw `Archive trip` in the danger colour and put it last, separated from the
       rows above it.
 
 ## 5. The hamburger
 
-- [ ] 5.1 Reduce `menu-sheet.tsx` to the account block — `displayName`, email — and
+- [x] 5.1 Reduce `menu-sheet.tsx` to the account block — `displayName`, email — and
       `Sign out`. There is no first and last name; one line, not two.
-- [ ] 5.2 Delete what moved out, rather than leaving it unreachable: the trip picker, the
+- [x] 5.2 Delete what moved out, rather than leaving it unreachable: the trip picker, the
       inline rename and create detours, and the People and Cities rows.
-- [ ] 5.3 Keep `Sign out` where a thumb does not reach by accident.
+- [x] 5.3 Keep `Sign out` where a thumb does not reach by accident.
 
 ## 6. Verify
 

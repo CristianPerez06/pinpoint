@@ -1,5 +1,6 @@
 import MapPinPlus from 'lucide-react-native/icons/map-pin-plus'
 import Search from 'lucide-react-native/icons/search'
+import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
@@ -28,6 +29,7 @@ import {
   setMarkerVisited,
   updateCity,
   updateMarker,
+  fetchTrips,
   updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
@@ -53,6 +55,7 @@ import {
   openingHeight,
 } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
+import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
@@ -122,6 +125,7 @@ export function TripWorkspace({
   trip: storedTrip,
   trips,
   onSelectTrip,
+  onTripsChanged,
   onCreated,
   userId,
 }: {
@@ -132,6 +136,15 @@ export function TripWorkspace({
    */
   trips: readonly Trip[]
   onSelectTrip: (tripId: string) => void
+  /**
+   * Ask for the trip list again, because this screen changed what is in it.
+   *
+   * Creating already had `onCreated`, which also chooses the new trip. Archiving
+   * needs the re-read without the choosing: the person stays where the resolver
+   * upstream puts them, which for the trip they just archived is the next one
+   * along or the no-trips state.
+   */
+  onTripsChanged: () => void
   /**
    * A trip was made from in here. The route has to re-read its list before it
    * can show it, so this is more than a selection and is kept separate from one.
@@ -192,6 +205,8 @@ export function TripWorkspace({
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [tripsOpen, setTripsOpen] = useState(false)
+  const [archivedTrips, setArchivedTrips] = useState<readonly Trip[] | null>(null)
   const [citiesOpen, setCitiesOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -659,6 +674,51 @@ export function TripWorkspace({
   }
 
   /**
+   * Archive a trip, or put one back.
+   *
+   * The same write as a rename underneath — one column on one row — so it takes
+   * the same shape here: say it happened, and put it back if the database
+   * refuses. What it does not do is ask first. Archiving is reversible by any
+   * member, and a confirmation on a reversible action trains people to dismiss
+   * confirmations on the ones that are not.
+   *
+   * `onTripsChanged` is what moves the person off a trip they just archived.
+   * The list re-reads, the archived trip is no longer in it, and the resolver
+   * upstream falls through to the first remaining one — or to the no-trips
+   * state, which is the screen where a first trip is made. That fall-through
+   * already existed for a trip left behind by other means; archiving simply
+   * arrives at it by a new route.
+   */
+  async function setTripArchived(tripId: string, value: boolean) {
+    const outcome = await updateTrip(supabase, tripId, { archived: value })
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected'
+          ? outcome.message
+          : value
+            ? 'Could not archive this trip.'
+            : 'Could not restore this trip.',
+      )
+      return
+    }
+    // Dropped rather than kept in step: the reveal is re-read from the database
+    // the next time it is asked for, so a restored trip cannot linger in it.
+    setArchivedTrips(null)
+    onTripsChanged()
+  }
+
+  /** Archived trips, once somebody asks. Null until then. */
+  async function revealArchived() {
+    const state = await fetchTrips(supabase, { includeArchived: true })
+    if (state.status === 'failed') {
+      setProblem(state.message)
+      return
+    }
+    const all = state.status === 'ready' ? state.data : []
+    setArchivedTrips(all.filter((each) => each.archived))
+  }
+
+  /**
    * Add somebody to the trip.
    *
    * Returns the offending field rather than setting a message here, because the
@@ -775,9 +835,28 @@ export function TripWorkspace({
           while planning are in the row at the bottom.
         */}
         <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-        <Text style={[styles.tripName, { color: theme.colour.ink }]} numberOfLines={1}>
-          {trip.name}
-        </Text>
+        {/*
+          The name is the way into the trips, and the caret is what says so.
+
+          A label that opens something and looks like a label is a control
+          nobody finds. It is also the only element here that yields, so a long
+          name truncates rather than pushing the menu off the edge.
+        */}
+        <Pressable
+          onPress={() => setTripsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${trip.name}. Switch or manage trips`}
+          hitSlop={6}
+          style={styles.tripButton}
+        >
+          <Text
+            style={[styles.tripName, { color: theme.colour.ink }]}
+            numberOfLines={1}
+          >
+            {trip.name}
+          </Text>
+          <ChevronDown size={16} color={theme.colour.inkMuted} strokeWidth={2.4} />
+        </Pressable>
 
         <Pressable
           onPress={() => setMenuOpen(true)}
@@ -972,24 +1051,33 @@ export function TripWorkspace({
         ownMemberId={ownMemberId}
       />
 
+      <TripSheet
+        open={tripsOpen}
+        onClose={() => setTripsOpen(false)}
+        trip={trip}
+        trips={trips}
+        archived={archivedTrips}
+        onRevealArchived={() => void revealArchived()}
+        onSelectTrip={onSelectTrip}
+        onRename={(name) => void renameTrip(name)}
+        onCreated={onCreated}
+        onSetArchived={(tripId, value) => void setTripArchived(tripId, value)}
+        onOpenPeople={() => {
+          setTripsOpen(false)
+          setPeopleOpen(true)
+        }}
+        onOpenCities={() => {
+          setTripsOpen(false)
+          setCitiesOpen(true)
+        }}
+        busy={busy}
+      />
+
       <MenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onSignOut={() => void signOut(supabase)}
-        onOpenCities={() => {
-          setMenuOpen(false)
-          setCitiesOpen(true)
-        }}
-        onOpenPeople={() => {
-          setMenuOpen(false)
-          setPeopleOpen(true)
-        }}
-        trip={trip}
-        trips={trips}
-        onSelectTrip={onSelectTrip}
-        onCreated={onCreated}
-        onRename={(name) => void renameTrip(name)}
-        busy={busy}
+        member={ownMemberOf(members, userId) ?? null}
       />
 
       <PeopleSheet
@@ -1224,6 +1312,14 @@ const styles = StyleSheet.create({
   // Carries the prominence the wordmark used to, and stays the only element
   // that yields, so a long name truncates instead of pushing the menu off.
   tripName: { ...role(TYPE.title), flexShrink: 1 },
+  tripButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 1,
+    paddingVertical: SPACE.xs,
+    paddingRight: SPACE.xs,
+  },
   menuGlyph: { fontSize: 19, lineHeight: 22 },
 
   /*
