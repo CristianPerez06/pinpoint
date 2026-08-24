@@ -23,12 +23,15 @@ function stubClient(response: { data?: unknown[] | null; error?: unknown }) {
   const order = vi.fn(() => builder)
   builder.order = order
 
+  const eq = vi.fn(() => builder)
+  builder.eq = eq
+
   const select = vi.fn(() => builder)
   const from = vi.fn(() => ({ select }))
 
   return {
     client: { from } as unknown as PinpointClient,
-    calls: { from, select, order },
+    calls: { from, select, order, eq },
   }
 }
 
@@ -76,8 +79,43 @@ describe('fetchTrips', () => {
     await fetchTrips(client)
 
     expect(calls.from).toHaveBeenCalledWith('trips')
-    // No `.eq()` in the chain at all: the stub would throw if one were called.
     expect(calls.select).toHaveBeenCalledTimes(1)
+    // There is exactly one predicate and it is about the trip, never about who
+    // is asking. Membership is the database's job; narrowing it here would hide
+    // a policy defect rather than fix one.
+    expect(calls.eq).toHaveBeenCalledTimes(1)
+    expect(calls.eq).toHaveBeenCalledWith('archived', false)
+  })
+
+  it('leaves archived trips out unless they are asked for', async () => {
+    const { client, calls } = stubClient({ data: [ROW] })
+
+    await fetchTrips(client)
+
+    // The default is the safe way round: a caller who forgets shows the list
+    // somebody expects, rather than one with finished trips in it.
+    expect(calls.eq).toHaveBeenCalledWith('archived', false)
+  })
+
+  it('includes archived trips when asked, without a second query', async () => {
+    const { client, calls } = stubClient({ data: [ROW] })
+
+    await fetchTrips(client, { includeArchived: true })
+
+    expect(calls.from).toHaveBeenCalledTimes(1)
+    expect(calls.eq).not.toHaveBeenCalled()
+    // Still one column list and still the same ordering — the two readings
+    // differ by a predicate and by nothing else.
+    expect(calls.order).toHaveBeenNthCalledWith(1, 'created_at', { ascending: true })
+    expect(calls.order).toHaveBeenNthCalledWith(2, 'id', { ascending: true })
+  })
+
+  it('reports an account whose every trip is archived as empty, not failed', async () => {
+    const { client } = stubClient({ data: [] })
+
+    // The same answer as an account on no trips, and deliberately so: both mean
+    // there is nothing to show you, and neither means something went wrong.
+    expect(await fetchTrips(client)).toEqual({ status: 'empty' })
   })
 
   it('orders deterministically — the first row is the trip the map draws', () => {
@@ -238,14 +276,49 @@ describe('updateTrip', () => {
     expect(calls.update).not.toHaveBeenCalled()
   })
 
-  it('does not write archived, even when asked', async () => {
+  it('archives a trip', async () => {
+    const { client, calls } = stubWriteClient({
+      row: { data: { ...ROW, archived: true } },
+    })
+
+    const outcome = await updateTrip(client, ROW.id, { archived: true })
+
+    // This test is the old one inverted. It used to assert that `archived` was
+    // stripped, because archiving was deliberately not writable — the guard
+    // held for five changes and is being retired on purpose, not tripped over.
+    expect(calls.update).toHaveBeenCalledWith({ archived: true })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) throw new Error('unreachable')
+    expect(outcome.data.archived).toBe(true)
+  })
+
+  it('restores an archived trip through the same path', async () => {
+    const { client, calls } = stubWriteClient({ row: { data: ROW } })
+
+    const outcome = await updateTrip(client, ROW.id, { archived: false })
+
+    // Undoing is an ordinary patch and not a privileged one. An archive nobody
+    // can reverse is the unreachable, unremovable trip the initial schema was
+    // written to prevent, reached deliberately.
+    expect(calls.update).toHaveBeenCalledWith({ archived: false })
+    expect(outcome.ok).toBe(true)
+  })
+
+  it('archives and renames in one write when both are given', async () => {
     const { client, calls } = stubWriteClient({ row: { data: ROW } })
 
     await updateTrip(client, ROW.id, { name: 'Japan', archived: true })
 
-    // Archiving is the answer to removing a trip and is its own change. The
-    // schema permits it; nothing here offers it yet.
-    expect(calls.update).toHaveBeenCalledWith({ name: 'Japan' })
+    expect(calls.update).toHaveBeenCalledWith({ name: 'Japan', archived: true })
+  })
+
+  it('leaves archived alone when the patch does not mention it', async () => {
+    const { client, calls } = stubWriteClient({ row: { data: ROW } })
+
+    await updateTrip(client, ROW.id, { name: 'Japan 2027' })
+
+    // A partial patch: renaming a trip must not quietly un-archive it.
+    expect(calls.update).toHaveBeenCalledWith({ name: 'Japan 2027' })
   })
 
   it('reports a refusal', async () => {

@@ -1,42 +1,56 @@
 ## 1. Archiving, underneath
 
-- [ ] 1.1 Let `tripPatchSchema` in `packages/core/src/trip.ts` accept `archived`, and
+- [x] 1.1 Let `tripPatchSchema` in `packages/core/src/trip.ts` accept `archived`, and
       replace the comment saying it is deliberately not writable with what it is for.
-- [ ] 1.2 Add the archive and restore writes in `packages/data/src/`. One function taking
-      the flag rather than two, so there is one path to test and one to get wrong.
-- [ ] 1.3 Teach the trips read to exclude archived trips, with an explicit way to ask for
+- [x] 1.2 Add the archive and restore writes in `packages/data/src/`. **No new function
+      was needed**: `updateTrip` already takes a partial patch, so widening the schema
+      made archiving and restoring `updateTrip(client, id, { archived })`. A wrapper
+      would have added a name and nothing else.
+- [x] 1.3 Teach the trips read to exclude archived trips, with an explicit way to ask for
       them. Default excluded — a caller that forgets shows the right thing.
-- [ ] 1.4 Confirm no row-level security change is needed: `trips_update_member` already
+- [x] 1.4 **Confirmed by probe, not by reading.** `probe-archived.sql` beside this file,
+      run in the dashboard SQL editor against the linked project, returned
+      `RESULT: member=t archived=t nonmember=f restored=t` and rolled back — a member
+      may archive and restore, the column really changes, and somebody who is not on
+      the trip is refused. No policy changed. The CLI has no way to run this: v2 has no
+      `db execute`, only diff/dump/push/pull/reset/lint. Confirm no row-level security
+      change is needed: `trips_update_member` already
       permits a member to update the trip, and this adds a column to an existing update
       rather than a new statement. Verify with a rolled-back `do $$ … raise exception
       'RESULT: %' … $$` probe against a real member and a non-member, rather than by
       reasoning about the policy.
-- [ ] 1.5 Tests in `packages/data` for archive, restore, and that neither touches cities,
+- [x] 1.5 Tests in `packages/data` for archive, restore, and that neither touches cities,
       markers, memberships or interest.
 
 ## 2. The toolbar
 
-- [ ] 2.1 Add `search`, `map-pin-plus` and `sliders-horizontal` to the icon record in
-      `apps/mobile/components/marker-icon.tsx`. The record is exhaustive by type, so a
-      name without a glyph fails the next build rather than rendering an empty button.
-- [ ] 2.2 Replace the pill row in `apps/mobile/components/trip-workspace.tsx` with three
+- [x] 2.1 ~~Add the three glyphs to the icon record in `marker-icon.tsx`.~~ **The plan was
+      wrong twice here.** That record is `Record<MarkerIconName, LucideIcon>`, exhaustive
+      over the *marker* names `@pinpoint/map` declares — `search` is not one, so adding it
+      would not typecheck. And this application imports icons one subpath at a time
+      (`lucide-react-native/icons/search`) rather than from the package root, because
+      Metro does not tree-shake in development and the barrel pulls all 1767 glyphs into
+      the bundle. So the three are imported at the point of use in `trip-workspace.tsx`,
+      which is what `marker-details.tsx` already does with its `X`.
+
+- [x] 2.2 Replace the pill row in `apps/mobile/components/trip-workspace.tsx` with three
       equal toolbar buttons — icon above label, one third of the row each, at least 44pt
       of target, all three the same weight and colour.
-- [ ] 2.3 Keep the row as the floor: flush to the bottom edge, carrying the device's
+- [x] 2.3 Keep the row as the floor: flush to the bottom edge, carrying the device's
       bottom inset inside itself, with the map's ornaments and licence credit rising off
       it. This is the arrangement two earlier attempts got wrong; do not reintroduce a
       gap under the bar.
-- [ ] 2.4 Preserve every behaviour: `Search` opens the search sheet, `Drop` starts the
+- [x] 2.4 Preserve every behaviour: `Search` opens the search sheet, `Drop` starts the
       sight with no sheet, `Filter` opens the filter sheet. Accessible labels stay on the
       buttons — the glyph is not the name.
-- [ ] 2.5 Leave the sight's confirm row alone. It replaces the toolbar while the map is
+- [x] 2.5 Leave the sight's confirm row alone. It replaces the toolbar while the map is
       armed, and that is still the right thing for it to do.
 
 ## 3. Where the narrowing is declared
 
-- [ ] 3.1 Give the Filter button its narrowed state: the accent, **and** a dot above the
+- [x] 3.1 Give the Filter button its narrowed state: the accent, **and** a dot above the
       icon. Two signals, because the requirement forbids one carried by hue alone.
-- [ ] 3.2 Move `Clear` into `apps/mobile/components/filter-sheet.tsx` as a full-width
+- [x] 3.2 Move `Clear` into `apps/mobile/components/filter-sheet.tsx` as a full-width
       button after the filters. Inert when nothing is hidden, through
       `accessibilityState={{ disabled: true }}` and a handler that returns — never the
       unreachable kind.

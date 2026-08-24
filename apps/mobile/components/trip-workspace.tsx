@@ -1,3 +1,7 @@
+import MapPinPlus from 'lucide-react-native/icons/map-pin-plus'
+import Search from 'lucide-react-native/icons/search'
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
+import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
 import type {
   City,
@@ -888,106 +892,64 @@ export function TripWorkspace({
           bottomRow={
             <View style={styles.bottomRow}>
               {/*
-                The two ways of adding a place, first, because the row reads
-                left to right and adding is what somebody came here to do while
-                standing somewhere. Narrowing follows.
+                A toolbar, and deliberately not a tab bar.
 
-                Search is a control that opens a screen rather than a field that
-                lives here. This row is the floor — flush to the bottom edge —
-                and a focused field on the floor is a field under a keyboard.
+                A tab bar switches between sections of an application; every one
+                of these fires an action, and drawing them as tab items would
+                promise navigation that does not exist. What was here before was
+                four text pills of equal weight whose borders arrived only under
+                a finger — quiet taken as far as absent, which is why it read as
+                unfinished rather than as restrained.
+
+                Three, not four: `Clear` has moved into the filter sheet, and the
+                filter tool declares the narrowing in its place. Four targets
+                across a phone leaves each one narrow, and `Clear` was the least
+                earned of them — it does nothing at all most of the time.
+
+                All three weigh the same. An earlier pass drew `Drop` in the
+                accent, on the argument that dropping a pin is what somebody
+                opened the application to do while standing in a street. It was
+                rejected on sight and the reason is the durable part: this row
+                sits over a map whose pins are the only saturated colour in the
+                system, and a fourth amber thing at the bottom competes with what
+                it is meant to be serving.
               */}
-              <Pressable
+              <Tool
+                label="Search"
+                hint="Search for a place"
+                icon={Search}
                 onPress={() => setSearchOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Search for a place"
-                hitSlop={6}
-                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
-              >
-                <Text
-                  style={[styles.filterText, { color: theme.colour.ink }]}
-                  numberOfLines={1}
-                >
-                  Search
-                </Text>
-              </Pressable>
-
-              <Pressable
+              />
+              <Tool
+                label="Drop"
+                hint="Drop a pin on the map"
+                icon={MapPinPlus}
                 onPress={() => {
                   cancelPanel()
                   setSight({ kind: 'new' })
                 }}
-                accessibilityRole="button"
-                accessibilityLabel="Drop a pin on the map"
-                hitSlop={6}
-                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
-              >
-                <Text
-                  style={[styles.filterText, { color: theme.colour.ink }]}
-                  numberOfLines={1}
-                >
-                  Drop
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => setFilterOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Filter this trip"
-                hitSlop={6}
-                style={[
-                  styles.pill,
-                  {
-                    borderColor: narrowed
-                      ? theme.colour.accent
-                      : theme.colour.lineStrong,
-                    backgroundColor: narrowed
-                      ? theme.colour.accentWash
-                      : 'transparent',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    { color: narrowed ? theme.colour.accentInk : theme.colour.ink },
-                  ]}
-                  numberOfLines={1}
-                >
-                  Filter
-                </Text>
-              </Pressable>
-
+              />
               {/*
-                The declaration, and the way out, in one control — unchanged by
-                the move. Permanent, live only while something is hidden, and
-                inert through `accessibilityState` rather than `disabled` so a
-                screen reader still reaches it and is told which state it is in.
+                Sliders rather than a funnel. A funnel says "narrow a list";
+                sliders says "options you can change", which is what this opens.
+
+                It carries the declaration `Clear` used to carry, by the accent
+                *and* a dot — two signals, because a state that survives only in
+                hue survives neither a greyscale screen nor a colour-blind
+                reader, which is the same rule that keeps a visited marker from
+                being recoloured.
               */}
-              <Pressable
-                onPress={() => {
-                  if (narrowed) setFilter(NO_FILTER)
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear the filter"
-                accessibilityState={{ disabled: !narrowed }}
-                hitSlop={8}
-                style={[
-                  styles.pill,
-                  {
-                    borderColor: narrowed ? theme.colour.accent : 'transparent',
-                    backgroundColor: narrowed ? theme.colour.accentWash : 'transparent',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    narrowed ? styles.clearText : styles.clearTextInert,
-                    { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
-                  ]}
-                >
-                  Clear
-                </Text>
-              </Pressable>
+              <Tool
+                label="Filter"
+                hint={
+                  narrowed
+                    ? 'Filter this trip. Some places are hidden'
+                    : 'Filter this trip'
+                }
+                icon={SlidersHorizontal}
+                marked={narrowed}
+                onPress={() => setFilterOpen(true)}
+              />
             </View>
           }
         />
@@ -1184,6 +1146,68 @@ function Body({
 /** The header's own breathing room, above and below its content. */
 const HEADER_PAD = 11
 
+/**
+ * One button in the bottom toolbar.
+ *
+ * A glyph above its own label, filling a third of the row. The label is not
+ * decoration: an icon alone is a guess, and `sliders` in particular is a
+ * convention rather than a picture of the thing it opens.
+ *
+ * `hint` is what a screen reader is told and is allowed to say more than the
+ * label shows — "Filter this trip. Some places are hidden" is the narrowed
+ * state reaching somebody who cannot see the dot.
+ */
+function Tool({
+  label,
+  hint,
+  icon: Glyph,
+  marked = false,
+  onPress,
+}: {
+  label: string
+  hint: string
+  icon: LucideIcon
+  /** Whether this tool is declaring a state — today, that a filter is applied. */
+  marked?: boolean
+  onPress: () => void
+}) {
+  const theme = useTheme()
+  const ink = marked ? theme.colour.accentInk : theme.colour.inkMuted
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={hint}
+      style={styles.tool}
+    >
+      <View>
+        <Glyph size={24} color={ink} strokeWidth={2} />
+        {/*
+          The second signal. The accent alone would be a state carried by hue,
+          which this project forbids; a dot is a shape that survives greyscale.
+          Ringed in the bar's own surface so it reads as sitting on top of the
+          glyph rather than as part of it.
+        */}
+        {marked ? (
+          <View
+            style={[
+              styles.pip,
+              {
+                backgroundColor: theme.colour.accent,
+                borderColor: theme.colour.surface,
+              },
+            ]}
+          />
+        ) : null}
+      </View>
+      <Text style={[styles.toolLabel, { color: ink }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
@@ -1208,11 +1232,35 @@ const styles = StyleSheet.create({
    */
   bottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    paddingVertical: 11,
+    alignItems: 'stretch',
   },
+  /*
+   * A third of the row each, and at least 44pt tall before the label is
+   * measured. Vertical padding rather than a height, so a larger system text
+   * size grows the button instead of clipping the word inside it — the same
+   * reason the text fields take padding.
+   */
+  tool: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.xs,
+    minHeight: 56,
+    paddingTop: 9,
+    paddingBottom: 7,
+    paddingHorizontal: SPACE.xs,
+  },
+  toolLabel: { ...role(TYPE.label), textTransform: 'none', letterSpacing: 0.07 },
+  pip: {
+    position: 'absolute',
+    top: -1,
+    right: -5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    borderWidth: 2,
+  },
+  /* Kept for the sight's confirm row, which still uses pills. */
   pill: {
     borderWidth: 1,
     borderRadius: RADIUS.pill,

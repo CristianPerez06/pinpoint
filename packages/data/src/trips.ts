@@ -36,20 +36,33 @@ export const TRIPS_FAILED_MESSAGE = 'Could not load your trips.'
 /**
  * The trips this account is on, oldest first.
  *
- * There is no `.eq()` on the reader's id and no filtering of the result. The
- * query asks for every trip and the database returns the ones this account is a
- * member of; if that were wrong, a filter here would hide it rather than fix
- * it.
+ * There is no `.eq()` on the reader's id and no filtering of the result by
+ * membership. The query asks for every trip and the database returns the ones
+ * this account is a member of; if that were wrong, a filter here would hide it
+ * rather than fix it.
+ *
+ * Archived trips are excluded unless asked for, and the default is that way
+ * round on purpose: a caller who forgets shows the list somebody expects. The
+ * filter is a real `.eq()` rather than a `.filter()` on the result, so an
+ * archived trip is never carried across the wire to be dropped afterwards.
+ *
+ * Asking for them is `{ includeArchived: true }` — one flag rather than a second
+ * function, because the two differ by a predicate and nothing else, and two
+ * functions would be two places to keep the column list and the ordering in
+ * step.
  *
  * An account with no membership gets `empty`, which is what someone who signed
- * up before being invited should see — not an error.
+ * up before being invited should see — not an error. So does an account whose
+ * every trip is archived, and that is the same statement: there is nothing to
+ * show you here, rather than something went wrong.
  */
 export async function fetchTrips(
   client: PinpointClient,
+  { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Promise<SettledQueryState<readonly Trip[]>> {
-  const { data, error } = await client
-    .from('trips')
-    .select(TRIP_COLUMNS)
+  const base = client.from('trips').select(TRIP_COLUMNS)
+
+  const { data, error } = await (includeArchived ? base : base.eq('archived', false))
     .order('created_at', { ascending: true })
     // Deterministic tiebreak, for the same reason as markers — and it matters
     // more here, because the first row of this list is the trip the map draws.
@@ -119,8 +132,15 @@ export async function createTrip(
  * built for another five changes.
  *
  * A partial patch, like a city's: a field left out is left alone. `archived` is
- * not among them, deliberately; archiving is the answer to removing a trip and
- * is its own change.
+ * among them now, so archiving and restoring are this function with a flag
+ * rather than writes of their own — they change one column on one row and
+ * differ from a rename in nothing but which column.
+ *
+ * The same policy covers all of it. `trips_update_member` permits a member to
+ * update the trip; row-level security in Postgres is per row, not per column,
+ * so widening what the schema accepts widened nothing in the database. That is
+ * worth knowing rather than assuming, and the probe in this change's tasks is
+ * what turned it from an assumption into an observation.
  */
 export async function updateTrip(
   client: PinpointClient,

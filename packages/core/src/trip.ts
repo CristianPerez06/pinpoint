@@ -38,11 +38,23 @@ export type NewTrip = z.infer<typeof newTripSchema>
 /**
  * What may be changed about a trip after it exists.
  *
- * Only the name today. `archived` is modelled and deliberately not writable yet:
- * archiving is the answer to "delete a trip" and is its own change, and putting
- * it here before there is anything to set it from would be modelling a
- * capability the product does not have.
+ * The name and whether it is archived. `archived` waited here, modelled but not
+ * writable, from the initial schema until there was somewhere to set it from —
+ * which is the change that added the trips sheet.
+ *
+ * Archiving is the answer to "delete a trip", and it is the only answer: no
+ * table in this schema has a delete policy. A trip is the container every other
+ * record belongs to, so removing one would destroy an unbounded amount of other
+ * people's work, including the work of members who did not ask for it.
+ *
+ * Which is also why setting it back is an ordinary patch rather than a
+ * privileged one. An archive nobody can undo recreates precisely what the
+ * initial schema went out of its way to prevent — a trip that exists, that no
+ * select path reaches, and that no policy can remove — arrived at deliberately
+ * instead of by accident.
  */
-export const tripPatchSchema = tripSchema.pick({ name: true }).partial()
+export const tripPatchSchema = tripSchema
+  .pick({ name: true, archived: true })
+  .partial()
 
 export type TripPatch = z.infer<typeof tripPatchSchema>
