@@ -20,8 +20,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateTripForm } from '@/components/trip-setup'
-import { Button, TextField } from '@/components/ui'
+import { Button, FormNote, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
+import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
 
 /**
@@ -64,7 +65,8 @@ export function TripSheet({
   onSetArchived,
   onOpenPeople,
   onOpenCities,
-  busy,
+  problem,
+  onDismissProblem,
 }: {
   open: boolean
   onClose: () => void
@@ -79,15 +81,26 @@ export function TripSheet({
    * are different answers and only one of them is worth a row saying so.
    */
   archived: readonly Trip[] | null
-  onRevealArchived: () => void
+  /**
+   * Awaited, so the row that starts the fetch can answer the press that started
+   * it. Until it did, pressing again simply fired a second one.
+   */
+  onRevealArchived: () => Promise<unknown>
   onSelectTrip: (tripId: string) => void
-  onRename: (name: string) => void
+  /**
+   * Awaited so the detour can stay open and say `Saving…` until it settles.
+   * The rename itself is optimistic; this is about the control that asked for
+   * it still being on screen when the answer arrives.
+   */
+  onRename: (name: string) => Promise<unknown>
   onCreated: (tripId: string) => void
   /** Archive, or put back. One call with a flag, like the write underneath it. */
   onSetArchived: (tripId: string, value: boolean) => void
   onOpenPeople: () => void
   onOpenCities: () => void
-  busy: boolean
+  /** A refusal from one of the writes reached from here, or null. */
+  problem: string | null
+  onDismissProblem: () => void
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -96,6 +109,16 @@ export function TripSheet({
   const [renaming, setRenaming] = useState(false)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState(trip.name)
+
+  /**
+   * Two waits, held apart, because they are two different presses.
+   *
+   * A single flag here would be the workspace's old `busy` rebuilt one level
+   * down: revealing the archived trips would disable a rename that has nothing
+   * to do with it.
+   */
+  const [saving, startSave] = usePending()
+  const [revealing, startReveal] = usePending()
 
   /** Only one detour open at a time; two forms in one sheet is a mess. */
   function openDetour(which: 'rename' | 'create' | null) {
@@ -152,6 +175,31 @@ export function TripSheet({
                 </Text>
               </Pressable>
             </View>
+
+            {/*
+              A refusal, shown inside the sheet that started the write.
+
+              The workspace draws refusals over the map, and this sheet is a
+              `Modal` on top of it — so a rename refused from here reported into
+              a surface nobody could see, and the name simply sprang back with
+              no explanation. A refusal belongs where the person is looking, and
+              while a sheet is open that is the sheet. `PeopleSheet` already did
+              this for its own invite; this is the same answer for the writes
+              reached from here.
+
+              Outside the `ScrollView` rather than in it, so it cannot be
+              scrolled out of sight while it is the most important thing here.
+            */}
+            {problem !== null ? (
+              <Pressable
+                onPress={onDismissProblem}
+                accessibilityRole="button"
+                accessibilityHint="Dismisses this message"
+                style={styles.problem}
+              >
+                <FormNote tone="danger">{problem}</FormNote>
+              </Pressable>
+            ) : null}
 
             <ScrollView keyboardShouldPersistTaps="handled">
               {trips.map((each) => (
@@ -227,15 +275,20 @@ export function TripSheet({
                   <View style={styles.buttons}>
                     <View style={styles.grow}>
                       <Button
-                        label="Save"
+                        label={saving ? 'Saving…' : 'Save'}
                         tone="primary"
                         disabled={
-                          busy || name.trim() === '' || name.trim() === trip.name
+                          saving || name.trim() === '' || name.trim() === trip.name
                         }
-                        onPress={() => {
-                          onRename(name.trim())
-                          openDetour(null)
-                        }}
+                        onPress={() =>
+                          // The detour closes when the write settles, not when
+                          // it is sent. Closing first left nothing on screen
+                          // that could report either state.
+                          startSave(async () => {
+                            await onRename(name.trim())
+                            openDetour(null)
+                          })
+                        }
                       />
                     </View>
                     <View style={styles.grow}>
@@ -301,9 +354,13 @@ export function TripSheet({
               */}
               {archived === null ? (
                 <Pressable
-                  onPress={onRevealArchived}
+                  onPress={() => startReveal(onRevealArchived)}
                   accessibilityRole="button"
-                  style={styles.row}
+                  // Inert through `accessibilityState` rather than by being
+                  // unreachable, so a screen reader still finds it and is told
+                  // which state it is in.
+                  accessibilityState={{ disabled: revealing }}
+                  style={[styles.row, { opacity: revealing ? 0.5 : 1 }]}
                 >
                   <ArchiveRestore
                     size={18}
@@ -311,7 +368,7 @@ export function TripSheet({
                     strokeWidth={2}
                   />
                   <Text style={[styles.rowName, { color: theme.colour.inkMuted }]}>
-                    Show archived trips
+                    {revealing ? 'Showing…' : 'Show archived trips'}
                   </Text>
                 </Pressable>
               ) : archived.length === 0 ? (
@@ -395,6 +452,7 @@ function TripRow({
 }
 
 const styles = StyleSheet.create({
+  problem: { marginBottom: SPACE.sm },
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     borderTopLeftRadius: 20,

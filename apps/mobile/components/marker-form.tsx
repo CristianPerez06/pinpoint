@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
 import { Button, FieldLabel, FormNote, TextField } from '@/components/ui'
+import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -89,7 +90,6 @@ export function MarkerFormSheet({
   title,
   initial,
   cities,
-  busy,
   fieldErrors,
   message,
   notice,
@@ -98,6 +98,7 @@ export function MarkerFormSheet({
   onAdjustPosition,
   onCreateCity,
   onDelete,
+  removing = false,
   onHeight,
 }: {
   title: string
@@ -110,7 +111,6 @@ export function MarkerFormSheet({
    */
   initial: MarkerFormValues
   cities: readonly City[]
-  busy: boolean
   fieldErrors: FieldErrors
   message: string | null
   /**
@@ -120,13 +120,26 @@ export function MarkerFormSheet({
    * then decide.
    */
   notice: string | null
-  onSubmit: (values: MarkerFormValues) => void
+  /**
+   * Awaited rather than fired, so this sheet knows when the write settled and
+   * can say so on the control that started it. What it resolves to is the
+   * workspace's business — this only needs to know that it is over.
+   */
+  onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
   /** Hands the current values back so nothing is lost on the way to the sight. */
   onAdjustPosition: (values: MarkerFormValues) => void
   onCreateCity: (name: string, currency: string | null) => Promise<City | null>
   /** Absent when creating: there is nothing yet to remove. */
   onDelete?: () => void
+  /**
+   * Whether the removal this sheet asked for is in flight.
+   *
+   * Handed down rather than held here: the write starts when the confirmation
+   * is answered, and the confirmation belongs to the workspace so that both
+   * routes to removing a place ask in the same words.
+   */
+  removing?: boolean
   /**
    * How tall the sheet has settled at, so the map can lift its licence credit
    * clear of it.
@@ -157,6 +170,17 @@ export function MarkerFormSheet({
     null,
   )
   const [cityError, setCityError] = useState<string | null>(null)
+
+  /**
+   * Two writes, two flags, because this sheet offers both at once.
+   *
+   * One flag would disable the city detour while a place is being saved and the
+   * save while a city is being created, which is the shared-`busy` mistake in
+   * miniature: the state has to be per write or it is eventually read by a
+   * control that has nothing to do with what is happening.
+   */
+  const [saving, startSave] = usePending()
+  const [creatingCity, startCreateCity] = usePending()
 
   const windowHeight = useWindowDimensions().height
   const heights = useMemo(
@@ -264,22 +288,24 @@ export function MarkerFormSheet({
     }
   }
 
-  async function createCity() {
+  function createCity() {
     if (!newCity) return
     setCityError(null)
 
-    const created = await onCreateCity(
-      newCity.name.trim(),
-      absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
-    )
+    startCreateCity(async () => {
+      const created = await onCreateCity(
+        newCity.name.trim(),
+        absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
+      )
 
-    if (!created) {
-      setCityError('Could not create that city.')
-      return
-    }
+      if (!created) {
+        setCityError('Could not create that city.')
+        return
+      }
 
-    setCityId(created.id)
-    setNewCity(null)
+      setCityId(created.id)
+      setNewCity(null)
+    })
   }
 
   return (
@@ -516,10 +542,10 @@ export function MarkerFormSheet({
               <View style={styles.row}>
                 <View style={styles.grow}>
                   <Button
-                    label="Create city"
+                    label={creatingCity ? 'Creating…' : 'Create city'}
                     tone="primary"
-                    disabled={newCity.name.trim() === ''}
-                    onPress={() => void createCity()}
+                    disabled={creatingCity || newCity.name.trim() === ''}
+                    onPress={createCity}
                   />
                 </View>
                 <View style={styles.grow}>
@@ -575,7 +601,12 @@ export function MarkerFormSheet({
           </Pressable>
 
           {onDelete ? (
-            <Button label="Remove this place" tone="danger" onPress={onDelete} />
+            <Button
+              label={removing ? 'Removing…' : 'Remove this place'}
+              tone="danger"
+              disabled={removing}
+              onPress={onDelete}
+            />
           ) : null}
         </ScrollView>
 
@@ -599,10 +630,10 @@ export function MarkerFormSheet({
         >
           <View style={styles.grow}>
             <Button
-              label={busy ? 'Saving…' : 'Save place'}
+              label={saving ? 'Saving…' : 'Save place'}
               tone="primary"
-              disabled={busy}
-              onPress={() => onSubmit(values())}
+              disabled={saving}
+              onPress={() => startSave(() => onSubmit(values()))}
             />
           </View>
           <View style={styles.grow}>

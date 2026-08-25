@@ -15,8 +15,9 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Button, TextField } from '@/components/ui'
+import { Button, FormNote, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
+import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
 
 /**
@@ -50,18 +51,32 @@ export function CitySheet({
   onClose,
   cities,
   markers,
-  onRename,
-  onSetCurrency,
+  onSave,
   onDelete,
+  problem,
+  onDismissProblem,
 }: {
   open: boolean
   onClose: () => void
   cities: readonly City[]
   /** Only to count what a removal would unassign, which the person has to be told. */
   markers: readonly Marker[]
-  onRename: (cityId: string, name: string) => void
-  onSetCurrency: (cityId: string, currency: string | null) => void
-  onDelete: (cityId: string) => void
+  /**
+   * One write for both fields, awaited.
+   *
+   * This used to be two callbacks fired from one press, which could store the
+   * name and have the currency refused — a half-applied edit with no way to
+   * report itself. `updateCity` takes a partial patch, so one call carries both
+   * and there is one outcome to report.
+   */
+  onSave: (
+    cityId: string,
+    patch: { name: string; currency: string | null },
+  ) => Promise<unknown>
+  onDelete: (cityId: string) => Promise<unknown>
+  /** A refusal from one of the writes reached from here, or null. */
+  problem: string | null
+  onDismissProblem: () => void
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -116,6 +131,23 @@ export function CitySheet({
               </Pressable>
             </View>
 
+            {/*
+              Shown here for the reason the trips sheet says: the workspace
+              draws refusals over the map, and this sheet is a `Modal` covering
+              it. Above the list rather than inside it, so it cannot be scrolled
+              away while it is the most important thing on screen.
+            */}
+            {problem !== null ? (
+              <Pressable
+                onPress={onDismissProblem}
+                accessibilityRole="button"
+                accessibilityHint="Dismisses this message"
+                style={styles.problem}
+              >
+                <FormNote tone="danger">{problem}</FormNote>
+              </Pressable>
+            ) : null}
+
             {cities.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
                 No cities yet. One is created the first time you file a place under
@@ -132,12 +164,12 @@ export function CitySheet({
                     onToggle={() =>
                       setEditing((current) => (current === city.id ? null : city.id))
                     }
-                    onRename={(name) => onRename(city.id, name)}
-                    onSetCurrency={(currency) => onSetCurrency(city.id, currency)}
-                    onDelete={() => {
-                      setEditing(null)
-                      onDelete(city.id)
-                    }}
+                    // Each row closes itself when its own write settles, rather
+                    // than being closed here as the write is sent. It is the
+                    // only thing on screen that can say it is still happening.
+                    onSave={(patch) => onSave(city.id, patch)}
+                    onDelete={() => onDelete(city.id)}
+                    onDone={() => setEditing(null)}
                   />
                 ))}
               </ScrollView>
@@ -154,21 +186,32 @@ function CityRow({
   count,
   editing,
   onToggle,
-  onRename,
-  onSetCurrency,
+  onSave,
   onDelete,
+  onDone,
 }: {
   city: City
   count: number
   editing: boolean
   onToggle: () => void
-  onRename: (name: string) => void
-  onSetCurrency: (currency: string | null) => void
-  onDelete: () => void
+  onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
+  onDelete: () => Promise<unknown>
+  /** Closes this row's editor, once whichever write it started has settled. */
+  onDone: () => void
 }) {
   const theme = useTheme()
   const [name, setName] = useState(city.name)
   const [currency, setCurrency] = useState(city.currency ?? '')
+
+  /**
+   * Two writes, two flags. Saving is optimistic — the list shows the new name
+   * at once — and removing is not, because unassigning a city's places cannot
+   * be undone. Both keep this row's editor open until the database answers,
+   * which is what gives each control somewhere to say what it is doing.
+   */
+  const [saving, startSave] = usePending()
+  const [removing, startRemove] = usePending()
+  const busy = saving || removing
 
   /**
    * Removal, confirmed and counted.
@@ -189,7 +232,15 @@ function CityRow({
           } unassigned.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: onDelete },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () =>
+            startRemove(async () => {
+              await onDelete()
+              onDone()
+            }),
+        },
       ],
     )
   }
@@ -238,21 +289,32 @@ function CityRow({
           <View style={styles.actions}>
             <View style={styles.grow}>
               <Button
-                label="Save"
+                label={saving ? 'Saving…' : 'Save'}
                 tone="primary"
-                disabled={name.trim() === ''}
+                disabled={busy || name.trim() === ''}
                 onPress={() => {
-                  if (name.trim() !== city.name) onRename(name.trim())
                   const next = currency.trim().toUpperCase()
-                  if (next !== (city.currency ?? '')) {
-                    onSetCurrency(next === '' ? null : next)
+                  const value = next === '' ? null : next
+                  // Nothing to write is not a write. Closing without sending is
+                  // the correct answer to a Save that changed nothing.
+                  if (name.trim() === city.name && value === (city.currency ?? null)) {
+                    onDone()
+                    return
                   }
-                  onToggle()
+                  startSave(async () => {
+                    await onSave({ name: name.trim(), currency: value })
+                    onDone()
+                  })
                 }}
               />
             </View>
             <View style={styles.grow}>
-              <Button label="Remove" tone="danger" onPress={confirmDelete} />
+              <Button
+                label={removing ? 'Removing…' : 'Remove'}
+                tone="danger"
+                disabled={busy}
+                onPress={confirmDelete}
+              />
             </View>
           </View>
         </View>
@@ -262,6 +324,7 @@ function CityRow({
 }
 
 const styles = StyleSheet.create({
+  problem: { marginBottom: SPACE.sm },
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     borderTopLeftRadius: 20,

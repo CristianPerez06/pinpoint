@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import { CreateTripForm } from '@/app/_components/trip-setup'
 import { Button, FormError, TextField } from '@/app/_components/ui'
+import { usePending } from '@/lib/use-pending'
 
 import styles from './trip-bar.module.css'
 
@@ -25,7 +26,6 @@ export function TripBar({
   trip,
   trips,
   members,
-  busy,
   onSelect,
   onRename,
   onInvite,
@@ -35,9 +35,16 @@ export function TripBar({
   /** Every trip this account belongs to. One is the ordinary case. */
   trips: readonly Trip[]
   members: readonly TripMember[]
-  busy: boolean
   onSelect: (tripId: string) => void
-  onRename: (name: string) => void
+  /**
+   * Awaited so the detour can stay open and say `Saving…` until it settles.
+   *
+   * The rename itself is optimistic — the name changes on screen at once and
+   * goes back if the database refuses — but the control that started it is
+   * still here, and it is the honest place to say the round trip has not
+   * finished.
+   */
+  onRename: (name: string) => Promise<unknown>
   /** Opens the trip that was just made. */
   onCreated: (tripId: string) => void
   /** Resolves to a field error when the address is refused, or null on success. */
@@ -48,6 +55,8 @@ export function TripBar({
 }) {
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(trip.name)
+  /** This detour's own write, held here rather than shared with the workspace's. */
+  const [saving, startSave] = usePending()
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [creating, setCreating] = useState(false)
 
@@ -128,13 +137,18 @@ export function TripBar({
           <div className={styles.row}>
             <Button
               tone="primary"
-              disabled={busy || name.trim() === '' || name.trim() === trip.name}
-              onClick={() => {
-                onRename(name.trim())
-                open(null)
-              }}
+              disabled={saving || name.trim() === '' || name.trim() === trip.name}
+              onClick={() =>
+                // The detour closes when the write settles, not when it is
+                // sent. Closing first left nothing on screen that could report
+                // either that it was still happening or that it was refused.
+                startSave(async () => {
+                  await onRename(name.trim())
+                  open(null)
+                })
+              }
             >
-              Save
+              {saving ? 'Saving…' : 'Save'}
             </Button>
             <Button tone="quiet" onClick={() => open(null)}>
               Cancel
@@ -144,12 +158,7 @@ export function TripBar({
       ) : null}
 
       {peopleOpen ? (
-        <People
-          members={members}
-          busy={busy}
-          onInvite={onInvite}
-          onClose={() => open(null)}
-        />
+        <People members={members} onInvite={onInvite} onClose={() => open(null)} />
       ) : null}
 
       {creating ? (
@@ -190,12 +199,10 @@ export function TripBar({
  */
 function People({
   members,
-  busy,
   onInvite,
   onClose,
 }: {
   members: readonly TripMember[]
-  busy: boolean
   onInvite: (
     displayName: string,
     email: string,
@@ -206,20 +213,23 @@ function People({
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<string | null>(null)
+  const [adding, startInvite] = usePending()
 
-  async function invite() {
+  function invite() {
     setErrors({})
     setMessage(null)
 
-    const problem = await onInvite(displayName.trim(), email.trim())
-    if (problem) {
-      if (problem.field === '_') setMessage(problem.message)
-      else setErrors({ [problem.field]: problem.message })
-      return
-    }
+    startInvite(async () => {
+      const problem = await onInvite(displayName.trim(), email.trim())
+      if (problem) {
+        if (problem.field === '_') setMessage(problem.message)
+        else setErrors({ [problem.field]: problem.message })
+        return
+      }
 
-    setDisplayName('')
-    setEmail('')
+      setDisplayName('')
+      setEmail('')
+    })
   }
 
   return (
@@ -264,10 +274,10 @@ function People({
       <div className={styles.row}>
         <Button
           tone="primary"
-          disabled={busy || displayName.trim() === '' || email.trim() === ''}
-          onClick={() => void invite()}
+          disabled={adding || displayName.trim() === '' || email.trim() === ''}
+          onClick={invite}
         >
-          Add to trip
+          {adding ? 'Adding…' : 'Add to trip'}
         </Button>
         <Button tone="quiet" onClick={onClose}>
           Done

@@ -4,6 +4,7 @@ import type { City, Marker } from '@pinpoint/core'
 import { useState } from 'react'
 
 import { Button, TextField } from '@/app/_components/ui'
+import { usePending } from '@/lib/use-pending'
 
 import styles from './city-bar.module.css'
 
@@ -25,17 +26,26 @@ export function CityBar({
   markers,
   selectedCityId,
   onSelect,
-  onRename,
-  onSetCurrency,
+  onSave,
   onDelete,
 }: {
   cities: readonly City[]
   markers: readonly Marker[]
   selectedCityId: string | null
   onSelect: (cityId: string | null) => void
-  onRename: (cityId: string, name: string) => void
-  onSetCurrency: (cityId: string, currency: string | null) => void
-  onDelete: (cityId: string) => void
+  /**
+   * One write for both fields, awaited.
+   *
+   * This used to be two callbacks fired from one press, which could store the
+   * name and have the currency refused — a half-applied edit with no way to
+   * report itself. `updateCity` takes a partial patch, so one call carries
+   * both and there is one outcome to report.
+   */
+  onSave: (
+    cityId: string,
+    patch: { name: string; currency: string | null },
+  ) => Promise<unknown>
+  onDelete: (cityId: string) => Promise<unknown>
 }) {
   const [editing, setEditing] = useState(false)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
@@ -77,18 +87,11 @@ export function CityBar({
         <CityEditor
           city={selected}
           markerCount={markers.filter((marker) => marker.cityId === selected.id).length}
-          onRename={(name) => {
-            onRename(selected.id, name)
-            setEditing(false)
-          }}
-          onSetCurrency={(currency) => {
-            onSetCurrency(selected.id, currency)
-            setEditing(false)
-          }}
-          onDelete={() => {
-            onDelete(selected.id)
-            setEditing(false)
-          }}
+          // The editor closes itself when its write settles, rather than being
+          // closed here as the write is sent. It is the only thing on screen
+          // that can say the write is still happening.
+          onSave={(patch) => onSave(selected.id, patch)}
+          onDelete={() => onDelete(selected.id)}
           onClose={() => setEditing(false)}
         />
       ) : null}
@@ -99,20 +102,28 @@ export function CityBar({
 function CityEditor({
   city,
   markerCount,
-  onRename,
-  onSetCurrency,
+  onSave,
   onDelete,
   onClose,
 }: {
   city: City
   markerCount: number
-  onRename: (name: string) => void
-  onSetCurrency: (currency: string | null) => void
-  onDelete: () => void
+  onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
+  onDelete: () => Promise<unknown>
   onClose: () => void
 }) {
   const [name, setName] = useState(city.name)
   const [currency, setCurrency] = useState(city.currency ?? '')
+
+  /**
+   * Two writes, two flags. Saving is optimistic — the picker shows the new name
+   * at once — and removing is not, because unassigning a city's places cannot
+   * be undone. Both keep this editor open until the database answers, which is
+   * what gives each control somewhere to say what it is doing.
+   */
+  const [saving, startSave] = usePending()
+  const [removing, startRemove] = usePending()
+  const busy = saving || removing
 
   return (
     <div className={styles.editor}>
@@ -128,22 +139,30 @@ function CityEditor({
         <Button
           tone="primary"
           onClick={() => {
-            if (name.trim() !== city.name) onRename(name.trim())
             const next = currency.trim().toUpperCase()
             const value = next === '' ? null : next
-            if (value !== city.currency) onSetCurrency(value)
-            onClose()
+            // Nothing to write is not a write. Closing without sending is the
+            // correct answer to a Save that changed nothing.
+            if (name.trim() === city.name && value === city.currency) {
+              onClose()
+              return
+            }
+            startSave(async () => {
+              await onSave({ name: name.trim(), currency: value })
+              onClose()
+            })
           }}
-          disabled={name.trim() === ''}
+          disabled={busy || name.trim() === ''}
         >
-          Save
+          {saving ? 'Saving…' : 'Save'}
         </Button>
-        <Button tone="quiet" onClick={onClose}>
+        <Button tone="quiet" disabled={busy} onClick={onClose}>
           Cancel
         </Button>
         <span className={styles.spacer}>
           <Button
             tone="danger"
+            disabled={busy}
             onClick={() => {
               // The consequence lands on rows the person is not looking at, so
               // the count is stated rather than left to be discovered.
@@ -152,11 +171,14 @@ function CityEditor({
                   ? 'It holds no places.'
                   : `${markerCount} ${markerCount === 1 ? 'place' : 'places'} will become unassigned. They are not deleted.`
               if (window.confirm(`Remove “${city.name}”?\n\n${consequence}`)) {
-                onDelete()
+                startRemove(async () => {
+                  await onDelete()
+                  onClose()
+                })
               }
             }}
           >
-            Remove city
+            {removing ? 'Removing…' : 'Remove city'}
           </Button>
         </span>
       </div>

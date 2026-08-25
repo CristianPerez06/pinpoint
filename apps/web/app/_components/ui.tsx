@@ -20,6 +20,21 @@ import styles from './ui.module.css'
 /** A panel floating over the map. The details view and the form share it. */
 export const overlayPanelClass = styles.panel
 
+/**
+ * Unavailable is `aria-disabled` and a no-op, never the `disabled` attribute.
+ *
+ * The attribute takes the control out of the tab order and hides it from a
+ * screen reader, so somebody arriving by keyboard is told the action is gone
+ * rather than that it is unavailable — and told nothing about why. `DESIGN.md`
+ * forbids it outright; `Clear` in the filter bar has been the only control
+ * honouring that, and this puts it in the primitive so no call site can get it
+ * wrong.
+ *
+ * The guard lives here rather than at each call site, and it covers both routes
+ * in: `onClick` returns early, and `type="submit"` is downgraded to a plain
+ * button, because `aria-disabled` does not stop a form submitting and the
+ * Enter key in any field would otherwise still send it.
+ */
 export function Button({
   children,
   onClick,
@@ -37,9 +52,15 @@ export function Button({
 }) {
   return (
     <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
+      type={disabled ? 'button' : type}
+      onClick={(event) => {
+        if (disabled) {
+          event.preventDefault()
+          return
+        }
+        onClick?.()
+      }}
+      aria-disabled={disabled || undefined}
       title={title}
       className={`${styles.button} ${styles[tone]}`}
     >

@@ -80,6 +80,28 @@ import { useQuery } from '@/lib/use-query'
  * is better than two components sharing the state between them. The alternative
  * put trip-scoped state in the route file, which already owns the session and
  * the redirect.
+ *
+ * ## What a write says while it is happening
+ *
+ * Two answers, and which one a write takes is decided by the write rather than
+ * by whoever is writing the call site:
+ *
+ * - **Optimistic** — one row, reversible, and the screen can draw the outcome
+ *   before it is confirmed. Apply it at once, restore exactly what was there if
+ *   the database refuses, and say that it was refused. Interest, visited,
+ *   renaming a trip, archiving one, renaming a city or setting its currency.
+ * - **Pending** — everything else: the outcome cannot be drawn in advance, what
+ *   happens next depends on the stored row, or the act cannot be undone. The
+ *   control says what it is doing and is inert until it settles. Saving a
+ *   place, removing one, creating a city, removing one, inviting somebody,
+ *   creating a trip. Revealing archived trips is a read and is treated the same
+ *   way, because the press still has to be answered.
+ *
+ * The pending state lives in the control, never in this file. One flag here
+ * meaning "a write is happening" cannot say *which*, so it disabled controls
+ * that had nothing to do with what was in flight and left the responsible one
+ * live — which is exactly what `busy` did to the rename and the invite on both
+ * platforms, arrived at independently.
  */
 
 /**
@@ -123,7 +145,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
 
 export function TripWorkspace({
   trip: storedTrip,
-  trips,
+  trips: storedTrips,
   onSelectTrip,
   onTripsChanged,
   onCreated,
@@ -173,6 +195,23 @@ export function TripWorkspace({
   const [renamed, setRenamed] = useState<Trip | null>(null)
   const trip = renamed?.id === storedTrip.id ? renamed : storedTrip
 
+  /**
+   * The trips this account is on, with that rename laid over the one it belongs
+   * to — the same override shape as the cities and markers below.
+   *
+   * Without it the two disagree: the header reads the live trip and updates on
+   * a rename, while the trips sheet reads the list it was handed and does not.
+   * The sheet is what is on screen at the moment somebody renames, so it was
+   * the one place still showing the old name when they looked for the new one.
+   *
+   * Derived rather than held, so a refetch is respected for free and there is
+   * nothing to re-seed.
+   */
+  const trips = useMemo(
+    () => storedTrips.map((each) => (each.id === trip.id ? trip : each)),
+    [storedTrips, trip],
+  )
+
   const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
   const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
   const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id])
@@ -210,6 +249,15 @@ export function TripWorkspace({
   const [citiesOpen, setCitiesOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  /**
+   * A refusal that belongs to no field, shown over the map.
+   *
+   * There is deliberately no flag beside it saying "a write is happening". One
+   * boolean per screen cannot say *which* write, so it was passed to the trips
+   * sheet and the people sheet and disabled a rename and an invite during a
+   * marker save — while leaving both live during their own. Every pending state
+   * now lives in the control that starts the write.
+   */
   const [problem, setProblem] = useState<string | null>(null)
 
   /**
@@ -233,9 +281,28 @@ export function TripWorkspace({
     new Map(),
   )
 
+  /**
+   * Opening or closing a surface ends whatever refusal belonged to the last one.
+   *
+   * A refusal is about the act that was just attempted, in the place it was
+   * attempted — so it has no business outliving that place. Without this a
+   * rename refused ten minutes ago reappeared the next time the sheet was
+   * opened, attached to nothing the person was doing, which is its own way of
+   * saying something untrue.
+   *
+   * Every sheet toggle goes through here rather than each one remembering, so a
+   * sheet added later cannot forget.
+   */
+  function showSheet(open: (value: boolean) => void, value: boolean) {
+    setProblem(null)
+    open(value)
+  }
+
+  /** The place whose removal has been confirmed and is now in flight. */
+  const [removingId, setRemovingId] = useState<string | null>(null)
+
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [sight, setSight] = useState<Sight>(null)
-  const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formMessage, setFormMessage] = useState<string | null>(null)
   /**
@@ -429,6 +496,11 @@ export function TripWorkspace({
   async function answer(marker: Marker, interested: boolean) {
     if (ownMemberId === null) return
 
+    // A new attempt supersedes the last refusal. Without this a note about a
+    // write that failed a minute ago outlives the one that has just succeeded,
+    // which leaves the screen saying something that is no longer true.
+    setProblem(null)
+
     setAnswers((current) =>
       new Map(current).set(marker.id, {
         markerId: marker.id,
@@ -454,6 +526,8 @@ export function TripWorkspace({
   async function unanswer(marker: Marker) {
     if (ownMemberId === null) return
 
+    setProblem(null)
+
     // Null rather than absent: absent means "no local opinion", and withdrawing
     // is an opinion that has to survive the merge.
     setAnswers((current) => new Map(current).set(marker.id, null))
@@ -466,6 +540,8 @@ export function TripWorkspace({
   }
 
   async function markVisited(marker: Marker, visited: boolean) {
+    setProblem(null)
+
     setVisitedWrites((current) => new Map(current).set(marker.id, visited))
 
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
@@ -578,7 +654,6 @@ export function TripWorkspace({
   async function save(values: MarkerFormValues) {
     if (panel.kind === 'none') return
 
-    setBusy(true)
     setFieldErrors({})
     setFormMessage(null)
     setConflict(null)
@@ -600,8 +675,6 @@ export function TripWorkspace({
             lng: panel.position.lng,
             lat: panel.position.lat,
           })
-
-    setBusy(false)
 
     if (!outcome.ok) {
       // Everything typed, and the marker's position, survive a rejection.
@@ -647,7 +720,17 @@ export function TripWorkspace({
   }
 
   async function remove(marker: Marker) {
+    setProblem(null)
+    // Which marker, not whether something is happening. Held here rather than
+    // in the two controls that offer this write, because on this platform the
+    // write does not start when either of them is pressed — it starts when the
+    // alert between them is answered, and the alert belongs here so that both
+    // routes ask the same question in the same words. Keyed by id, so it can
+    // only ever make the control for *this* place say anything.
+    setRemovingId(marker.id)
+
     const outcome = await deleteMarker(supabase, marker.id)
+    setRemovingId(null)
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.',
@@ -659,6 +742,8 @@ export function TripWorkspace({
   }
 
   async function renameTrip(name: string) {
+    setProblem(null)
+
     const previous = renamed
     setRenamed({ ...trip, name })
 
@@ -690,6 +775,8 @@ export function TripWorkspace({
    * arrives at it by a new route.
    */
   async function setTripArchived(tripId: string, value: boolean) {
+    setProblem(null)
+
     const outcome = await updateTrip(supabase, tripId, { archived: value })
     if (!outcome.ok) {
       setProblem(
@@ -707,8 +794,17 @@ export function TripWorkspace({
     onTripsChanged()
   }
 
-  /** Archived trips, once somebody asks. Null until then. */
+  /**
+   * Archived trips, once somebody asks. Null until then.
+   *
+   * A read rather than a write, and treated like one anyway: the press has to
+   * be answered. Until this returned, the row was unchanged and pressing it
+   * again fired a second fetch — the clearest press-that-does-nothing in either
+   * application. What fills the gap while it loads is a separate question.
+   */
   async function revealArchived() {
+    setProblem(null)
+
     const state = await fetchTrips(supabase, { includeArchived: true })
     if (state.status === 'failed') {
       setProblem(state.message)
@@ -747,28 +843,75 @@ export function TripWorkspace({
     return null
   }
 
+  /**
+   * Making a city, from inside the form that needs one.
+   *
+   * Pending rather than optimistic, and it could not be otherwise: the form has
+   * to select the row that comes back, and a row that does not exist yet has no
+   * id to select. This was the one write on this platform that failed in
+   * silence — it returned `null` and left the form to guess.
+   */
   async function addCity(name: string, currency: string | null) {
+    setProblem(null)
+
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
-    if (!outcome.ok) return null
+    if (!outcome.ok) {
+      setProblem(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
+      )
+      return null
+    }
     setCityWrites((current) => new Map(current).set(outcome.data.id, outcome.data))
     return outcome.data
   }
 
+  /**
+   * Renaming a city, or changing what its prices are read in.
+   *
+   * Optimistic, by the same rule as renaming a trip: one row, reversible, and
+   * the list can show the new name at once.
+   *
+   * The revert restores the override that was there rather than dropping it,
+   * which is where this differs from the interest writes above. Dropping is
+   * only safe when a stored row is underneath to fall back to, and a city
+   * created on this device has none — its override *is* the city, so dropping
+   * it would answer a refused rename by making the city disappear.
+   *
+   * One call carries both fields. Two calls from one press could store the name
+   * and have the currency refused, which is a half-applied edit that nothing on
+   * screen could describe.
+   */
   async function patchCity(
     cityId: string,
     patch: { name?: string; currency?: string | null },
   ) {
+    setProblem(null)
+
+    const shown = cities.find((city) => city.id === cityId)
+    const previous = cityWrites.get(cityId)
+    if (shown) {
+      setCityWrites((writes) => new Map(writes).set(cityId, { ...shown, ...patch }))
+    }
+
     const outcome = await updateCity(supabase, cityId, patch)
     if (!outcome.ok) {
+      setCityWrites((writes) => {
+        const next = new Map(writes)
+        if (previous === undefined) next.delete(cityId)
+        else next.set(cityId, previous)
+        return next
+      })
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
       )
       return
     }
-    setCityWrites((current) => new Map(current).set(cityId, outcome.data))
+    setCityWrites((writes) => new Map(writes).set(cityId, outcome.data))
   }
 
   async function removeCity(cityId: string) {
+    setProblem(null)
+
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
       setProblem(
@@ -800,15 +943,15 @@ export function TripWorkspace({
         title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
         initial={panel.initial}
         cities={cities}
-        busy={busy}
         fieldErrors={fieldErrors}
         message={formMessage}
         notice={conflict}
-        onSubmit={(values) => void save(values)}
+        onSubmit={save}
         onCancel={cancelPanel}
         onAdjustPosition={adjustPosition}
         onCreateCity={addCity}
         onDelete={panel.kind === 'edit' ? () => confirmRemove(panel.marker) : undefined}
+        removing={panel.kind === 'edit' && removingId === panel.marker.id}
         onHeight={setFormHeight}
       />
     ) : null
@@ -843,7 +986,7 @@ export function TripWorkspace({
           name truncates rather than pushing the menu off the edge.
         */}
         <Pressable
-          onPress={() => setTripsOpen(true)}
+          onPress={() => showSheet(setTripsOpen, true)}
           accessibilityRole="button"
           accessibilityLabel={`${trip.name}. Switch or manage trips`}
           hitSlop={6}
@@ -889,6 +1032,7 @@ export function TripWorkspace({
             })
           }}
           onDeleteMarker={confirmRemove}
+          removingId={removingId}
           /*
             Tapping a saved place gives up on the one being added.
 
@@ -1053,24 +1197,27 @@ export function TripWorkspace({
 
       <TripSheet
         open={tripsOpen}
-        onClose={() => setTripsOpen(false)}
+        onClose={() => showSheet(setTripsOpen, false)}
         trip={trip}
         trips={trips}
         archived={archivedTrips}
-        onRevealArchived={() => void revealArchived()}
+        onRevealArchived={revealArchived}
         onSelectTrip={onSelectTrip}
-        onRename={(name) => void renameTrip(name)}
+        onRename={renameTrip}
         onCreated={onCreated}
         onSetArchived={(tripId, value) => void setTripArchived(tripId, value)}
         onOpenPeople={() => {
-          setTripsOpen(false)
+          showSheet(setTripsOpen, false)
           setPeopleOpen(true)
         }}
         onOpenCities={() => {
-          setTripsOpen(false)
+          showSheet(setTripsOpen, false)
           setCitiesOpen(true)
         }}
-        busy={busy}
+        // The same refusal the map shows, handed to the sheet covering it. One
+        // piece of state, rendered wherever the person actually is.
+        problem={problem}
+        onDismissProblem={() => setProblem(null)}
       />
 
       <MenuSheet
@@ -1082,21 +1229,21 @@ export function TripWorkspace({
 
       <PeopleSheet
         open={peopleOpen}
-        onClose={() => setPeopleOpen(false)}
+        onClose={() => showSheet(setPeopleOpen, false)}
         members={members}
         ownMemberId={ownMemberId}
-        busy={busy}
         onInvite={invite}
       />
 
       <CitySheet
         open={citiesOpen}
-        onClose={() => setCitiesOpen(false)}
+        onClose={() => showSheet(setCitiesOpen, false)}
         cities={cities}
         markers={held}
-        onRename={(cityId, name) => void patchCity(cityId, { name })}
-        onSetCurrency={(cityId, currency) => void patchCity(cityId, { currency })}
-        onDelete={(cityId) => void removeCity(cityId)}
+        onSave={patchCity}
+        onDelete={removeCity}
+        problem={problem}
+        onDismissProblem={() => setProblem(null)}
       />
 
       <PlaceSearchScreen
@@ -1148,6 +1295,7 @@ function Body({
   formHeight,
   onEditMarker,
   onDeleteMarker,
+  removingId,
   onAbandonCapture,
   loading,
   failed,
@@ -1172,6 +1320,8 @@ function Body({
   formHeight: number
   onEditMarker: (marker: Marker) => void
   onDeleteMarker: (marker: Marker) => void
+  /** The place whose removal is in flight, so its control can say so. */
+  removingId: string | null
   onAbandonCapture: () => void
   loading: boolean
   failed: string | null
@@ -1203,6 +1353,7 @@ function Body({
         formHeight={formHeight}
         onEditMarker={onEditMarker}
         onDeleteMarker={onDeleteMarker}
+        removingId={removingId}
         onAbandonCapture={onAbandonCapture}
         bottomRow={bottomRow}
         markers={visible}
