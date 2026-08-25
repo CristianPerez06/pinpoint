@@ -11,11 +11,19 @@ import {
   ATTRIBUTION,
   fitBounds,
   groupCoincident,
+  MAX_ZOOM,
+  MIN_ZOOM,
   offsetCenter,
+  zoomStep,
   type LngLat,
   type Viewport,
 } from '@pinpoint/map'
-import { MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+// One subpath each, like `marker-details.tsx` and for the same reason: Metro
+// does not tree-shake in development, so the package root would pull all 1767
+// glyphs into the bundle.
+import Minus from 'lucide-react-native/icons/minus'
+import Plus from 'lucide-react-native/icons/plus'
 import {
   type ReactNode,
   type Ref,
@@ -162,6 +170,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sightDot: { width: 7, height: 7, borderRadius: 4 },
+  /*
+   * Zoom, and the argument above that it has to answer.
+   *
+   * `bottomRow` records why search and drop live in a bar rather than as pills
+   * over open map: two pills over cartography read as debris. That verdict is
+   * about the trip's *actions*, and it stands. This is not one of them — zoom is
+   * an instrument of the map itself, and putting it in the bar would say it is
+   * one of the things you do here rather than one of the ways you look.
+   *
+   * What the verdict still binds is the shape. One stacked pair on one edge, so
+   * there is a single object to read rather than two loose lozenges: a surface
+   * with a hairline and an `sm` lift, the same vocabulary the sheets use, not
+   * two floating circles.
+   *
+   * Right edge, because the left one already has the licence credit standing on
+   * it and a credit that has to stay legible does not share a corner.
+   */
+  zoom: {
+    position: 'absolute',
+    right: SPACE.md,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    /*
+      Deliberately no `overflow: 'hidden'`. On iOS that sets `masksToBounds` on
+      the layer, which clips the shadow along with everything else — the lift
+      simply disappears, on a style that reads as correct. Nothing needs
+      clipping here: the buttons draw no fill of their own, so nothing can
+      escape the rounded corners.
+
+      The shadow is the token's ingredients composed in this platform's idiom.
+      `shadowOpacity: 1` because the alpha is already inside the colour, which
+      is how the token stores it; `elevation` is Android's single knob and takes
+      the offset, being the only number it has.
+    */
+    shadowOffset: { width: 0, height: ELEVATION.sm.offsetY },
+    shadowOpacity: 1,
+    shadowRadius: ELEVATION.sm.blur,
+    elevation: ELEVATION.sm.offsetY,
+  },
+  /*
+   * 44 by 44, which is the floor for a target a thumb has to find while walking
+   * rather than a number chosen to look right. The drawn pair is therefore
+   * 44 wide and 88 tall — deliberately larger than the laptop's, because this
+   * is the platform the control was actually argued for.
+   */
+  zoomButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /* The one hairline between them, on the second only — two adjacent borders
+     would draw two lines. */
+  zoomDivider: { borderTopWidth: 1 },
   failure: {
     flex: 1,
     alignItems: 'center',
@@ -172,6 +234,88 @@ const styles = StyleSheet.create({
   failureTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   failureDetail: { fontSize: 13, lineHeight: 20, textAlign: 'center' },
 })
+
+/**
+ * One of the two zoom buttons.
+ *
+ * `zoomTo` rather than a camera move, and that distinction is the whole point.
+ * It zooms about the camera centre, so the coordinate in the middle of the view
+ * stays exactly where it was — which is what makes zooming safe while the sight
+ * is armed. The sight is centred on the *view* (see `sightWrap`, and the note
+ * about why it is not centred on the visible strip), so the position under it is
+ * the camera centre by construction, and a zoom about that centre cannot move
+ * it. The pin lands where it was aimed, at whatever scale.
+ *
+ * The step comes from `@pinpoint/map`. Not `zoom + 1`: the range is 0–20 and
+ * belongs to the shared package, and two applications each choosing their own is
+ * where the marker-anchor drift defect lived.
+ *
+ * A spent control is drawn inert and announced as disabled rather than removed,
+ * per DESIGN.md. Removing it would tell somebody using a screen reader that zoom
+ * had gone, and say nothing about why.
+ */
+function ZoomButton({
+  direction,
+  zoom,
+  zoomNow,
+  camera,
+  divided = false,
+}: {
+  direction: 1 | -1
+  /**
+   * What the map has settled at, or was framed to open at if it never has.
+   * Never null: an untouched map still has a zoom, and drawing the buttons spent
+   * until the first gesture would be wrong on exactly the map nobody has moved.
+   */
+  zoom: number
+  /**
+   * The zoom at the instant of a press, which is not quite the same thing.
+   *
+   * `zoom` above is state, so it is one render behind a settle that has already
+   * happened; the ref is written synchronously in `onRegionDidChange`. Drawing
+   * reads the state because that is what a render can see, and pressing reads
+   * the ref because that is what is true now. They disagree for at most one
+   * render, and the clamp inside `zoomStep` means the worst case is a press that
+   * lands exactly where the drawing said it would.
+   */
+  zoomNow: () => number
+  camera: { current: CameraRef | null }
+  /** Whether to draw the hairline that separates this one from the one above. */
+  divided?: boolean
+}) {
+  const theme = useTheme()
+  const label = direction === 1 ? 'Zoom in' : 'Zoom out'
+  // A step that arrives where it started is a control with nothing left to do.
+  // Asking the shared function rather than comparing against the constants keeps
+  // one opinion about where the range ends, and sidesteps comparing floats.
+  const spent = zoomStep(zoom, direction) === zoom
+  const Glyph = direction === 1 ? Plus : Minus
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: spent }}
+      onPress={
+        spent
+          ? // A no-op rather than no handler, so the control stays a control.
+            () => {}
+          : () => {
+              camera.current?.zoomTo(zoomStep(zoomNow(), direction), {
+                duration: 200,
+              })
+            }
+      }
+      style={[
+        styles.zoomButton,
+        divided && styles.zoomDivider,
+        { borderTopColor: theme.colour.line, opacity: spent ? 0.55 : 1 },
+      ]}
+    >
+      <Glyph size={20} color={theme.colour.ink} />
+    </Pressable>
+  )
+}
 
 /**
  * What the workspace can ask the map to do, as opposed to tell it.
@@ -379,8 +523,31 @@ export function TripMap({
   const cameraRef = useRef<CameraRef>(null)
   /** Whether the credit has been pressed and the sources are being read. */
   const [creditsOpen, setCreditsOpen] = useState(false)
-  /** The current zoom, written on every settle. Null until the map first settles. */
+  /**
+   * The current zoom, written on every settle.
+   *
+   * Kept as a ref as well as in the state below, and read at the moment of a
+   * press by everything that needs a value *now* — the offset arithmetic that
+   * lifts a draft clear of the form, and the buttons. How far a pixel reaches on
+   * the ground depends entirely on it, so an offset computed at a stale zoom is
+   * an offset of the wrong distance.
+   */
   const zoomRef = useRef<number | null>(null)
+
+  /**
+   * The same number, as state, so the buttons can be drawn correctly.
+   *
+   * Affordable here in a way it is not on the laptop, and the difference is the
+   * event rather than the platform. Web must keep zoom out of state because
+   * `move` fires on every frame of a wheel or a drag; `onRegionDidChange` fires
+   * on **settle**, which is why the centre and the zoom are already written
+   * there. So this costs one render per finished gesture and buys a correct
+   * inert state at either end of the range.
+   *
+   * Null until the first settle, which is why nothing reads it directly — see
+   * `currentZoom` below.
+   */
+  const [zoom, setZoom] = useState<number | null>(null)
 
   /**
    * Which draft the camera has already been lifted for.
@@ -493,6 +660,21 @@ export function TripMap({
   )
 
   /**
+   * The zoom the buttons work from: where the map has settled, or where it was
+   * framed to open if it has not settled yet.
+   *
+   * The fallback is the point. `onRegionDidChange` fires on settle, and an
+   * untouched map never settles — so a map nobody has moved would draw both
+   * buttons spent, permanently, if null were read as "cannot zoom". The framing
+   * camera is where the map actually is until something moves it, so it is the
+   * honest answer rather than a placeholder.
+   *
+   * Null only before the surface has been measured, which is also before the
+   * map itself is mounted.
+   */
+  const currentZoom = zoom ?? camera?.zoom ?? null
+
+  /**
    * A failed style is reported rather than drawn around. Mounting the map
    * without one produces a blank canvas with correctly-placed pins over it,
    * which reads as a styling problem and is not one.
@@ -568,6 +750,7 @@ export function TripMap({
             // it, so an offset computed at the wrong zoom is an offset of the
             // wrong distance.
             zoomRef.current = event.nativeEvent.zoom
+            setZoom(event.nativeEvent.zoom)
           }}
           //
           // Deliberately NO `onPress` here to dismiss the sheet. On iOS the
@@ -590,6 +773,16 @@ export function TripMap({
                 center: [camera.center.lng, camera.center.lat],
                 zoom: camera.zoom,
               }}
+              /*
+                Our range, held on the camera rather than only in the buttons.
+
+                A pinch is then bounded by the same range as a button and as
+                `fitBounds`, instead of the range depending on which instrument
+                was used. The laptop binds the same two values on its map
+                constructor for the same reason.
+              */
+              minZoom={MIN_ZOOM}
+              maxZoom={MAX_ZOOM}
             />
           ) : null}
 
@@ -679,6 +872,67 @@ export function TripMap({
               style={[styles.sightDot, { backgroundColor: theme.colour.accent }]}
             />
           </View>
+        </View>
+      ) : null}
+
+      {/*
+        Zoom, as something a thumb can reach.
+
+        Rendered after the sight so it is drawn above it. `sightWrap` is
+        `pointerEvents="none"` and steals no touches, so this is about z-order
+        and nothing else — but the sight covers the whole view, so without this
+        ordering the buttons would be underneath it.
+
+        Hidden while the capture form is open. The form takes half the screen or
+        more; the strip of map left is the only way to confirm the place is the
+        one that was meant, and a control floating in that strip costs more of it
+        than it gives. Nothing is lost — the position is already chosen by then,
+        and the way to change it is to cancel and aim again.
+
+        Hidden while a marker sheet is open, and this one follows the credit
+        rather than deciding for itself. `lift` is deliberately blind to that
+        sheet — a thing that tracked it would slide up and down as the sheet
+        resized, which is the objection recorded there — so a stack anchored to
+        `lift` would sit behind it, half-covered and unpressable. Reading a place
+        is a glance, and the credit already spends that glance underneath. A
+        control that is absent is honest; one that is half-visible and inert is
+        not.
+
+        Not hidden while the sight is armed. That is exactly when a stepped zoom
+        earns its place: framing a point under a fixed sight is the one moment
+        somebody needs to change scale without moving the map, which is precisely
+        what zooming about the centre does.
+      */}
+      {camera && currentZoom !== null && formSheet === null && selection === null ? (
+        <View
+          style={[
+            styles.zoom,
+            {
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.line,
+              shadowColor: theme.elevation.sm.colour,
+              // Rises off whatever holds the floor, exactly as the credit does
+              // and off the same measurement — the bar, or the marker sheet, or
+              // nothing. Both the bar and the form carry the device's bottom
+              // inset in their own padding, so adding it again here would float
+              // the stack off the edge it is standing on.
+              bottom: lift + SPACE.md,
+            },
+          ]}
+        >
+          <ZoomButton
+            direction={1}
+            zoom={currentZoom}
+            zoomNow={() => zoomRef.current ?? currentZoom}
+            camera={cameraRef}
+          />
+          <ZoomButton
+            direction={-1}
+            zoom={currentZoom}
+            zoomNow={() => zoomRef.current ?? currentZoom}
+            camera={cameraRef}
+            divided
+          />
         </View>
       ) : null}
 
