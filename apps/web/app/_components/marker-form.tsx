@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 
 import { MarkerGlyph } from '@/app/_components/marker-icon'
+import { usePending } from '@/lib/use-pending'
 import {
   Button,
   FormError,
@@ -50,7 +51,6 @@ export function MarkerForm({
   title,
   initial,
   cities,
-  busy,
   fieldErrors,
   message,
   notice,
@@ -61,7 +61,6 @@ export function MarkerForm({
   title: string
   initial: MarkerFormValues
   cities: readonly City[]
-  busy: boolean
   fieldErrors: FieldErrors
   message: string | null
   /**
@@ -71,7 +70,12 @@ export function MarkerForm({
    * did and then decide.
    */
   notice: string | null
-  onSubmit: (values: MarkerFormValues) => void
+  /**
+   * Awaited rather than fired, so this form knows when the write settled and
+   * can say so on the control that started it. What it resolves to is the
+   * parent's business — this only needs to know that it is over.
+   */
+  onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
   onCreateCity: (name: string, currency: string | null) => Promise<City | null>
 }) {
@@ -91,8 +95,22 @@ export function MarkerForm({
   )
   const [cityError, setCityError] = useState<string | null>(null)
 
+  /**
+   * Two writes, two flags, because this form offers both at once.
+   *
+   * One flag would disable the city detour while a place is being saved and the
+   * save while a city is being created, which is the shared-`busy` mistake in
+   * miniature: the state has to be per write or it will eventually be read by a
+   * control that has nothing to do with what is happening.
+   */
+  const [saving, startSave] = usePending()
+  const [creatingCity, startCreateCity] = usePending()
+
   function submit() {
-    onSubmit({
+    // Routed through the same guard as the button because Enter in any field
+    // submits a form, and `aria-disabled` does not stop that.
+    startSave(() =>
+      onSubmit({
       name: name.trim(),
       note: absentIfBlank(note),
       cityId,
@@ -100,26 +118,29 @@ export function MarkerForm({
       link: absentIfBlank(link),
       // A blank price is absent. A typed zero is a real answer — free entry is
       // worth recording — so it must not collapse into the same thing.
-      price: price.trim() === '' ? null : Number(price),
-    })
+        price: price.trim() === '' ? null : Number(price),
+      }),
+    )
   }
 
-  async function createCity() {
+  function createCity() {
     if (!newCity) return
     setCityError(null)
 
-    const created = await onCreateCity(
-      newCity.name.trim(),
-      absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
-    )
+    startCreateCity(async () => {
+      const created = await onCreateCity(
+        newCity.name.trim(),
+        absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
+      )
 
-    if (!created) {
-      setCityError('Could not create that city.')
-      return
-    }
+      if (!created) {
+        setCityError('Could not create that city.')
+        return
+      }
 
-    setCityId(created.id)
-    setNewCity(null)
+      setCityId(created.id)
+      setNewCity(null)
+    })
   }
 
   return (
@@ -244,10 +265,10 @@ export function MarkerForm({
           <div className={styles.row}>
             <Button
               onClick={createCity}
-              disabled={newCity.name.trim() === ''}
+              disabled={creatingCity || newCity.name.trim() === ''}
               tone="primary"
             >
-              Create city
+              {creatingCity ? 'Creating…' : 'Create city'}
             </Button>
             <Button onClick={() => setNewCity(null)} tone="quiet">
               Cancel
@@ -284,8 +305,8 @@ export function MarkerForm({
       />
 
       <div className={styles.actions}>
-        <Button type="submit" tone="primary" disabled={busy}>
-          {busy ? 'Saving…' : 'Save place'}
+        <Button type="submit" tone="primary" disabled={saving}>
+          {saving ? 'Saving…' : 'Save place'}
         </Button>
         <Button onClick={onCancel} tone="quiet">
           Cancel

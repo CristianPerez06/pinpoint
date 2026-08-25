@@ -63,6 +63,28 @@ import styles from './trip-workspace.module.css'
  * Writes go through `@pinpoint/data` with the browser client. There is no secret
  * involved and row-level security is the authorization either way, so the only
  * thing a server hop would add is latency.
+ *
+ * ## What a write says while it is happening
+ *
+ * Two answers, and which one a write takes is decided by the write rather than
+ * by whoever is writing the call site:
+ *
+ * - **Optimistic** — one row, reversible, and the screen can draw the outcome
+ *   before it is confirmed. Apply it at once, restore exactly what was there if
+ *   the database refuses, and say that it was refused. Interest, visited,
+ *   renaming a trip, archiving one, renaming a city or setting its currency.
+ * - **Pending** — everything else: the outcome cannot be drawn in advance, what
+ *   happens next depends on the stored row, or the act cannot be undone. The
+ *   control says what it is doing and is inert until it settles. Saving a
+ *   place, removing one, creating a city, removing one, inviting somebody,
+ *   creating a trip. Revealing archived trips is a read and is treated the same
+ *   way, because the press still has to be answered.
+ *
+ * The pending state lives in the control, never in this file. One flag here
+ * meaning "a write is happening" cannot say *which*, so it disabled controls
+ * that had nothing to do with what was in flight and left the responsible one
+ * live — which is exactly what `busy` did to the rename and the invite on both
+ * platforms, arrived at independently.
  */
 
 type Panel =
@@ -96,7 +118,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
 
 export function TripWorkspace({
   trip: initialTrip,
-  trips,
+  trips: storedTrips,
   initialMarkers,
   initialCities,
   members: initialMembers,
@@ -167,8 +189,16 @@ export function TripWorkspace({
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [dropping, setDropping] = useState(false)
   const [draft, setDraft] = useState<DraftPosition | null>(null)
-  const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  /**
+   * A refusal that belongs to no field: the database said no to the act.
+   *
+   * There is deliberately no flag here saying "a write is happening". One
+   * boolean per workspace cannot say *which* write, so it disabled controls
+   * that had nothing to do with what was in flight and left the responsible one
+   * live — which is what `busy` did to the rename and the invite until this
+   * change. Every pending state now lives in the control that starts the write.
+   */
   const [message, setMessage] = useState<string | null>(null)
   /**
    * Somebody else changed this place while it was being edited.
@@ -258,6 +288,35 @@ export function TripWorkspace({
     return index === -1 ? null : { group, index }
   }, [panel, groups])
 
+  /**
+   * Every trip this account is on, with the one being viewed as it currently is.
+   *
+   * `storedTrips` was read on the server and never hears about anything written
+   * since. The trip being viewed is held here as state and does, so the two
+   * disagree the moment it is renamed — and the picker, which is the visible
+   * name as soon as an account has two trips, was rendering the stale half.
+   * A rename said `Saving…`, succeeded, and left the old name on screen.
+   *
+   * Derived rather than copied into state, so there is nothing to keep in step:
+   * a fresh list from the server and a fresh rename both flow through on the
+   * next render. Fixed here rather than at the one control that showed it,
+   * because a value displayed anywhere has to follow the value.
+   */
+  const trips = useMemo(
+    () => storedTrips.map((each) => (each.id === trip.id ? trip : each)),
+    [storedTrips, trip],
+  )
+
+  /**
+   * A refusal with no form to sit above.
+   *
+   * The form renders `message` itself when it is open, which is the closer
+   * place to say it; this is every other write's failure, which until now had
+   * nowhere on this screen to appear at all.
+   */
+  const refusal =
+    panel.kind === 'create' || panel.kind === 'edit' ? null : message
+
   const cityMarkers = useMemo(
     () =>
       selectedCityId === null
@@ -309,6 +368,11 @@ export function TripWorkspace({
   async function answer(marker: Marker, interested: boolean) {
     if (ownMemberId === null) return
 
+    // A new attempt supersedes the last refusal. Without this a note about a
+    // write that failed a minute ago outlives the one that has just succeeded,
+    // which leaves the screen saying something that is no longer true.
+    setMessage(null)
+
     const previous = interest
     const optimistic: MarkerInterest = {
       markerId: marker.id,
@@ -342,6 +406,8 @@ export function TripWorkspace({
   async function unanswer(marker: Marker) {
     if (ownMemberId === null) return
 
+    setMessage(null)
+
     const previous = interest
     setInterest((current) =>
       current.filter(
@@ -360,6 +426,8 @@ export function TripWorkspace({
   }
 
   async function markVisited(marker: Marker, visited: boolean) {
+    setMessage(null)
+
     const previous = markers
     setMarkers((current) =>
       current.map((each) => (each.id === marker.id ? { ...each, visited } : each)),
@@ -396,6 +464,8 @@ export function TripWorkspace({
   }
 
   async function renameTrip(name: string) {
+    setMessage(null)
+
     const previous = trip
     setTrip({ ...trip, name })
 
@@ -518,7 +588,6 @@ export function TripWorkspace({
   }
 
   async function save(values: MarkerFormValues) {
-    setBusy(true)
     setFieldErrors({})
     setMessage(null)
     setConflict(null)
@@ -544,8 +613,6 @@ export function TripWorkspace({
             lat: draft?.lat,
           })
 
-    setBusy(false)
-
     if (!outcome.ok) {
       // Everything typed, and the marker's position, survive a rejection.
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
@@ -567,6 +634,8 @@ export function TripWorkspace({
   }
 
   async function remove(marker: Marker) {
+    setMessage(null)
+
     const outcome = await deleteMarker(supabase, marker.id)
     if (!outcome.ok) {
       setMessage(outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.')
@@ -576,24 +645,73 @@ export function TripWorkspace({
     cancel()
   }
 
+  /**
+   * Making a city, from inside the form that needs one.
+   *
+   * Pending rather than optimistic, and it could not be otherwise: the form
+   * has to select the row that comes back, and a row that does not exist yet
+   * has no id to select. The caller says `Creating…` while this is in flight.
+   */
   async function addCity(name: string, currency: string | null) {
+    setMessage(null)
+
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
-    if (!outcome.ok) return null
+    if (!outcome.ok) {
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
+      )
+      return null
+    }
     setCities((current) => [...current, outcome.data])
     return outcome.data
   }
 
+  /**
+   * Renaming a city, or changing what its prices are read in.
+   *
+   * Optimistic, by the same rule as renaming a trip: one row, reversible, and
+   * the picker can show the new name at once. One call carries both fields —
+   * two calls from one press could store the name and have the currency
+   * refused, which is a half-applied edit that nothing on screen could
+   * describe.
+   */
   async function patchCity(cityId: string, patch: { name?: string; currency?: string | null }) {
+    setMessage(null)
+
+    const previous = cities
+    setCities((current) =>
+      current.map((city) => (city.id === cityId ? { ...city, ...patch } : city)),
+    )
+
     const outcome = await updateCity(supabase, cityId, patch)
-    if (!outcome.ok) return
+    if (!outcome.ok) {
+      setCities(previous)
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
+      )
+      return
+    }
     setCities((current) =>
       current.map((city) => (city.id === cityId ? outcome.data : city)),
     )
   }
 
+  /**
+   * Removing a city.
+   *
+   * Pending rather than optimistic: it cannot be undone, and its consequence
+   * lands on markers the person is not looking at.
+   */
   async function removeCity(cityId: string) {
+    setMessage(null)
+
     const outcome = await deleteCity(supabase, cityId)
-    if (!outcome.ok) return
+    if (!outcome.ok) {
+      setMessage(
+        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that city.',
+      )
+      return
+    }
 
     setCities((current) => current.filter((city) => city.id !== cityId))
     // The database unassigns them rather than removing them, and the screen has
@@ -629,9 +747,8 @@ export function TripWorkspace({
           trip={trip}
           trips={trips}
           members={members}
-          busy={busy}
           onSelect={selectTrip}
-          onRename={(name) => void renameTrip(name)}
+          onRename={renameTrip}
           onInvite={invite}
           onCreated={selectTrip}
         />
@@ -642,9 +759,8 @@ export function TripWorkspace({
             markers={markers}
             selectedCityId={selectedCityId}
             onSelect={selectCity}
-            onRename={(cityId, name) => void patchCity(cityId, { name })}
-            onSetCurrency={(cityId, currency) => void patchCity(cityId, { currency })}
-            onDelete={(cityId) => void removeCity(cityId)}
+            onSave={patchCity}
+            onDelete={removeCity}
           />
 
           <FilterBar
@@ -711,10 +827,38 @@ export function TripWorkspace({
           </Banner>
         ) : null}
 
+        {/*
+          A refusal, where the person is looking.
+
+          Without this the five optimistic writes on this screen rolled back in
+          silence: `message` was rendered in exactly one place — above the
+          marker form — and none of those writes has a form open when it fails.
+          The screen put back what the database refused and said nothing, which
+          is the worst version of a failure, because something visibly happened
+          and then visibly un-happened.
+
+          Every one of these notes is drawn at the same spot, so precedence has
+          to be stated rather than left to the order they are written in: a
+          refusal outranks anything the filter has to say about what is or is
+          not on screen.
+        */}
+        {refusal !== null ? (
+          <MapOverlayNote tone="danger">
+            {refusal}{' '}
+            <button
+              type="button"
+              onClick={() => setMessage(null)}
+              className={styles.inlineAction}
+            >
+              Dismiss
+            </button>
+          </MapOverlayNote>
+        ) : null}
+
         {/* Suppressed once the trip has places: it described the first read, and
             saying "nothing saved yet" beside a marker somebody just added would
             be false. */}
-        {notice && markers.length === 0 ? (
+        {refusal === null && notice && markers.length === 0 ? (
           <MapOverlayNote tone={notice.tone}>{notice.text}</MapOverlayNote>
         ) : null}
 
@@ -726,7 +870,7 @@ export function TripWorkspace({
           for" is not. The way back out is offered here rather than only in the
           toolbar, because this is where the absence is being read.
         */}
-        {markers.length > 0 && visibleMarkers.length === 0 ? (
+        {refusal === null && markers.length > 0 && visibleMarkers.length === 0 ? (
           <MapOverlayNote tone="muted">
             No places match this filter. The trip still has {markers.length}{' '}
             {markers.length === 1 ? 'place' : 'places'}.{' '}
@@ -749,7 +893,10 @@ export function TripWorkspace({
           matches, which is the indistinguishable-empty problem from the other
           side. So it is said, and moving there is offered rather than taken.
         */}
-        {isFiltered(filter) && visibleMarkers.length > 0 && !anyInView ? (
+        {refusal === null &&
+        isFiltered(filter) &&
+        visibleMarkers.length > 0 &&
+        !anyInView ? (
           <MapOverlayNote tone="muted">
             {visibleMarkers.length}{' '}
             {visibleMarkers.length === 1 ? 'place matches' : 'places match'}, none
@@ -802,7 +949,7 @@ export function TripWorkspace({
               setConflict(null)
               setPanel({ kind: 'edit', marker, initial: valuesOf(marker) })
             }}
-            onDelete={(marker) => void remove(marker)}
+            onDelete={remove}
           />
         ) : null}
 
@@ -811,11 +958,10 @@ export function TripWorkspace({
             title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
             initial={panel.initial}
             cities={cities}
-            busy={busy}
             fieldErrors={fieldErrors}
             message={message}
             notice={conflict}
-            onSubmit={(values) => void save(values)}
+            onSubmit={save}
             onCancel={cancel}
             onCreateCity={addCity}
           />

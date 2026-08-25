@@ -13,6 +13,7 @@ import type { ReactNode } from 'react'
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
 import { Button, overlayPanelClass } from '@/app/_components/ui'
+import { usePending } from '@/lib/use-pending'
 
 import styles from './marker-details.module.css'
 
@@ -98,8 +99,20 @@ function Details({
   onBack?: () => void
   onDismiss: () => void
   onEdit: () => void
-  onDelete: () => void
+  /** Awaited, so `Remove` can say what it is doing until the row is actually gone. */
+  onDelete: () => Promise<unknown>
 }) {
+  /**
+   * Removing is pending rather than optimistic, and this flag is why the panel
+   * can say so.
+   *
+   * It is the one write here that cannot be undone, so the card stays open,
+   * says `Removing…`, and closes when the database confirms it — rather than
+   * taking the place off the map and putting it back if the delete is refused,
+   * which would make somebody watch a pin they had just removed reappear.
+   */
+  const [removing, startRemove] = usePending()
+
   return (
     <div className={overlayPanelClass}>
       <div className={styles.head}>
@@ -158,15 +171,16 @@ function Details({
         <Button onClick={onEdit}>Edit</Button>
         <Button
           tone="danger"
+          disabled={removing}
           onClick={() => {
             // Said plainly, because it is true: there is no soft delete and no
             // undo anywhere behind this.
             if (window.confirm(`Remove “${marker.name}”?\n\nThis cannot be undone.`)) {
-              onDelete()
+              startRemove(onDelete)
             }
           }}
         >
-          Remove
+          {removing ? 'Removing…' : 'Remove'}
         </Button>
 
         {onBack ? (
@@ -267,7 +281,7 @@ export function MarkerDetails({
   onBack: () => void
   onDismiss: () => void
   onEdit: (marker: Marker) => void
-  onDelete: (marker: Marker) => void
+  onDelete: (marker: Marker) => Promise<unknown>
 }) {
   const { group, index } = selection
 
