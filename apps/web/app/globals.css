@@ -91,14 +91,15 @@ textarea {
   color: var(--pp-ink-muted) !important;
 }
 
-.maplibregl-ctrl-group {
-  background: var(--pp-surface) !important;
-  box-shadow: var(--pp-shadow-sm) !important;
-}
-
-.maplibregl-ctrl-group button + button {
-  border-top-color: var(--pp-line) !important;
-}
+/*
+ * MapLibre's own control group used to be themed here, for a navigation control
+ * that was never added — the rules dressed a stacked pair of buttons that did
+ * not exist. Zoom now ships as our own pair in `trip-map.module.css`, styled
+ * with the button vocabulary and with the inert treatment DESIGN.md asks for
+ * rather than the library's `disabled`. Styling left behind for a control
+ * nobody mounts is how the next person concludes one is there, so it is gone
+ * rather than kept in reserve.
+ */
 
 @media (prefers-reduced-motion: reduce) {
   *,

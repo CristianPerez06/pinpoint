@@ -29,3 +29,14 @@ export const DEFAULT_VIEWPORT: Viewport = { width: 1024, height: 768 }
 
 /** Fraction of the viewport kept clear around the framed markers, per edge. */
 export const DEFAULT_PADDING = 0.1
+
+/**
+ * How far one press of a zoom control moves the camera.
+ *
+ * A whole level, which is the doubling both renderers' own controls use. Named
+ * here rather than written at the two call sites for the reason the range is:
+ * a step is part of what zooming *means* in this product, and two applications
+ * each choosing their own is exactly where the marker-anchor drift defect
+ * lived.
+ */
+export const ZOOM_STEP = 1

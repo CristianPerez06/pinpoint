@@ -88,3 +88,104 @@
   font-size: var(--pp-type-note-size);
   line-height: var(--pp-type-note-leading);
 }
+
+/*
+ * The map, and everything drawn over it that is ours.
+ *
+ * A box around the canvas rather than children inside it. MapLibre owns the
+ * container it is given and appends its own canvas and control containers to
+ * it; putting React children in there too is two reconcilers editing one node's
+ * child list. `.canvas` keeps its own comment about why it is sized and not
+ * positioned, and this is what its 100% now resolves against — `.frame` in turn
+ * resolves against the workspace's `.stage`, which is a flex item with a
+ * definite height.
+ */
+.frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * Zoom, as a control rather than as a gesture.
+ *
+ * Bottom-right and above the attribution rather than on it: the attribution is
+ * a licence condition of the tiles and crowding it is the same failure as
+ * hiding it.
+ *
+ * `bottom` is set from the component, because what has to be cleared is
+ * measured — the credit is one line at a comfortable width and two on a narrow
+ * one. The declaration here is only the fallback for the render before the
+ * first measurement.
+ *
+ * The other corner is the marker panel (328px at `md`, `z-index: 3`), which is
+ * why this sits at the far edge and not merely "out of the way".
+ */
+.zoom {
+  position: absolute;
+  right: var(--pp-space-md);
+  bottom: var(--pp-space-md);
+  display: grid;
+  /* A stacked pair reads as one segmented pill, so the round shape is on the
+     group and the buttons inside it square off against each other. */
+  border-radius: var(--pp-radius-pill);
+  border: 1px solid var(--pp-line-strong);
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-sm);
+  /* Clips the buttons' corners to the group's radius, so the fill on hover
+     follows the pill rather than a rectangle poking out of it. */
+  overflow: hidden;
+  z-index: 3;
+}
+
+.zoomButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pp-ink);
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    opacity 0.16s ease,
+    transform 0.12s ease;
+}
+
+/* The one hairline between them, drawn by the second rather than as a border on
+   both — two adjacent borders would be two pixels. */
+.zoomButton + .zoomButton {
+  border-top: 1px solid var(--pp-line);
+}
+
+.zoomButton:hover:not([aria-disabled='true']) {
+  background: var(--pp-surface-muted);
+}
+
+.zoomButton:active:not([aria-disabled='true']) {
+  transform: translateY(1px);
+}
+
+/*
+ * Spent, not gone.
+ *
+ * `aria-disabled` rather than `disabled`, per DESIGN.md: the attribute drops the
+ * control out of the tab order and screen readers skip it, so somebody arriving
+ * by keyboard at maximum zoom would find the zoom-in button simply absent and
+ * have no way to learn why. This keeps it reachable and announced, and the
+ * handler is the one that does nothing.
+ */
+.zoomButton[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* The glyph is drawn, not typed: `+` and `−` as characters take the font's own
+   weight, width and vertical centring, and the two would not match each other. */
+.zoomGlyph {
+  display: block;
+  width: 15px;
+  height: 15px;
+}

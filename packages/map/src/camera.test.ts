@@ -6,8 +6,15 @@ import {
   fitBounds,
   normalizeLongitude,
   offsetCenter,
+  zoomStep,
 } from './camera'
-import { DEFAULT_CAMERA, MAX_ZOOM, SINGLE_MARKER_ZOOM } from './constants'
+import {
+  DEFAULT_CAMERA,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  SINGLE_MARKER_ZOOM,
+  ZOOM_STEP,
+} from './constants'
 
 describe('normalizeLongitude', () => {
   it('leaves in-range values alone', () => {
@@ -223,5 +230,46 @@ describe('offsetCenter', () => {
     const past = offsetCenter(nearEdge, 8, 5_000, 0)
     expect(past.lng).toBeGreaterThanOrEqual(-180)
     expect(past.lng).toBeLessThan(180)
+  })
+})
+
+describe('zoomStep', () => {
+  it('moves one whole level in the direction asked for', () => {
+    expect(zoomStep(12, 1)).toBe(12 + ZOOM_STEP)
+    expect(zoomStep(12, -1)).toBe(12 - ZOOM_STEP)
+  })
+
+  it('keeps a fractional zoom fractional', () => {
+    // A wheel, a pinch and `fitBounds` all leave the camera between levels, and
+    // a button pressed from there should move by a step rather than snap to one.
+    expect(zoomStep(11.4, 1)).toBeCloseTo(12.4, 10)
+  })
+
+  it('stops at the top of our range rather than the renderer’s', () => {
+    // `maplibre-gl` would go to 22. Ours ends at 20, and `fitBounds` never
+    // returns more than that, so a button must not either.
+    expect(zoomStep(MAX_ZOOM, 1)).toBe(MAX_ZOOM)
+    expect(zoomStep(MAX_ZOOM - 0.5, 1)).toBe(MAX_ZOOM)
+  })
+
+  it('stops at the bottom of our range', () => {
+    expect(zoomStep(MIN_ZOOM, -1)).toBe(MIN_ZOOM)
+    expect(zoomStep(MIN_ZOOM + 0.5, -1)).toBe(MIN_ZOOM)
+  })
+
+  it('returns the zoom it was given once the range is spent', () => {
+    // What the applications read to know a control can do nothing: a step that
+    // arrives where it started is a control with nothing left to do.
+    expect(zoomStep(MAX_ZOOM, 1)).toBe(MAX_ZOOM)
+    expect(zoomStep(MIN_ZOOM, -1)).toBe(MIN_ZOOM)
+  })
+
+  it('brings a zoom from outside the range back inside it, either way', () => {
+    // Nothing in the product should produce one, but a persisted camera or a
+    // renderer default could. Stepping must not carry it further out.
+    expect(zoomStep(22, 1)).toBe(MAX_ZOOM)
+    expect(zoomStep(22, -1)).toBe(MAX_ZOOM)
+    expect(zoomStep(-3, -1)).toBe(MIN_ZOOM)
+    expect(zoomStep(-3, 1)).toBe(MIN_ZOOM)
   })
 })
