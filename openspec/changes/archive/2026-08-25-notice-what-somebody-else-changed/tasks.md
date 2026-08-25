@@ -43,7 +43,19 @@
       a re-read now changes that list.
 - [x] 3.6 `pnpm --filter @pinpoint/web typecheck`, `lint` and `build` clean.
 
-## 4. Look at it, with two accounts
+## 4. Look at it, with two accounts — NOT RUN
+
+Archived without this section, on the author's call. Recorded rather than ticked, because
+the standing lesson in `openspec/config.yaml` is that recent changes each shipped defects
+that type-checked, linted, built and were wrong — and a defect in this one is invisible
+even to somebody clicking, unless there are two of them on one trip. What follows is the
+pass that was not made, kept as written so it can be.
+
+Two defects *were* caught, by reading the diff rather than by running anything, and both
+were green on every static check: a re-read fired from inside a `useState` updater, which
+React calls twice in development on purpose, so every click would have sent two; and a
+first read that was not registered as in flight, so a trigger arriving while a list was
+still loading sent a second request for what was already travelling.
 
 Everything below needs two accounts on one shared trip and a real second device or browser
 profile. None of it is observable with one session, and the last three changes each shipped
