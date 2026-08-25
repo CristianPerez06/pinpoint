@@ -260,8 +260,8 @@ export function TripMap({
    *
    * Handed in rather than built here: what is in the row is the workspace's
    * business, and where it sits is this component's, because this is where the
-   * bottom edge is already negotiated between a sheet that rises from it and a
-   * credit that must stay legible above both.
+   * bottom edge is already negotiated between the sheets that rise from it and a
+   * credit that must stay legible over the map behind them.
    */
   bottomRow: ReactNode
   /**
@@ -285,7 +285,8 @@ export function TripMap({
    *
    * Handed in like `bottomRow` and `confirmBar`, and for the stronger version of
    * the same reason: it is a second tenant of an edge that already has to keep a
-   * licence credit legible above whatever is standing there.
+   * licence credit legible above whatever is standing there for any length of
+   * time.
    */
   formSheet: ReactNode
   /**
@@ -354,16 +355,17 @@ export function TripMap({
   const [viewport, setViewport] = useState<Viewport | null>(null)
 
   /**
-   * How tall the open sheet is, so the credit can sit above it.
+   * How tall the bar of controls is, so the credit can sit above it.
    *
-   * The sheet is pinned to the bottom and so is the credit, so an open sheet
-   * covered it completely — and the credit is a licence condition, not
-   * decoration. Measured rather than assumed because the sheet grows with its
-   * content up to a cap, so there is no fixed height to offset by.
+   * The bar is pinned to the bottom and so is the credit, so the bar covered it
+   * completely — and the credit is a licence condition, not decoration. Measured
+   * rather than assumed because what stands in the bar is the workspace's
+   * business, so there is no height here to hard-code.
+   *
+   * Deliberately not reset when the bar unmounts for a sheet. The last
+   * measurement is what holds the credit still while the sheet is open, which is
+   * the point of anchoring to this rather than to the sheet.
    */
-  const [sheetHeight, setSheetHeight] = useState(0)
-
-  /** How tall the bar of controls is, for the same reason and by the same means. */
   const [barHeight, setBarHeight] = useState(0)
 
   /**
@@ -464,29 +466,24 @@ export function TripMap({
     return index === -1 ? null : { group, index }
   }, [open, groups])
 
-  /**
-   * Whatever is currently sitting on the bottom edge, and so how far everything
-   * else at that edge has to rise.
-   *
-   * The bar goes flush to the bottom of the screen, which makes it the floor
-   * rather than another tenant: our credit is the only thing standing on it.
-   * One expression covers both cases — a bar when nothing is selected, a sheet
-   * when something is — instead of two offsets that have to be kept in
-   * agreement with each other.
-   *
-   * Never a sum, because the bar is not drawn while a sheet is open.
-   */
   /*
-   * Whatever is currently standing on the bottom edge.
+   * How far the credit stands off the bottom edge.
    *
-   * Three cases now rather than two, still one expression: the form when a place
-   * is being added, the marker sheet when one is being read, the bar otherwise.
-   * The form wins over the other two because it is the only one of the three that
-   * can be open at the same time as either.
+   * Two cases, not three. The marker sheet is deliberately absent: a credit that
+   * tracks it stops reading as a corner credit on the map and starts reading as a
+   * caption belonging to the sheet, sliding up and down as the sheet resizes.
+   * Reading a place is a glance, so the sheet covers the credit for as long as
+   * that glance lasts and no longer — the map's own state, which is what the
+   * licence asks to carry the credit, still shows it unprompted.
+   *
+   * The form is not a glance. It stands on the bottom edge while a place is being
+   * described, keeps the map behind it visible so the position can be confirmed,
+   * and is the one thing here a person can resize by hand — so the credit rises
+   * off it rather than spending that whole time underneath it.
    *
    * Never a sum. Exactly one of these is drawn at a time.
    */
-  const lift = formSheet ? formHeight : selection ? sheetHeight : barHeight
+  const lift = formSheet ? formHeight : barHeight
   const camera = useMemo(
     () => (viewport ? fitBounds([...markers], { viewport }) : null),
     // Deliberately not depending on `markers`: the frame is decided by the
@@ -706,7 +703,7 @@ export function TripMap({
             backgroundColor: theme.colour.surface,
             opacity: 0.85,
             // Sits directly on whatever holds the floor, with nothing between
-            // them now. Both the bar and the sheet carry the bottom inset in
+            // them now. Both the bar and the form carry the bottom inset in
             // their own padding, so adding it again here would float the credit.
             bottom: lift + SPACE.sm,
           },
@@ -735,8 +732,9 @@ export function TripMap({
         everything else while it is open.
 
         Rendered here rather than over the whole screen so that the map it leaves
-        visible is genuinely the map — our credit rises off the top of it,
-        exactly as it does off the bar and the marker sheet.
+        visible is genuinely the map — our credit rises off the top of it, exactly
+        as it does off the bar. The marker sheet is the exception, and `lift`
+        records why.
       */}
       {formSheet}
 
@@ -786,7 +784,6 @@ export function TripMap({
             })
           }
           onBack={() => setOpen({ groupKey: selection.group.key, markerId: null })}
-          onHeight={setSheetHeight}
           // Nothing here touches the camera, so dismissing cannot move it.
           onDismiss={() => setOpen(null)}
         />

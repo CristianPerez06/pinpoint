@@ -11,7 +11,6 @@ import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import X from 'lucide-react-native/icons/x'
 import { useState } from 'react'
 import {
-  type LayoutChangeEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -214,7 +213,6 @@ export function MarkerDetails({
   onChoose,
   onBack,
   onDismiss,
-  onHeight,
   onEdit,
   onDelete,
 }: {
@@ -245,12 +243,6 @@ export function MarkerDetails({
    * the form — ask the same question in the same words.
    */
   onDelete: (marker: Marker) => void
-  /**
-   * How tall this sheet ended up, so the map can lift its licence credit clear
-   * of it. Reported rather than assumed: the sheet grows with its content up to
-   * a cap, so there is no height for the map to hard-code.
-   */
-  onHeight?: (height: number) => void
 }) {
   const theme = useTheme()
   const { group, index } = selection
@@ -281,12 +273,9 @@ export function MarkerDetails({
     },
   ]
 
-  const measure = (event: LayoutChangeEvent) =>
-    onHeight?.(event.nativeEvent.layout.height)
-
   if (index === null) {
     return (
-      <View style={sheet} onLayout={measure}>
+      <View style={sheet}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: theme.colour.ink }]}>
             {group.count} places here
@@ -416,7 +405,6 @@ export function MarkerDetails({
       style={[sheet, scrolls ? { height: cap } : null]}
       onLayout={(event) => {
         const height = event.nativeEvent.layout.height
-        measure(event)
 
         // Reaching the cap is the measurement. The sheet grows to its content,
         // so a height equal to the ceiling means the content wanted more —
