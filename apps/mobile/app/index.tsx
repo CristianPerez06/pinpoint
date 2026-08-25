@@ -28,18 +28,15 @@ export default function Index() {
   const { session, loading } = useSession()
 
   /**
-   * Bumped when this app changes what is in the trip list — making a trip, and
-   * now archiving or restoring one. It was only ever creation until archiving
-   * gave the list a way to shrink as well as grow.
+   * The trips this account is on.
    *
-   * `useQuery` re-runs when its dependencies change and offers no other way to
-   * ask again — deliberately, since every other query in this app is keyed on
-   * something that changes when the answer would. This is the one case with
-   * nothing to key on, so it gets a counter rather than the hook growing a
-   * refetch nothing else would use.
+   * Keyed on the session and nothing else. It used to carry a counter bumped by
+   * anything that changed the list, because `useQuery` re-ran only when its
+   * dependencies changed and offered no other way to ask — a workaround for a
+   * missing function rather than a dependency. The function exists now, so
+   * everything that changes the list asks for it directly.
    */
-  const [createdCount, setCreatedCount] = useState(0)
-  const trips = useQuery(() => fetchTrips(supabase), [session, createdCount])
+  const trips = useQuery(() => fetchTrips(supabase), [session])
 
   /**
    * Which trip is being looked at, or null for "whichever is first".
@@ -59,17 +56,19 @@ export default function Index() {
   if (loading) return <LoadingState what="pinpoint" />
   if (!session) return <Redirect href="/login" />
 
-  if (trips.status === 'loading') return <LoadingState what="your trips" />
-  if (trips.status === 'failed') return <FailedState message={trips.message} />
+  if (trips.state.status === 'loading') return <LoadingState what="your trips" />
+  if (trips.state.status === 'failed') {
+    return <FailedState message={trips.state.message} />
+  }
 
   // No longer a dead end: this is where a first trip is made, and where somebody
   // who expected to be on one is told what to check.
-  if (trips.status === 'empty') {
+  if (trips.state.status === 'empty') {
     return (
       <TripSetup
         onCreated={(tripId) => {
           setChosenTripId(tripId)
-          setCreatedCount((count) => count + 1)
+          void trips.refetch({ force: true })
         }}
       />
     )
@@ -80,32 +79,27 @@ export default function Index() {
    * was left behind — removed, or belonging to an account that no longer has it
    * — and neither is worth an error screen when there is a trip to show.
    */
-  const trip =
-    trips.data.find((each) => each.id === chosenTripId) ?? trips.data[0]!
+  const trip = trips.rows.find((each) => each.id === chosenTripId) ?? trips.rows[0]!
 
   return (
     <TripWorkspace
       /*
         Keyed by the trip, so changing trips remounts rather than re-renders.
 
-        The workspace holds a filter, a set of local write overrides and an open
-        marker sheet, none of which mean anything on a different trip. A filter
-        in particular names member ids that do not exist in the new one, so it
-        would match nothing for a reason nobody could see. Remounting clears all
-        of it at once, which is what the specification asks for.
+        The workspace holds a filter and an open marker sheet, neither of which
+        means anything on a different trip. A filter in particular names member
+        ids that do not exist in the new one, so it would match nothing for a
+        reason nobody could see. Remounting clears all of it at once, which is
+        what the specification asks for.
       */
       key={trip.id}
       trip={trip}
-      trips={trips.data}
+      trips={trips}
       onSelectTrip={setChosenTripId}
       onCreated={(tripId) => {
         setChosenTripId(tripId)
-        setCreatedCount((count) => count + 1)
+        void trips.refetch({ force: true })
       }}
-      // Re-read without choosing. Archiving the trip being viewed leaves
-      // `chosenTripId` pointing at something no longer in the list, and the
-      // resolver above already falls through for exactly that case.
-      onTripsChanged={() => setCreatedCount((count) => count + 1)}
       userId={session.user.id}
     />
   )

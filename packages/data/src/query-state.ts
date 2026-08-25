@@ -53,3 +53,28 @@ export function failed(message: string): SettledQueryState<never> {
 export function readyOrEmpty<T>(rows: readonly T[]): SettledQueryState<readonly T[]> {
   return rows.length === 0 ? empty() : ready(rows)
 }
+
+/**
+ * How long a list stays fresh enough not to be read again.
+ *
+ * The floor belongs to the **list**, not to whatever asked. There is more than
+ * one trigger — coming back to the application, opening the surface that shows a
+ * list — and a floor held beside each listener lets a return read the trips and
+ * the trips sheet read them again two seconds later, because neither knows the
+ * other ran.
+ *
+ * This is not a cache and nothing here stores an answer. It declines to read;
+ * what stays on screen is what was already there. A cache's job is to answer
+ * with something older than the truth, which is the defect this whole mechanism
+ * exists to fix.
+ *
+ * Ten seconds because what it defends against is flapping — a tab switched to
+ * and away, a phone unlocked and immediately locked, a sheet opened straight
+ * after a return. All of those sit well inside it, and somebody who leaves to
+ * read a message and comes back to keep planning sits well outside it.
+ *
+ * A read a person explicitly asked for ignores this. Somebody pressed
+ * something, and a control that declines because a read happened eight seconds
+ * ago is a control that looks broken.
+ */
+export const FRESH_FOR_MS = 10_000

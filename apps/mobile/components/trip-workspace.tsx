@@ -5,7 +5,6 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
 import type {
-  City,
   FieldErrors,
   Marker,
   MarkerFilter,
@@ -64,7 +63,8 @@ import { TripMap, type TripMapRef } from '@/components/trip-map'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
-import { useQuery } from '@/lib/use-query'
+import { useActiveAgain } from '@/lib/use-active-again'
+import { type Query, useQuery } from '@/lib/use-query'
 
 /**
  * Everything a trip can be doing on a phone, in one place.
@@ -144,29 +144,26 @@ function valuesOf(marker: Marker): MarkerFormValues {
 }
 
 export function TripWorkspace({
-  trip: storedTrip,
-  trips: storedTrips,
+  trip,
+  trips: tripQuery,
   onSelectTrip,
-  onTripsChanged,
   onCreated,
   userId,
 }: {
   trip: Trip
   /**
-   * Every trip this account belongs to, so one can be chosen without another
-   * read. One is the ordinary case and will be for a long time.
-   */
-  trips: readonly Trip[]
-  onSelectTrip: (tripId: string) => void
-  /**
-   * Ask for the trip list again, because this screen changed what is in it.
+   * Every trip this account belongs to, as the route's own query rather than as
+   * a list copied out of it.
    *
-   * Creating already had `onCreated`, which also chooses the new trip. Archiving
-   * needs the re-read without the choosing: the person stays where the resolver
-   * upstream puts them, which for the trip they just archived is the next one
-   * along or the no-trips state.
+   * The query itself, so that a rename made here lands in the one place the
+   * trips are held and every screen reading them follows — and so that a write
+   * which changes the list can ask for it again without the route inventing a
+   * counter to be told through. It used to be a plain array plus an
+   * `onTripsChanged` callback, which is the same two capabilities with a
+   * hand-built channel between them.
    */
-  onTripsChanged: () => void
+  trips: Query<Trip>
+  onSelectTrip: (tripId: string) => void
   /**
    * A trip was made from in here. The route has to re-read its list before it
    * can show it, so this is more than a selection and is kept separate from one.
@@ -186,61 +183,49 @@ export function TripWorkspace({
   const windowHeight = useWindowDimensions().height
 
   /**
-   * A rename this device made, laid over the trip it was handed.
+   * The trips this account is on, and the four lists this trip is made of.
    *
-   * Null means no local opinion, which is the same shape as every other override
-   * here — nothing is copied, so a refetch is respected and there is nothing to
-   * re-seed.
+   * One place each, and everything on screen reads it. `trip` is resolved
+   * upstream out of `tripQuery`, so a rename recorded into the query flows back
+   * down through it — which is what makes the name in the header, the name in
+   * the trips sheet and the name in the picker incapable of disagreeing.
    */
-  const [renamed, setRenamed] = useState<Trip | null>(null)
-  const trip = renamed?.id === storedTrip.id ? renamed : storedTrip
-
-  /**
-   * The trips this account is on, with that rename laid over the one it belongs
-   * to — the same override shape as the cities and markers below.
-   *
-   * Without it the two disagree: the header reads the live trip and updates on
-   * a rename, while the trips sheet reads the list it was handed and does not.
-   * The sheet is what is on screen at the moment somebody renames, so it was
-   * the one place still showing the old name when they looked for the new one.
-   *
-   * Derived rather than held, so a refetch is respected for free and there is
-   * nothing to re-seed.
-   */
-  const trips = useMemo(
-    () => storedTrips.map((each) => (each.id === trip.id ? trip : each)),
-    [storedTrips, trip],
-  )
+  const trips = tripQuery.rows
 
   const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
   const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
   const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id])
   const memberQuery = useQuery(() => fetchTripMembers(supabase, trip.id), [trip.id])
 
+  const markers = markerQuery.rows
+  const cities = cityQuery.rows
+  const interest = interestQuery.rows
+  const members = memberQuery.rows
+
   /**
-   * What writes have changed — not a copy of what the queries returned.
+   * Every list this screen shows, read again.
    *
-   * The design for this change said to seed state from the query once and never
-   * re-seed, mirroring web. That was the wrong shape and the linter said so:
-   * copying a query result into state inside an effect is the pattern React
-   * tells you not to write, and it carried the exact hazard it was meant to
-   * avoid — a later seed replacing an answer somebody had just recorded.
-   *
-   * Holding the overrides instead removes the question. There is nothing to
-   * re-seed, because the query result is never copied; a refetch is respected
-   * for free; and reverting a refused write means dropping the override, which
-   * restores what is actually stored rather than a snapshot taken beforehand.
-   *
-   * Keyed by marker id. `null` in `answers` means withdrawn, which is a value
-   * the map has to be able to hold — absence means "no local opinion", and
-   * withdrawn is very much a local opinion.
+   * Each declines if it was read inside `FRESH_FOR_MS`, so calling this twice in
+   * a second costs one round of requests — the floor is held by the list rather
+   * than by whatever asked, which is what stops the return trigger and a sheet
+   * opening straight after it reading the same list twice.
    */
-  const [visitedWrites, setVisitedWrites] = useState<ReadonlyMap<string, boolean>>(
-    new Map(),
-  )
-  const [answers, setAnswers] = useState<ReadonlyMap<string, MarkerInterest | null>>(
-    new Map(),
-  )
+  const rereadEverything = (options?: { force?: boolean }) =>
+    Promise.all([
+      tripQuery.refetch(options),
+      markerQuery.refetch(options),
+      cityQuery.refetch(options),
+      interestQuery.refetch(options),
+      memberQuery.refetch(options),
+    ])
+
+  /*
+    Coming back to the application is how somebody learns that the person they
+    are planning with changed something. It is the only automatic trigger: no
+    polling, no interval, and nothing holding a connection open.
+  */
+  useActiveAgain(() => void rereadEverything())
+
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -261,27 +246,6 @@ export function TripWorkspace({
   const [problem, setProblem] = useState<string | null>(null)
 
   /**
-   * Markers this device has written, laid over what the query returned.
-   *
-   * The same shape as the overrides above and for the same reason — nothing is
-   * copied, so nothing can go stale and a refetch is respected for free. `null`
-   * means removed, which absence cannot express: absence is "no local opinion",
-   * and having removed something is very much an opinion.
-   *
-   * Unlike `visitedWrites` these are written *after* the database agrees rather
-   * than before it. A toggle that waited for a round trip would feel worse than
-   * the spreadsheet this replaces; a save that appeared to succeed and then
-   * vanished would be worse than either.
-   */
-  const [markerWrites, setMarkerWrites] = useState<ReadonlyMap<string, Marker | null>>(
-    new Map(),
-  )
-  /** Cities this device has written, over the query, in the same shape. */
-  const [cityWrites, setCityWrites] = useState<ReadonlyMap<string, City | null>>(
-    new Map(),
-  )
-
-  /**
    * Opening or closing a surface ends whatever refusal belonged to the last one.
    *
    * A refusal is about the act that was just attempted, in the place it was
@@ -293,9 +257,23 @@ export function TripWorkspace({
    * Every sheet toggle goes through here rather than each one remembering, so a
    * sheet added later cannot forget.
    */
-  function showSheet(open: (value: boolean) => void, value: boolean) {
+  function showSheet(
+    open: (value: boolean) => void,
+    value: boolean,
+    reread?: () => Promise<unknown>,
+  ) {
     setProblem(null)
     open(value)
+    /*
+      Opening a sheet is somebody saying "show me this", which is the return
+      trigger at the scale of one list. It lands on the surfaces where a stale
+      list is actually visible — the names in the trips sheet, the people in the
+      people sheet — and needs no gesture and nothing to discover.
+
+      Not forced, so it goes through the list's own freshness floor: opening a
+      sheet straight after coming back to the application reads nothing.
+    */
+    if (value && reread) void reread()
   }
 
   /** The place whose removal has been confirmed and is now in flight. */
@@ -348,18 +326,6 @@ export function TripWorkspace({
    */
   const centreRef = useRef<LngLat | null>(null)
 
-  /** People invited from this device, over what the query returned. */
-  const [invited, setInvited] = useState<readonly TripMember[]>([])
-
-  const members: readonly TripMember[] = useMemo(() => {
-    const base = memberQuery.status === 'ready' ? memberQuery.data : []
-    if (invited.length === 0) return base
-
-    // Anything the query has caught up on is dropped from the overrides rather
-    // than shown twice.
-    const known = new Set(base.map((member) => member.id))
-    return [...base, ...invited.filter((member) => !known.has(member.id))]
-  }, [memberQuery, invited])
   /**
    * Which member the reader is, or null when their account matches none.
    *
@@ -369,82 +335,19 @@ export function TripWorkspace({
    */
   const ownMemberId = ownMemberOf(members, userId)?.id ?? null
 
-  /** The stored cities, with this device's writes laid over them. */
-  const cities: readonly City[] = useMemo(() => {
-    const base = cityQuery.status === 'ready' ? cityQuery.data : []
-    if (cityWrites.size === 0) return base
-
-    const merged: City[] = []
-    for (const city of base) {
-      const written = cityWrites.get(city.id)
-      if (written === null) continue
-      merged.push(written ?? city)
-    }
-    // Cities created here, which the query has never seen.
-    const known = new Set(base.map((city) => city.id))
-    for (const [id, written] of cityWrites) {
-      if (written !== null && !known.has(id)) merged.push(written)
-    }
-    return merged
-  }, [cityQuery, cityWrites])
-
-  const cityIds = useMemo(() => new Set(cities.map((city) => city.id)), [cities])
-
   const currencyOf = (marker: Marker) =>
     cities.find((city) => city.id === marker.cityId)?.currency ?? null
 
-  /** The stored markers, with this device's writes laid over them. */
-  const held = useMemo(() => {
-    const base = markerQuery.status === 'ready' ? markerQuery.data : []
-
-    const lay = (marker: Marker): Marker => {
-      const withVisited = visitedWrites.has(marker.id)
-        ? { ...marker, visited: visitedWrites.get(marker.id)! }
-        : marker
-
-      /*
-        A marker filed under a city that no longer exists is unassigned, and that
-        is derived rather than written down.
-
-        Removing a city unassigns its markers in the database, and the screen has
-        to say the same without re-reading the trip. Deriving it means no
-        override per affected marker — sixteen of them for one removal — and no
-        set of overrides to keep in agreement with the city list. A dangling
-        reference simply cannot be displayed, because nothing can look it up.
-      */
-      return withVisited.cityId !== null && !cityIds.has(withVisited.cityId)
-        ? { ...withVisited, cityId: null }
-        : withVisited
-    }
-
-    const merged: Marker[] = []
-    for (const marker of base) {
-      const written = markerWrites.get(marker.id)
-      if (written === null) continue
-      merged.push(lay(written ?? marker))
-    }
-    const known = new Set(base.map((marker) => marker.id))
-    for (const [id, written] of markerWrites) {
-      if (written !== null && !known.has(id)) merged.push(lay(written))
-    }
-    return merged
-  }, [markerQuery, visitedWrites, markerWrites, cityIds])
-
-  /** The stored records, with the reader's own local answers laid over them. */
-  const interest = useMemo(() => {
-    const base = interestQuery.status === 'ready' ? interestQuery.data : []
-    if (ownMemberId === null || answers.size === 0) return base
-
-    // Everything except this reader's records for markers they have answered
-    // locally — those are replaced below, or dropped when withdrawn.
-    const others = base.filter(
-      (record) => !(record.memberId === ownMemberId && answers.has(record.markerId)),
-    )
-    const mine = [...answers.values()].filter(
-      (record): record is MarkerInterest => record !== null,
-    )
-    return [...others, ...mine]
-  }, [interestQuery, answers, ownMemberId])
+  /**
+   * The markers, under whatever name the rest of this file knows them by.
+   *
+   * There used to be a merge here — the query's rows with five piles of local
+   * writes laid over them, plus a derivation that unassigned any marker whose
+   * city had gone. All of it existed because `useQuery` owned its result and
+   * gave no way to change it, so a write had nowhere else to go. It has one
+   * now, and the unassignment is written by the removal that causes it.
+   */
+  const held = markers
 
   const interestFor = (marker: Marker) =>
     interest.filter((record) => record.markerId === marker.id)
@@ -478,21 +381,10 @@ export function TripWorkspace({
   const narrowed = isFiltered(filter)
 
   /**
-   * Laying an override on, and taking it off again if the database disagrees.
-   *
    * Optimistic, like the laptop: a toggle that waited for a round trip would
    * feel worse than the spreadsheet this replaces, and these are the writes made
-   * most often in a row.
-   *
-   * Dropping the override on failure restores what is stored rather than a copy
-   * captured beforehand, so a revert cannot resurrect a stale value.
+   * most often in a row. Refused, they put back what was displayed.
    */
-  function withoutOverride<V>(map: ReadonlyMap<string, V>, markerId: string) {
-    const next = new Map(map)
-    next.delete(markerId)
-    return next
-  }
-
   async function answer(marker: Marker, interested: boolean) {
     if (ownMemberId === null) return
 
@@ -501,16 +393,21 @@ export function TripWorkspace({
     // which leaves the screen saying something that is no longer true.
     setProblem(null)
 
-    setAnswers((current) =>
-      new Map(current).set(marker.id, {
+    const previous = interest
+    interestQuery.set((records) => [
+      ...records.filter(
+        (record) =>
+          !(record.markerId === marker.id && record.memberId === ownMemberId),
+      ),
+      {
         markerId: marker.id,
         memberId: ownMemberId,
         interested,
-        // Nothing reads this, and stamping it once here beats recomputing it on
-        // every render inside the merge above.
+        // Nothing reads this, and stamping it here beats inventing a value the
+        // stored row will overwrite on the next read anyway.
         updatedAt: new Date().toISOString(),
-      }),
-    )
+      },
+    ])
 
     const outcome = await recordInterest(supabase, {
       markerId: marker.id,
@@ -518,7 +415,7 @@ export function TripWorkspace({
       interested,
     })
     if (!outcome.ok) {
-      setAnswers((current) => withoutOverride(current, marker.id))
+      interestQuery.set(() => previous)
       setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
     }
   }
@@ -528,13 +425,17 @@ export function TripWorkspace({
 
     setProblem(null)
 
-    // Null rather than absent: absent means "no local opinion", and withdrawing
-    // is an opinion that has to survive the merge.
-    setAnswers((current) => new Map(current).set(marker.id, null))
+    const previous = interest
+    interestQuery.set((records) =>
+      records.filter(
+        (record) =>
+          !(record.markerId === marker.id && record.memberId === ownMemberId),
+      ),
+    )
 
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
-      setAnswers((current) => withoutOverride(current, marker.id))
+      interestQuery.set(() => previous)
       setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
     }
   }
@@ -542,11 +443,14 @@ export function TripWorkspace({
   async function markVisited(marker: Marker, visited: boolean) {
     setProblem(null)
 
-    setVisitedWrites((current) => new Map(current).set(marker.id, visited))
+    const previous = markers
+    markerQuery.set((rows) =>
+      rows.map((each) => (each.id === marker.id ? { ...each, visited } : each)),
+    )
 
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
     if (!outcome.ok) {
-      setVisitedWrites((current) => withoutOverride(current, marker.id))
+      markerQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
           ? outcome.message
@@ -688,11 +592,11 @@ export function TripWorkspace({
     }
 
     const saved = outcome.data
-    setMarkerWrites((current) => new Map(current).set(saved.id, saved))
-    // The stored row is now authoritative about this marker, including whether it
-    // is visited, so an optimistic override for it would only be able to be
-    // wrong from here on.
-    setVisitedWrites((current) => withoutOverride(current, saved.id))
+    markerQuery.set((rows) =>
+      rows.some((marker) => marker.id === saved.id)
+        ? rows.map((marker) => (marker.id === saved.id ? saved : marker))
+        : [...rows, saved],
+    )
     setLastCityId(saved.cityId)
     cancelPanel()
   }
@@ -737,25 +641,35 @@ export function TripWorkspace({
       )
       return
     }
-    setMarkerWrites((current) => new Map(current).set(marker.id, null))
+    markerQuery.set((rows) => rows.filter((each) => each.id !== marker.id))
     cancelPanel()
   }
 
+  /**
+   * Renaming the trip, into the one place the trips are held.
+   *
+   * The route resolves `trip` out of that list, so writing here is what makes
+   * the header, the trips sheet and the picker follow at once — they all read
+   * the same rows and there is no second copy for one of them to be showing.
+   */
   async function renameTrip(name: string) {
     setProblem(null)
 
-    const previous = renamed
-    setRenamed({ ...trip, name })
+    const previous = trips
+    tripQuery.set((rows) =>
+      rows.map((each) => (each.id === trip.id ? { ...each, name } : each)),
+    )
 
     const outcome = await updateTrip(supabase, trip.id, { name })
     if (!outcome.ok) {
-      setRenamed(previous)
+      tripQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
       )
       return
     }
-    setRenamed(outcome.data)
+    const saved = outcome.data
+    tripQuery.set((rows) => rows.map((each) => (each.id === saved.id ? saved : each)))
   }
 
   /**
@@ -767,12 +681,15 @@ export function TripWorkspace({
    * member, and a confirmation on a reversible action trains people to dismiss
    * confirmations on the ones that are not.
    *
-   * `onTripsChanged` is what moves the person off a trip they just archived.
-   * The list re-reads, the archived trip is no longer in it, and the resolver
-   * upstream falls through to the first remaining one — or to the no-trips
-   * state, which is the screen where a first trip is made. That fall-through
-   * already existed for a trip left behind by other means; archiving simply
-   * arrives at it by a new route.
+   * Dropping the trip from the list is what moves the person off one they just
+   * archived: the resolver upstream falls through to the first remaining trip —
+   * or to the no-trips state, which is the screen where a first trip is made.
+   * That fall-through already existed for a trip left behind by other means;
+   * archiving simply arrives at it by a new route.
+   *
+   * A restore is asked for again rather than written, because the row being put
+   * back is not in the list to be edited — it is in the archived reveal, which
+   * this list has never held.
    */
   async function setTripArchived(tripId: string, value: boolean) {
     setProblem(null)
@@ -791,7 +708,9 @@ export function TripWorkspace({
     // Dropped rather than kept in step: the reveal is re-read from the database
     // the next time it is asked for, so a restored trip cannot linger in it.
     setArchivedTrips(null)
-    onTripsChanged()
+
+    if (value) tripQuery.set((rows) => rows.filter((each) => each.id !== tripId))
+    else void tripQuery.refetch({ force: true })
   }
 
   /**
@@ -839,7 +758,7 @@ export function TripWorkspace({
       return { field: '_', message: outcome.message }
     }
 
-    setInvited((current) => [...current, outcome.data])
+    memberQuery.set((rows) => [...rows, outcome.data])
     return null
   }
 
@@ -861,7 +780,7 @@ export function TripWorkspace({
       )
       return null
     }
-    setCityWrites((current) => new Map(current).set(outcome.data.id, outcome.data))
+    cityQuery.set((rows) => [...rows, outcome.data])
     return outcome.data
   }
 
@@ -870,12 +789,6 @@ export function TripWorkspace({
    *
    * Optimistic, by the same rule as renaming a trip: one row, reversible, and
    * the list can show the new name at once.
-   *
-   * The revert restores the override that was there rather than dropping it,
-   * which is where this differs from the interest writes above. Dropping is
-   * only safe when a stored row is underneath to fall back to, and a city
-   * created on this device has none — its override *is* the city, so dropping
-   * it would answer a refused rename by making the city disappear.
    *
    * One call carries both fields. Two calls from one press could store the name
    * and have the currency refused, which is a half-applied edit that nothing on
@@ -887,26 +800,21 @@ export function TripWorkspace({
   ) {
     setProblem(null)
 
-    const shown = cities.find((city) => city.id === cityId)
-    const previous = cityWrites.get(cityId)
-    if (shown) {
-      setCityWrites((writes) => new Map(writes).set(cityId, { ...shown, ...patch }))
-    }
+    const previous = cities
+    cityQuery.set((rows) =>
+      rows.map((city) => (city.id === cityId ? { ...city, ...patch } : city)),
+    )
 
     const outcome = await updateCity(supabase, cityId, patch)
     if (!outcome.ok) {
-      setCityWrites((writes) => {
-        const next = new Map(writes)
-        if (previous === undefined) next.delete(cityId)
-        else next.set(cityId, previous)
-        return next
-      })
+      cityQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
       )
       return
     }
-    setCityWrites((writes) => new Map(writes).set(cityId, outcome.data))
+    const saved = outcome.data
+    cityQuery.set((rows) => rows.map((city) => (city.id === cityId ? saved : city)))
   }
 
   async function removeCity(cityId: string) {
@@ -919,9 +827,21 @@ export function TripWorkspace({
       )
       return
     }
-    setCityWrites((current) => new Map(current).set(cityId, null))
-    // Markers filed under it become unassigned without being written to — see the
-    // derivation in `held`.
+    cityQuery.set((rows) => rows.filter((city) => city.id !== cityId))
+    /*
+      The database unassigns the markers filed under it, and the screen has to
+      say the same without re-reading the trip.
+
+      Written here rather than derived from a dangling reference, which is what
+      it used to be. Deriving it needed a merge between two lists to exist at
+      all, and one list cannot hold a reference to a row that is no longer in
+      the other one.
+    */
+    markerQuery.set((rows) =>
+      rows.map((marker) =>
+        marker.cityId === cityId ? { ...marker, cityId: null } : marker,
+      ),
+    )
     if (lastCityId === cityId) setLastCityId(null)
   }
 
@@ -986,7 +906,7 @@ export function TripWorkspace({
           name truncates rather than pushing the menu off the edge.
         */}
         <Pressable
-          onPress={() => showSheet(setTripsOpen, true)}
+          onPress={() => showSheet(setTripsOpen, true, tripQuery.refetch)}
           accessibilityRole="button"
           accessibilityLabel={`${trip.name}. Switch or manage trips`}
           hitSlop={6}
@@ -1093,8 +1013,10 @@ export function TripWorkspace({
               </Pressable>
             </View>
           }
-          loading={markerQuery.status === 'loading'}
-          failed={markerQuery.status === 'failed' ? markerQuery.message : null}
+          loading={markerQuery.state.status === 'loading'}
+          failed={
+            markerQuery.state.status === 'failed' ? markerQuery.state.message : null
+          }
           total={held.length}
           visible={visible}
           currencyOf={currencyOf}
@@ -1208,11 +1130,11 @@ export function TripWorkspace({
         onSetArchived={(tripId, value) => void setTripArchived(tripId, value)}
         onOpenPeople={() => {
           showSheet(setTripsOpen, false)
-          setPeopleOpen(true)
+          showSheet(setPeopleOpen, true, memberQuery.refetch)
         }}
         onOpenCities={() => {
           showSheet(setTripsOpen, false)
-          setCitiesOpen(true)
+          showSheet(setCitiesOpen, true, cityQuery.refetch)
         }}
         // The same refusal the map shows, handed to the sheet covering it. One
         // piece of state, rendered wherever the person actually is.
@@ -1224,6 +1146,7 @@ export function TripWorkspace({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onSignOut={() => void signOut(supabase)}
+        onRefresh={() => rereadEverything({ force: true })}
         member={ownMemberOf(members, userId) ?? null}
       />
 

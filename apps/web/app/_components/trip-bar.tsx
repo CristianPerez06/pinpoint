@@ -29,6 +29,7 @@ export function TripBar({
   onSelect,
   onRename,
   onInvite,
+  onShowPeople,
   onCreated,
 }: {
   trip: Trip
@@ -45,6 +46,16 @@ export function TripBar({
    * finished.
    */
   onRename: (name: string) => Promise<unknown>
+  /**
+   * The People panel has just been opened.
+   *
+   * Opening it is somebody saying "show me who is on this trip", which is the
+   * same signal as coming back to the tab at the scale of one list — so the
+   * workspace reads the members again. It goes through that list's own
+   * freshness floor, so opening the panel straight after a return reads
+   * nothing.
+   */
+  onShowPeople: () => void
   /** Opens the trip that was just made. */
   onCreated: (tripId: string) => void
   /** Resolves to a field error when the address is refused, or null on success. */
@@ -65,6 +76,7 @@ export function TripBar({
     setRenaming(which === 'rename')
     setPeopleOpen(which === 'people')
     setCreating(which === 'create')
+    if (which === 'people') onShowPeople()
   }
 
   return (
