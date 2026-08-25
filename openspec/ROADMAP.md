@@ -107,6 +107,18 @@ Two of those columns are the whole product:
   what is *stored* rather than a snapshot taken beforehand. Web still does the
   snapshot, which is correct today and is the weaker of the two.
 
+  **Both halves of that are now gone**, and the second sentence turned out to be
+  the interesting one. `useQuery` owned its result and gave the screen no way to
+  change it, which is the whole reason the overrides existed — five piles of local
+  writes and four merges, none of them chosen for its own sake. Giving the hook a
+  setter deleted all of it, and left one place holding each list on both
+  platforms — which is what a re-read needed in order to reach anything.
+
+  Worth carrying forward, because the reasoning was sound and the conclusion was
+  still an accident: an awkward shape had a good local justification and nobody
+  looked past it at the constraint producing it. The question that dissolved it
+  was not "is this shape right" but "why can't the screen just change the data".
+
 - **Edits stop overwriting each other silently** — markers carry a last-changed
   time, maintained by a trigger, and a save based on a stale read is refused and
   said out loud rather than applied.
@@ -511,6 +523,24 @@ scale the product runs at today.
       contrast fix. Not urgent: every affected control also carries a fill and a
       label, so none of them is unidentifiable, which is the difference between
       this and the four defects that were fixed.
+
+- [ ] **Nothing appears while you are looking at the screen.** Both applications
+      re-read when they become current again — the tab becomes visible, the phone
+      comes back to the foreground, a sheet showing a list opens — and that is the
+      whole of it. Somebody else's change lands on your screen the next time you
+      come back, and not before.
+
+      Supabase realtime is the mechanism that would close it, and it was declined
+      deliberately rather than overlooked. It is in the free tier, so this is not a
+      $0 decision. It is a second mechanism with failure modes this product has
+      never had — reconnects, messages missed while backgrounded, channels that
+      have to respect row-level security — and shipping it in the same change as
+      the first invalidation the product ever had would have meant two new things
+      to debug with no way to tell which one was wrong.
+
+      **The condition for revisiting is written down**: use the return trigger on a
+      real shared trip, with two people, and see whether something is still stale
+      in a way that matters. Not before that.
 
 - [ ] **The disposable Kyoto seed migration is still applied.** It was kept
       deliberately so there was something to look at; deleting it needs the rows

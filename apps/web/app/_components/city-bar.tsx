@@ -28,6 +28,7 @@ export function CityBar({
   onSelect,
   onSave,
   onDelete,
+  onEditCity,
 }: {
   cities: readonly City[]
   markers: readonly Marker[]
@@ -46,6 +47,14 @@ export function CityBar({
     patch: { name: string; currency: string | null },
   ) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
+  /**
+   * The city editor has just been opened.
+   *
+   * The same signal as the People panel: opening it is a request to look at
+   * this list, so the workspace reads the cities again, through that list's own
+   * freshness floor.
+   */
+  onEditCity: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
@@ -76,7 +85,13 @@ export function CityBar({
       {selected ? (
         <Button
           tone="quiet"
-          onClick={() => setEditing((open) => !open)}
+          onClick={() => {
+            // Outside the updater, not inside it. A `useState` updater has to
+            // be pure — React calls it twice in development on purpose — so a
+            // read fired from in there would be sent twice every time.
+            if (!editing) onEditCity()
+            setEditing((open) => !open)
+          }}
           title="Rename, set a currency, or remove this city"
         >
           Edit city

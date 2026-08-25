@@ -15,6 +15,11 @@ import {
   createMarker,
   deleteCity,
   deleteMarker,
+  fetchTripCities,
+  fetchTripInterest,
+  fetchTripMarkers,
+  fetchTripMembers,
+  fetchTrips,
   inviteMember,
   recordInterest,
   setMarkerVisited,
@@ -48,6 +53,8 @@ import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
 import { Button } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
+import { useRows } from '@/lib/use-rows'
+import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-workspace.module.css'
 
@@ -164,11 +171,27 @@ export function TripWorkspace({
    * immediately, and re-reading the whole trip to see one row change is a poor
    * exchange.
    */
-  const [trip, setTrip] = useState<Trip>(initialTrip)
-  const [members, setMembers] = useState<readonly TripMember[]>(initialMembers)
-  const [markers, setMarkers] = useState<readonly Marker[]>(initialMarkers)
-  const [cities, setCities] = useState<readonly City[]>(initialCities)
-  const [interest, setInterest] = useState<readonly MarkerInterest[]>(initialInterest)
+  const [trips, setTrips, refreshTrips] = useRows<Trip>(storedTrips)
+  const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)
+  const [markers, setMarkers, refreshMarkers] = useRows<Marker>(initialMarkers)
+  const [cities, setCities, refreshCities] = useRows<City>(initialCities)
+  const [interest, setInterest, refreshInterest] =
+    useRows<MarkerInterest>(initialInterest)
+
+  /**
+   * The trip being looked at, out of the list that holds it.
+   *
+   * Derived rather than held beside the list, which is what it used to be —
+   * and the two then disagreed the moment it was renamed, because the picker
+   * read one and the name read the other. One place, and everything on screen
+   * reads it.
+   *
+   * Falling back to what the server resolved covers the trip having left the
+   * list under a re-read: somebody else archived it. Going on showing the trip
+   * that is open beats emptying the screen out from under whoever is looking at
+   * it, and the next navigation resolves it properly.
+   */
+  const trip = trips.find((each) => each.id === initialTrip.id) ?? initialTrip
   /**
    * Unfiltered, and not persisted anywhere.
    *
@@ -226,6 +249,31 @@ export function TripWorkspace({
   }>({ points: initialMarkers, token: 0 })
 
   const centreRef = useRef<DraftPosition | null>(null)
+
+  /**
+   * Every list this screen shows, read again.
+   *
+   * Each declines if it was read inside `FRESH_FOR_MS`, so calling this twice
+   * in a second costs one round of requests — the floor is held by the list
+   * rather than by whatever asked, which is what stops coming back to the tab
+   * and opening a panel straight afterwards reading the same list twice.
+   */
+  function rereadEverything(options?: { force?: boolean }) {
+    return Promise.all([
+      refreshTrips(() => fetchTrips(supabase), options),
+      refreshMarkers(() => fetchTripMarkers(supabase, trip.id), options),
+      refreshCities(() => fetchTripCities(supabase, trip.id), options),
+      refreshInterest(() => fetchTripInterest(supabase, trip.id), options),
+      refreshMembers(() => fetchTripMembers(supabase, trip.id), options),
+    ])
+  }
+
+  /*
+    Coming back to the tab is how somebody learns that the person they are
+    planning with changed something. It is the only automatic trigger: no
+    polling, no interval, and nothing holding a connection open.
+  */
+  useVisibleAgain(() => void rereadEverything())
 
   // The selection lives in the URL so it survives a reload and can be linked.
   const selectedCityId = searchParams.get('city')
@@ -287,25 +335,6 @@ export function TripWorkspace({
     const index = group.markers.findIndex((marker) => marker.id === panel.markerId)
     return index === -1 ? null : { group, index }
   }, [panel, groups])
-
-  /**
-   * Every trip this account is on, with the one being viewed as it currently is.
-   *
-   * `storedTrips` was read on the server and never hears about anything written
-   * since. The trip being viewed is held here as state and does, so the two
-   * disagree the moment it is renamed — and the picker, which is the visible
-   * name as soon as an account has two trips, was rendering the stale half.
-   * A rename said `Saving…`, succeeded, and left the old name on screen.
-   *
-   * Derived rather than copied into state, so there is nothing to keep in step:
-   * a fresh list from the server and a fresh rename both flow through on the
-   * next render. Fixed here rather than at the one control that showed it,
-   * because a value displayed anywhere has to follow the value.
-   */
-  const trips = useMemo(
-    () => storedTrips.map((each) => (each.id === trip.id ? trip : each)),
-    [storedTrips, trip],
-  )
 
   /**
    * A refusal with no form to sit above.
@@ -463,21 +492,32 @@ export function TripWorkspace({
     router.refresh()
   }
 
+  /**
+   * Renaming the trip, into the one place the trips are held.
+   *
+   * The name shown in the bar is resolved out of that list, so writing here is
+   * what makes the name and the picker follow together. They used to be two
+   * values, and a rename reported success while leaving the old name in the
+   * picker.
+   */
   async function renameTrip(name: string) {
     setMessage(null)
 
-    const previous = trip
-    setTrip({ ...trip, name })
+    const previous = trips
+    setTrips((rows) =>
+      rows.map((each) => (each.id === trip.id ? { ...each, name } : each)),
+    )
 
     const outcome = await updateTrip(supabase, trip.id, { name })
     if (!outcome.ok) {
-      setTrip(previous)
+      setTrips(previous)
       setMessage(
         outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
       )
       return
     }
-    setTrip(outcome.data)
+    const saved = outcome.data
+    setTrips((rows) => rows.map((each) => (each.id === saved.id ? saved : each)))
   }
 
   /**
@@ -750,6 +790,9 @@ export function TripWorkspace({
           onSelect={selectTrip}
           onRename={renameTrip}
           onInvite={invite}
+          onShowPeople={() =>
+            void refreshMembers(() => fetchTripMembers(supabase, trip.id))
+          }
           onCreated={selectTrip}
         />
 
@@ -761,6 +804,9 @@ export function TripWorkspace({
             onSelect={selectCity}
             onSave={patchCity}
             onDelete={removeCity}
+            onEditCity={() =>
+              void refreshCities(() => fetchTripCities(supabase, trip.id))
+            }
           />
 
           <FilterBar

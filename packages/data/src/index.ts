@@ -1,6 +1,7 @@
 export {
   empty,
   failed,
+  FRESH_FOR_MS,
   LOADING,
   ready,
   readyOrEmpty,
