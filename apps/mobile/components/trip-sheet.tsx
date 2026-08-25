@@ -111,220 +111,237 @@ export function TripSheet({
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          // The sheet swallows presses so that touching a row does not dismiss
-          // through the backdrop underneath it.
-          onStartShouldSetResponder={() => true}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
-              // A definite ceiling, so the `ScrollView` inside has something to
-              // resolve against rather than asking a parent that sizes to it.
-              maxHeight: cap,
-              paddingBottom: SPACE.md + insets.bottom,
-            },
-          ]}
-        >
-          <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.colour.ink }]}>Trips</Text>
-            <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
-              <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                Done
-              </Text>
-            </Pressable>
-          </View>
+        {/*
+          A positioner, and nothing else. The surface is the `View` inside it.
 
-          <ScrollView keyboardShouldPersistTaps="handled">
-            {trips.map((each) => (
-              <TripRow
-                key={each.id}
-                trip={each}
-                current={each.id === trip.id}
-                onPress={() => {
-                  close()
-                  onSelectTrip(each.id)
-                }}
-              />
-            ))}
+          `KeyboardAvoidingView` with `behavior="padding"` renders
+          `StyleSheet.compose(style, { paddingBottom: bottomHeight })`, and
+          `bottomHeight` is 0 whenever the keyboard is down — so any
+          `paddingBottom` handed to it is overwritten on every render where the
+          keyboard is closed, which is almost all of them. The sheet's own
+          padding was written here and silently thrown away: the last row sat on
+          the bottom of the screen while the style said otherwise.
 
-            {/*
-              Making another one. Here rather than only on the empty state,
-              which is where it was at first and is half the requirement: any
-              signed-in person may create a trip, not only somebody with none.
-            */}
-            <Pressable
-              onPress={() => openDetour(creating ? null : 'create')}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: creating }}
-              style={styles.row}
-            >
-              <Plus size={18} color={theme.colour.accentInk} strokeWidth={2.4} />
-              <Text style={[styles.rowName, { color: theme.colour.accentInk }]}>
-                New trip
-              </Text>
-            </Pressable>
-
-            {creating ? (
-              <View style={styles.editor}>
-                <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  A trip is one shared map, separate from this one. Nothing here
-                  moves across.
+          Nothing about that is visible from the styles, which is what made it
+          look like a value set differently on this sheet. It was identical to
+          every other sheet's. The ones that kept their padding are the ones
+          whose surface is a plain `View` — this is now one of them.
+        */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View
+            // The sheet swallows presses so that touching a row does not dismiss
+            // through the backdrop underneath it.
+            onStartShouldSetResponder={() => true}
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: theme.colour.surface,
+                borderColor: theme.colour.line,
+                // A definite ceiling, so the `ScrollView` inside has something to
+                // resolve against rather than asking a parent that sizes to it.
+                maxHeight: cap,
+                paddingBottom: SPACE.md + insets.bottom,
+              },
+            ]}
+          >
+            <View style={styles.headerRow}>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>Trips</Text>
+              <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
+                <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
+                  Done
                 </Text>
-                <CreateTripForm
-                  onCreated={(tripId) => {
+              </Pressable>
+            </View>
+
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {trips.map((each) => (
+                <TripRow
+                  key={each.id}
+                  trip={each}
+                  current={each.id === trip.id}
+                  onPress={() => {
                     close()
-                    onCreated(tripId)
+                    onSelectTrip(each.id)
                   }}
                 />
-                <Button label="Cancel" onPress={() => openDetour(null)} />
-              </View>
-            ) : null}
+              ))}
 
-            <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+              {/*
+                Making another one. Here rather than only on the empty state,
+                which is where it was at first and is half the requirement: any
+                signed-in person may create a trip, not only somebody with none.
+              */}
+              <Pressable
+                onPress={() => openDetour(creating ? null : 'create')}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: creating }}
+                style={styles.row}
+              >
+                <Plus size={18} color={theme.colour.accentInk} strokeWidth={2.4} />
+                <Text style={[styles.rowName, { color: theme.colour.accentInk }]}>
+                  New trip
+                </Text>
+              </Pressable>
 
-            {/* Everything below is about the trip being viewed, so it says which. */}
-            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-              {trip.name}
-            </Text>
+              {creating ? (
+                <View style={styles.editor}>
+                  <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+                    A trip is one shared map, separate from this one. Nothing here
+                    moves across.
+                  </Text>
+                  <CreateTripForm
+                    onCreated={(tripId) => {
+                      close()
+                      onCreated(tripId)
+                    }}
+                  />
+                  <Button label="Cancel" onPress={() => openDetour(null)} />
+                </View>
+              ) : null}
 
-            <Pressable
-              onPress={() => {
-                setName(trip.name)
-                openDetour(renaming ? null : 'rename')
-              }}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: renaming }}
-              style={styles.row}
-            >
-              <Text style={[styles.rowName, { color: theme.colour.ink }]}>
-                Rename
+              <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+
+              {/* Everything below is about the trip being viewed, so it says which. */}
+              <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
+                {trip.name}
               </Text>
-              <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
-            </Pressable>
 
-            {renaming ? (
-              <View style={styles.editor}>
-                <TextField label="Trip name" value={name} onChange={setName} />
-                <View style={styles.buttons}>
-                  <View style={styles.grow}>
-                    <Button
-                      label="Save"
-                      tone="primary"
-                      disabled={
-                        busy || name.trim() === '' || name.trim() === trip.name
-                      }
-                      onPress={() => {
-                        onRename(name.trim())
-                        openDetour(null)
-                      }}
-                    />
-                  </View>
-                  <View style={styles.grow}>
-                    <Button label="Cancel" onPress={() => openDetour(null)} />
+              <Pressable
+                onPress={() => {
+                  setName(trip.name)
+                  openDetour(renaming ? null : 'rename')
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: renaming }}
+                style={styles.row}
+              >
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>
+                  Rename
+                </Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              {renaming ? (
+                <View style={styles.editor}>
+                  <TextField label="Trip name" value={name} onChange={setName} />
+                  <View style={styles.buttons}>
+                    <View style={styles.grow}>
+                      <Button
+                        label="Save"
+                        tone="primary"
+                        disabled={
+                          busy || name.trim() === '' || name.trim() === trip.name
+                        }
+                        onPress={() => {
+                          onRename(name.trim())
+                          openDetour(null)
+                        }}
+                      />
+                    </View>
+                    <View style={styles.grow}>
+                      <Button label="Cancel" onPress={() => openDetour(null)} />
+                    </View>
                   </View>
                 </View>
-              </View>
-            ) : null}
+              ) : null}
 
-            <Pressable
-              onPress={onOpenPeople}
-              accessibilityRole="button"
-              style={styles.row}
-            >
-              <Text style={[styles.rowName, { color: theme.colour.ink }]}>People</Text>
-              <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
-            </Pressable>
-
-            <Pressable
-              onPress={onOpenCities}
-              accessibilityRole="button"
-              style={styles.row}
-            >
-              <Text style={[styles.rowName, { color: theme.colour.ink }]}>Cities</Text>
-              <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
-            </Pressable>
-
-            {/*
-              Archiving, in the danger colour and last.
-
-              It is the only way to remove a trip — no table in this schema has a
-              delete policy — and it is reversible, which is why it takes no
-              confirmation step. What it must never be is a one-way door: an
-              archive nobody can undo is the unreachable, unremovable trip the
-              initial schema was written to prevent, arrived at deliberately.
-            */}
-            <Pressable
-              onPress={() => {
-                close()
-                onSetArchived(trip.id, true)
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Archive ${trip.name}`}
-              accessibilityHint="Puts the trip away. Nothing is deleted and it can be restored."
-              style={styles.row}
-            >
-              <Archive size={18} color={theme.colour.danger} strokeWidth={2} />
-              <Text style={[styles.rowName, { color: theme.colour.danger }]}>
-                Archive trip
-              </Text>
-            </Pressable>
-
-            <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
-
-            {/*
-              The way back.
-
-              Behind a deliberate act rather than always on screen, because most
-              of the time there is nothing archived and a permanent empty section
-              is furniture. But it is always *reachable* — including by somebody
-              who has archived every trip they have, which is the case that turns
-              a tidy list into a lost one.
-            */}
-            {archived === null ? (
               <Pressable
-                onPress={onRevealArchived}
+                onPress={onOpenPeople}
                 accessibilityRole="button"
                 style={styles.row}
               >
-                <ArchiveRestore
-                  size={18}
-                  color={theme.colour.inkMuted}
-                  strokeWidth={2}
-                />
-                <Text style={[styles.rowName, { color: theme.colour.inkMuted }]}>
-                  Show archived trips
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>People</Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              <Pressable
+                onPress={onOpenCities}
+                accessibilityRole="button"
+                style={styles.row}
+              >
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>Cities</Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              {/*
+                Archiving, in the danger colour and last.
+
+                It is the only way to remove a trip — no table in this schema has a
+                delete policy — and it is reversible, which is why it takes no
+                confirmation step. What it must never be is a one-way door: an
+                archive nobody can undo is the unreachable, unremovable trip the
+                initial schema was written to prevent, arrived at deliberately.
+              */}
+              <Pressable
+                onPress={() => {
+                  close()
+                  onSetArchived(trip.id, true)
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Archive ${trip.name}`}
+                accessibilityHint="Puts the trip away. Nothing is deleted and it can be restored."
+                style={styles.row}
+              >
+                <Archive size={18} color={theme.colour.danger} strokeWidth={2} />
+                <Text style={[styles.rowName, { color: theme.colour.danger }]}>
+                  Archive trip
                 </Text>
               </Pressable>
-            ) : archived.length === 0 ? (
-              <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                Nothing archived.
-              </Text>
-            ) : (
-              archived.map((each) => (
-                <View key={each.id} style={styles.row}>
+
+              <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+
+              {/*
+                The way back.
+
+                Behind a deliberate act rather than always on screen, because most
+                of the time there is nothing archived and a permanent empty section
+                is furniture. But it is always *reachable* — including by somebody
+                who has archived every trip they have, which is the case that turns
+                a tidy list into a lost one.
+              */}
+              {archived === null ? (
+                <Pressable
+                  onPress={onRevealArchived}
+                  accessibilityRole="button"
+                  style={styles.row}
+                >
+                  <ArchiveRestore
+                    size={18}
+                    color={theme.colour.inkMuted}
+                    strokeWidth={2}
+                  />
                   <Text style={[styles.rowName, { color: theme.colour.inkMuted }]}>
-                    {each.name}
+                    Show archived trips
                   </Text>
-                  <Pressable
-                    onPress={() => onSetArchived(each.id, false)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Restore ${each.name}`}
-                    hitSlop={8}
-                    style={styles.restore}
-                  >
-                    <Text
-                      style={[styles.restoreText, { color: theme.colour.accentInk }]}
-                    >
-                      Restore
+                </Pressable>
+              ) : archived.length === 0 ? (
+                <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+                  Nothing archived.
+                </Text>
+              ) : (
+                archived.map((each) => (
+                  <View key={each.id} style={styles.row}>
+                    <Text style={[styles.rowName, { color: theme.colour.inkMuted }]}>
+                      {each.name}
                     </Text>
-                  </Pressable>
-                </View>
-              ))
-            )}
-          </ScrollView>
+                    <Pressable
+                      onPress={() => onSetArchived(each.id, false)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Restore ${each.name}`}
+                      hitSlop={8}
+                      style={styles.restore}
+                    >
+                      <Text
+                        style={[styles.restoreText, { color: theme.colour.accentInk }]}
+                      >
+                        Restore
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Pressable>
     </Modal>
