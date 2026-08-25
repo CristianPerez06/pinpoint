@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     gap: SPACE.sm + 2,
     paddingVertical: 15,
     paddingHorizontal: SPACE.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
   },
   rowText: { ...role(TYPE.rowName) },
   signOut: {
