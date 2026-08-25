@@ -357,6 +357,7 @@ export function TripMap({
   onSetVisited,
   onEditMarker,
   onDeleteMarker,
+  removingId,
   onAbandonCapture,
   bottomRow,
   dropping,
@@ -384,6 +385,8 @@ export function TripMap({
   /** Passed straight through to the details sheet, which is where they are reached from. */
   onEditMarker: (marker: Marker) => void
   onDeleteMarker: (marker: Marker) => void
+  /** The place whose removal is in flight, so the details sheet can say so. */
+  removingId: string | null
   /**
    * Give up on the place being added, because a saved one is being read instead.
    *
@@ -1031,6 +1034,7 @@ export function TripMap({
           onSetVisited={onSetVisited}
           onEdit={onEditMarker}
           onDelete={onDeleteMarker}
+          removingId={removingId}
           onChoose={(index) =>
             setOpen({
               groupKey: selection.group.key,

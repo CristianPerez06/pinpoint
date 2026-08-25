@@ -215,6 +215,7 @@ export function MarkerDetails({
   onDismiss,
   onEdit,
   onDelete,
+  removingId,
 }: {
   selection: Selection
   /** The currency of the city a marker is filed under, or null when there is none. */
@@ -243,6 +244,14 @@ export function MarkerDetails({
    * the form — ask the same question in the same words.
    */
   onDelete: (marker: Marker) => void
+  /**
+   * The place whose removal is already in flight, or null.
+   *
+   * An id rather than a boolean: this sheet can be showing one place out of
+   * several at a point, and "a removal is happening" would let it say so about
+   * the wrong one.
+   */
+  removingId: string | null
 }) {
   const theme = useTheme()
   const { group, index } = selection
@@ -315,6 +324,7 @@ export function MarkerDetails({
   const marker = group.markers[index]!
   const view = group.views[index]!
   const currency = currencyOf(marker)
+  const removing = removingId === marker.id
 
   /**
    * Whether this marker's contents were too tall to show at once.
@@ -372,13 +382,22 @@ export function MarkerDetails({
           <Text style={[styles.actionText, { color: theme.colour.ink }]}>Edit</Text>
         </Pressable>
         <Pressable
-          onPress={() => onDelete(marker)}
+          onPress={() => {
+            if (removing) return
+            onDelete(marker)
+          }}
           accessibilityRole="button"
           accessibilityLabel={`Remove ${marker.name}`}
-          style={[styles.action, { backgroundColor: theme.colour.dangerSurface }]}
+          // Inert through `accessibilityState` rather than by being unreachable,
+          // so a screen reader still finds it and is told which state it is in.
+          accessibilityState={{ disabled: removing }}
+          style={[
+            styles.action,
+            { backgroundColor: theme.colour.dangerSurface, opacity: removing ? 0.5 : 1 },
+          ]}
         >
           <Text style={[styles.actionText, { color: theme.colour.danger }]}>
-            Remove
+            {removing ? 'Removing…' : 'Remove'}
           </Text>
         </Pressable>
       </View>

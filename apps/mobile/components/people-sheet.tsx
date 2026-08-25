@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
+import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
 
 /**
@@ -45,7 +46,6 @@ export function PeopleSheet({
   onClose,
   members,
   ownMemberId,
-  busy,
   onInvite,
 }: {
   open: boolean
@@ -53,7 +53,6 @@ export function PeopleSheet({
   members: readonly TripMember[]
   /** So the reader is named the way the rest of the trip names them. */
   ownMemberId: string | null
-  busy: boolean
   /** Resolves to the offending field when refused, or null on success. */
   onInvite: (
     displayName: string,
@@ -68,20 +67,32 @@ export function PeopleSheet({
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<string | null>(null)
+  /**
+   * This sheet's own wait.
+   *
+   * It used to read the workspace's `busy`, which was only ever true while a
+   * *place* was being saved — so this control went dead during an operation it
+   * had nothing to do with, and stayed live during its own. Two presses then
+   * sent two invitations, and the second came back saying the person was
+   * already on the trip, which is a true sentence and a baffling one.
+   */
+  const [adding, startInvite] = usePending()
 
-  async function invite() {
+  function invite() {
     setErrors({})
     setMessage(null)
 
-    const problem = await onInvite(displayName.trim(), email.trim())
-    if (problem) {
-      if (problem.field === '_') setMessage(problem.message)
-      else setErrors({ [problem.field]: problem.message })
-      return
-    }
+    startInvite(async () => {
+      const problem = await onInvite(displayName.trim(), email.trim())
+      if (problem) {
+        if (problem.field === '_') setMessage(problem.message)
+        else setErrors({ [problem.field]: problem.message })
+        return
+      }
 
-    setDisplayName('')
-    setEmail('')
+      setDisplayName('')
+      setEmail('')
+    })
   }
 
   function close() {
@@ -174,12 +185,12 @@ export function PeopleSheet({
                 {message ? <FormNote tone="danger">{message}</FormNote> : null}
 
                 <Button
-                  label="Add to trip"
+                  label={adding ? 'Adding…' : 'Add to trip'}
                   tone="primary"
                   disabled={
-                    busy || displayName.trim() === '' || email.trim() === ''
+                    adding || displayName.trim() === '' || email.trim() === ''
                   }
-                  onPress={() => void invite()}
+                  onPress={invite}
                 />
               </View>
             </ScrollView>
