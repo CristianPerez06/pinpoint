@@ -74,7 +74,7 @@
 ## 4. Close out
 
 - [x] 4.1 `openspec validate zoom-from-a-visible-control --strict`.
-- [ ] 4.2 Archive once both platforms have landed on `main`.
+- [x] 4.2 Archive once both platforms have landed on `main`.
 
 ## 5. Still to be looked at
 
