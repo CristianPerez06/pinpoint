@@ -6,6 +6,7 @@ import {
   MIN_ZOOM,
   SINGLE_MARKER_ZOOM,
   TILE_SIZE,
+  ZOOM_STEP,
 } from './constants'
 import type { Bounds, Camera, LngLat, Viewport } from './types'
 
@@ -77,6 +78,24 @@ export function offsetCenter(
     // the top of the projection lands at the pole rather than producing NaN.
     lat: latitudeAt(y / worldSize),
   }
+}
+
+/**
+ * The zoom one press of a zoom control arrives at, clamped to our range.
+ *
+ * One line of arithmetic, and still shared. The range is ours rather than the
+ * renderer's — `maplibre-gl` defaults to 0–22 and would happily let a wheel
+ * leave the camera somewhere `fitBounds` can never return to — so the clamp has
+ * to be the same one for every instrument on both platforms. A button written
+ * as `zoom + 1` in an application is a second opinion about where the range
+ * ends, which is the shape the marker-anchor drift defect had.
+ *
+ * Total: a `current` already outside the range comes back inside it, in either
+ * direction, rather than being stepped further out.
+ */
+export function zoomStep(current: number, direction: 1 | -1): number {
+  const stepped = current + direction * ZOOM_STEP
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, stepped))
 }
 
 /**

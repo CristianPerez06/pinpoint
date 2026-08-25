@@ -13,6 +13,7 @@ export {
   MIN_ZOOM,
   SINGLE_MARKER_ZOOM,
   TILE_SIZE,
+  ZOOM_STEP,
 } from './constants'
 
 export { distanceKm } from './distance'
@@ -23,6 +24,7 @@ export {
   fitBounds,
   normalizeLongitude,
   offsetCenter,
+  zoomStep,
 } from './camera'
 export type { FitBoundsOptions } from './camera'
 

@@ -5,6 +5,9 @@ import {
   ATTRIBUTION,
   DEFAULT_VIEWPORT,
   fitBounds,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  zoomStep,
   type LngLat,
   type MarkerAnchor,
   type MarkerGroup,
@@ -96,6 +99,56 @@ function asRendererStyle(document: StyleDocument): StyleSpecification {
 }
 
 /**
+ * One of the two zoom buttons.
+ *
+ * `spent` rather than `disabled`, and the difference is the point. The
+ * `disabled` attribute takes a control out of the tab order and screen readers
+ * skip it, so at maximum zoom somebody arriving by keyboard would find the
+ * zoom-in button gone rather than unavailable — and nothing would say why.
+ * DESIGN.md settles this: `aria-disabled`, a no-op handler, and an inert
+ * treatment.
+ *
+ * The glyphs are drawn rather than typed. `+` and `-` as characters take the
+ * font's own weight, width and vertical centring, and the two do not match each
+ * other at any size — the minus sits high and light beside a plus that does not.
+ */
+function ZoomButton({
+  direction,
+  spent,
+  onPress,
+}: {
+  direction: 1 | -1
+  spent: boolean
+  onPress: () => void
+}) {
+  const label = direction === 1 ? 'Zoom in' : 'Zoom out'
+
+  return (
+    <button
+      type="button"
+      className={styles.zoomButton}
+      aria-label={label}
+      title={label}
+      aria-disabled={spent || undefined}
+      onClick={spent ? undefined : onPress}
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className={styles.zoomGlyph}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        <line x1="3.5" y1="8" x2="12.5" y2="8" />
+        {direction === 1 ? <line x1="8" y1="3.5" x2="8" y2="12.5" /> : null}
+      </svg>
+    </button>
+  )
+}
+
+/**
  * The web half of the portability boundary.
  *
  * Everything decided here is bound to `maplibre-gl`: creating the map, mounting
@@ -161,10 +214,61 @@ export function TripMap({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
+  /**
+   * The settled zoom, and the one thing about the camera this file does keep in
+   * React state.
+   *
+   * The centre next to it is deliberately a ref, because `move` fires on every
+   * frame of a wheel or a drag and re-rendering the workspace through a pan
+   * would be absurd. This is not that: it is written on `zoomend` only, so it
+   * costs one render per finished gesture, and it buys the two buttons a
+   * correct inert state at either end of the range. Nothing else reads it —
+   * anything wanting the live zoom should ask the map.
+   *
+   * Null only for the single render between the map existing and the effect
+   * below reporting, which is read as "not at either end" and is true far more
+   * often than not.
+   */
+  const [zoom, setZoom] = useState<number | null>(null)
   const draftMarkerRef = useRef<MapLibreMarker | null>(null)
   const hasDraft = draft !== null
 
   const mode = useColourScheme()
+
+  /**
+   * How tall whatever is standing on the bottom-right corner is.
+   *
+   * The attribution, today and probably always. Measured rather than assumed,
+   * because its height is not a constant: the credit is a single 20px strip at
+   * a comfortable window width and wraps to two lines on a narrow one, and an
+   * offset written for the first case leaves the buttons sitting exactly on the
+   * second. That was found by looking at it at 420px, not by reasoning — the
+   * gap closed to zero.
+   *
+   * MapLibre stacks its own corner controls with floats rather than flex, so
+   * there is no way to join that stack from the outside and be pushed up by it.
+   * The phone has the same problem at the same edge and answers it the same
+   * way: `trip-map.tsx` measures the bar so the licence credit can rise off it.
+   *
+   * Zero when there is nothing there, which puts the buttons at the plain inset
+   * — right for a map with no attribution, and unreachable while there is one.
+   */
+  const [cornerHeight, setCornerHeight] = useState(0)
+  useEffect(() => {
+    if (!map) return
+
+    const corner = map
+      .getContainer()
+      .querySelector('.maplibregl-ctrl-bottom-right')
+    if (!(corner instanceof HTMLElement)) return
+
+    const measure = () => setCornerHeight(corner.offsetHeight)
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(corner)
+    return () => observer.disconnect()
+  }, [map])
 
   /**
    * The style has to be fetched and transformed before the renderer can be
@@ -234,6 +338,15 @@ export function TripMap({
       style: asRendererStyle(style),
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
+      // Our range, not the renderer's. `maplibre-gl` defaults to 0-22 while
+      // `fitBounds` never returns more than 20, so without this the end of the
+      // range depended on which instrument you left the camera with: a wheel
+      // could reach 22 and nothing could frame its way back. Binding it here
+      // makes the wheel, a trackpad pinch, MapLibre's own keyboard zoom and the
+      // buttons below all agree, and the buttons inherit the clamp rather than
+      // being the only thing that knows about it.
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
       // Not compact: compact collapses to an "i" button, and a button that
       // says nothing until it is pressed does not credit anybody. Attribution
       // is a licence condition of the tiles, not a decoration.
@@ -287,6 +400,27 @@ export function TripMap({
       map.off('move', report)
     }
   }, [map, centreRef])
+
+  /**
+   * How far in the map is, read when it stops rather than while it moves.
+   *
+   * `zoomend` and never `zoom` or `move`. The distinction is the whole reason
+   * the centre beside this is a ref: the live events fire per frame, and a
+   * value in state that changes per frame re-renders the workspace — and with
+   * it every marker's props — through a gesture that is about looking, not
+   * about the data.
+   */
+  useEffect(() => {
+    if (!map) return
+
+    const report = () => setZoom(map.getZoom())
+
+    report()
+    map.on('zoomend', report)
+    return () => {
+      map.off('zoomend', report)
+    }
+  }, [map])
 
   /**
    * Whether anything drawn is on screen, answered after the camera settles and
@@ -505,5 +639,55 @@ export function TripMap({
     )
   }
 
-  return <div ref={containerRef} className={styles.canvas} />
+  return (
+    <div className={styles.frame}>
+      <div ref={containerRef} className={styles.canvas} />
+
+      {/*
+        Zoom, as something you can see.
+
+        Drawn only once the map exists, which is the same condition as "the map
+        is visible" — there is nothing to zoom before that, and a control over a
+        box that is not yet a map would be the only thing on screen.
+
+        Not a re-frame. `frameToken` is untouched and the centre does not move,
+        so this stays inside `map-rendering`'s "nothing else SHALL move the
+        camera": the person asked, with a button instead of a wheel.
+
+        The live zoom is read from the map at the moment of the press rather
+        than from the state above. They agree — the state is written on every
+        settle — but the map is the thing that knows, and a press is exactly the
+        moment when asking it costs nothing.
+      */}
+      {map ? (
+        <div
+          className={styles.zoom}
+          role="group"
+          aria-label="Zoom"
+          // Rises off the credit rather than clearing a height guessed at once.
+          // The gap is a token; only the thing being cleared is a measurement.
+          style={{ bottom: `calc(${cornerHeight}px + var(--pp-space-md))` }}
+        >
+          <ZoomButton
+            direction={1}
+            // A step that arrives where it started is a control with nothing
+            // left to do. Asking the shared function rather than comparing
+            // against `MAX_ZOOM` here keeps one opinion about where the range
+            // ends, and sidesteps the float comparison entirely.
+            spent={zoom !== null && zoomStep(zoom, 1) === zoom}
+            onPress={() =>
+              map.zoomTo(zoomStep(map.getZoom(), 1), { duration: 200 })
+            }
+          />
+          <ZoomButton
+            direction={-1}
+            spent={zoom !== null && zoomStep(zoom, -1) === zoom}
+            onPress={() =>
+              map.zoomTo(zoomStep(map.getZoom(), -1), { duration: 200 })
+            }
+          />
+        </div>
+      ) : null}
+    </div>
+  )
 }
