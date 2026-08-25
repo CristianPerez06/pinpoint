@@ -585,7 +585,15 @@ export function MarkerFormSheet({
             {
               borderColor: theme.colour.line,
               backgroundColor: theme.colour.surface,
-              paddingBottom: SPACE.sm + insets.bottom,
+              // `SPACE.md`, which is what every sheet in this application puts
+              // between its last thing and the bottom edge. This bar had
+              // `SPACE.sm`, and on a device with no inset to make up the
+              // difference — an older phone, one with hardware buttons — `Save
+              // place` was half as far off the edge here as anything else is.
+              // The asymmetry against `paddingTop` is intended: the top of this
+              // bar is a rule against scrolling content, the bottom is the end
+              // of the screen.
+              paddingBottom: SPACE.md + insets.bottom,
             },
           ]}
         >

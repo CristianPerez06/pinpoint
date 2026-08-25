@@ -14,7 +14,7 @@ import {
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
-import { role } from '@/lib/type'
+import { fieldRole, role } from '@/lib/type'
 
 /**
  * Sign in. There is deliberately no sign-up here.
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   field: { gap: 5 },
   label: { ...role(TYPE.label) },
   input: {
-    ...role(TYPE.body),
+    ...fieldRole(TYPE.body),
     borderRadius: RADIUS.md,
     paddingHorizontal: 12,
     paddingVertical: 10,

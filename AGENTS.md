@@ -135,6 +135,24 @@ placeholders.
   window is definite and does not have this problem — reading the rule more broadly
   than it says is how the capture form was first built as a full screen when it
   should have been a sheet.
+- **`KeyboardAvoidingView` overwrites the `paddingBottom` you give it.** With
+  `behavior="padding"` it renders `StyleSheet.compose(style, { paddingBottom:
+  bottomHeight })`, and `bottomHeight` is 0 whenever the keyboard is down — so a sheet
+  that hands it the surface's own style loses that padding on almost every render.
+  **Learn the shape of this one**: the padding is declared, is correct, and is identical
+  to the sheets that look right, so comparing the styles finds nothing and it reads as a
+  value someone set differently here. Three sheets sat on the bottom of the screen for
+  as long as they existed. Keep the `KeyboardAvoidingView` a bare positioner and put the
+  surface — background, radius, `maxHeight`, padding, and the press-swallowing responder
+  — on a `View` inside it. Move `maxHeight` with the surface, or the fix walks straight
+  into the entry above.
+- **`lineHeight` on a `TextInput` pushes the text down inside it.** React Native gives
+  iOS `paragraphStyle.minimumLineHeight = maximumLineHeight` (`RCTTextAttributes.mm`),
+  and a line box forced taller than the font asks for grows upward from the baseline —
+  so glyphs sit low in a field whose height comes from its own padding. An empty field
+  looks right, which is why this survived: it only appears once somebody types. Use
+  `fieldRole` rather than `role` for anything typed into; it is the same role with that
+  one property withheld. A field has no paragraph.
 - **A composite foreign key needs `on delete set null (column_list)`.** A bare `on delete
   set null` nulls *every* referencing column, so `(city_id, trip_id) references cities
   (id, trip_id)` would also null `markers.trip_id` — which is `not null`, making the

@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 
 import { useTheme } from '@/lib/theme'
-import { role } from '@/lib/type'
+import { fieldRole, role } from '@/lib/type'
 
 /**
  * The pieces a form on this platform is built from.
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   field: { gap: SPACE.xs },
   label: { ...role(TYPE.label) },
   input: {
-    ...role(TYPE.body),
+    ...fieldRole(TYPE.body),
     borderWidth: 1,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.sm + 2,

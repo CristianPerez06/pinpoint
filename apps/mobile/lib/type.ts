@@ -32,3 +32,27 @@ export function role(spec: TypeRole): TextStyle {
       : {}),
   }
 }
+
+/**
+ * The same role, for something a person types into.
+ *
+ * `lineHeight` withheld, and only that. It is a paragraph property — 1.52 on
+ * `body`, chosen for reading prose — and a field has no paragraph: its height
+ * comes from its own padding, which knows nothing about a line box.
+ *
+ * React Native hands the value to iOS as
+ * `paragraphStyle.minimumLineHeight = maximumLineHeight` (`RCTTextAttributes.mm`),
+ * and a line box forced taller than the font asks for grows upward from the
+ * baseline. The glyphs then sit low in a field that was centred on the
+ * assumption they would not — invisible until somebody types, which is exactly
+ * when it was noticed.
+ *
+ * Everything else is kept, so a field is still the same face at the same size
+ * and weight as the text around it.
+ */
+export function fieldRole(spec: TypeRole): TextStyle {
+  // Destructured off rather than deleted, so what comes back is still a shape
+  // the type checker can see through.
+  const { lineHeight: _lineHeight, ...rest } = role(spec)
+  return rest
+}

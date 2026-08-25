@@ -77,60 +77,72 @@ export function CitySheet({
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          // The sheet swallows presses so that touching a row does not dismiss
-          // through the backdrop underneath it.
-          onStartShouldSetResponder={() => true}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
-              // A definite height, so the `ScrollView` inside has something to
-              // resolve `flex: 1` against. A sheet that sizes to its children
-              // reports almost nothing to a scroller and clips everything past
-              // the first row — see `AGENTS.md`.
-              maxHeight: cap,
-              paddingBottom: SPACE.md + insets.bottom,
-            },
-          ]}
-        >
-          <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.colour.ink }]}>Cities</Text>
-            <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
-              <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                Done
-              </Text>
-            </Pressable>
-          </View>
+        {/*
+          A positioner, and nothing else. The surface is the `View` inside it.
 
-          {cities.length === 0 ? (
-            <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-              No cities yet. One is created the first time you file a place under
-              a new name while saving it.
-            </Text>
-          ) : (
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {cities.map((city) => (
-                <CityRow
-                  key={city.id}
-                  city={city}
-                  count={markers.filter((marker) => marker.cityId === city.id).length}
-                  editing={editing === city.id}
-                  onToggle={() =>
-                    setEditing((current) => (current === city.id ? null : city.id))
-                  }
-                  onRename={(name) => onRename(city.id, name)}
-                  onSetCurrency={(currency) => onSetCurrency(city.id, currency)}
-                  onDelete={() => {
-                    setEditing(null)
-                    onDelete(city.id)
-                  }}
-                />
-              ))}
-            </ScrollView>
-          )}
+          `KeyboardAvoidingView` with `behavior="padding"` renders
+          `StyleSheet.compose(style, { paddingBottom: bottomHeight })`, and
+          `bottomHeight` is 0 whenever the keyboard is down — so a `paddingBottom`
+          handed to it is overwritten on every render where the keyboard is
+          closed. The sheets that kept theirs are the ones whose surface is a
+          plain `View`; this is now one of them. `TripSheet` carries the longer
+          account of how it was found.
+        */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View
+            // The sheet swallows presses so that touching a row does not dismiss
+            // through the backdrop underneath it.
+            onStartShouldSetResponder={() => true}
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: theme.colour.surface,
+                borderColor: theme.colour.line,
+                // A definite height, so the `ScrollView` inside has something to
+                // resolve `flex: 1` against. A sheet that sizes to its children
+                // reports almost nothing to a scroller and clips everything past
+                // the first row — see `AGENTS.md`.
+                maxHeight: cap,
+                paddingBottom: SPACE.md + insets.bottom,
+              },
+            ]}
+          >
+            <View style={styles.headerRow}>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>Cities</Text>
+              <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
+                <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
+                  Done
+                </Text>
+              </Pressable>
+            </View>
+
+            {cities.length === 0 ? (
+              <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
+                No cities yet. One is created the first time you file a place under
+                a new name while saving it.
+              </Text>
+            ) : (
+              <ScrollView keyboardShouldPersistTaps="handled">
+                {cities.map((city) => (
+                  <CityRow
+                    key={city.id}
+                    city={city}
+                    count={markers.filter((marker) => marker.cityId === city.id).length}
+                    editing={editing === city.id}
+                    onToggle={() =>
+                      setEditing((current) => (current === city.id ? null : city.id))
+                    }
+                    onRename={(name) => onRename(city.id, name)}
+                    onSetCurrency={(currency) => onSetCurrency(city.id, currency)}
+                    onDelete={() => {
+                      setEditing(null)
+                      onDelete(city.id)
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
         </KeyboardAvoidingView>
       </Pressable>
     </Modal>

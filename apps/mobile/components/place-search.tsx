@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
-import { role } from '@/lib/type'
+import { fieldRole, role } from '@/lib/type'
 
 /**
  * Finding a place by name, on a phone.
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   back: { paddingHorizontal: SPACE.xs },
   backGlyph: { fontSize: 30, lineHeight: 34 },
   input: {
-    ...role(TYPE.body),
+    ...fieldRole(TYPE.body),
     flex: 1,
     borderWidth: 1,
     borderRadius: RADIUS.pill,

@@ -25,9 +25,10 @@ import {
   useRef,
   useState,
 } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { AttributionSheet } from '@/components/attribution-sheet'
 import { MarkerDetails, type Selection } from '@/components/marker-details'
 import { DraftPin, Pin } from '@/components/pin'
 import { useThemedBasemap } from '@/lib/basemap'
@@ -101,22 +102,6 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
 
   return NAMES[`${anchor.x},${anchor.y}`] ?? 'bottom'
 }
-
-/**
- * Room for MapLibre's own bottom ornaments — its wordmark on the left and the
- * attribution button on the right.
- *
- * Our credit sits at the bottom left too, so without this it lands on top of
- * the wordmark and both become hard to read. Lifting ours is deliberate rather
- * than turning theirs off: hiding another project's branding to fix our own
- * layout is not a trade this change gets to make.
- *
- * Their ornaments are now positioned explicitly rather than left where the
- * renderer puts them, because the bar of controls holds the bottom edge and
- * anything left down there would end up underneath it. Moving somebody's credit
- * is fine; covering it is the thing this constant exists to refuse.
- */
-const ORNAMENT_CLEARANCE = 28
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
@@ -390,6 +375,8 @@ export function TripMap({
    * camera a value that React owns.
    */
   const cameraRef = useRef<CameraRef>(null)
+  /** Whether the credit has been pressed and the sources are being read. */
+  const [creditsOpen, setCreditsOpen] = useState(false)
   /** The current zoom, written on every settle. Null until the map first settles. */
   const zoomRef = useRef<number | null>(null)
 
@@ -482,10 +469,10 @@ export function TripMap({
    * else at that edge has to rise.
    *
    * The bar goes flush to the bottom of the screen, which makes it the floor
-   * rather than another tenant: MapLibre's own ornaments sit above it, and our
-   * credit above those. One expression covers both cases — a bar when nothing is
-   * selected, a sheet when something is — instead of two offsets that have to be
-   * kept in agreement with each other.
+   * rather than another tenant: our credit is the only thing standing on it.
+   * One expression covers both cases — a bar when nothing is selected, a sheet
+   * when something is — instead of two offsets that have to be kept in
+   * agreement with each other.
    *
    * Never a sum, because the bar is not drawn while a sheet is open.
    */
@@ -540,17 +527,27 @@ export function TripMap({
         <Map
           style={styles.fill}
           mapStyle={basemap.style as unknown as StyleSpecification}
-          // The native attribution control is an "i" button that says nothing
-          // until it is pressed. It stays on because it opens the full notice,
-          // but the visible credit below is what satisfies the licence.
-          attribution
-          // Their branding rises with ours. Leaving it at the bottom would put
-          // the bar on top of another project's credit, which is the same trade
-          // ORNAMENT_CLEARANCE exists to refuse — moving it is fine, covering
-          // it is not.
-          attributionPosition={{ bottom: lift + SPACE.sm, right: SPACE.sm }}
-          logo
-          logoPosition={{ bottom: lift + SPACE.sm, left: SPACE.sm }}
+          /*
+            Both native ornaments off, and the credit below takes their place.
+
+            The attribution control was an "i" button that says nothing until it
+            is pressed — a third view at this edge, sized and tinted by the
+            platform, aligning with neither of the other two. What it opens is
+            reached by pressing the credit instead, which is where somebody
+            looks for it and is already the thing the licence is satisfied by.
+
+            The wordmark is courtesy rather than a condition: MapLibre Native is
+            BSD-licensed and asks for the notice in the distribution, not on the
+            map. It was stacked under our credit, and the gap between them was a
+            guess at the height of a view this side cannot measure — different
+            on each platform, so it was drawn overlapping. Nothing stacks now.
+
+            The credit itself is not negotiable in the way these two were: the
+            OpenStreetMap data is ODbL, and `map-rendering` requires it visible
+            without interaction.
+          */
+          attribution={false}
+          logo={false}
           /*
             Where the map is, written down on every settle.
             
@@ -688,26 +685,42 @@ export function TripMap({
         </View>
       ) : null}
 
-      {/* A licence condition, not a default. Drawn rather than relied upon. */}
-      <View
+      {/*
+        A licence condition, not a default. Drawn rather than relied upon.
+
+        Pressable as well as visible, which is what let the native "i" button go:
+        the notice is now behind the words that name the sources rather than
+        beside them. The requirement is unaffected — what the licence asks to be
+        visible is the credit, and that is what is drawn; the sheet is the
+        expansion, and `AttributionSheet` records why it is ours and not the
+        renderer's.
+      */}
+      <Pressable
+        onPress={() => setCreditsOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Map data credits"
+        accessibilityHint="Opens the projects this map is built from"
         style={[
           styles.attribution,
           {
             backgroundColor: theme.colour.surface,
             opacity: 0.85,
-            // Above MapLibre's ornaments, which are themselves above whatever
-            // holds the floor. Both the bar and the sheet carry the bottom
-            // inset in their own padding, so adding it again here would float
-            // the credit.
-            bottom: lift + SPACE.sm + ORNAMENT_CLEARANCE,
+            // Sits directly on whatever holds the floor, with nothing between
+            // them now. Both the bar and the sheet carry the bottom inset in
+            // their own padding, so adding it again here would float the credit.
+            bottom: lift + SPACE.sm,
           },
         ]}
-        pointerEvents="none"
       >
         <Text style={[styles.attributionText, { color: theme.colour.inkMuted }]}>
           {ATTRIBUTION}
         </Text>
-      </View>
+      </Pressable>
+
+      <AttributionSheet
+        open={creditsOpen}
+        onClose={() => setCreditsOpen(false)}
+      />
 
       {/*
         Not rendered while a marker is selected, rather than rendered and
@@ -722,8 +735,8 @@ export function TripMap({
         everything else while it is open.
 
         Rendered here rather than over the whole screen so that the map it leaves
-        visible is genuinely the map — MapLibre's ornaments and our credit rise
-        off the top of it, exactly as they do off the bar and the marker sheet.
+        visible is genuinely the map — our credit rises off the top of it,
+        exactly as it does off the bar and the marker sheet.
       */}
       {formSheet}
 
@@ -745,8 +758,8 @@ export function TripMap({
             The trip's controls, or the confirmation the sight is waiting for.
 
             One slot rather than two, measured by one `onLayout`, so the credit
-            and MapLibre's ornaments rise off whichever is standing there without
-            either case having to be remembered separately. Arming replaces the
+            rises off whichever is standing there without either case having to
+            be remembered separately. Arming replaces the
             controls instead of adding to them, which is also what says the map is
             doing something other than what it usually does.
           */}
