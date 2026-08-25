@@ -30,10 +30,11 @@ export {
   ATTRIBUTION,
   BASEMAP_TRANSFORM,
   DEFAULT_STYLE,
+  MAP_CREDITS,
   OPENFREEMAP_STYLES,
   styleUrl,
 } from './style'
-export type { StyleName } from './style'
+export type { MapCredit, StyleName } from './style'
 
 export { BasemapThemeError, themeStyle } from './basemap-theme'
 export type { BasemapCategory, StyleDocument } from './basemap-theme'
