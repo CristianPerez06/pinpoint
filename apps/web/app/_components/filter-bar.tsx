@@ -114,6 +114,7 @@ export function FilterBar({
         </>
       }
       marked={narrowed}
+      align="end"
       open={open}
       onOpen={onOpen}
     >
