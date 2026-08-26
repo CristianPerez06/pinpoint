@@ -208,11 +208,14 @@
 }
 
 /*
- * Opened from a control near the right edge, so it hangs the other way.
+ * The panel hangs the other way, from the trigger's right edge.
  *
- * The account menu is the case: anchored left, a 320px panel would run off the
- * viewport, and a panel that is partly off screen is one whose buttons cannot
- * all be pressed.
+ * The account menu needs it because it sits at the right edge of the bar:
+ * anchored left, a 320px panel would run off the viewport, and a panel that is
+ * partly off screen is one whose buttons cannot all be pressed. The filter menu
+ * takes it for the same reason a column narrower than the panel does — hanging
+ * left, it spills over whatever is beside it, and on a narrow window there is
+ * less room to its right than the panel needs.
  */
 .menuPanelEnd {
   left: auto;
