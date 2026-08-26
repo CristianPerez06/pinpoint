@@ -158,6 +158,40 @@ already in force elsewhere — a visited marker is drawn as visited without chan
 colour — because a signal that survives only in hue does not survive a greyscale
 display, a colour-blind reader, or a screen reader.
 
+**The declaration MAY report how many of the filter's criteria are active.** Where it
+does, that count SHALL be derived from the same shared definition of what a filter means
+that decides what is drawn, so that no two interfaces can report different numbers for
+one filter.
+
+The count SHALL be of **criteria, not of the choices within them**: naming any number of
+members is one criterion, and the count SHALL NOT change as members are added to or
+removed from that set.
+
+Rationale: the number has to mean the same thing on a trip of two and a trip of ten, and
+counting ticked names would make it describe the input rather than the narrowing.
+
+**Any number the declaration carries SHALL be unambiguous about what it counts.** A bare
+number beside a control named for filtering is read as counting filters; if it counts
+anything else, it SHALL carry the unit that says so.
+
+Rationale: this is a defect that shipped. The declaration first reported surviving
+markers as `15 of 17`, which is two unlabelled numbers next to the word `Filter` — the
+likeliest reading was that fifteen of seventeen filters were applied, when one was. A
+control whose likeliest reading is false is not merely uninformative; it is misleading,
+and the information it carried was not worth that. What the filter did to the map is
+already visible in the map, and the matches-nothing case is already stated where the
+markers would be.
+
+**The declaration SHALL NOT enumerate the members it was built from.** A control that
+lists who is ticked grows without bound as members are named, and a trip may hold many;
+at that size the label is unreadable, and it changes width every time the filter is
+used, which is the rearrangement this requirement already forbids.
+
+Rationale: this is a constraint on the declaration, not a retreat from it. What has to
+be conveyed is that the view is narrowed, and at most how many questions it is asking —
+both bounded — rather than which people it is asking about, which is what opening the
+control answers.
+
 **The declaration and the way out MAY be separated.** The declaration SHALL remain on a
 control that is visible while the narrowed result is visible. The way out MAY instead
 live inside what that control opens, provided the control that declares the narrowing is
@@ -199,6 +233,31 @@ in a way the first is not.
 - **WHEN** any filter is applied
 - **THEN** the interface indicates that the view is narrowed
 - **AND** clearing the filter is reachable from there
+
+#### Scenario: The declaration reports how many criteria are active
+
+- **WHEN** one criterion is applied
+- **AND** the declaration reports a count
+- **THEN** the count reads as one
+- **AND** applying a second criterion makes it read as two
+
+#### Scenario: The count does not follow how many members are named
+
+- **WHEN** a filter names one member
+- **AND** the declaration reports a count
+- **THEN** naming four more members does not change that count
+
+#### Scenario: A number says what it counts
+
+- **WHEN** the declaration carries a number that counts something other than criteria
+- **THEN** it carries the unit naming what it counts
+
+#### Scenario: The declaration does not name the members
+
+- **WHEN** a filter naming several members is applied
+- **THEN** the closed control does not list those members
+- **AND** the control does not change size as more members are named
+- **AND** opening the control shows which members are named
 
 #### Scenario: The way out of a narrowed view lives one action away
 

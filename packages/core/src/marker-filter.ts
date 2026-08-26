@@ -56,6 +56,31 @@ export function isFiltered(filter: MarkerFilter): boolean {
 }
 
 /**
+ * How many of the filter's questions are being asked at once.
+ *
+ * Here rather than in either interface, by the same rule as everything else in
+ * this file: what a filter *means* is defined once so the map, the card and both
+ * applications agree. A control that declares "2" on the laptop and "3" on the
+ * phone for the same filter would be two answers to one question.
+ *
+ * It counts **criteria, not choices**. Naming five people is still one question
+ * — "which places do all of these people want" — and answering it with `5` would
+ * describe the input rather than the narrowing. `Nobody has answered yet`
+ * replaces the names rather than joining them, so it is the same single
+ * criterion seen from the other side.
+ *
+ * The ceiling is therefore the number of questions this filter can ask, which is
+ * two, and it does not move when a trip gains members. That is the point: the
+ * number has to mean the same thing on a trip of two and a trip of ten.
+ */
+export function activeFilterCount(filter: MarkerFilter): number {
+  return (
+    (filter.interest.kind !== 'anyone' ? 1 : 0) +
+    (filter.visited !== 'any' ? 1 : 0)
+  )
+}
+
+/**
  * Whether one marker survives the filter.
  *
  * The trip's membership is not a parameter: the filter names the members it asks

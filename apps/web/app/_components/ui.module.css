@@ -162,3 +162,124 @@
   font-size: var(--pp-type-note-size);
   line-height: var(--pp-type-note-leading);
 }
+
+/* ── menus ───────────────────────────────────────────────────────────────── */
+
+/*
+ * The anchor a menu hangs from.
+ *
+ * `position: relative` is the whole point of this element existing. Without it
+ * a panel positioned `top: 100%` resolves against whatever ancestor happens to
+ * be positioned — which, for the trip and city detours, was the entire toolbar,
+ * so every panel opened at one fixed x regardless of which control was pressed.
+ * `filter-bar.module.css` has always carried this on `.picker`; the primitive
+ * exists so that no call site has to remember it again.
+ */
+.menuAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+/*
+ * One shape for every menu in the chrome.
+ *
+ * There were five, at 340px, 328px, 300px, 220px and the width of an input.
+ * None of those numbers was chosen against the others. This is the panel token
+ * from DESIGN.md — `lg` radius, `lg` shadow, surface, hairline — at one width
+ * that holds the widest thing any of them contains, which is the invite form.
+ */
+.menuPanel {
+  position: absolute;
+  top: calc(100% + var(--pp-space-xs));
+  left: 0;
+  z-index: 9;
+  display: grid;
+  gap: var(--pp-space-sm);
+  width: 320px;
+  max-width: calc(100vw - var(--pp-space-xl));
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: var(--pp-space-md);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+}
+
+/*
+ * Opened from a control near the right edge, so it hangs the other way.
+ *
+ * The account menu is the case: anchored left, a 320px panel would run off the
+ * viewport, and a panel that is partly off screen is one whose buttons cannot
+ * all be pressed.
+ */
+.menuPanelEnd {
+  left: auto;
+  right: 0;
+}
+
+/*
+ * A trigger that is declaring, not just opening.
+ *
+ * Filled with the *wash* and lettered in Deep Amber Ink. Deliberately not the
+ * accent itself: `accent` and `accent-ink` are the same value on the dark
+ * ground, so a control that fills with `accent` and keeps amber lettering
+ * paints amber on amber and the word disappears — which is exactly what
+ * happened to `Clear` on hover. Filling with the wash keeps the pair apart on
+ * both grounds.
+ */
+.live {
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.live:hover {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent);
+}
+
+/* The second signal, so the state does not live in hue alone. */
+.liveDot {
+  width: 5px;
+  height: 5px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--pp-accent-ink);
+  flex: none;
+}
+
+/*
+ * The affordance that says a control opens something.
+ *
+ * A definite size rather than a share of the type. It was `▾` at 10px, which is
+ * smaller than anything else in the system — the smallest type role is 11px —
+ * and a glyph carrying an affordance has to be seen before it can be read. 13px
+ * puts it between the label and the control text it sits beside.
+ *
+ * `ink-muted` rather than an opacity on the label's own colour: opacity mixes
+ * toward whatever is behind it, so the same caret came out at a different
+ * weight on a filled control than on a quiet one. This is a token, on both
+ * grounds, and it clears the contrast floor because it is drawn rather than
+ * read.
+ */
+.caret {
+  width: 13px;
+  height: 13px;
+  margin-left: 1px;
+  flex: none;
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * On a control that is declaring, the caret goes with the lettering.
+ *
+ * `ink-muted` against the amber wash is the one place the token above is wrong:
+ * the fill is already carrying a state, and a grey caret on it reads as a
+ * different control from the one beside it.
+ */
+.live .caret {
+  color: currentColor;
+}

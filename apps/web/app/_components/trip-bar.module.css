@@ -1,85 +1,41 @@
-.bar {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-}
-
-.label {
-  font-size: var(--pp-type-label-size);
-  font-weight: var(--pp-type-label-weight);
-  letter-spacing: var(--pp-type-label-tracking);
-  text-transform: uppercase;
-  color: var(--pp-ink-muted);
-}
-
-.picker {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-}
-
-.select {
-  padding: 7px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--pp-radius-pill);
-  background: var(--pp-surface-muted);
-  color: var(--pp-ink);
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.select:hover {
-  border-color: var(--pp-line-strong);
-}
+/*
+ * What is peculiar to the trip menu, after the primitive took the rest.
+ *
+ * The bar, the anchor, the trigger and the panel are all `Menu` in `ui.tsx`
+ * now. This file used to declare its own answer to each, and so did the city
+ * bar and the filter bar — three answers to one question, which is how the
+ * chrome ended up with five panels built four ways.
+ */
 
 /*
- * The trip's name when there is nothing to choose between.
+ * The trip's name, as the thing you press — at a width that does not follow it.
  *
- * Carries the prominence the page header used to give it. It is not a control,
- * so it is not styled as one — the two beside it are.
+ * `width`, not `max-width`, and that is the whole point. A stored name may be
+ * sixty characters or seven, and this control sits *upstream* of every tool in
+ * the bar: while the name sized itself, switching trips slid search, drop and
+ * filter left or right by however much the two names differed. The controls a
+ * person aims at repeatedly moved because a word somewhere else changed length.
+ *
+ * That is the same defect `filter-bar.tsx` already argues against — "applying a
+ * filter rearranged the bar that applied it" — reached by another route, and it
+ * costs nothing to prevent here: this bar had 78–86% of its width empty, so
+ * reserving a slot spends space that was never being used.
+ *
+ * A short name therefore leaves air before the chevron. That reads as a picker,
+ * which is what it is, and is how every native select behaves.
  */
 .name {
   font-size: var(--pp-type-title-size);
   font-weight: var(--pp-type-title-weight);
   letter-spacing: var(--pp-type-title-tracking);
   color: var(--pp-ink);
-  max-width: 22ch;
+  width: 12ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/*
- * A panel that hangs below the toolbar, in the shape the city editor already
- * uses. Both are detours from the row they open under, and looking alike is what
- * says so.
- */
-.detour {
-  position: absolute;
-  top: 100%;
-  left: var(--pp-space-md);
-  margin-top: var(--pp-space-xs);
-  width: 340px;
-  display: grid;
-  gap: var(--pp-space-sm);
-  padding: var(--pp-space-md);
-  background: var(--pp-surface);
-  border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius-lg);
-  box-shadow: var(--pp-shadow-lg);
-  z-index: 5;
-}
-
-.row {
-  display: flex;
-  gap: var(--pp-space-sm);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
+/* Who is on the trip. */
 .people {
   list-style: none;
   margin: 0;
@@ -121,4 +77,74 @@
   font-size: var(--pp-type-note-size);
   line-height: var(--pp-type-note-leading);
   color: var(--pp-ink-muted);
+}
+
+/*
+ * A row inside the panel.
+ *
+ * Full width and left-aligned, because these are a list of things to go to
+ * rather than a row of buttons — the shape says which it is before the words do.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--pp-surface-muted);
+}
+
+/* The trip that is already open, marked without being made unpressable. */
+.row[aria-current='true'] {
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+}
+
+.rowName {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+}
+
+.rowNote {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-muted);
+}
+
+.divide {
+  height: 0;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  border-top: 1px solid var(--pp-line);
+}
+
+/* The buttons that end a view, kept in a row of their own. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  margin-top: var(--pp-space-xs);
 }

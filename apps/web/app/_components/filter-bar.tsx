@@ -1,13 +1,15 @@
 'use client'
 
 import {
+  activeFilterCount,
   type InterestFilter,
   isFiltered,
   type MarkerFilter,
   NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
-import { useEffect, useRef, useState } from 'react'
+
+import { Menu } from '@/app/_components/ui'
 
 import styles from './filter-bar.module.css'
 
@@ -19,18 +21,39 @@ import styles from './filter-bar.module.css'
  * not the places either of them wants, which is a different and much longer
  * list.
  *
- * The closed control does not say who is ticked. A label naming people grows as
- * people are ticked, so applying a filter rearranged the bar that applied it —
- * and the ticks are the state anyway, one press away. What reports that a filter
- * is on is `Clear`, which is always here and becomes live.
+ * ## What the closed control says, and what it does not
+ *
+ * It does **not** name who is ticked, and that is a decision rather than an
+ * omission. A label listing people grows without bound — a trip may hold ten
+ * members, and at that size the label is unreadable and the control changes
+ * width every time the filter is used, which rearranges the bar that applied it.
+ *
+ * What it says instead is how many of its questions are being asked:
+ * `Filter · 1`. The number counts criteria rather than choices, so naming five
+ * people is still one — and it is `1` for hiding visited places too.
+ *
+ * It counted matching markers first, as `15 of 17`, and that was worse for a
+ * reason worth writing down: two bare numbers beside the word `Filter` have no
+ * unit, so the obvious reading is that they count filters. They counted places.
+ * A control whose most natural reading is wrong is not informative, it is
+ * misleading, and the extra information was not worth the ambiguity — the map
+ * itself already shows how much survives, and the note where the markers would
+ * have been already says when nothing does.
+ *
+ * The count comes from `@pinpoint/core`, like every other thing a filter means,
+ * so the laptop and the phone cannot report different numbers for one filter.
+ *
+ * Everything that narrows is in here, and so is the way out. That is what makes
+ * the label honest and what the specification requires: the control that
+ * declares the narrowing must be the one that reveals the way out of it.
  *
  * A native `<select multiple>` would be the obvious control and is not usable:
  * it renders as a scrolling box that is always open, loses its selection to a
  * stray click, and cannot hold an entry that is not one of the people.
  *
  * It decides nothing. What each choice selects lives in `@pinpoint/core` so the
- * map, the card and eventually the phone all agree; this file only says which
- * words go on which value.
+ * map, the card and the phone all agree; this file only says which words go on
+ * which value.
  */
 
 export function FilterBar({
@@ -38,41 +61,24 @@ export function FilterBar({
   onChange,
   members,
   ownMemberId,
+  open,
+  onOpen,
 }: {
   filter: MarkerFilter
   onChange: (filter: MarkerFilter) => void
   members: readonly TripMember[]
   /** So the reader is named the way the detail card names them. */
   ownMemberId: string | null
-}) {
-  const [open, setOpen] = useState(false)
-  const wrapper = useRef<HTMLDivElement | null>(null)
-
   /**
-   * Closing the way a dropdown closes.
+   * Whether this menu is the detour that is open.
    *
-   * Pointer down rather than click, so that pressing on the map both closes this
-   * and reaches the map — a click listener here would fire after the map had
-   * already decided what the press meant.
+   * Held by the workspace with every other panel in the chrome. "Only one open
+   * at a time" is a rule about the whole bar, and a component cannot enforce it
+   * about panels it cannot see.
    */
-  useEffect(() => {
-    if (!open) return
-
-    const dismiss = (event: PointerEvent) => {
-      if (!wrapper.current?.contains(event.target as Node)) setOpen(false)
-    }
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-
-    document.addEventListener('pointerdown', dismiss)
-    document.addEventListener('keydown', escape)
-    return () => {
-      document.removeEventListener('pointerdown', dismiss)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [open])
-
+  open: boolean
+  onOpen: (open: boolean) => void
+}) {
   const nameOf = (member: TripMember) =>
     member.id === ownMemberId ? 'You' : member.displayName
 
@@ -96,81 +102,85 @@ export function FilterBar({
   }
 
   const narrowed = isFiltered(filter)
+  const active = activeFilterCount(filter)
 
   return (
-    <div className={styles.bar}>
-      <div className={styles.picker} ref={wrapper}>
+    <Menu
+      name="Filter"
+      label={
+        <>
+          Filter
+          {narrowed ? <span className={styles.count}>{active}</span> : null}
+        </>
+      }
+      marked={narrowed}
+      open={open}
+      onOpen={onOpen}
+    >
+      <p className={styles.heading}>Wanted by</p>
+
+      {members.map((member) => (
+        <label key={member.id} className={styles.option}>
+          <input
+            type="checkbox"
+            checked={chosen.includes(member.id)}
+            onChange={() => toggleMember(member.id)}
+            className={styles.checkbox}
+          />
+          <span>{nameOf(member)}</span>
+        </label>
+      ))}
+
+      {/* Everybody ticked is one press rather than one per person, which
+          on a two-person trip is the difference between the common case
+          being easy and being merely possible. */}
+      {members.length > 1 ? (
         <button
           type="button"
-          onClick={() => setOpen((shown) => !shown)}
-          aria-expanded={open}
-          aria-haspopup="true"
-          className={styles.select}
+          onClick={() =>
+            setInterest({
+              kind: 'wanted-by',
+              members: members.map((member) => member.id),
+            })
+          }
+          className={styles.everyone}
         >
-          Wanted by
-          <span aria-hidden className={styles.caret}>
-            ▾
-          </span>
+          Everyone
         </button>
+      ) : null}
 
-        {open ? (
-          <div className={styles.menu} role="group" aria-label="Wanted by">
-            {members.map((member) => (
-              <label key={member.id} className={styles.option}>
-                <input
-                  type="checkbox"
-                  checked={chosen.includes(member.id)}
-                  onChange={() => toggleMember(member.id)}
-                  className={styles.checkbox}
-                />
-                <span>{nameOf(member)}</span>
-              </label>
-            ))}
+      <hr className={styles.divide} />
 
-            {/* Everybody ticked is one press rather than one per person, which
-                on a two-person trip is the difference between the common case
-                being easy and being merely possible. */}
-            {members.length > 1 ? (
-              <button
-                type="button"
-                onClick={() =>
-                  setInterest({
-                    kind: 'wanted-by',
-                    members: members.map((member) => member.id),
-                  })
-                }
-                className={styles.everyone}
-              >
-                Everyone
-              </button>
-            ) : null}
+      {/*
+        Not a person, so not one of the people. It is the triage pile — the
+        set that is invisible in a spreadsheet — and it cannot combine with
+        a name: "wanted by Ana, and also nobody has answered" has no
+        meaning, so picking it clears the ticks rather than adding to them.
+      */}
+      <label className={styles.option}>
+        <input
+          type="checkbox"
+          checked={filter.interest.kind === 'unanswered'}
+          onChange={(event) =>
+            setInterest(
+              event.target.checked ? { kind: 'unanswered' } : { kind: 'anyone' },
+            )
+          }
+          className={styles.checkbox}
+        />
+        <span>Nobody has answered yet</span>
+      </label>
 
-            <hr className={styles.divide} />
+      <hr className={styles.divide} />
 
-            {/*
-              Not a person, so not one of the people. It is the triage pile — the
-              set that is invisible in a spreadsheet — and it cannot combine with
-              a name: "wanted by Ana, and also nobody has answered" has no
-              meaning, so picking it clears the ticks rather than adding to them.
-            */}
-            <label className={styles.option}>
-              <input
-                type="checkbox"
-                checked={filter.interest.kind === 'unanswered'}
-                onChange={(event) =>
-                  setInterest(
-                    event.target.checked ? { kind: 'unanswered' } : { kind: 'anyone' },
-                  )
-                }
-                className={styles.checkbox}
-              />
-              <span>Nobody has answered yet</span>
-            </label>
-          </div>
-        ) : null}
-      </div>
-
-      <label className={styles.toggle}>
+      {/*
+        In here now rather than beside the trigger, because the trigger
+        declares. The specification permits exactly this separation and no wider
+        a one: the control that declares the narrowing must also be the one that
+        reveals the way out of it, and reaching it must cost a single deliberate
+        act. Opening the thing that says `9 of 17` is that act.
+      */}
+      <label className={styles.option}>
         <input
           type="checkbox"
           checked={filter.visited === 'unvisited'}
@@ -186,14 +196,6 @@ export function FilterBar({
       </label>
 
       {/*
-        The declaration, and the way out, in one control.
-
-        Always here, so applying a filter never rearranges the bar that applied
-        it and the way out is visible before it is needed. Live only while
-        something is hidden — which is what says a filter is on. A filtered trip
-        and a trip that lost its places look identical, fewer pins, and the
-        difference is not one a person can recover alone.
-
         Inert via `aria-disabled` rather than the `disabled` attribute: a
         disabled button leaves the tab order and is skipped, so a reader who
         cannot see the styling would be told nothing at all — the colour-only
@@ -207,8 +209,8 @@ export function FilterBar({
         }}
         className={styles.clear}
       >
-        Clear
+        Clear the filter
       </button>
-    </div>
+    </Menu>
   )
 }

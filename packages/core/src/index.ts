@@ -23,7 +23,12 @@ export type {
   NewMarkerInterest,
 } from './marker-interest'
 
-export { isFiltered, matchesFilter, NO_FILTER } from './marker-filter'
+export {
+  activeFilterCount,
+  isFiltered,
+  matchesFilter,
+  NO_FILTER,
+} from './marker-filter'
 export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filter'
 
 // Only the write-side rule lives here. The type list, its icons, its families,

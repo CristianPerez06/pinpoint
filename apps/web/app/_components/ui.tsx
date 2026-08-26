@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
 
 import styles from './ui.module.css'
 
@@ -19,6 +19,170 @@ import styles from './ui.module.css'
 
 /** A panel floating over the map. The details view and the form share it. */
 export const overlayPanelClass = styles.panel
+
+/**
+ * A control that reveals a panel, and everything that owes the reader.
+ *
+ * There were five of these in the chrome, built four different ways: three
+ * dismissal contracts, five widths, two anchoring rules and three words for
+ * close. Only one of the five — the filter's — dismissed on an outside press or
+ * on Escape, and none of them returned focus or told a screen reader that
+ * anything had opened.
+ *
+ * So the contract lives here rather than at each call site, for the same reason
+ * `Button` owns `aria-disabled`: a rule that has to be remembered five times is
+ * a rule that is already false somewhere. What a call site supplies is a label
+ * and what goes inside.
+ *
+ * `open` is passed in rather than held here. Only one menu in the chrome may be
+ * open at a time, and that is a fact about the whole bar — no component can
+ * enforce it about panels it cannot see.
+ */
+export function Menu({
+  label,
+  children,
+  name,
+  open,
+  onOpen,
+  align = 'start',
+  tone = 'default',
+  marked = false,
+}: {
+  /** What the trigger shows. May carry a count or a caret, so not a plain string. */
+  label: ReactNode
+  /**
+   * What the panel is called.
+   *
+   * Required, and separate from `label`, because the two answer different
+   * questions: the trigger may read `Filter · 9 of 17`, which is a state, while
+   * the panel it opens is `Filter`. Without this the panel is an unnamed region
+   * and a reader is told only that a group appeared.
+   */
+  name: string
+  children: ReactNode
+  open: boolean
+  onOpen: (open: boolean) => void
+  /** `end` hangs the panel from the right, for a trigger near the viewport edge. */
+  align?: 'start' | 'end'
+  tone?: 'default' | 'primary' | 'danger' | 'quiet'
+  /**
+   * The trigger is declaring a state, not merely opening something.
+   *
+   * Fills the control **and** draws a dot, because a state carried only in hue
+   * survives neither a greyscale screen nor a colour-blind reader — the same
+   * rule that keeps a visited marker from being recoloured. Two signals, and
+   * whatever the label says is the third.
+   */
+  marked?: boolean
+}) {
+  const anchor = useRef<HTMLDivElement | null>(null)
+  const trigger = useRef<HTMLButtonElement | null>(null)
+  /**
+   * Whether this menu was open on the previous render.
+   *
+   * Focus is restored on the transition from open to closed, never on every
+   * render where it happens to be closed — which would steal focus from
+   * wherever the reader actually is, on every keystroke elsewhere in the bar.
+   */
+  const wasOpen = useRef(false)
+
+  /**
+   * Closing the way a dropdown closes.
+   *
+   * Pointer down rather than click, kept from the filter bar along with its
+   * reason: a click listener fires after the map has already decided what the
+   * press meant, so pressing the map to dismiss this would also drop a pin
+   * while the map is armed.
+   */
+  useEffect(() => {
+    if (!open) return
+
+    const dismiss = (event: PointerEvent) => {
+      if (!anchor.current?.contains(event.target as Node)) onOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onOpen(false)
+    }
+
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open, onOpen])
+
+  /**
+   * Focus back to the trigger when the panel goes.
+   *
+   * Dismissing from a control inside the panel destroys the focused element, and
+   * focus then falls to the document body — so the way back is to tab through
+   * the whole of the chrome again. A layout effect, so it lands before the
+   * browser paints and the ring never appears in the wrong place.
+   */
+  useLayoutEffect(() => {
+    if (wasOpen.current && !open) trigger.current?.focus()
+    wasOpen.current = open
+  }, [open])
+
+  return (
+    <div ref={anchor} className={styles.menuAnchor}>
+      <button
+        ref={trigger}
+        type="button"
+        onClick={() => onOpen(!open)}
+        aria-expanded={open}
+        /*
+         * `menu` would be a lie. These panels hold checkboxes, fields and
+         * forms, and a reader told to expect a menu is told to expect
+         * `menuitem` children that are not there. `dialog` is the honest
+         * answer for a panel with a form in it.
+         */
+        aria-haspopup="dialog"
+        className={`${styles.button} ${styles[tone]} ${marked ? styles.live : ''}`}
+      >
+        {label}
+        {marked ? <span aria-hidden className={styles.liveDot} /> : null}
+        {/*
+          Drawn, not typed, and both halves of that matter.
+
+          Drawn here rather than by each call site, so a label-shaped control is
+          never mistaken for a label — the phone's header names the caret as the
+          thing that makes a name findable as a control.
+
+          And drawn as a path rather than set as `▾`, for the reason the zoom
+          control already records about `+` and `−`: a typed glyph takes the
+          font's own weight, width and vertical centring, so its size is
+          whatever the face decided rather than what this asked for, and it
+          sits off the optical centre of the row. A path is the size it is
+          given on every face.
+        */}
+        <svg
+          viewBox="0 0 16 16"
+          className={styles.caret}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 6.5 8 10.5l4-4" />
+        </svg>
+      </button>
+
+      {open ? (
+        <div
+          role="group"
+          aria-label={name}
+          className={`${styles.menuPanel} ${align === 'end' ? styles.menuPanelEnd : ''}`}
+        >
+          {children}
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 /**
  * Unavailable is `aria-disabled` and a no-op, never the `disabled` attribute.

@@ -385,24 +385,49 @@ scroll inside themselves.
 **Chrome follows the screen shape, not the platform.** A phone-shaped screen puts
 frequent controls in a bar across the bottom within a thumb's reach, with rare
 destructive ones (Sign out) kept deliberately far away at the top. A laptop-shaped one
-gets a header plus a two-row toolbar: a narrow row (trip, city, filter, clear) and an
-add row (search, drop). The web application is expected to render both, chosen by window
-width — a browser held in a hand looks like the phone application because it *is* a
+gets **one bar**, read left to right as scope, then the session, then the person: the
+trip's name and the city (each opening what is rare and belongs to it), then search,
+drop and filter, then the account. The web application is expected to render both,
+chosen by window width — a browser held in a hand looks like the phone application because it *is* a
 phone, not because anybody remembered to mirror it.
+
+**A control in the bar reserves its width; it does not follow its own content.**
+Anything whose text varies — a trip's name, a city's, a button with two labels — is
+given a fixed width and truncates inside it. A control that sizes itself moves every
+control after it, so switching city or arming the map slid search, drop and filter
+sideways; the things a person aims at repeatedly must not move because a word somewhere
+else changed length. A short name therefore leaves air before its chevron, which is what
+a picker looks like, and the space costs nothing in a bar that had most of its width
+empty. The full text is in what the control opens.
 
 **The bottom bar is the floor.** Flush to the screen edge, with the map's own ornaments
 and licence credit rising off it. A bar that stops short of the edge is a wide pill with
 a gap under it, and the gap fills with whatever it was clearing.
 
 **Panels over the map** are 328px wide, anchored bottom-left at `md` inset, capped at 70%
-height and scrolling internally. **Detour panels** hang from the control that opened
-them (340px, `lg` radius, `lg` shadow). **Sheets on the phone** are pinned to the bottom
+height and scrolling internally. **Menus** hang from the control that opened them —
+320px, `lg` radius, `lg` shadow, `xs` below the trigger, and anchored to that trigger
+rather than to the bar. At most one is open at a time across the whole bar; each closes
+on an outside press and on Escape, and returns focus to what opened it. Every trigger
+carries a **13px drawn chevron** in Muted Ink — drawn as a path rather than typed as
+`▾`, for the reason the zoom control already records: a typed glyph takes the font's own
+weight, width and vertical centring, so it is whatever size the face decided rather than
+the size it was given. On a trigger that is declaring a state, the chevron takes the
+lettering's colour instead. **Sheets on the phone** are pinned to the bottom
 edge at one of two detents — 52% and 92% of the window — because half is enough map to
 recognise a street corner and enough sheet to show the fields being checked against it.
 
-**Responsive:** the current web toolbar holds two fixed rows down to 700px, where a
-temporary rule lets both wrap and gives search its own line. That rule is explicitly
-marked as holding, not as a decision; the phone layout replaces it.
+**Responsive:** the web bar holds one row down to **1024px**, below which the tools take
+a line of their own and the scope keeps the first with the account. That number is
+derived rather than picked: what cannot shrink in the bar — the two fixed scope names,
+the drop slot, the filter, the account, the gaps and the padding — comes to about 764px,
+and a search field stops being one at about 240px, so the single row runs out around
+1004px. Below **700px** a further temporary rule gives search its own line; that one is
+marked as holding, not as a decision, and the phone layout replaces it.
+
+**A control gives up its place before it gives up its size.** Shrinking a field until it
+still fits is how a search box reaches thirty pixels — present, focusable and useless.
+When a row can no longer hold something at a usable size, the row wraps.
 
 ### Named Rules
 
@@ -531,10 +556,13 @@ there shows the map through the corners.
 
 ### Navigation & Chrome
 
-- **Web header:** Raised White, 11×16 padding, 1px Hairline bottom. The wordmark is the
-  9px accent dot with a 3px Amber Ring halo, beside "pinpoint" at 16.5px/800/−0.032em.
-  The dot *is* the mark — a pin reduced to the point it names, in the one colour that is
-  not a marker family.
+- **The mark:** a 9px accent dot with a 3px Amber Ring halo. The dot *is* the mark — a
+  pin reduced to the point it names, in the one colour that is not a marker family. The
+  full wordmark, "pinpoint" at 16.5px/800/−0.032em, is for signed-out screens.
+- **Web header:** it *is* the bar — the dot, the trip name and the city as menus, the
+  session's three tools, and the account at the far end holding what is about the person
+  rather than the trip. The wordmark's letters are not in it: inside the application they
+  say nothing the reader does not know, and the trip's name answers a real question.
 - **Phone header:** the same dot, the trip name at `title`, and a menu holding rare
   actions. The trip name is the only element that yields, so a long name truncates
   instead of pushing the menu off.
