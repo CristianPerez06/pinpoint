@@ -1,7 +1,10 @@
 # write-feedback Specification
 
 ## Purpose
-TBD - created by archiving change say-what-a-write-is-doing. Update Purpose after archive.
+Define what a write tells the person who asked for it: that it is happening, which act
+is in progress, and what became of it. The interval between asking and being answered is
+invisible at local latency and is the whole of the interaction on a slow one, so these
+rules govern the part of the product the people who build it are least likely to see.
 ## Requirements
 ### Requirement: A write says it is happening, from the moment it is asked for
 
