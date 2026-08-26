@@ -51,7 +51,8 @@ import { PlaceSearch } from '@/app/_components/place-search'
 import { TripBar } from '@/app/_components/trip-bar'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
-import { Button } from '@/app/_components/ui'
+import { Button, Menu } from '@/app/_components/ui'
+import { signOutAction } from '@/app/_actions/auth'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
 import { useVisibleAgain } from '@/lib/use-visible-again'
@@ -111,6 +112,26 @@ type Panel =
   | { kind: 'details'; groupKey: string; markerId: string | null }
   | { kind: 'create'; initial: MarkerFormValues }
   | { kind: 'edit'; marker: Marker; initial: MarkerFormValues }
+
+/**
+ * The detours the toolbar raises, as one closed set.
+ *
+ * Deliberately flat rather than one value per bar. These panels are alike in
+ * the only way that matters here — each hangs off a control in the chrome and
+ * covers the map — so what has to be true is that at most one exists, and a
+ * single value is what says so. Splitting it per bar is what produced two
+ * panels drawn on top of each other.
+ *
+ * One value per control in the bar, not per view inside a panel. Which face
+ * the trip menu is showing — its list, rename, people, new trip — is that
+ * menu's own business and cannot break this rule, because only one of them can
+ * be on screen anyway.
+ *
+ * `MarkerDetails` and `MarkerForm` are not in this set. They float over the
+ * map from `overlayPanelClass` rather than hanging off the chrome, and they
+ * are already mutually exclusive through `panel`.
+ */
+type DetourPanel = 'none' | 'trip' | 'city' | 'filter' | 'account'
 
 function valuesOf(marker: Marker): MarkerFormValues {
   return {
@@ -193,6 +214,15 @@ export function TripWorkspace({
    */
   const trip = trips.find((each) => each.id === initialTrip.id) ?? initialTrip
   /**
+   * What to call the reader on the account control.
+   *
+   * Their member name when their account matches one, and `Account` when it
+   * does not — which is ordinary rather than broken, since a member row exists
+   * before the account does.
+   */
+  const youAre =
+    members.find((member) => member.id === ownMemberId)?.displayName ?? 'Account'
+  /**
    * Unfiltered, and not persisted anywhere.
    *
    * A trip opens showing everything because the interest choices do not
@@ -209,6 +239,20 @@ export function TripWorkspace({
    * is a camera to claim it about.
    */
   const [anyInView, setAnyInView] = useState(true)
+  /**
+   * Which of the chrome's detours is open, as one value for the whole toolbar.
+   *
+   * It was three flags inside `TripBar` and a fourth inside `CityBar`, and the
+   * invariant "only one panel at a time" was enforced within each of them and
+   * between neither. Opening `People` and then `Edit city` drew a 340px panel
+   * and a 300px panel at the same position and the same stacking level, one
+   * silently over the other.
+   *
+   * One variable is the only way to state the rule once. The alternative —
+   * every panel closing the others through callbacks — is the same invariant
+   * written in four places, which is how it came to be false.
+   */
+  const [detour, setDetour] = useState<DetourPanel>('none')
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [dropping, setDropping] = useState(false)
   const [draft, setDraft] = useState<DraftPosition | null>(null)
@@ -765,24 +809,27 @@ export function TripWorkspace({
   }
 
   return (
-    <>
+    <div className={styles.shell}>
       {/*
-        Two rows, because they are two thoughts: the first narrows what is on the
-        map, the second adds to it. Narrowing sits on top because a trip is
-        scanned far more often than it is added to.
+        One bar, and it is the header.
 
-        Search and the drop button are together because they are the two ways to
-        create a marker. They used to sit at opposite ends of one wrapping row
-        with a filter between them, which is an arrangement flex produced rather
-        than one anybody chose.
+        This was a header plus three stacked toolbar rows — 205px of chrome on a
+        929px viewport, holding 558px of controls, so between 78 and 86 per cent
+        of every row was empty. The arrangement was not decided: each band
+        arrived for its own good reason and none was ever weighed against the
+        others, which left the topmost and leftmost strip of the interface —
+        where a hand and an eye go first — holding `Rename`, `People` and
+        `New trip`, three things somebody does about once per trip in total.
+
+        Read left to right it is now scope, then the session, then the person.
+        The trip and the city say what is being looked at and open everything
+        rare that belongs to them. Search, drop and filter are what a session is
+        actually made of. The account is at the far end, where DESIGN.md wants
+        rare destructive things kept.
       */}
-      <div className={styles.toolbar}>
-        {/*
-          Which trip, what it is called, and who is on it — above the controls
-          that narrow it and the ones that add to it, because it is what those
-          two are about. It used to be a static line in the page header, which
-          is rendered on the server and cannot follow a rename.
-        */}
+      <header className={styles.bar}>
+        <span className={styles.mark} aria-hidden />
+
         <TripBar
           trip={trip}
           trips={trips}
@@ -794,30 +841,34 @@ export function TripWorkspace({
             void refreshMembers(() => fetchTripMembers(supabase, trip.id))
           }
           onCreated={selectTrip}
+          open={detour === 'trip'}
+          onOpen={(open) => setDetour(open ? 'trip' : 'none')}
         />
 
-        <div className={styles.narrowRow}>
-          <CityBar
-            cities={cities}
-            markers={markers}
-            selectedCityId={selectedCityId}
-            onSelect={selectCity}
-            onSave={patchCity}
-            onDelete={removeCity}
-            onEditCity={() =>
-              void refreshCities(() => fetchTripCities(supabase, trip.id))
-            }
-          />
+        <span className={styles.scopeSep} aria-hidden>
+          /
+        </span>
 
-          <FilterBar
-            filter={filter}
-            onChange={setFilter}
-            members={members}
-            ownMemberId={ownMemberId}
-          />
-        </div>
+        {/*
+          The city is a narrowing of the trip, so it reads as one — which is
+          also true of what it does: it frames the camera on that city's places
+          and biases search toward them. It still does not filter the map.
+        */}
+        <CityBar
+          cities={cities}
+          markers={markers}
+          selectedCityId={selectedCityId}
+          onSelect={selectCity}
+          onSave={patchCity}
+          onDelete={removeCity}
+          onEditCity={() =>
+            void refreshCities(() => fetchTripCities(supabase, trip.id))
+          }
+          open={detour === 'city'}
+          onOpen={(open) => setDetour(open ? 'city' : 'none')}
+        />
 
-        <div className={styles.addRow}>
+        <span className={styles.tools}>
           <span className={styles.search}>
             <PlaceSearch
               biasRef={biasRef}
@@ -831,21 +882,71 @@ export function TripWorkspace({
             />
           </span>
 
-          <Button
-            tone={dropping ? 'danger' : 'primary'}
-            onClick={() => {
-              setDropping((armed) => !armed)
-              setPanel({ kind: 'none' })
-              setDraft(null)
-            }}
-            title="Point at the map to place somewhere search cannot find"
-          >
-            {dropping ? 'Cancel — click the map' : '+ Drop a pin'}
-          </Button>
-        </div>
-      </div>
+          {/*
+            A slot, so the two labels do not resize the control and push the
+            filter sideways at the exact moment somebody is reaching for the map.
 
-      <div className={styles.stage}>
+            The armed label is `Cancel` rather than `Cancel — click the map`,
+            which is what it used to say. The banner standing over the map
+            already says "Click the map where the place is", so the long form
+            was the same sentence twice — and it was the widest thing in the
+            bar, forcing a slot half again as wide as the control needed.
+          */}
+          <span className={styles.drop}>
+            <Button
+              tone={dropping ? 'danger' : 'primary'}
+              onClick={() => {
+                setDropping((armed) => !armed)
+                setPanel({ kind: 'none' })
+                setDraft(null)
+              }}
+            >
+              {dropping ? 'Cancel' : '+ Drop a pin'}
+            </Button>
+          </span>
+
+          <FilterBar
+            filter={filter}
+            onChange={setFilter}
+            members={members}
+            ownMemberId={ownMemberId}
+            open={detour === 'filter'}
+            onOpen={(open) => setDetour(open ? 'filter' : 'none')}
+          />
+        </span>
+
+        {/*
+          The person, not the trip.
+
+          `Sign out` was a bare button one pixel from the corner with no menu
+          around it and nowhere for anything else to go. A profile route and a
+          settings route are both waiting on somewhere to hang, and this is it.
+        */}
+        <span className={styles.account}>
+          <Menu
+            name="Account"
+            label={<span className={styles.you}>{youAre}</span>}
+            align="end"
+            tone="quiet"
+            open={detour === 'account'}
+            onOpen={(open) => setDetour(open ? 'account' : 'none')}
+          >
+            <form action={signOutAction}>
+              <button type="submit" className={styles.signOut}>
+                Sign out
+              </button>
+            </form>
+          </Menu>
+        </span>
+      </header>
+
+      {/*
+        `<main>` is the map, and the bar above it is a sibling rather than a
+        parent. A `<header>` inside `<main>` is exactly the condition under
+        which it stops exposing a `banner` landmark, which is what the old
+        arrangement did without anything reporting it.
+      */}
+      <main className={styles.stage}>
         <TripMap
           groups={groups}
           onSelectGroup={(group: MarkerGroup<Marker>) => {
@@ -1012,8 +1113,8 @@ export function TripWorkspace({
             onCreateCity={addCity}
           />
         ) : null}
-      </div>
-    </>
+      </main>
+    </div>
   )
 }
 

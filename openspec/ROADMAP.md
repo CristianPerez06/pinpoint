@@ -345,7 +345,7 @@ The web application has one layout, built for a laptop. A browser window the wid
 of a phone is held together by a media query that lets the toolbar wrap and gives
 search a line of its own — enough that no control is lost, and no more than that.
 This gives it the same bottom layout the phone gets, at narrow widths only; a wide
-window keeps its header and its toolbar, and the holding rule is deleted.
+window keeps its one bar, and the holding rule is deleted.
 
 It waited for the phone deliberately, and the wait paid: there is now a built
 shape to port rather than a guess at one. It stayed a separate change for the same
@@ -403,7 +403,7 @@ be chosen rather than arrived at.
   real consequences gets quietly forgotten.
 - **Chrome follows the screen shape, not the platform.** A phone-shaped screen puts
   its controls at the bottom, within a thumb's reach, with the map above them; a
-  laptop-shaped one has a header and a toolbar. The web application gets both,
+  laptop-shaped one has a single bar. The web application gets both,
   chosen by window width, so a browser held in a hand looks like the phone
   application because it *is* a phone — not because anybody remembered to mirror
   it. This replaces "web is one thing and mobile is another", which had no test
@@ -501,13 +501,15 @@ Debt and known limitations. Nothing here is a missing feature, and nothing here 
 a defect — each is something already built that is untidy, or correct only at the
 scale the product runs at today.
 
-- [ ] **A holding media query keeps the web toolbar usable at phone width.** The
-      toolbar is two deliberate rows now, which is a laptop arrangement; below
-      700px the rows wrap again and search takes a line of its own, so nothing
-      clips or leaves the viewport. It is labelled temporary in the stylesheet and
-      names its successor. Closed by "Responsive web" above, which replaces it with
-      the phone layout rather than tuning it. The breakpoint is a literal, because
-      custom properties do not resolve inside a media query, and appears once.
+- [ ] **A holding media query keeps the web bar usable at phone width.** The bar is
+      one row now, which is a laptop arrangement. It wraps twice on the way down,
+      and only the second is debt: at 1024px the tools take a line of their own,
+      which is a decision derived from what in the bar cannot shrink; below 700px a
+      further rule gives search its own line so nothing clips or leaves the
+      viewport. That second one is labelled temporary in the stylesheet and names
+      its successor. Closed by "Responsive web" above, which replaces it with the
+      phone layout rather than tuning it. Both breakpoints are literals, because
+      custom properties do not resolve inside a media query, and each appears once.
 - [ ] **The phone's narrowed state has not been read in greyscale.** The filter tool
       declares a narrowed trip with the accent *and* a dot, and the dot is what is
       supposed to carry it for a colour-blind reader or a greyscale screen. That it does

@@ -1,73 +1,281 @@
 /*
- * Two rows, chosen rather than arrived at.
+ * The full-height column: the bar, then the map.
  *
- * This was one row with `flex-wrap: wrap`, which meant it was already one line
- * or two depending on the window and how long a city's name was. The row count
- * is a decision now, and only the holding rule at the bottom of this file is
- * allowed to change it.
+ * It lives here rather than in `page.tsx` because the bar does, and the two have
+ * to be siblings — a `<header>` inside `<main>` exposes no `banner` landmark.
+ * Nothing scrolls; the map takes whatever the bar leaves and panels scroll
+ * inside themselves.
  */
-.toolbar {
-  position: relative;
+.shell {
   display: flex;
   flex-direction: column;
+  height: 100dvh;
+  color: var(--pp-ink);
+}
+
+/*
+ * One bar, and it is the header.
+ *
+ * This was a header plus three stacked rows. The row count was called a
+ * decision in the comment that used to be here, and it was — but it was a
+ * decision about how many rows the controls needed, never about whether the
+ * controls deserved the space. They did not: 205px of chrome on a 929px
+ * viewport, to hold 558px of controls in rows 2528px wide.
+ *
+ * Left to right: scope, the session, the person. Nothing wraps at a laptop
+ * width, and the trip's name is the only thing that yields.
+ */
+.bar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
   gap: var(--pp-space-sm);
   padding: var(--pp-space-sm) var(--pp-space-md);
   border-bottom: 1px solid var(--pp-line);
   background: var(--pp-surface);
-  z-index: 6;
-}
-
-.narrowRow,
-.addRow {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-md);
 }
 
 /*
- * Sized to the input rather than to the row.
+ * The whole mark: a pin reduced to the point it names, in the one colour that
+ * is not a marker family.
  *
- * Search and the drop button are the two ways to create a marker, and the point
- * of putting them on one row is that they read as a pair. Letting search take
- * the whole row and pinning the button right undid that at a wide window: at
- * 1680px they sat about eleven hundred pixels apart, which is the arrangement
- * this row was made to fix, with whitespace where the filter used to be.
+ * The wordmark's letters are gone. Inside the application they said nothing the
+ * reader did not know, and the trip's name is the thing that answers a real
+ * question — which is exactly the trade the phone header already made.
+ */
+.mark {
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+  flex: none;
+}
+
+/* Scope reads as a path, because that is what it is: a city is a narrowing of
+   a trip. */
+.scopeSep {
+  color: var(--pp-ink-faint);
+  flex: none;
+}
+
+/*
+ * What a session is actually made of, set apart from the scope beside it.
  *
- * So it stops at the input's own width and the button sits beside it. The right
- * of the row is simply empty, which is what a toolbar of two controls looks
- * like.
+ * The margin is what separates the three groups; without it the bar is one
+ * undifferentiated run of controls and the reading left to right stops meaning
+ * anything.
+ */
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  margin-left: var(--pp-space-md);
+  /*
+   * Grows, and that is load-bearing rather than tidy.
+   *
+   * At `flex: 0 1 auto` this sized to its content — and a flex container's
+   * content width takes the *input's* intrinsic width, which is the browser's
+   * twenty-character default, about 167px. So the search field's own
+   * `flex-basis` was never reached: the field sat at 167px at every width from
+   * 900px to 2560px, and the results list under it was cut to match. Letting
+   * this take the free space is what lets the field have a say in its own size.
+   */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * Sized to the input rather than to the bar.
+ *
+ * Letting search take the space undoes the grouping: at 1680px it pushed drop
+ * and filter to the far edge, which is the arrangement this bar was built to
+ * fix. It stops at its own width and the tools sit beside it.
  */
 .search {
   display: flex;
-  flex: 0 1 420px;
+  /*
+   * Allowed to grow, and allowed to shrink.
+   *
+   * It was pinned at a 340px basis that could only shrink, which made the field
+   * the narrowest thing it could be at every width — and the results list, which
+   * carries a name, a type and a distance per row, was cut to match. It now
+   * takes the room the bar has spare, up to a width past which a search field
+   * stops reading as one, and gives it back when the bar needs it.
+   */
+  flex: 1 1 320px;
+  max-width: 480px;
   min-width: 0;
+}
+
+/*
+ * The drop button's slot, sized to its longer label.
+ *
+ * Reserved rather than fitted, for the same reason the trip and city names are
+ * fixed: a control whose width follows its own state moves whatever sits after
+ * it. Here that is the filter, and the moment it moves is the moment the map
+ * has just been armed and somebody is already reaching past it.
+ */
+.drop {
+  display: flex;
+  flex: none;
+  /* Sized to `+ Drop a pin`, which is the longer of the two labels now that the
+     armed one is a single word. It was 168px, which was the width of a sentence
+     the banner over the map was already saying. */
+  width: 124px;
+}
+
+.drop > button {
+  width: 100%;
+  justify-content: center;
+}
+
+/*
+ * At the far edge, where DESIGN.md wants rare destructive things kept — and now
+ * with a menu around it, which four open tickets were waiting for.
+ *
+ * No `margin-left: auto`: the tools take the free space now, so this is already
+ * against the right edge, and an auto margin would compete with them for it.
+ */
+.account {
+  flex: none;
+}
+
+/*
+ * Fixed like the rest, though this one is anchored right and so moves nothing
+ * but itself. It is here for the chevron: without a reserved width that glyph
+ * sits at a different place on every account, and it is the one part of this
+ * control anybody aims at.
+ */
+.you {
+  display: block;
+  width: 13ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/*
+ * The sign-out submit, still a server action inside a form.
+ *
+ * Nothing about how signing out works changed when it moved into a menu; only
+ * where it is reachable from did.
+ */
+.signOut {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-danger);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.signOut:hover {
+  background: var(--pp-danger-surface);
+}
+
+/*
+ * Below a laptop, the tools take a line of their own.
+ *
+ * Derived rather than picked. Everything in the bar that cannot shrink comes to
+ * about 764px — the scope's two fixed names, the drop slot, the filter, the
+ * account, the gaps and the padding — and a search field stops being one at
+ * roughly 240px. The single row therefore runs out at about 1004px, so this is
+ * the first round number above that, and it is the conventional laptop boundary
+ * as well.
+ *
+ * What it does *not* do is shrink the field further and hope. That was the
+ * failure this replaces: the field kept its place in the row and gave up its
+ * width instead, reaching 30px at 780px — present, focusable, and useless.
+ */
+@media (max-width: 1024px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  /* Scope and the account keep the first line; the tools take the second. The
+     account needs its auto margin back here, because the tools are no longer
+     beside it to push it over. */
+  .account {
+    order: 0;
+    margin-left: auto;
+  }
+
+  .tools {
+    order: 1;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Room to be a search field, not the whole row. The slack after it is what
+     the single-row layout spends on the scope. */
+  .search {
+    flex: 1 1 auto;
+    max-width: 560px;
+  }
 }
 
 /*
  * Temporary, and named as such so it is not mistaken for a decision later.
  *
- * Two fixed rows are a laptop arrangement: at a phone-width window the first
- * carries four controls and the second a search field and a button, and without
- * this something clips or leaves the viewport — a lost control, not an untidy
- * one. Wrapping is roughly what the toolbar did before, kept on purpose and
- * confined to narrow widths so the wide layout is no longer at its mercy.
+ * A phone-width window is a different arrangement, not a narrower version of
+ * this one. Without this something clips or leaves the viewport — a
+ * lost control, not an untidy one. Wrapping is what the toolbar did before,
+ * kept on purpose and confined to narrow widths so the wide layout is no longer
+ * at its mercy.
  *
- * The roadmap's "Responsive web" item replaces this with the phone layout —
- * a bottom bar within a thumb's reach — and deletes it. It exists so that item
- * is not a prerequisite for shipping two rows on a laptop.
+ * Issue #41 replaces this with the phone layout — the tools in a bar within a
+ * thumb's reach at the bottom edge — and deletes it. It exists so that item is
+ * not a prerequisite for shipping one bar on a laptop.
  *
  * 700px is a literal because custom properties do not resolve inside a media
  * query. It appears once, so the change that replaces it has one place to look.
  */
 @media (max-width: 700px) {
-  .narrowRow,
-  .addRow {
+  .bar {
     flex-wrap: wrap;
-    gap: var(--pp-space-sm);
   }
 
+  /*
+   * The scope and the account keep the first line; the tools take their own.
+   *
+   * `order` rather than markup order, because the reading left to right —
+   * scope, session, person — is right at a laptop width and only the wrapping
+   * is wrong. Without it the full-width tools row falls between the city and
+   * the account and pushes the account onto a third line by itself.
+   */
+  .account {
+    order: 0;
+    margin-left: auto;
+  }
+
+  .tools {
+    order: 1;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  /*
+   * Search takes its own line rather than sharing one.
+   *
+   * At 390px the three tools do not fit across, and a flex item that shrinks
+   * past its content does not clip politely — the field ran under the drop
+   * button and the words of both were drawn on top of each other. A control
+   * that overlaps another is a lost control, not an untidy one.
+   */
   .search {
-    flex-basis: 100%;
+    flex: 1 1 100%;
   }
 }
 

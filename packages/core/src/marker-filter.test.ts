@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { isFiltered, type MarkerFilter, matchesFilter, NO_FILTER } from './marker-filter'
+import {
+  activeFilterCount,
+  isFiltered,
+  type MarkerFilter,
+  matchesFilter,
+  NO_FILTER,
+} from './marker-filter'
 
 const ANA = 'member-ana'
 const BEN = 'member-ben'
@@ -162,5 +168,48 @@ describe('isFiltered', () => {
     expect(isFiltered(wantedBy(ANA))).toBe(true)
     expect(isFiltered(UNANSWERED)).toBe(true)
     expect(isFiltered({ ...NO_FILTER, visited: 'unvisited' })).toBe(true)
+  })
+})
+
+describe('activeFilterCount', () => {
+  it('counts nothing on an unfiltered view', () => {
+    expect(activeFilterCount(NO_FILTER)).toBe(0)
+  })
+
+  it('counts naming people as one question however many are named', () => {
+    // The number describes what is being asked, not what was ticked to ask it.
+    // "Which places do all of these people want" is one question whether it
+    // names one person or ten, and a control reporting `10` would be reporting
+    // the input.
+    expect(activeFilterCount(wantedBy(ANA))).toBe(1)
+    expect(activeFilterCount(wantedBy(ANA, BEN))).toBe(1)
+    expect(activeFilterCount(wantedBy(ANA, BEN, CHO))).toBe(1)
+  })
+
+  it('counts the triage pile as the same one question', () => {
+    // It replaces the names rather than joining them, so it is that criterion
+    // seen from the other side and never an additional one.
+    expect(activeFilterCount(UNANSWERED)).toBe(1)
+  })
+
+  it('counts hiding visited places separately', () => {
+    expect(activeFilterCount({ ...NO_FILTER, visited: 'unvisited' })).toBe(1)
+    expect(activeFilterCount({ ...wantedBy(ANA, BEN), visited: 'unvisited' })).toBe(2)
+    expect(activeFilterCount({ ...UNANSWERED, visited: 'unvisited' })).toBe(2)
+  })
+
+  it('agrees with isFiltered about whether anything is being hidden', () => {
+    // Two functions answering one question have to answer it the same way: a
+    // control that declares a filter is on while the count reads zero would be
+    // contradicting itself in the same breath.
+    for (const filter of [
+      NO_FILTER,
+      wantedBy(ANA),
+      UNANSWERED,
+      { ...NO_FILTER, visited: 'unvisited' } as MarkerFilter,
+      { ...wantedBy(ANA), visited: 'unvisited' } as MarkerFilter,
+    ]) {
+      expect(activeFilterCount(filter) > 0).toBe(isFiltered(filter))
+    }
   })
 })

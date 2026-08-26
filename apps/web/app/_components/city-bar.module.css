@@ -1,10 +1,71 @@
-.bar {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
+/*
+ * What is peculiar to the city menu, after the primitive took the rest.
+ *
+ * The bar, the anchor, the trigger and the panel are `Menu` in `ui.tsx` now.
+ * The `CITY` micro-label is gone with them: DESIGN.md scopes that role to a
+ * city header and a field label, not to shouting a category over a control
+ * whose value reads `All places`.
+ */
+
+/*
+ * The selected city, as the thing you press.
+ *
+ * Fixed for the same reason the trip's name is: a city is a name somebody typed,
+ * so it has no length anybody promised, and everything downstream of it in the
+ * bar would move every time the selection changed. `All places` is the longest
+ * thing this holds that is not a typed name, and it fits.
+ */
+.name {
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  color: var(--pp-ink);
+  width: 11ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.label {
+/*
+ * Rows, headings and dividers, matching the trip menu's exactly.
+ *
+ * Repeated rather than shared, which is the same call `filter-bar.module.css`
+ * already documents: the two are one visual idea and two components, and what
+ * must not drift is the token values — none of these are literals.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--pp-surface-muted);
+}
+
+.row[aria-current='true'] {
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+}
+
+.rowNote {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+}
+
+.heading {
+  margin: 0;
   font-size: var(--pp-type-label-size);
   font-weight: var(--pp-type-label-weight);
   letter-spacing: var(--pp-type-label-tracking);
@@ -12,43 +73,11 @@
   color: var(--pp-ink-muted);
 }
 
-.picker {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-}
-
-.select {
-  padding: 7px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--pp-radius-pill);
-  background: var(--pp-surface-muted);
-  color: var(--pp-ink);
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.select:hover {
-  border-color: var(--pp-line-strong);
-}
-
-.editor {
-  position: absolute;
-  top: 100%;
-  left: var(--pp-space-md);
-  margin-top: var(--pp-space-xs);
-  width: 300px;
-  display: grid;
-  gap: var(--pp-space-sm);
-  padding: var(--pp-space-md);
-  background: var(--pp-surface);
-  border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius-lg);
-  box-shadow: var(--pp-shadow-lg);
-  z-index: 5;
+.divide {
+  height: 0;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  border-top: 1px solid var(--pp-line);
 }
 
 .actions {

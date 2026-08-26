@@ -1,4 +1,17 @@
 /*
+ * What is left after the menu primitive took the rest.
+ *
+ * The trigger, the anchor and the panel were all declared here and are now
+ * `Menu` in `ui.tsx` — this file had its own answer to each, and so did three
+ * other components, which is how the chrome came to have five panels built four
+ * ways. What stays is only what is peculiar to narrowing: the count on the
+ * trigger, the rows inside, and the way out.
+ *
+ * None of these are literals; every value is a generated custom property, so a
+ * token change repaints this without any of it being edited.
+ */
+
+/*
  * Deliberately the city bar's construction, repeated rather than shared.
  *
  * The two are one visual idea — a small uppercase label against a pill-shaped
@@ -6,70 +19,6 @@
  * and will drift apart at different times. What must not drift is the token
  * values, and none of these are literals.
  */
-
-.bar {
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-}
-
-/* Positioned, because the list hangs from it. */
-.picker {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-}
-
-/*
- * A button wearing the city selector's clothes.
- *
- * It is not a `<select>` — the list holds checkboxes and an entry that is not
- * one of the people — but it is the same control to look at, because it does the
- * same job in the same row. Matching by eye rather than by element is the point.
- */
-.select {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--pp-radius-pill);
-  background: var(--pp-surface-muted);
-  color: var(--pp-ink);
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.select:hover,
-.select[aria-expanded='true'] {
-  border-color: var(--pp-line-strong);
-}
-
-.caret {
-  font-size: 10px;
-  color: var(--pp-ink-muted);
-}
-
-/* The same panel treatment as the city editor, for the same reason. */
-.menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: var(--pp-space-xs);
-  min-width: 220px;
-  display: grid;
-  gap: 2px;
-  padding: var(--pp-space-xs);
-  background: var(--pp-surface);
-  border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius-lg);
-  box-shadow: var(--pp-shadow-lg);
-  z-index: 7;
-}
 
 .option {
   display: flex;
@@ -109,26 +58,6 @@
   border-top: 1px solid var(--pp-line);
 }
 
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--pp-radius-pill);
-  background: var(--pp-surface-muted);
-  color: var(--pp-ink);
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  cursor: pointer;
-  user-select: none;
-  transition: border-color 0.15s ease;
-}
-
-.toggle:hover {
-  border-color: var(--pp-line-strong);
-}
-
 .checkbox {
   margin: 0;
   accent-color: var(--pp-accent);
@@ -146,6 +75,9 @@
  * as visited without changing its colour.
  */
 .clear {
+  /* A row in the panel now, not a pill in the toolbar — so it starts where the
+     options start and takes only the width of its own words. */
+  justify-self: start;
   padding: 5px 10px;
   border: 1px solid var(--pp-accent);
   border-radius: var(--pp-radius-pill);
@@ -186,4 +118,39 @@
   color: var(--pp-ink-muted);
   font-weight: var(--pp-type-control-weight);
   cursor: default;
+}
+
+/*
+ * How many of the filter's questions are being asked, on the trigger itself.
+ *
+ * Tabular figures, because this is a number that changes under the reader's own
+ * hand and with proportional digits a `1` is narrower than a `2`, so the control
+ * would shift as it counted. The one thing this must never do is name the
+ * people: that label grows without bound, and a trip may hold ten members.
+ */
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.count::before {
+  content: '·';
+  margin: 0 5px 0 4px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/*
+ * The one heading inside the panel.
+ *
+ * `Wanted by` used to be the trigger's whole label. It is a section now, because
+ * the panel holds three different questions and only the first is about people.
+ */
+.heading {
+  margin: 0;
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-muted);
 }

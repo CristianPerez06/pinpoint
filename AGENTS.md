@@ -173,6 +173,19 @@ placeholders.
   wrong and no rule about choosing values against a ground was broken — the failing
   text was drawn on a *fill*. Anything that fills with a themed colour letters itself
   in the same rule; text on the accent is `inkOnAccent`.
+- **Two flex defaults quietly decide how wide a control in the bar is, and neither
+  is the one you wrote.** A flex item with a `min-width` floor does not wrap when it
+  runs out of room — it **overflows** its container, so `min-width: 200px` on the
+  search wrapper drew the field underneath the drop button from about 1080px down.
+  And a flex container sized `flex: 0 1 auto` takes its width from its content, where
+  an `<input>`'s content width is the browser's twenty-character default of roughly
+  167px regardless of any `width: 100%` on it — so the row holding search sized itself
+  to 167px and the field's own `flex-basis` was never reached at any viewport from
+  900px to 2560px. **Learn the shape of both**: neither throws, neither logs, and both
+  produce a layout that looks deliberate — one control simply sits on top of another,
+  or a field is inexplicably the same size on a laptop and a 5K display. Measure the
+  computed width of the item *and* of its container before believing either.
+
 - **A token described by how it should feel gets used past the contrast floor.**
   `inkFaint` said "placeholders, and text that is deliberately hard to notice" and
   ended up carrying every uppercase label, every placeholder and every dismiss glyph

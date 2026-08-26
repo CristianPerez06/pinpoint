@@ -1,8 +1,16 @@
 .wrap {
   position: relative;
   flex: 1;
-  min-width: 200px;
-  max-width: 420px;
+  /*
+   * No `min-width` floor here any more.
+   *
+   * It was 200px, and a flex item that refuses to shrink below its floor does
+   * not wrap — it overflows whatever is holding it. In the bar that put the
+   * field underneath the drop button from about 1080px down, drawn over each
+   * other rather than merely tight. The width this field is allowed is the
+   * bar's business, and the bar states it in `.search`.
+   */
+  min-width: 0;
 }
 
 .input {
@@ -35,11 +43,27 @@
   box-shadow: 0 0 0 3px var(--pp-accent-ring);
 }
 
+/*
+ * The list is not the field, and is not sized by it.
+ *
+ * It was pinned to both edges of the input, so a field squeezed by the bar
+ * produced a results list squeezed the same way — and this list carries a name,
+ * a type and a distance per row, which the field does not. Anchored to the left
+ * edge and given its own width, it stays readable however narrow the field gets.
+ */
 .results {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  /*
+   * As wide as its rows need, never narrower than the field, and capped before
+   * it becomes a panel. A row here carries a name, a type and a region, and the
+   * first two of those are the answer to the question that was asked — a list
+   * cut to the field's width truncated the region on every row.
+   */
+  min-width: 100%;
+  width: max-content;
+  max-width: min(560px, 90vw);
   margin-top: var(--pp-space-xs);
   max-height: 320px;
   overflow-y: auto;

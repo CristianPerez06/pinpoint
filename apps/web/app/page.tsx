@@ -8,7 +8,6 @@ import {
 } from '@pinpoint/data'
 import { Suspense } from 'react'
 
-import { signOutAction } from '@/app/_actions/auth'
 import { FailedState, LoadingState } from '@/app/_components/states'
 import { TripSetup } from '@/app/_components/trip-setup'
 import { TripWorkspace } from '@/app/_components/trip-workspace'
@@ -107,9 +106,18 @@ export default async function Home({
    * them apart on its own. The note carries that distinction, in a colour a
    * person reads before the words.
    */
+  /*
+    Not wrapped in `Shell`, and that is the point rather than an omission.
+
+    The workspace owns the full-height column now, because it renders the bar —
+    and the bar is a `<header>`, which exposes a `banner` landmark only when it
+    is *not* inside `<main>`. Wrapping this in `Shell` put it there and silently
+    cost the page its banner, so the workspace renders `<main>` around the map
+    itself and this hands it nothing.
+  */
   return (
-    <Shell>
-      <Suspense fallback={<Centred><LoadingState /></Centred>}>
+    <>
+      <Suspense fallback={<Shell><Centred><LoadingState /></Centred></Shell>}>
         <TripWorkspace
           /*
             Keyed by the trip, so changing trips remounts rather than re-renders.
@@ -139,35 +147,25 @@ export default async function Home({
           }
         />
       </Suspense>
-    </Shell>
+    </>
   )
 }
 
 /**
- * The frame around whatever state the page is in. Web's own idiom, shared values.
+ * The frame around the states that are not the workspace.
  *
- * It no longer names the trip. The name is a control now — it can be renamed and
- * it can be switched — and this is a server component that cannot follow either.
- * The workspace shows it, beside the things that change it.
+ * It carries no chrome. It used to render a header — a wordmark and a bare
+ * `Sign out` — while the workspace rendered a toolbar under it, which is two
+ * elements doing one job and is why the trip's name ended up in neither of the
+ * places it belonged.
+ *
+ * The workspace does not use this: it renders its own `<header>` and `<main>`,
+ * because a `<header>` nested inside `<main>` exposes no `banner` role at all.
+ * What is left here is the loading, failed and empty states, which have no
+ * chrome and are simply the page.
  */
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className={styles.shell}>
-      <header className={styles.header}>
-        <span className={styles.wordmark}>
-          <span className={styles.dot} aria-hidden />
-          pinpoint
-        </span>
-        <form action={signOutAction} className={styles.signOutForm}>
-          <button type="submit" className={styles.signOut}>
-            Sign out
-          </button>
-        </form>
-      </header>
-
-      {children}
-    </main>
-  )
+  return <main className={styles.shell}>{children}</main>
 }
 
 /** Positioned, so anything absolutely placed inside has something to sit in. */

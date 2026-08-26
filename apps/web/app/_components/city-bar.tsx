@@ -3,7 +3,7 @@
 import type { City, Marker } from '@pinpoint/core'
 import { useState } from 'react'
 
-import { Button, TextField } from '@/app/_components/ui'
+import { Button, Menu, TextField } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './city-bar.module.css'
@@ -19,8 +19,6 @@ import styles from './city-bar.module.css'
  * a later change with a whole vocabulary of its own.
  */
 
-const ALL = '__all'
-
 export function CityBar({
   cities,
   markers,
@@ -29,6 +27,8 @@ export function CityBar({
   onSave,
   onDelete,
   onEditCity,
+  open,
+  onOpen,
 }: {
   cities: readonly City[]
   markers: readonly Marker[]
@@ -48,57 +48,40 @@ export function CityBar({
   ) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /**
-   * The city editor has just been opened.
+   * The city editor has just been shown.
    *
-   * The same signal as the People panel: opening it is a request to look at
-   * this list, so the workspace reads the cities again, through that list's own
+   * The same signal as the People view: opening it is a request to look at this
+   * list, so the workspace reads the cities again, through that list's own
    * freshness floor.
    */
   onEditCity: () => void
+  open: boolean
+  onOpen: (open: boolean) => void
 }) {
   const [editing, setEditing] = useState(false)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
+  /** Opening always starts at the list, never wherever it was last left. */
+  function setOpen(next: boolean) {
+    if (next) setEditing(false)
+    onOpen(next)
+  }
+
   return (
-    <div className={styles.bar}>
-      <label className={styles.picker}>
-        <span className={styles.label}>City</span>
-        <select
-          value={selectedCityId ?? ALL}
-          onChange={(event) => {
-            const value = event.target.value
-            onSelect(value === ALL ? null : value)
-            setEditing(false)
-          }}
-          className={styles.select}
-        >
-          <option value={ALL}>All places</option>
-          {cities.map((city) => (
-            <option key={city.id} value={city.id}>
-              {city.name}
-              {city.currency ? ` (${city.currency})` : ''}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {selected ? (
-        <Button
-          tone="quiet"
-          onClick={() => {
-            // Outside the updater, not inside it. A `useState` updater has to
-            // be pure — React calls it twice in development on purpose — so a
-            // read fired from in there would be sent twice every time.
-            if (!editing) onEditCity()
-            setEditing((open) => !open)
-          }}
-          title="Rename, set a currency, or remove this city"
-        >
-          Edit city
-        </Button>
-      ) : null}
-
-      {selected && editing ? (
+    <Menu
+      name="City"
+      /*
+        The selected city's name, or `All places` — not a `CITY` label beside a
+        control that already says what it holds. The label was the only one of
+        its kind in a row of controls that name themselves, and it shouted a
+        category over a value reading `All places`, which is not a city.
+      */
+      label={<span className={styles.name}>{selected?.name ?? 'All places'}</span>}
+      open={open}
+      onOpen={setOpen}
+      tone="quiet"
+    >
+      {editing && selected ? (
         <CityEditor
           city={selected}
           markerCount={markers.filter((marker) => marker.cityId === selected.id).length}
@@ -109,8 +92,61 @@ export function CityBar({
           onDelete={() => onDelete(selected.id)}
           onClose={() => setEditing(false)}
         />
-      ) : null}
-    </div>
+      ) : (
+        <>
+          <p className={styles.heading}>Working on</p>
+
+          <button
+            type="button"
+            onClick={() => {
+              onSelect(null)
+              setOpen(false)
+            }}
+            aria-current={selectedCityId === null}
+            className={styles.row}
+          >
+            All places
+          </button>
+
+          {cities.map((city) => (
+            <button
+              key={city.id}
+              type="button"
+              onClick={() => {
+                onSelect(city.id)
+                setOpen(false)
+              }}
+              aria-current={city.id === selectedCityId}
+              className={styles.row}
+            >
+              <span>{city.name}</span>
+              {city.currency ? (
+                <span className={styles.rowNote}>{city.currency}</span>
+              ) : null}
+            </button>
+          ))}
+
+          {selected ? (
+            <>
+              <hr className={styles.divide} />
+              <button
+                type="button"
+                onClick={() => {
+                  // Outside any state updater. React calls an updater twice in
+                  // development on purpose, so a read fired from in there would
+                  // be sent twice every time.
+                  onEditCity()
+                  setEditing(true)
+                }}
+                className={styles.row}
+              >
+                Edit “{selected.name}”
+              </button>
+            </>
+          ) : null}
+        </>
+      )}
+    </Menu>
   )
 }
 
@@ -141,8 +177,8 @@ function CityEditor({
   const busy = saving || removing
 
   return (
-    <div className={styles.editor}>
-      <TextField label="Name" value={name} onChange={setName} />
+    <>
+      <TextField label="Name" value={name} onChange={setName} autoFocus />
       <TextField
         label="Currency"
         value={currency}
@@ -197,6 +233,6 @@ function CityEditor({
           </Button>
         </span>
       </div>
-    </div>
+    </>
   )
 }
