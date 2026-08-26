@@ -113,6 +113,110 @@
   color: var(--pp-accent-ink);
 }
 
+/*
+ * Archiving, which is the only way to remove a trip and is reversible.
+ *
+ * Lettered in Danger on the panel's own surface, and filled with Danger Surface
+ * on hover. Note what it does not do: fill with `danger` and keep the same
+ * lettering. `accent` and `accent-ink` are the same value on the dark ground
+ * and that is what made `Clear` paint amber on amber and vanish under the
+ * pointer on exactly one theme — the rule that came out of it is that anything
+ * filling with a themed colour letters itself in the pair's other half. Filling
+ * with the surface tint keeps the two apart on both grounds without needing one.
+ */
+.row.danger {
+  color: var(--pp-danger);
+}
+
+.row.danger:hover {
+  background: var(--pp-danger-surface);
+}
+
+/* The way back to what was archived: present, and quieter than the rest. */
+.row.quiet {
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * A control that is mid-write. `aria-disabled`, never the attribute, so it stays
+ * in the tab order and is announced as unavailable rather than as gone.
+ */
+.row[aria-disabled='true'] {
+  color: var(--pp-ink-muted);
+  cursor: default;
+}
+
+.row[aria-disabled='true']:hover {
+  background: none;
+}
+
+/*
+ * One archived trip. Not a `.row`: the row is the control, and here the name is
+ * not — only `Restore` is.
+ */
+.archived {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-sm);
+  min-width: 0;
+  padding: 5px var(--pp-space-sm);
+}
+
+/*
+ * The name truncates rather than wrapping, and that is what keeps the column
+ * straight.
+ *
+ * A stored name may be sixty characters. Wrapping one would push its own
+ * `Restore` down half a row and put every button below it on a different rhythm
+ * from the ones above — in a 320px panel that is the difference between a list
+ * and a pile. `min-width: 0` is the half that makes it work: without it a flex
+ * item refuses to shrink below its content and the row overflows the panel
+ * instead, taking the button off the right-hand edge.
+ */
+.archivedName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * Deep Amber Ink on the surface, and the *wash* on hover — never the accent
+ * itself, which is the same value as `accent-ink` on the dark ground and would
+ * letter this in its own background.
+ */
+.restore {
+  flex: none;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-accent-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.restore:hover {
+  background: var(--pp-accent-wash);
+}
+
+.restore[aria-disabled='true'] {
+  color: var(--pp-ink-muted);
+  cursor: default;
+}
+
+.restore[aria-disabled='true']:hover {
+  background: none;
+}
+
 .rowName {
   font-size: var(--pp-type-row-name-size);
   font-weight: var(--pp-type-row-name-weight);

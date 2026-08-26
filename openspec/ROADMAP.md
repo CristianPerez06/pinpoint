@@ -526,6 +526,19 @@ scale the product runs at today.
       label, so none of them is unidentifiable, which is the difference between
       this and the four defects that were fixed.
 
+- [ ] **The web has nowhere to report a refusal inside an open menu, and below about
+      934px the menu covers the place it reports instead.** Every write started from a
+      panel in the chrome — rename, invite, and now archive and restore — writes its
+      refusal to the note over the map, while the panel that asked stays open on top of
+      it. Measured rather than assumed: at a 560px column the trip panel spans x 38–358
+      and the note x 171–389, so the only part of `Could not save that trip. Dismiss`
+      still visible is the last three letters. The phone does not have this because its
+      sheets are modals that draw the refusal themselves; a popover cannot borrow that
+      answer. Not new with archiving — rename has done it since it shipped — and not
+      fixed there either, because a refusal channel inside the menu touches every panel
+      in the chrome and belongs to whichever change is already in all of them. Above
+      ~934px, which is every laptop, the two do not overlap.
+
 - [ ] **Nothing appears while you are looking at the screen.** Both applications
       re-read when they become current again — the tab becomes visible, the phone
       comes back to the foreground, a sheet showing a list opens — and that is the
