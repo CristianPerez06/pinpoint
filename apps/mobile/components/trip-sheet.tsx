@@ -35,15 +35,20 @@ import { role } from '@/lib/type'
  * permanent slot in thumb reach on something rare — and with one trip, mostly
  * on something that does nothing. A row inside the filter sheet was tried in
  * the mock and produced a sheet that ran past the bottom of the screen, putting
- * `New trip`, `People` and `Cities` below the fold of the sheet you open most.
+ * `New trip` and `People` below the fold of the sheet you open most.
  *
  * The list is the switcher. There is no separate "switch trip" control because
  * tapping a row is one, and a picker that opens a picker is a step nobody asked
  * for.
  *
- * `People` and `Cities` live here rather than with the filter because both
- * belong to a trip rather than to the person. That also leaves the filter sheet
- * holding only what narrows the map, which is what makes its label honest.
+ * `People` lives here rather than with the filter because it belongs to a trip
+ * rather than to the person. That also leaves the filter sheet holding only what
+ * narrows the map, which is what makes its label honest.
+ *
+ * `Cities` used to sit beside it and no longer does. A city stopped being an
+ * errand filed under the trip the moment the header could name the one being
+ * worked in, so the list opens from there instead — where picking one and fixing
+ * one are the same list, which is what the laptop always did.
  *
  * It owns no persistence. Every write is the workspace's, so this file has no
  * client and nothing to say about what a refusal means.
@@ -64,7 +69,6 @@ export function TripSheet({
   onCreated,
   onSetArchived,
   onOpenPeople,
-  onOpenCities,
   problem,
   onDismissProblem,
 }: {
@@ -97,7 +101,6 @@ export function TripSheet({
   /** Archive, or put back. One call with a flag, like the write underneath it. */
   onSetArchived: (tripId: string, value: boolean) => void
   onOpenPeople: () => void
-  onOpenCities: () => void
   /** A refusal from one of the writes reached from here, or null. */
   problem: string | null
   onDismissProblem: () => void
@@ -304,15 +307,6 @@ export function TripSheet({
                 style={styles.row}
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>People</Text>
-                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
-              </Pressable>
-
-              <Pressable
-                onPress={onOpenCities}
-                accessibilityRole="button"
-                style={styles.row}
-              >
-                <Text style={[styles.rowName, { color: theme.colour.ink }]}>Cities</Text>
                 <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
               </Pressable>
 

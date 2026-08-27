@@ -59,9 +59,98 @@
   color: var(--pp-accent-ink);
 }
 
+/*
+ * A city and its editor, kept together.
+ *
+ * The editor belongs under the row it is editing rather than replacing the
+ * panel, which is what it used to do. Replacing the panel is why editing had to
+ * be reached from a single entry acting on the selection — there was only ever
+ * one editor, so it needed one subject.
+ */
+.entry {
+  display: grid;
+}
+
+/*
+ * The row and its pencil, drawn as one line and built as two controls.
+ *
+ * A button inside a button is invalid markup and the inner one is unreachable
+ * by keyboard, so these are siblings. The pencil sits outside the row's own
+ * hover fill for the same reason it sits outside its `aria-current` fill: it
+ * belongs to the city, not to the state of working in it.
+ */
+.rowPair {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rowPair .row {
+  min-width: 0;
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rowNote {
+  flex: none;
   color: var(--pp-ink-muted);
   font-size: var(--pp-type-note-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The count and currency keep their own colour on the row being worked in.
+ *
+ * `ink-muted` on the amber wash is the one place that token is wrong: the fill
+ * is already carrying a state, and a grey note on it reads as a different
+ * control from the one beside it. The same call `ui.module.css` makes for the
+ * caret on a declaring trigger.
+ */
+.row[aria-current='true'] .rowNote {
+  color: inherit;
+}
+
+.pen {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink-muted);
+  cursor: pointer;
+}
+
+.pen:hover {
+  border-color: var(--pp-line);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+.pen[aria-expanded='true'] {
+  border-color: var(--pp-line);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+/*
+ * `All places` has no pencil and still has to line up with the rows that do.
+ *
+ * Same width as the control plus the gap it sits behind, so the names form one
+ * column instead of the first one stepping sideways from the rest.
+ */
+.penSlot {
+  flex: none;
+  width: 28px;
 }
 
 .heading {
@@ -73,11 +162,19 @@
   color: var(--pp-ink-muted);
 }
 
-.divide {
-  height: 0;
-  margin: var(--pp-space-xs) 0;
-  border: 0;
-  border-top: 1px solid var(--pp-line);
+/*
+ * The editor, under the row it belongs to.
+ *
+ * Indented to the row's own text and ruled off underneath, so a panel holding
+ * nine cities and one open editor still reads as a list with one row expanded
+ * rather than as a list interrupted by a form.
+ */
+.editor {
+  display: grid;
+  gap: var(--pp-space-sm);
+  margin: var(--pp-space-xs) 0 var(--pp-space-sm);
+  padding: 0 var(--pp-space-sm) var(--pp-space-md);
+  border-bottom: 1px solid var(--pp-line);
 }
 
 .actions {

@@ -1065,7 +1065,7 @@ export function TripWorkspace({
           onSelect={selectCity}
           onSave={patchCity}
           onDelete={removeCity}
-          onEditCity={() =>
+          onShowCities={() =>
             void refreshCities(() => fetchTripCities(supabase, trip.id))
           }
           open={detour === 'city'}

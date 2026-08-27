@@ -33,9 +33,17 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
-import { FALLBACK_MARKER_TYPE, type LngLat } from '@pinpoint/map'
+import { FALLBACK_MARKER_TYPE, fitBounds, type LngLat } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { type ReactNode, type Ref, useMemo, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   Alert,
   Pressable,
@@ -297,15 +305,21 @@ export function TripWorkspace({
   /**
    * The city a place was last filed under on this device.
    *
-   * What the laptop gets from its selected city, which this platform does not
-   * have. Adding several places in a row is the case that matters — walking a
-   * neighbourhood, saving four things — and they are almost always the same city.
+   * Which city is being worked on, or null for the whole trip.
    *
-   * In memory rather than stored: it lasts a session and starts empty on a cold
-   * launch. See the note in the change's report; the specification says "on that
-   * device", which is a stronger promise than this keeps.
+   * This replaced a remembered `lastCityId`, which existed only because this
+   * platform could not express a city at all. Keeping both would give the capture
+   * form two answers to one question and make one of them invisible: a selection
+   * already defaults every subsequent save, and says so on screen while doing it.
+   *
+   * In memory rather than stored, deliberately. It lasts a session and starts
+   * empty on a cold launch, which is exactly what `lastCityId` did. The laptop
+   * keeps its selection in the address, so a reload and a shared link both
+   * survive it and this does not — the two are honestly different rather than
+   * accidentally so, and closing the gap means choosing a store, which is a
+   * decision of its own recorded in `ROADMAP.md`.
    */
-  const [lastCityId, setLastCityId] = useState<string | null>(null)
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
 
   /**
    * How tall the open form is, so the map can lift its credit clear of it.
@@ -334,6 +348,15 @@ export function TripWorkspace({
    * to attribute an answer to, so no control is offered.
    */
   const ownMemberId = ownMemberOf(members, userId)?.id ?? null
+
+  /**
+   * The city being worked on, resolved against the current rows every render.
+   *
+   * By id rather than by holding the row, so renaming a city updates the header
+   * without anything having to push the new name into a second place — and so an
+   * id whose city has gone resolves to null instead of a stale name.
+   */
+  const selectedCity = cities.find((city) => city.id === selectedCityId) ?? null
 
   const currencyOf = (marker: Marker) =>
     cities.find((city) => city.id === marker.cityId)?.currency ?? null
@@ -460,25 +483,82 @@ export function TripWorkspace({
   }
 
   /**
+   * The markers filed under the city being worked on, or all of them.
+   *
+   * Every marker rather than the visible ones, because this answers "where is
+   * this group" for search. Framing is the other question and takes the narrowed
+   * set — see `selectCity`.
+   */
+  const cityMarkers = useMemo(
+    () =>
+      selectedCityId === null
+        ? held
+        : held.filter((marker) => marker.cityId === selectedCityId),
+    [held, selectedCityId],
+  )
+
+  /**
    * Where place search should look first.
    *
-   * The visible map, always. Web can also derive this from the selected city's
-   * markers; there is no selection here, so this takes the branch the
-   * `place-search` specification names as the fallback — which is that
-   * requirement being satisfied rather than an exception to it.
+   * The selected city's markers when it has any, and the visible map otherwise —
+   * the same two branches as the laptop, and the same reason: the markers already
+   * filed under a city say where that group is, so nothing has to resolve its
+   * name. That is what keeps a city a label somebody chose rather than a
+   * geographical claim. A city with nothing in it yet has no answer, and the
+   * visible map is the next best one.
    *
    * A function behind a ref rather than a value, so that panning does not
    * re-render the search screen and re-running a query is not provoked by
    * nudging the map.
    *
-   * Built once and never replaced. It closes over `centreRef` rather than over a
-   * value, so it reads the current centre at the moment it is called without
-   * anything having to keep it up to date — an earlier version reassigned it on
-   * every render, which the React linter rejected outright and was right to.
+   * The ref is written by an effect rather than reassigned during render. It
+   * used to close over `centreRef` alone and never need replacing; now that it
+   * closes over the selection as well, it has to be kept current, and doing that
+   * in the render body is what the React linter rejects outright.
    */
-  const biasRef = useRef<() => SearchBias | undefined>(
-    () => centreRef.current ?? undefined,
-  )
+  const computeBias = useCallback((): SearchBias | undefined => {
+    if (selectedCityId !== null && cityMarkers.length > 0) {
+      // Reuses the shared framing logic rather than averaging coordinates by
+      // hand, which is also what keeps a group spanning the antimeridian from
+      // being biased to the opposite side of the planet.
+      return fitBounds(cityMarkers).center
+    }
+    return centreRef.current ?? undefined
+  }, [selectedCityId, cityMarkers])
+
+  const biasRef = useRef<() => SearchBias | undefined>(computeBias)
+  useEffect(() => {
+    biasRef.current = computeBias
+  }, [computeBias])
+
+  /**
+   * Choosing which group of places is being worked on.
+   *
+   * Three consequences and deliberately not a fourth: the camera re-frames, the
+   * next save defaults to it, and search biases toward it. It does not filter —
+   * hiding the rest would answer "what is near what" with a lie, and the pins of
+   * other cities stay drawn wherever they fall on screen.
+   *
+   * Framed on what is *visible* rather than on everything filed under the city:
+   * framing to include markers a filter is hiding would zoom out to fit places
+   * that are not drawn, and the empty margin would have no explanation.
+   *
+   * Computed from the city being selected rather than from `cityMarkers`, which
+   * still reflects the selection as it was a moment ago.
+   */
+  function selectCity(cityId: string | null) {
+    setSelectedCityId(cityId)
+
+    const points =
+      cityId === null
+        ? visible
+        : visible.filter((marker) => marker.cityId === cityId)
+
+    // Not told what covers the bottom edge: the toolbar was already there and
+    // the map has already measured it, so it frames above it on its own. An
+    // empty set moves nothing, which the map enforces.
+    mapRef.current?.frameOn(points)
+  }
 
   /** Starting a new place, from either entry path. */
   function beginCreate(position: LngLat, initial: Partial<MarkerFormValues>) {
@@ -492,9 +572,10 @@ export function TripWorkspace({
       initial: {
         name: '',
         note: null,
-        // The city last filed under, which is almost always right when several
-        // places are being added in a row, and one tap away when it is not.
-        cityId: lastCityId,
+        // Defaults to what is being worked on, which is almost always right and
+        // is one tap away when it is not. Null when the whole trip is in view,
+        // which files the place as unassigned unless the form is told otherwise.
+        cityId: selectedCityId,
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
@@ -597,7 +678,6 @@ export function TripWorkspace({
         ? rows.map((marker) => (marker.id === saved.id ? saved : marker))
         : [...rows, saved],
     )
-    setLastCityId(saved.cityId)
     cancelPanel()
   }
 
@@ -842,7 +922,12 @@ export function TripWorkspace({
         marker.cityId === cityId ? { ...marker, cityId: null } : marker,
       ),
     )
-    if (lastCityId === cityId) setLastCityId(null)
+    // Removing the city being worked on leaves nothing to be working on. The
+    // whole trip comes back rather than the selection dangling at an id that no
+    // longer resolves — and `selectCity` rather than the setter, so the camera
+    // re-frames on what is left instead of staying pointed at a group that has
+    // just been dissolved.
+    if (selectedCityId === cityId) selectCity(null)
   }
 
   /**
@@ -884,6 +969,7 @@ export function TripWorkspace({
           { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
         ]}
       >
+        <View style={styles.headerLine}>
         {/*
           What is rare, and one thing that is not a control.
 
@@ -930,6 +1016,54 @@ export function TripWorkspace({
         >
           <Text style={[styles.menuGlyph, { color: theme.colour.ink }]}>☰</Text>
         </Pressable>
+        </View>
+
+        {/*
+          The city being worked in, on its own line under the trip it narrows.
+
+          Under rather than beside, and that is the whole finding of the mock in
+          this change's `mock/` folder. The laptop puts `Trip / City` on one row
+          and it cannot come here: at 320pt two names that both want the row
+          leave each other about eleven characters, so `Tokyo & Kyoto Honeymoon`
+          and `Hiroshima & Miyajima` both become stubs and neither answers its
+          question. Neither name has a length anybody promised — both are typed
+          by a person — so the arrangement fails exactly where it matters.
+
+          Still in the header rather than in the bar at the bottom. A city is a
+          narrowing of the trip and reads as one only when it stands where the
+          trip does; the bar holds the controls that act on the map, and this
+          acts on what is being worked on.
+        */}
+        <View style={styles.cityLine}>
+          <Pressable
+            onPress={() => showSheet(setCitiesOpen, true, cityQuery.refetch)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              selectedCity === null
+                ? 'All places. Choose a city to work on'
+                : `${selectedCity.name}. Change which city you are working on`
+            }
+            hitSlop={6}
+            style={styles.cityButton}
+          >
+            <Text
+              style={[
+                styles.cityName,
+                {
+                  // Naming the whole trip rather than standing empty, and drawn
+                  // quieter than a city so the two states are told apart
+                  // without reading the word.
+                  color:
+                    selectedCity === null ? theme.colour.inkMuted : theme.colour.ink,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {selectedCity?.name ?? 'All places'}
+            </Text>
+            <ChevronDown size={14} color={theme.colour.inkMuted} strokeWidth={2.4} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.body}>
@@ -1132,10 +1266,6 @@ export function TripWorkspace({
           showSheet(setTripsOpen, false)
           showSheet(setPeopleOpen, true, memberQuery.refetch)
         }}
-        onOpenCities={() => {
-          showSheet(setTripsOpen, false)
-          showSheet(setCitiesOpen, true, cityQuery.refetch)
-        }}
         // The same refusal the map shows, handed to the sheet covering it. One
         // piece of state, rendered wherever the person actually is.
         problem={problem}
@@ -1163,6 +1293,8 @@ export function TripWorkspace({
         onClose={() => showSheet(setCitiesOpen, false)}
         cities={cities}
         markers={held}
+        selectedCityId={selectedCityId}
+        onSelect={selectCity}
         onSave={patchCity}
         onDelete={removeCity}
         problem={problem}
@@ -1400,15 +1532,55 @@ function Tool({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
     paddingHorizontal: SPACE.md,
     // `paddingTop` is applied inline instead, because it has to carry the
     // device's top inset as well as this.
     paddingBottom: HEADER_PAD,
     borderBottomWidth: 1,
   },
+  /** The trip, the mark, and the way out. What used to be the whole header. */
+  headerLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+  },
+  /*
+   * Indented to clear the mark, so the city hangs off the trip's name rather
+   * than starting a second column. `flexDirection` so the control shrinks to
+   * its label instead of spanning the width, which would read as a field.
+   */
+  cityLine: { flexDirection: 'row', paddingLeft: 9 + SPACE.sm, marginTop: 1 },
+  /*
+   * The trip's name one step down, and deliberately not a pill.
+   *
+   * This was a filled, outlined pill and it was wrong twice over. It was an
+   * *off-spec* pill — `DESIGN.md` gives a selector pill a transparent border
+   * held in reserve for hover, 7×11 padding and `control` type, and this had a
+   * border drawn at rest, its own padding and `rowName` — so it read as a third
+   * thing nobody had designed. And a pill does not belong here at all: DESIGN.md
+   * scopes them to "the toolbar and the bottom bar", and this header's own idiom
+   * is already a name with a caret.
+   *
+   * There is also a miscue to avoid. An outlined chip is what a filter chip
+   * looks like everywhere else, and it would sit two inches above `Filter` while
+   * naming a control that deliberately hides nothing.
+   *
+   * So it mirrors `tripButton` exactly — same padding, no fill, no border — and
+   * the hierarchy is carried by size and weight alone: `rowName` under the
+   * title, which is the nearest role below it. The laptop reaches the same
+   * arrangement from the other direction: both its trip and city triggers are
+   * `tone="quiet"`, so this is the one shape where the two platforms agree about
+   * the *relationship* between the two controls rather than only about each.
+   */
+  cityButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.xs,
+    flexShrink: 1,
+    paddingVertical: SPACE.xs,
+    paddingRight: SPACE.xs,
+  },
+  cityName: { ...role(TYPE.rowName), flexShrink: 1 },
   dot: { width: 9, height: 9, borderRadius: 5 },
   // Carries the prominence the wordmark used to, and stays the only element
   // that yields, so a long name truncates instead of pushing the menu off.

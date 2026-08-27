@@ -391,12 +391,28 @@ be chosen rather than arrived at.
   that decided that city management comes to the phone rather than being left as a
   laptop errand.
 
-  It bounds convenience, not arrangement. The laptop's selected city is a
-  *convenience* — it frames, biases and defaults in one control — and the phone
-  declines it while still offering every capability underneath: the map frames on
-  open, search biases on the visible map, and the form defaults to the city last
-  used. That is allowed. What is not allowed is a place where the answer is "do
-  that on the other one".
+  It bounds convenience, not arrangement, and the phone once declined one on
+  exactly that reading. The laptop's selected city was called a *convenience* —
+  it frames, biases and defaults in one control — and the phone offered every
+  capability underneath it by another route: the map framed on open, search
+  biased on the visible map, and the form defaulted to the city last used. That
+  was allowed. What is not allowed is a place where the answer is "do that on the
+  other one".
+
+  **That exception has since been reversed, and how it failed is the part worth
+  keeping.** The rule was satisfied and the result was still wrong. The phone had
+  a control called `Cities` that looked like the laptop's and did a third of what
+  it did, and nobody experiences that as a deliberate omission — it reads as
+  broken. Passing this rule is not sufficient: a capability reachable by a route
+  nobody finds, next to a control that appears to offer it and does not, is a
+  worse outcome than the honest gap this rule was written to forbid. Ask what the
+  screen appears to promise, not only what the product can do somewhere.
+
+  Two things fell out of reversing it, both cheap and neither anticipated. The
+  laptop turned out to have its own defect in the same surface — a city could
+  only be edited while it was selected — and the specifications turned out to
+  already require the phone's behaviour without naming a platform, which the
+  phone had been satisfying vacuously by offering no selection at all.
 
   Recorded here because it was decided in conversation while scoping mobile
   capture and existed nowhere in this repository, which is exactly how a rule with
@@ -479,15 +495,19 @@ it does untidily.
       operation somebody with Supabase access has to perform. Fine at two users who
       know each other; not fine the moment a third person is added by invitation.
 - [ ] **The phone has nowhere to remember a preference, and two things now want
-      one.** The capture form defaults to the city a place was last filed under,
-      and the app opens on whichever trip comes first — both held in memory, so
-      both reset on a cold launch. `marker-capture` says the city default is
-      remembered "on that device", which is the stronger promise of the two.
-      Neither matters much on its own: saving four places while walking a
-      neighbourhood is one session, and this product will have one trip for a long
-      time. What has changed is that it is one missing capability rather than two
-      workarounds — `expo-secure-store` holds the session token and neither a city
-      id nor a trip id is a secret, so closing it means choosing a store.
+      one.** The app opens on whichever trip comes first, and the city being
+      worked on is chosen fresh every launch — both held in memory, so both reset
+      on a cold launch. The laptop keeps its selected city in the address, where
+      a reload and a shared link both survive it; the phone has no equivalent, so
+      the two are honestly different rather than accidentally so.
+      Neither matters much on its own: picking a city is one tap at the top of a
+      session, and this product will have one trip for a long time. What has
+      changed is that it is one missing capability rather than two workarounds —
+      `expo-secure-store` holds the session token and neither a city id nor a trip
+      id is a secret, so closing it means choosing a store. Deliberately not
+      absorbed into the change that gave the phone its city picker: choosing where
+      a preference lives is a decision of its own, and taking it as a side effect
+      is how it would get made badly.
 - [ ] **A way to see the places you disagree about.** Ticking names asks for
       agreement, and there is no tick meaning "and not the other" — so "only one of
       you wants this", the negotiation pile, is the one thing the rejected filter
