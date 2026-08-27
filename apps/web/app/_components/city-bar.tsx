@@ -1,6 +1,7 @@
 'use client'
 
 import type { City, Marker } from '@pinpoint/core'
+import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button, Menu, TextField } from '@/app/_components/ui'
@@ -17,6 +18,20 @@ import styles from './city-bar.module.css'
  * becomes the default for the next place saved. It does not filter the map —
  * hiding the rest would answer "what is near what" with a lie, and filtering is
  * a later change with a whole vocabulary of its own.
+ *
+ * ## Picking and fixing are separate, and used not to be
+ *
+ * Every row carries its own way into the editor. This replaced a single
+ * `Edit "<city>"` entry at the foot of the menu which acted on whatever was
+ * selected, and which had two consequences that were not noticed until the
+ * phone was given the same list. With `All places` selected it offered no way
+ * to edit any city at all — the entry simply was not rendered. And correcting
+ * a city meant selecting it first, which is a request to re-frame: fixing a
+ * typo in `Osaka` took the map to Osaka.
+ *
+ * So the two are now independent. Pressing a row changes what is being worked
+ * on and moves the camera; pressing its pencil opens the editor and does
+ * neither.
  */
 
 export function CityBar({
@@ -26,7 +41,7 @@ export function CityBar({
   onSelect,
   onSave,
   onDelete,
-  onEditCity,
+  onShowCities,
   open,
   onOpen,
 }: {
@@ -48,22 +63,33 @@ export function CityBar({
   ) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /**
-   * The city editor has just been shown.
+   * This list has just been shown.
    *
    * The same signal as the People view: opening it is a request to look at this
    * list, so the workspace reads the cities again, through that list's own
    * freshness floor.
+   *
+   * It used to fire when the editor was opened, which was the only moment the
+   * rows' contents mattered. Now that every row states how many places are filed
+   * under it, opening the menu is that moment.
    */
-  onEditCity: () => void
+  onShowCities: () => void
   open: boolean
   onOpen: (open: boolean) => void
 }) {
-  const [editing, setEditing] = useState(false)
+  /** Which city's editor is open, by id. Null while the list is just a list. */
+  const [editing, setEditing] = useState<string | null>(null)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
   /** Opening always starts at the list, never wherever it was last left. */
   function setOpen(next: boolean) {
-    if (next) setEditing(false)
+    if (next) {
+      setEditing(null)
+      // Outside any state updater. React calls an updater twice in development
+      // on purpose, so a read fired from in there would be sent twice every
+      // time.
+      onShowCities()
+    }
     onOpen(next)
   }
 
@@ -81,73 +107,85 @@ export function CityBar({
       onOpen={setOpen}
       tone="quiet"
     >
-      {editing && selected ? (
-        <CityEditor
-          city={selected}
-          markerCount={markers.filter((marker) => marker.cityId === selected.id).length}
-          // The editor closes itself when its write settles, rather than being
-          // closed here as the write is sent. It is the only thing on screen
-          // that can say the write is still happening.
-          onSave={(patch) => onSave(selected.id, patch)}
-          onDelete={() => onDelete(selected.id)}
-          onClose={() => setEditing(false)}
-        />
-      ) : (
-        <>
-          <p className={styles.heading}>Working on</p>
+      <p className={styles.heading}>Working on</p>
 
-          <button
-            type="button"
-            onClick={() => {
-              onSelect(null)
-              setOpen(false)
-            }}
-            aria-current={selectedCityId === null}
-            className={styles.row}
-          >
-            All places
-          </button>
+      <button
+        type="button"
+        onClick={() => {
+          onSelect(null)
+          setOpen(false)
+        }}
+        aria-current={selectedCityId === null}
+        className={styles.row}
+      >
+        <span className={styles.rowName}>All places</span>
+        <span className={styles.rowNote}>{countLabel(markers.length)}</span>
+        {/* Holds the column the pencils occupy, so the names of the cities
+            below line up with this one instead of stepping sideways. */}
+        <span className={styles.penSlot} aria-hidden />
+      </button>
 
-          {cities.map((city) => (
-            <button
-              key={city.id}
-              type="button"
-              onClick={() => {
-                onSelect(city.id)
-                setOpen(false)
-              }}
-              aria-current={city.id === selectedCityId}
-              className={styles.row}
-            >
-              <span>{city.name}</span>
-              {city.currency ? (
-                <span className={styles.rowNote}>{city.currency}</span>
-              ) : null}
-            </button>
-          ))}
-
-          {selected ? (
-            <>
-              <hr className={styles.divide} />
+      {cities.map((city) => {
+        const count = markers.filter((marker) => marker.cityId === city.id).length
+        return (
+          <div key={city.id} className={styles.entry}>
+            {/*
+              Two controls on one line, and deliberately not one control with
+              two meanings. Nesting a button inside a button is invalid markup
+              and unreachable by keyboard, so they are siblings drawn as a row.
+            */}
+            <div className={styles.rowPair}>
               <button
                 type="button"
                 onClick={() => {
-                  // Outside any state updater. React calls an updater twice in
-                  // development on purpose, so a read fired from in there would
-                  // be sent twice every time.
-                  onEditCity()
-                  setEditing(true)
+                  onSelect(city.id)
+                  setOpen(false)
                 }}
+                aria-current={city.id === selectedCityId}
                 className={styles.row}
               >
-                Edit “{selected.name}”
+                <span className={styles.rowName}>{city.name}</span>
+                <span className={styles.rowNote}>
+                  {countLabel(count)}
+                  {city.currency ? ` · ${city.currency}` : ' · no currency'}
+                </span>
               </button>
-            </>
-          ) : null}
-        </>
-      )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setEditing((current) => (current === city.id ? null : city.id))
+                }
+                aria-expanded={editing === city.id}
+                aria-label={`Edit ${city.name}`}
+                className={styles.pen}
+              >
+                <Pencil size={14} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+
+            {editing === city.id ? (
+              <CityEditor
+                city={city}
+                markerCount={count}
+                // The editor closes itself when its write settles, rather than
+                // being closed here as the write is sent. It is the only thing
+                // on screen that can say the write is still happening.
+                onSave={(patch) => onSave(city.id, patch)}
+                onDelete={() => onDelete(city.id)}
+                onClose={() => setEditing(null)}
+              />
+            ) : null}
+          </div>
+        )
+      })}
     </Menu>
   )
+}
+
+/** `1 place` or `N places`, said the same way here as on the phone. */
+function countLabel(count: number): string {
+  return count === 1 ? '1 place' : `${count} places`
 }
 
 function CityEditor({
@@ -177,7 +215,7 @@ function CityEditor({
   const busy = saving || removing
 
   return (
-    <>
+    <div className={styles.editor}>
       <TextField label="Name" value={name} onChange={setName} autoFocus />
       <TextField
         label="Currency"
@@ -233,6 +271,6 @@ function CityEditor({
           </Button>
         </span>
       </div>
-    </>
+    </div>
   )
 }

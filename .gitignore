@@ -59,3 +59,7 @@ apps/web/public/maplibre/
 .github/skills/impeccable/
 .github/agents/impeccable-*.agent.md
 .github/hooks/impeccable.json
+
+# Generated design mocks. The builder is committed; its ~290 KB output, which
+# embeds the bundled font, is not — it regenerates in under a second.
+openspec/changes/**/mock/*.html

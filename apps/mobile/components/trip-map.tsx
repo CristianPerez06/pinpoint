@@ -320,10 +320,11 @@ function ZoomButton({
 /**
  * What the workspace can ask the map to do, as opposed to tell it.
  *
- * One method, and it exists because search is the one thing that has to move a
- * camera nobody else may move. Choosing a candidate is usually a request to look
- * somewhere that is not on screen — that is generally why somebody searched — so
- * the alternative is asking a person to accept a position they cannot see.
+ * Two methods, and both exist because they are the only two things allowed to
+ * move a camera nobody else may move — `map-rendering` names them and no others.
+ * Choosing a search candidate is usually a request to look somewhere that is not
+ * on screen, so the alternative is asking a person to accept a position they
+ * cannot see. Choosing a city is a request to re-frame on that group.
  *
  * Imperative rather than a prop, because "go here" is an event and a prop is a
  * value. Web expresses the same thing as `{ points, token }` in state, where the
@@ -343,6 +344,28 @@ export interface TripMapRef {
    * the wrong place.
    */
   flyTo: (position: LngLat, bottomInset?: number) => void
+  /**
+   * Frame a group of positions, the way the map frames a trip when it opens.
+   *
+   * Separate from `flyTo` rather than an overload of it, because they answer
+   * different questions: one puts a known point on screen, the other works out
+   * what view holds a set of them. `flyTo` reaching the same answer for a
+   * single-element array is a property of the shared derivation, not a reason to
+   * merge the two names.
+   *
+   * An empty set moves nothing. There is no view that frames no places, and
+   * moving somewhere arbitrary would be worse than staying — which is what
+   * `map-rendering` requires for a city that holds nothing.
+   *
+   * `bottomInset` is optional here and required in spirit above, which is the
+   * one real difference between them. `flyTo` has to be told because the thing
+   * about to cover the map does not exist yet when it is called. Nothing new
+   * appears when a city is chosen — the toolbar was already there and this
+   * component has already measured it — so left unsaid, the frame is computed
+   * against whatever currently stands on the bottom edge. Pass a value only to
+   * describe something this component cannot see.
+   */
+  frameOn: (points: readonly LngLat[], bottomInset?: number) => void
 }
 
 export function TripMap({
@@ -612,8 +635,25 @@ export function TripMap({
           zoom: camera.zoom,
         })
       },
+      frameOn: (points: readonly LngLat[], bottomInset?: number) => {
+        // Guarded here rather than left to `fitBounds`, which answers an empty
+        // set with `DEFAULT_CAMERA` — a real camera pointing at a default place.
+        // Flying there would be the map wandering off for a city that holds
+        // nothing, which is the one outcome the specification rules out.
+        if (points.length === 0) return
+        // The same expression as `lift` below, and it has to be written twice:
+        // `lift` is declared after this hook, so naming it here would be a
+        // reference into its own temporal dead zone on every render.
+        const covered = bottomInset ?? (formSheet ? formHeight : barHeight)
+        const camera = fitBounds(points, viewport ? { viewport } : {})
+        const target = visibleCentre(camera.center, camera.zoom, covered)
+        cameraRef.current?.flyTo({
+          center: [target.lng, target.lat],
+          zoom: camera.zoom,
+        })
+      },
     }),
-    [viewport],
+    [viewport, barHeight, formSheet, formHeight],
   )
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])

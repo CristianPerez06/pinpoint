@@ -1,5 +1,9 @@
 import type { City, Marker } from '@pinpoint/core'
-import { SPACE, TYPE } from '@pinpoint/tokens'
+import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+// One subpath each, like every other icon on this platform: Metro does not
+// tree-shake in development, so the package root would pull all 1767 glyphs in.
+import Check from 'lucide-react-native/icons/check'
+import Pencil from 'lucide-react-native/icons/pencil'
 import { useState } from 'react'
 import {
   Alert,
@@ -21,21 +25,28 @@ import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
 
 /**
- * Correcting the groups a trip's places are filed under, from a phone.
+ * Choosing which group of places is being worked on, and correcting a group
+ * after the fact.
  *
- * Here rather than in the bar of controls, because of the split the last change
- * settled: what is touched constantly goes within a thumb's reach at the bottom,
- * and what is touched rarely goes at the top where it cannot be hit by accident.
- * Renaming a city is firmly the second kind. `menu-sheet.tsx` was left
- * deliberately near-empty on the expectation that trip-scoped rare things would
- * land in it, and this is the first of them.
+ * This used to be the second of those and not the first. It said so, at length:
+ * that web's city bar also selects which city is being worked on — framing the
+ * map, biasing search, setting the next save's default — and that none of it
+ * came over, because each job had another answer here.
  *
- * What this is *not* is web's city bar. That control also selects which city is
- * being worked on, which frames the map, biases search and sets the next save's
- * default. None of that comes over: it would need a fifth control in a bar that
- * is already at four, and each of the three jobs has an answer here that does not
- * need one — the map frames on open, search biases on the visible map, and the
- * form defaults to the city last used.
+ * Each job did. What that argument missed is that it left a control called
+ * `Cities` which looks like the laptop's and does a third of what it does, and
+ * a control that looks broken is not experienced as a deliberate omission. So
+ * selection came over after all, and this is where it lives.
+ *
+ * Opened from the header rather than from the trip sheet, because a city is
+ * what is being worked in rather than an errand filed under the trip. It is
+ * still out of a thumb's reach: the bar at the bottom holds the controls that
+ * act on the map, and this acts on what is being worked on.
+ *
+ * **The row picks and the pencil edits**, and the two are independent — which
+ * is the same shape the laptop now has, and for a reason found on the laptop:
+ * an editor reached only through the current selection cannot correct anything
+ * else without first taking the view somewhere else.
  *
  * A city created while saving a place is created with whatever was known at that
  * moment, which is frequently just a name. Without this screen a city typed in a
@@ -51,6 +62,8 @@ export function CitySheet({
   onClose,
   cities,
   markers,
+  selectedCityId,
+  onSelect,
   onSave,
   onDelete,
   problem,
@@ -59,8 +72,18 @@ export function CitySheet({
   open: boolean
   onClose: () => void
   cities: readonly City[]
-  /** Only to count what a removal would unassign, which the person has to be told. */
+  /**
+   * Every marker on the trip, to count what is filed under each city.
+   *
+   * Two jobs, and the second is why it is every marker rather than the visible
+   * ones: it states what a removal would unassign, which the person has to be
+   * told, and a count that moved with the filter would understate it.
+   */
   markers: readonly Marker[]
+  /** Which city is being worked on, or null for the whole trip. */
+  selectedCityId: string | null
+  /** Choosing one. Null is `All places`, which is a choice rather than a clear. */
+  onSelect: (cityId: string | null) => void
   /**
    * One write for both fields, awaited.
    *
@@ -87,6 +110,18 @@ export function CitySheet({
   function close() {
     setEditing(null)
     onClose()
+  }
+
+  /**
+   * Picking closes the sheet; editing does not.
+   *
+   * A pick is answered by the map behind this sheet — it re-frames — so staying
+   * open would cover the answer. An edit is answered in the row itself, which
+   * has to remain visible to say `Saving…` and to report a refusal.
+   */
+  function pick(cityId: string | null) {
+    onSelect(cityId)
+    close()
   }
 
   return (
@@ -148,18 +183,35 @@ export function CitySheet({
               </Pressable>
             ) : null}
 
-            {cities.length === 0 ? (
-              <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-                No cities yet. One is created the first time you file a place under
-                a new name while saving it.
-              </Text>
-            ) : (
-              <ScrollView keyboardShouldPersistTaps="handled">
-                {cities.map((city) => (
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {/*
+                Always offered, including on a trip with no cities at all.
+
+                It is the state the trip opens in rather than a way out of a
+                selection, so it is a row like the others and not a `Clear`. On
+                an empty trip it is the only thing that can be true, and showing
+                it ticked says so more plainly than an empty list would.
+              */}
+              <PickRow
+                name="All places"
+                meta={`${countLabel(markers.length)} · the whole trip`}
+                current={selectedCityId === null}
+                onPress={() => pick(null)}
+              />
+
+              {cities.length === 0 ? (
+                <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
+                  No cities yet. One is created the first time you file a place
+                  under a new name while saving it.
+                </Text>
+              ) : (
+                cities.map((city) => (
                   <CityRow
                     key={city.id}
                     city={city}
                     count={markers.filter((marker) => marker.cityId === city.id).length}
+                    current={city.id === selectedCityId}
+                    onPick={() => pick(city.id)}
                     editing={editing === city.id}
                     onToggle={() =>
                       setEditing((current) => (current === city.id ? null : city.id))
@@ -171,9 +223,9 @@ export function CitySheet({
                     onDelete={() => onDelete(city.id)}
                     onDone={() => setEditing(null)}
                   />
-                ))}
-              </ScrollView>
-            )}
+                ))
+              )}
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Pressable>
@@ -181,9 +233,85 @@ export function CitySheet({
   )
 }
 
+/** `1 place` or `N places`, said the same way here as on the laptop. */
+function countLabel(count: number): string {
+  return count === 1 ? '1 place' : `${count} places`
+}
+
+/**
+ * A row that only picks.
+ *
+ * `All places` is the one of these, and it is separate from `CityRow` rather
+ * than a mode of it because there is nothing to edit: no name, no currency, and
+ * no removal. Giving it an inert pencil to keep the shapes identical would draw
+ * a control that does nothing, which is worse than a row that is plainly a
+ * different kind of thing.
+ */
+function PickRow({
+  name,
+  meta,
+  current,
+  onPress,
+}: {
+  name: string
+  meta: string
+  current: boolean
+  onPress: () => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: current }}
+      style={[styles.row, styles.pickRow, { borderColor: theme.colour.line }]}
+    >
+      <Tick shown={current} />
+      <View style={styles.rowText}>
+        <Text
+          style={[
+            styles.cityName,
+            { color: current ? theme.colour.accentInk : theme.colour.ink },
+          ]}
+          numberOfLines={1}
+        >
+          {name}
+        </Text>
+        <Text style={[styles.meta, { color: theme.colour.inkMuted }]}>{meta}</Text>
+      </View>
+    </Pressable>
+  )
+}
+
+/**
+ * The mark on the city being worked in.
+ *
+ * A tick rather than a fill, which is where this platform and the laptop
+ * deliberately disagree. Each follows what its own neighbours already do — the
+ * trips sheet here ticks, the trip menu there fills — and making the two agree
+ * with each other would make each disagree with the screen it lives on.
+ *
+ * Drawn as a fixed-width slot whether or not it is shown, so the names form one
+ * column instead of shifting sideways as the selection moves.
+ */
+function Tick({ shown }: { shown: boolean }) {
+  const theme = useTheme()
+
+  return (
+    <View style={styles.tick}>
+      {shown ? (
+        <Check size={17} color={theme.colour.accentInk} strokeWidth={2.6} />
+      ) : null}
+    </View>
+  )
+}
+
 function CityRow({
   city,
   count,
+  current,
+  onPick,
   editing,
   onToggle,
   onSave,
@@ -192,6 +320,9 @@ function CityRow({
 }: {
   city: City
   count: number
+  /** Whether this is the city being worked on. */
+  current: boolean
+  onPick: () => void
   editing: boolean
   onToggle: () => void
   onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
@@ -247,26 +378,63 @@ function CityRow({
 
   return (
     <View style={[styles.row, { borderColor: theme.colour.line }]}>
-      <Pressable
-        onPress={onToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: editing }}
-        accessibilityLabel={`Edit ${city.name}`}
-        style={styles.rowHead}
-      >
-        <View style={styles.rowText}>
-          <Text style={[styles.cityName, { color: theme.colour.ink }]}>
-            {city.name}
-          </Text>
-          <Text style={[styles.meta, { color: theme.colour.inkMuted }]}>
-            {count === 1 ? '1 place' : `${count} places`}
-            {city.currency ? ` · ${city.currency}` : ' · no currency'}
-          </Text>
-        </View>
-        <Text style={[styles.chevron, { color: theme.colour.inkMuted }]}>
-          {editing ? '⌃' : '⌄'}
-        </Text>
-      </Pressable>
+      {/*
+        Two targets on one line: the row picks, the pencil edits.
+
+        The pencil is drawn as a chip rather than a bare glyph so that it reads
+        as its own control and not as a chevron belonging to the row — which is
+        what was here before, when the whole row opened the editor and nothing
+        picked anything.
+      */}
+      <View style={styles.rowHead}>
+        <Pressable
+          onPress={onPick}
+          accessibilityRole="button"
+          accessibilityState={{ selected: current }}
+          accessibilityLabel={`${city.name}. Work on this city`}
+          style={styles.pickArea}
+        >
+          <Tick shown={current} />
+          <View style={styles.rowText}>
+            <Text
+              style={[
+                styles.cityName,
+                { color: current ? theme.colour.accentInk : theme.colour.ink },
+              ]}
+              numberOfLines={1}
+            >
+              {city.name}
+            </Text>
+            <Text style={[styles.meta, { color: theme.colour.inkMuted }]}>
+              {countLabel(count)}
+              {city.currency ? ` · ${city.currency}` : ' · no currency'}
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onToggle}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: editing }}
+          accessibilityLabel={`Edit ${city.name}`}
+          hitSlop={6}
+          style={[
+            styles.pen,
+            {
+              backgroundColor: editing
+                ? theme.colour.accentWash
+                : theme.colour.surfaceMuted,
+              borderColor: editing ? theme.colour.accentRing : theme.colour.line,
+            },
+          ]}
+        >
+          <Pencil
+            size={16}
+            color={editing ? theme.colour.accentInk : theme.colour.inkMuted}
+            strokeWidth={2}
+          />
+        </Pressable>
+      </View>
 
       {editing ? (
         <View style={styles.editor}>
@@ -347,12 +515,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
+  },
+  /*
+   * A row that only picks, and therefore carries its own padding.
+   *
+   * `rowHead` gave its vertical padding to `pickArea` when the pencil arrived
+   * beside it, because a target whose padding lives on its parent leaves a dead
+   * strip that looks pressable and is not. This row has no pencil and no
+   * `pickArea`, so without this it collapses to the height of its own text.
+   */
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
     paddingVertical: 13,
   },
-  rowText: { flex: 1, gap: 1 },
+  /*
+   * The picking half takes the whole row apart from the pencil.
+   *
+   * Its own padding rather than the row's, so the target covers the full height
+   * of the line — a row whose padding lives on the parent leaves a dead strip
+   * above and below the text that looks pressable and is not.
+   */
+  pickArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 13,
+  },
+  tick: { width: 20, alignItems: 'center' },
+  pen: {
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowText: { flex: 1, minWidth: 0, gap: 1 },
   cityName: { ...role(TYPE.rowName) },
   meta: { ...role(TYPE.note) },
-  chevron: { fontSize: 15 },
   editor: { gap: SPACE.sm, paddingBottom: SPACE.md },
   hint: { ...role(TYPE.note) },
   actions: { flexDirection: 'row', gap: SPACE.sm },
