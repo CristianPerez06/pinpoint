@@ -4,7 +4,7 @@ import type { City, Marker } from '@pinpoint/core'
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 
-import { Button, Menu, TextField } from '@/app/_components/ui'
+import { Button, Menu, TextField, WaitingMenu } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './city-bar.module.css'
@@ -34,17 +34,7 @@ import styles from './city-bar.module.css'
  * neither.
  */
 
-export function CityBar({
-  cities,
-  markers,
-  selectedCityId,
-  onSelect,
-  onSave,
-  onDelete,
-  onShowCities,
-  open,
-  onOpen,
-}: {
+export type CityBarLiveProps = {
   cities: readonly City[]
   markers: readonly Marker[]
   selectedCityId: string | null
@@ -76,7 +66,30 @@ export function CityBar({
   onShowCities: () => void
   open: boolean
   onOpen: (open: boolean) => void
-}) {
+}
+
+/**
+ * Either this control has what it names, or it is waiting for it.
+ *
+ * A union rather than a bag of optionals, so the waiting form cannot be
+ * rendered with half its handlers and the live form cannot be rendered
+ * without them. There is nothing to pass while waiting, and the type says so.
+ */
+export type CityBarProps =
+  | { waiting: true }
+  | ({ waiting?: false } & CityBarLiveProps)
+
+function CityBarLive({
+  cities,
+  markers,
+  selectedCityId,
+  onSelect,
+  onSave,
+  onDelete,
+  onShowCities,
+  open,
+  onOpen,
+}: CityBarLiveProps) {
   /** Which city's editor is open, by id. Null while the list is just a list. */
   const [editing, setEditing] = useState<string | null>(null)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
@@ -273,4 +286,23 @@ function CityEditor({
       </div>
     </div>
   )
+}
+
+/**
+ * CityBar, before and after its data.
+ *
+ * `waiting` is a variant of this control rather than a choice made by whoever
+ * renders it, for the reason `write-feedback` gives about pending state: a flag
+ * held by the screen cannot say *which* control it is about, and the control is
+ * the only thing that knows what it looks like with nothing to show.
+ *
+ * The waiting form is the same `Menu` the live one renders. Only the label
+ * differs, because the label is the part nobody knows yet.
+ */
+export function CityBar(props: CityBarProps) {
+  if (props.waiting)
+    return (
+      <WaitingMenu name="City" labelClassName={styles.name} measure="11ch" />
+    )
+  return <CityBarLive {...props} />
 }

@@ -23,9 +23,24 @@ import styles from './states.module.css'
  * alone is indistinguishable from a stalled one, and this is the state most
  * often mistaken for emptiness.
  */
-export function LoadingState({ what = 'the map' }: { what?: string }) {
+export function LoadingState({
+  what = 'the map',
+  bare = false,
+}: {
+  what?: string
+  /**
+   * Do not paint a ground of your own; something behind this already has.
+   *
+   * Used where the wait happens inside the map's own area, which is painted
+   * `map-land` so that the space reads as the map before the map arrives.
+   * Left to itself this panel would paint `surface-muted` over that, and the
+   * screen would be a bar of chrome above a band of chrome — which is the
+   * thing giving the area the map's ground was meant to prevent.
+   */
+  bare?: boolean
+}) {
   return (
-    <div className={`${styles.panel} ${styles.loading}`}>
+    <div className={`${styles.panel} ${bare ? '' : styles.loading}`}>
       <span aria-hidden className={styles.spinner} />
       <p role="status" className={styles.message}>
         Loading {what}…

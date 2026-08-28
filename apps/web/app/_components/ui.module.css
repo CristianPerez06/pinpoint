@@ -48,9 +48,74 @@
   transform: translateY(1px);
 }
 
+/*
+ * Inert, and readable — which `opacity` cannot do at once.
+ *
+ * This was `opacity: 0.55`, and fading a whole control fades its lettering with
+ * it: measured against what each tone actually sits on, `primary` fell from
+ * 7.44:1 to 2.49:1, `default` from 17.57:1 to 3.94:1, and `quiet` from 5.38:1 to
+ * 2.24:1. Every tone was under the floor, and `styling` names the text of a
+ * control that is present but inert as covered by it. Nothing reported this
+ * because opacity is applied by the compositor: the declared colours are still
+ * the ones that pass, and any tool reading the stylesheet reads those.
+ *
+ * So the state is carried the way `DESIGN.md` says to carry it — by the fill,
+ * the border and the weight — and the colours stay values that clear the floor
+ * on their own. `ink-muted` on `surface-sunk` is 4.60:1 on the light ground and
+ * 6.24:1 on the dark.
+ *
+ * `cursor: default` rather than `not-allowed`, matching the filter bar's
+ * `Clear`, which has been the only inert control in the application and is the
+ * precedent the rest of them should look like.
+ */
 .button[aria-disabled='true'] {
-  cursor: not-allowed;
-  opacity: 0.55;
+  cursor: default;
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink-muted);
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: var(--pp-type-control-weight);
+}
+
+/*
+ * The drawn bar that stands in for a name.
+ *
+ * It is a child of the label's own element, so the width and the type come from
+ * the label rather than from a guess. All this has to do is sit in the middle of
+ * the line box that element already has: `1lh` is that line box, and the margin
+ * is whatever is left over once an 11px bar has taken its share. The element is
+ * therefore exactly as tall as the text would have been, which is what keeps the
+ * header — and the top of the map under it — from moving when the name lands.
+ *
+ * `ink-faint` is the fill because `styling` forbids that token for text and
+ * reserves it for what is drawn, which is this. It is also the only candidate
+ * that survives both grounds: `surface-sunk` measures 1.05:1 against the bar on
+ * the dark ground, which is to say it is the bar.
+ */
+/*
+ * Holds the label's declared width open, which text does for itself and an
+ * empty box does not.
+ *
+ * `.name` declares `12ch` on the trip and `11ch` on the city, and that is what
+ * both states are sized by. But the trigger sits in a chain of flex items, and
+ * a flex item's automatic minimum is its *content* — a word, for the live
+ * label, and nothing at all for a box holding a bar sized in per cent. So at a
+ * phone width the whole chain collapsed and the placeholder measured zero: the
+ * control was drawn, the class was applied, the rule was correct, and there was
+ * nothing on screen. `flex: none` pins the box to the width the label already
+ * declares.
+ */
+.namePlaceholderBox {
+  flex: none;
+}
+
+.namePlaceholderBar {
+  display: block;
+  width: 100%;
+  height: 11px;
+  margin: calc((1lh - 11px) / 2) 0;
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-ink-faint);
 }
 
 .primary {

@@ -4,7 +4,7 @@ import type { Trip, TripMember } from '@pinpoint/core'
 import { useState } from 'react'
 
 import { CreateTripForm } from '@/app/_components/trip-setup'
-import { Button, FormError, Menu, TextField } from '@/app/_components/ui'
+import { Button, FormError, Menu, TextField, WaitingMenu } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './trip-bar.module.css'
@@ -44,22 +44,7 @@ import styles from './trip-bar.module.css'
  */
 type View = 'root' | 'rename' | 'people' | 'create' | 'archived'
 
-export function TripBar({
-  trip,
-  trips,
-  members,
-  onSelect,
-  onRename,
-  archived,
-  onRevealArchived,
-  onArchive,
-  onRestore,
-  onInvite,
-  onShowPeople,
-  onCreated,
-  open,
-  onOpen,
-}: {
+export type TripBarLiveProps = {
   trip: Trip
   /** Every trip this account belongs to. One is the ordinary case. */
   trips: readonly Trip[]
@@ -120,7 +105,35 @@ export function TripBar({
   ) => Promise<{ field: string; message: string } | null>
   open: boolean
   onOpen: (open: boolean) => void
-}) {
+}
+
+/**
+ * Either this control has what it names, or it is waiting for it.
+ *
+ * A union rather than a bag of optionals, so the waiting form cannot be
+ * rendered with half its handlers and the live form cannot be rendered
+ * without them. There is nothing to pass while waiting, and the type says so.
+ */
+export type TripBarProps =
+  | { waiting: true }
+  | ({ waiting?: false } & TripBarLiveProps)
+
+function TripBarLive({
+  trip,
+  trips,
+  members,
+  onSelect,
+  onRename,
+  archived,
+  onRevealArchived,
+  onArchive,
+  onRestore,
+  onInvite,
+  onShowPeople,
+  onCreated,
+  open,
+  onOpen,
+}: TripBarLiveProps) {
   const [view, setView] = useState<View>('root')
   const [name, setName] = useState(trip.name)
   /**
@@ -502,4 +515,23 @@ function People({
       </div>
     </>
   )
+}
+
+/**
+ * TripBar, before and after its data.
+ *
+ * `waiting` is a variant of this control rather than a choice made by whoever
+ * renders it, for the reason `write-feedback` gives about pending state: a flag
+ * held by the screen cannot say *which* control it is about, and the control is
+ * the only thing that knows what it looks like with nothing to show.
+ *
+ * The waiting form is the same `Menu` the live one renders. Only the label
+ * differs, because the label is the part nobody knows yet.
+ */
+export function TripBar(props: TripBarProps) {
+  if (props.waiting)
+    return (
+      <WaitingMenu name="Trip" labelClassName={styles.name} measure="12ch" />
+    )
+  return <TripBarLive {...props} />
 }

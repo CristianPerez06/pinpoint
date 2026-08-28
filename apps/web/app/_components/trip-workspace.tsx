@@ -28,7 +28,7 @@ import {
   updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
-import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
+import type { SearchBias } from '@pinpoint/geocode'
 import {
   DEFAULT_VIEWPORT,
   FALLBACK_MARKER_TYPE,
@@ -37,40 +37,24 @@ import {
   type LngLat,
   type MarkerGroup,
 } from '@pinpoint/map'
-import {
-  ArrowLeft,
-  LogOut,
-  MapPinPlus,
-  Menu as Menu2,
-  RefreshCw,
-  Search,
-} from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { CityBar } from '@/app/_components/city-bar'
-import { FilterBar } from '@/app/_components/filter-bar'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import {
   MarkerForm,
   type MarkerFormValues,
 } from '@/app/_components/marker-form'
-import { PlaceSearch } from '@/app/_components/place-search'
-import { TripBar } from '@/app/_components/trip-bar'
+import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
-import {
-  Button,
-  iconOnlyLabelClass,
-  Menu,
-  overlayPanelClass,
-} from '@/app/_components/ui'
-import { signOutAction } from '@/app/_actions/auth'
+import { overlayPanelClass } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
 import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-workspace.module.css'
+
 
 /**
  * Everything a trip's map can be doing, in one place.
@@ -171,20 +155,6 @@ function inTripOrder(rows: readonly Trip[]): readonly Trip[] {
       ? a.id.localeCompare(b.id)
       : a.createdAt.localeCompare(b.createdAt),
   )
-}
-
-/**
- * A name reduced to the letters that identify it at 38px.
- *
- * Two at most, and the second only when there is a second word — `Cristian
- * Perez` is `CP` and `Account` is `A` rather than `AC`, which would be reading
- * one word as two.
- */
-function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return '?'
-  const first = words[0]![0]!
-  return (words.length > 1 ? first + words[words.length - 1]![0]! : first).toUpperCase()
 }
 
 function valuesOf(marker: Marker): MarkerFormValues {
@@ -1137,327 +1107,63 @@ export function TripWorkspace({
   }
 
   return (
-    <div className={styles.shell}>
-      {/*
-        One bar, and it is the header.
+    <WorkspaceChrome
+      live={{
+        trip,
+        trips,
+        members,
+        archivedTrips,
+        onSelectTrip: selectTrip,
+        onRenameTrip: renameTrip,
+        onRevealArchived: revealArchived,
+        onArchiveTrip: archiveAndLeave,
+        onRestoreTrip: restoreTrip,
+        onInvite: invite,
+        onShowPeople: () =>
+          void refreshMembers(() => fetchTripMembers(supabase, trip.id)),
 
-        This was a header plus three stacked toolbar rows — 205px of chrome on a
-        929px viewport, holding 558px of controls, so between 78 and 86 per cent
-        of every row was empty. The arrangement was not decided: each band
-        arrived for its own good reason and none was ever weighed against the
-        others, which left the topmost and leftmost strip of the interface —
-        where a hand and an eye go first — holding `Rename`, `People` and
-        `New trip`, three things somebody does about once per trip in total.
+        cities,
+        markers,
+        selectedCityId,
+        onSelectCity: selectCity,
+        onSaveCity: patchCity,
+        onDeleteCity: removeCity,
+        onShowCities: () =>
+          void refreshCities(() => fetchTripCities(supabase, trip.id)),
 
-        Read left to right it is now scope, then the session, then the person.
-        The trip and the city say what is being looked at and open everything
-        rare that belongs to them. Search, drop and filter are what a session is
-        actually made of. The account is at the far end, where DESIGN.md wants
-        rare destructive things kept.
-      */}
-      <header className={styles.bar}>
-        <span className={styles.mark} aria-hidden />
+        filter,
+        onFilter: setFilter,
+        ownMemberId,
 
-        {/*
-          The scope's two names are wrapped rather than placed directly.
+        biasRef,
+        onCreateFrom: beginCreate,
 
-          At a phone width the bar becomes a two-row grid and each name needs a
-          cell of its own to be put in. `TripBar` and `CityBar` both render a
-          `Menu`, whose root carries the same class as every other menu in the
-          chrome, so there is nothing here to address them by. Wrapping is the
-          smallest thing that gives each one a name — and it changes neither
-          component, which is what keeps the dismissal contract theirs.
-        */}
-        <span className={styles.scope}>
-        <TripBar
-          trip={trip}
-          trips={trips}
-          members={members}
-          onSelect={selectTrip}
-          onRename={renameTrip}
-          archived={archivedTrips}
-          onRevealArchived={revealArchived}
-          onArchive={archiveAndLeave}
-          onRestore={restoreTrip}
-          onInvite={invite}
-          onShowPeople={() =>
-            void refreshMembers(() => fetchTripMembers(supabase, trip.id))
-          }
-          onCreated={selectTrip}
-          open={detour === 'trip'}
-          onOpen={(open) => setDetour(open ? 'trip' : 'none')}
-        />
-        </span>
+        toolsRef,
+        searchRef,
+        searchOpen,
+        onSearchOpen: setSearchOpen,
 
-        {/* A path on a laptop, and nothing at all on a phone, where the two
-            names are on separate lines and the narrowing is said by the
-            indent instead. */}
-        <span className={styles.scopeSep} aria-hidden>
-          /
-        </span>
+        dropping,
+        onToggleDrop: () => {
+          setDropping((armed) => !armed)
+          setPanel({ kind: 'none' })
+          setDraft(null)
+        },
+        onCancelSight: () => setDropping(false),
+        onUseSpot: () => {
+          const centre = centreRef.current
+          if (centre) beginCreate(centre, {}, false)
+        },
 
-        {/*
-          The city is a narrowing of the trip, so it reads as one — which is
-          also true of what it does: it frames the camera on that city's places
-          and biases search toward them. It still does not filter the map.
-        */}
-        <span className={styles.city}>
-        <CityBar
-          cities={cities}
-          markers={markers}
-          selectedCityId={selectedCityId}
-          onSelect={selectCity}
-          onSave={patchCity}
-          onDelete={removeCity}
-          onShowCities={() =>
-            void refreshCities(() => fetchTripCities(supabase, trip.id))
-          }
-          open={detour === 'city'}
-          onOpen={(open) => setDetour(open ? 'city' : 'none')}
-        />
-        </span>
+        panelOpen: panel.kind !== 'none',
 
-        {/*
-          What a session is made of.
+        youAre,
+        onReread: () => void rereadEverything({ force: true }),
 
-          On a laptop this sits in the bar between the scope and the person. At a
-          phone width the same element is taken out of the flow and pinned to the
-          bottom edge, over the map, within a thumb's reach — one set of
-          controls in one place in the markup, drawn where the shape of the
-          screen wants them.
-        */}
-        <span
-          ref={toolsRef}
-          className={`${styles.tools} ${dropping ? styles.armed : ''} ${
-            panel.kind === 'none' ? '' : styles.yielded
-          }`}
-          role="toolbar"
-          aria-label="This trip's tools"
-        >
-          {/*
-            The tool that opens the field, and only where the field is not
-            already standing in the row. Absent above the breakpoint, where
-            search is permanently visible and there would be nothing for this to
-            reveal.
-          */}
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className={styles.searchTool}
-          >
-            <Search aria-hidden className={styles.toolGlyph} />
-            <span className={styles.toolLabel}>Search</span>
-          </button>
-
-          {/*
-            One field, in two places.
-
-            At a laptop width this is a control in the bar. At a phone width the
-            same element becomes the whole screen, because a field sharing a row
-            with two other tools is thirty pixels wide and useless — the rule
-            the bar already follows, that a control gives up its place before it
-            gives up its size, taken to its end.
-
-            Relocated rather than branched on, and that is the point: one
-            `<input>` exists at any width, so there is no second one holding a
-            stale query, nothing to keep in sync, and no first paint in the
-            wrong shape while JavaScript decides how wide the window is.
-          */}
-          <span
-            ref={searchRef}
-            className={`${styles.search} ${searchOpen ? styles.searchOpen : ''}`}
-          >
-            <button
-              type="button"
-              onClick={() => setSearchOpen(false)}
-              aria-label="Close search"
-              className={styles.searchBack}
-            >
-              <ArrowLeft aria-hidden className={styles.toolGlyph} />
-            </button>
-
-            <PlaceSearch
-              biasRef={biasRef}
-              onChoose={(candidate: PlaceCandidate) => {
-                setSearchOpen(false)
-                beginCreate(
-                  { lng: candidate.lng, lat: candidate.lat },
-                  { name: candidate.name, type: candidate.typeGuess },
-                  true,
-                )
-              }}
-            />
-          </span>
-
-          {/*
-            A slot, so the two labels do not resize the control and push the
-            filter sideways at the exact moment somebody is reaching for the map.
-
-            The armed label is `Cancel` rather than `Cancel — click the map`,
-            which is what it used to say. The banner standing over the map
-            already says "Click the map where the place is", so the long form
-            was the same sentence twice — and it was the widest thing in the
-            bar, forcing a slot half again as wide as the control needed.
-          */}
-          <span className={styles.drop}>
-            <Button
-              tone={dropping ? 'danger' : 'primary'}
-              onClick={() => {
-                setDropping((armed) => !armed)
-                setPanel({ kind: 'none' })
-                setDraft(null)
-              }}
-            >
-              {/*
-                Two spellings of one label, and the width chooses.
-
-                Rendered together rather than branched on, because neither
-                carries state — a word is not a control, and duplicating one
-                costs nothing that duplicating an input would. The tool spelling
-                also carries a glyph, which is what makes three targets at the
-                bottom of a phone readable at a glance.
-              */}
-              <MapPinPlus aria-hidden className={styles.toolGlyph} />
-              <span className={styles.wideLabel}>
-                {dropping ? 'Cancel' : '+ Drop a pin'}
-              </span>
-              <span className={styles.toolLabel}>
-                {dropping ? 'Cancel' : 'Drop'}
-              </span>
-            </Button>
-          </span>
-
-          {/*
-            What the sight is waiting for, standing where the trip's controls
-            stand rather than beside them.
-
-            Arming replaces the row instead of adding to it, which says the map
-            is doing something other than what it usually does more clearly than
-            any label added to the row would. One slot, so the credit rises off
-            whichever of the two is standing there without either case having to
-            be remembered separately.
-
-            Rendered at every width and shown only where the sight is, for the
-            same reason the drop control carries two labels: this holds no state
-            of its own, so the cascade can choose.
-          */}
-          <span className={styles.confirm}>
-            <button
-              type="button"
-              onClick={() => setDropping(false)}
-              className={styles.confirmCancel}
-            >
-              Cancel
-            </button>
-            <span className={styles.confirmHint}>
-              Move the map to put the place under the ring.
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                const centre = centreRef.current
-                if (centre) beginCreate(centre, {}, false)
-              }}
-              className={styles.confirmUse}
-            >
-              Use this spot
-            </button>
-          </span>
-
-          <FilterBar
-            filter={filter}
-            onChange={setFilter}
-            members={members}
-            ownMemberId={ownMemberId}
-            open={detour === 'filter'}
-            onOpen={(open) => setDetour(open ? 'filter' : 'none')}
-          />
-        </span>
-
-        {/*
-          The person, not the trip.
-
-          `Sign out` was a bare button one pixel from the corner with no menu
-          around it and nowhere for anything else to go. A profile route and a
-          settings route are both waiting on somewhere to hang, and this is it.
-        */}
-        <span className={styles.account}>
-          <Menu
-            name="Account"
-            label={
-              <>
-                <span className={styles.you}>{youAre}</span>
-                {/*
-                  The same menu, named by a glyph once the header has no room
-                  to spell it.
-
-                  Thirteen characters of address answer a question nobody asked,
-                  and on a 390px header they are a third of the row. The phone
-                  settled this already: a menu holding what is rare, at the far
-                  end, out of a thumb's reach.
-
-                  Drawn rather than typed, for the reason the caret beside it
-                  records — a typed `☰` takes the face's own weight and vertical
-                  centring, so it is whatever size the font decided. The caret
-                  itself goes at this width: a glyph that is only a glyph
-                  already reads as a control, which is the whole job the caret
-                  was doing.
-                */}
-                <Menu2 aria-hidden className={iconOnlyLabelClass} />
-              </>
-            }
-            align="end"
-            tone="quiet"
-            open={detour === 'account'}
-            onOpen={(open) => setDetour(open ? 'account' : 'none')}
-          >
-            {/*
-              Who is signed in, said in full.
-
-              The trigger shows a name at a laptop width and a glyph at a phone
-              one, so neither is a place to put an address — but a menu about
-              the person is exactly where "which account is this" belongs, and
-              it is the question somebody opens this to answer when two of them
-              share a laptop. The phone's menu already reads this way; this is
-              the same three items in the same order.
-            */}
-            <span className={styles.identity}>
-              <span className={styles.initials} aria-hidden>
-                {initialsOf(youAre)}
-              </span>
-              <span className={styles.identityName}>{youAre}</span>
-            </span>
-
-            <hr className={styles.identityRule} />
-
-            {/*
-              Re-reading, for the one case that is not the ordinary one.
-
-              Everything here re-reads when the tab is come back to, which is
-              how somebody learns that the person they are planning with changed
-              something. This is for when that is not enough — a tab left open
-              and never blurred, or a read that failed — and `force` is what
-              makes it mean something: without it the freshness floor would
-              decline the request and the press would do nothing visible.
-            */}
-            <button
-              type="button"
-              onClick={() => void rereadEverything({ force: true })}
-              className={styles.menuRow}
-            >
-              <RefreshCw aria-hidden className={styles.menuRowGlyph} />
-              Refresh
-            </button>
-
-            <form action={signOutAction}>
-              <button type="submit" className={styles.signOut}>
-                <LogOut aria-hidden className={styles.menuRowGlyph} />
-                Sign out
-              </button>
-            </form>
-          </Menu>
-        </span>
-      </header>
+        detour,
+        onDetour: setDetour,
+      }}
+    >
 
       {/*
         `<main>` is the map, and the bar above it is a sibling rather than a
@@ -1634,7 +1340,7 @@ export function TripWorkspace({
           />
         ) : null}
       </main>
-    </div>
+    </WorkspaceChrome>
   )
 }
 

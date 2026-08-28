@@ -689,6 +689,25 @@
 }
 
 /*
+ * The map's area, before the map.
+ *
+ * On the map's own ground rather than `surface-muted`, and that is the whole
+ * decision. The bar above this is `surface`; a waiting panel on its own
+ * recessive surface directly beneath it reads as a second band of furniture,
+ * so the screen becomes two strips of chrome and no map. Painting the space
+ * `map-land` makes it legible as the map before the map is there, which is
+ * what says the thing being waited for is the map and not the application.
+ *
+ * A grid so the state inside it is given the height it centres against — the
+ * same defect `.full` and `.centred` carried, and not worth reintroducing here.
+ */
+.stageWaiting {
+  composes: stage;
+  display: grid;
+  background: var(--pp-map-land);
+}
+
+/*
  * A way out, offered inside a sentence rather than beside it.
  *
  * Underlined and in the accent so it reads as the thing to press, without

@@ -526,6 +526,16 @@ scale the product runs at today.
       places behind the sheet while the framing reports success. It is two lines and
       needs nothing new in `@pinpoint/map`; it was left out of the web change rather
       than widening that change's scope. Filed as `#70`.
+- [ ] **The laptop bar has not been measured with long names near its breakpoint.**
+      A long trip name and a long city name were checked at 1600px while the app shell
+      was built: the names truncate at their declared `12ch` and `11ch`, and the filter
+      clears the account by 301px. Just above the 700px phone breakpoint they were not.
+      The one reading taken there was self-inconsistent — the search field reported 505px
+      against its own 480px cap — and was not repeated. It is a measurement that was
+      specified and not run, so it is neither a defect nor cleared. Cheap to close: give a
+      trip a thirty-plus character name, narrow the window to about 760px, and look at
+      whether `Filter` and the account still clear each other.
+
 - [ ] **The phone's narrowed state has not been read in greyscale.** The filter tool
       declares a narrowed trip with the accent *and* a dot, and the dot is what is
       supposed to carry it for a colour-blind reader or a greyscale screen. That it does

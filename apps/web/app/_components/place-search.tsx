@@ -69,10 +69,51 @@ function formatDistance(km: number): string {
   return `${Math.round(km).toLocaleString('en')} km`
 }
 
-export function PlaceSearch({
+export type PlaceSearchProps =
+  | { waiting: true }
+  | ({ waiting?: false } & PlaceSearchLiveProps)
+
+/**
+ * The field, before there is anywhere for a result to go.
+ *
+ * Search needs nothing fetched in order to draw — the geocoder is its own
+ * service and the query is typed. It is still inert, because choosing a result
+ * opens the capture form against a trip that has not arrived, so the act this
+ * begins cannot finish. That is the rule the specification states: inert until
+ * the act can complete, not until the data lands.
+ *
+ * The same `<input>` with the same class, so the field keeps its width and its
+ * place in the bar. `readOnly` rather than `disabled`, for the reason
+ * `DESIGN.md` gives about the attribute: it stays reachable and is announced as
+ * unavailable rather than vanishing from the tab order.
+ */
+export function PlaceSearch(props: PlaceSearchProps) {
+  if (props.waiting) {
+    return (
+      <div className={styles.wrap}>
+        <input
+          type="search"
+          value=""
+          readOnly
+          aria-disabled="true"
+          placeholder="Search for a place…"
+          aria-label="Search for a place"
+          className={styles.input}
+        />
+      </div>
+    )
+  }
+  return <PlaceSearchLive {...props} />
+}
+
+function PlaceSearchLive({
   biasRef,
   onChoose,
-}: {
+}: PlaceSearchLiveProps) {
+  return <PlaceSearchInner biasRef={biasRef} onChoose={onChoose} />
+}
+
+export type PlaceSearchLiveProps = {
   /**
    * Read at query time rather than passed as a value, because the bias follows
    * the map and the selected city — and re-running the search every time
@@ -81,7 +122,9 @@ export function PlaceSearch({
    */
   biasRef: { current: () => SearchBias | undefined }
   onChoose: (candidate: PlaceCandidate) => void
-}) {
+}
+
+function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
   const [query, setQuery] = useState('')
   /**
    * The last answer, stamped with the query it answered.
