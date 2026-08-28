@@ -252,3 +252,22 @@
   gap: var(--pp-space-sm);
   margin-top: var(--pp-space-xs);
 }
+
+/*
+ * The phone shape — see `trip-workspace.module.css`, which is where 700px is
+ * decided and explained.
+ *
+ * The fixed width above is reserving a slot so that the controls downstream of
+ * this one stop moving when the selection changes. At a phone width there is
+ * nothing downstream: the name has its own line, and the only thing after it is
+ * a glyph of a settled size. So the reason for the reservation is gone, and the
+ * rule the phone header actually holds takes over — the name is the only
+ * element that yields, so a long one truncates instead of pushing the menu off
+ * the edge.
+ */
+@media (max-width: 700px) {
+  .name {
+    width: auto;
+    min-width: 0;
+  }
+}

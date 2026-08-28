@@ -273,3 +273,49 @@ describe('zoomStep', () => {
     expect(zoomStep(-3, 1)).toBe(MIN_ZOOM)
   })
 })
+
+/*
+ * The degenerate viewport, which is reachable rather than theoretical.
+ *
+ * A web browser at a phone width puts a sheet over the bottom of the map and
+ * frames against the strip that is left. On a short landscape viewport that
+ * strip can be driven to nothing, and the arithmetic here divides by it — so
+ * this is the boundary where a camera stops being a camera. It fails silently
+ * if it fails at all: `NaN` handed to either renderer neither throws nor logs,
+ * and it reads as the map failing to load.
+ */
+describe('fitBounds with a viewport that has been squeezed', () => {
+  const spread = [
+    { lng: 135.7, lat: 35.0 },
+    { lng: 135.8, lat: 35.1 },
+  ]
+
+  it('returns a usable zoom when the viewport has no height left', () => {
+    const camera = fitBounds(spread, { viewport: { width: 390, height: 0 } })
+
+    expect(Number.isFinite(camera.zoom)).toBe(true)
+    expect(camera.zoom).toBeGreaterThanOrEqual(MIN_ZOOM)
+    expect(camera.zoom).toBeLessThanOrEqual(MAX_ZOOM)
+  })
+
+  it('returns a usable zoom when the viewport has no width left', () => {
+    const camera = fitBounds(spread, { viewport: { width: 0, height: 740 } })
+
+    expect(Number.isFinite(camera.zoom)).toBe(true)
+    expect(camera.zoom).toBeGreaterThanOrEqual(MIN_ZOOM)
+  })
+
+  it('keeps the centre finite whatever the viewport', () => {
+    const camera = fitBounds(spread, { viewport: { width: 0, height: 0 } })
+
+    expect(Number.isFinite(camera.center.lng)).toBe(true)
+    expect(Number.isFinite(camera.center.lat)).toBe(true)
+  })
+
+  it('zooms out rather than in as the visible strip shrinks', () => {
+    const whole = fitBounds(spread, { viewport: { width: 390, height: 740 } })
+    const strip = fitBounds(spread, { viewport: { width: 390, height: 260 } })
+
+    expect(strip.zoom).toBeLessThanOrEqual(whole.zoom)
+  })
+})

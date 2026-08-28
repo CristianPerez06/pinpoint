@@ -9,6 +9,8 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 
+import { SlidersHorizontal } from 'lucide-react'
+
 import { Menu } from '@/app/_components/ui'
 
 import styles from './filter-bar.module.css'
@@ -109,6 +111,20 @@ export function FilterBar({
       name="Filter"
       label={
         <>
+          {/*
+            A glyph, and only where the control is standing in the bar at the
+            bottom as one of three equals.
+
+            Sliders rather than a funnel: a funnel says "narrow a list", and
+            sliders says "options you can change", which is what this opens.
+            The phone chose the same glyph for the same reason.
+
+            Drawn at every width and hidden by the cascade above the phone's,
+            for the reason the drop control's two labels already record — a
+            glyph carries no state, so rendering both spellings costs nothing
+            that branching would.
+          */}
+          <SlidersHorizontal aria-hidden className={styles.glyph} />
           Filter
           {narrowed ? <span className={styles.count}>{active}</span> : null}
         </>

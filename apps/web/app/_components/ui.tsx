@@ -21,6 +21,21 @@ import styles from './ui.module.css'
 export const overlayPanelClass = styles.panel
 
 /**
+ * Marks the part of a trigger's label that is *only* shown at a phone width.
+ *
+ * A class rather than a prop, and that is deliberate. Which spelling a trigger
+ * uses is a question about the width of the screen, and a prop is answered once
+ * when the component renders — so a prop would need the width in JavaScript,
+ * which is a branch, a subscription and a first paint in the wrong shape, all
+ * to choose between two glyphs. The cascade already knows the width.
+ *
+ * Carrying it here rather than at the call site is what lets `Menu` withhold the
+ * caret from a trigger that has become an icon: the rule needs both classes in
+ * one stylesheet, and CSS Modules scope them per file.
+ */
+export const iconOnlyLabelClass = styles.iconOnly
+
+/**
  * A control that reveals a panel, and everything that owes the reader.
  *
  * There were five of these in the chrome, built four different ways: three
@@ -77,6 +92,7 @@ export function Menu({
 }) {
   const anchor = useRef<HTMLDivElement | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
+  const panel = useRef<HTMLDivElement | null>(null)
   /**
    * Whether this menu was open on the previous render.
    *
@@ -97,8 +113,31 @@ export function Menu({
   useEffect(() => {
     if (!open) return
 
+    /*
+      Outside is measured against the trigger and the panel, not against the
+      anchor that holds them.
+
+      Those used to be the same test, and at a phone width they stopped being.
+      The sheet's backdrop is drawn as the anchor's own `::after` — a
+      pseudo-element cannot be an event target, so a press on the backdrop
+      arrives reporting the *anchor* as its target, which the old test read as
+      "inside" and refused to dismiss. The backdrop covers the whole screen, so
+      the effect was that a sheet could not be dismissed by pressing away from
+      it at all, and the press was swallowed rather than falling through to
+      whatever was behind.
+
+      **Learn the shape of this one**: nothing about it is visible. The sheet is
+      drawn correctly, Escape still works, the control still toggles, and every
+      other menu in the chrome behaves — it is only the one gesture, on the one
+      shape, and a backdrop that looks exactly like it is doing its job.
+    */
     const dismiss = (event: PointerEvent) => {
-      if (!anchor.current?.contains(event.target as Node)) onOpen(false)
+      const target = event.target as Node
+      // The trigger toggles itself on click; dismissing here as well would
+      // close and reopen on one press.
+      if (trigger.current?.contains(target)) return
+      if (panel.current?.contains(target)) return
+      onOpen(false)
     }
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onOpen(false)
@@ -173,6 +212,7 @@ export function Menu({
 
       {open ? (
         <div
+          ref={panel}
           role="group"
           aria-label={name}
           className={`${styles.menuPanel} ${align === 'end' ? styles.menuPanelEnd : ''}`}

@@ -286,3 +286,232 @@
 .live .caret {
   color: currentColor;
 }
+
+/*
+ * The glyph a trigger wears instead of its words, once the header cannot spell
+ * them. Absent at every width but the phone's.
+ */
+.iconOnly {
+  display: none;
+  width: 21px;
+  height: 21px;
+  flex: none;
+}
+
+/*
+ * The phone shape. 700px, and the same literal as `trip-workspace.module.css`
+ * — which is where it is explained, and which is the file to change first if it
+ * ever moves. Custom properties do not resolve inside a media query, so a
+ * breakpoint cannot be a token; what a stylesheet can do is name where the
+ * number is decided rather than pretend it decided it.
+ */
+@media (max-width: 700px) {
+  .iconOnly {
+    display: block;
+  }
+
+  /*
+   * A trigger that has become a glyph gives up its caret.
+   *
+   * The caret exists so a control shaped like a label is not mistaken for one.
+   * A hamburger is not shaped like a label — it is not shaped like anything but
+   * a control — so the caret has nothing left to say, and next to a 21px glyph
+   * it reads as a second, smaller glyph rather than as an affordance. The
+   * phone's own menu has never carried one.
+   *
+   * `:has()` rather than a modifier class, because the condition is about what
+   * the call site put *inside* the label, and the call site cannot reach this
+   * button.
+   */
+  .button:has(.iconOnly) .caret {
+    display: none;
+  }
+
+  /*
+   * The rest of the chain that lets a name truncate.
+   *
+   * `trip-workspace.module.css` records why this needs stating at every link:
+   * a flex item's `min-width` defaults to `auto`, so each ancestor between the
+   * grid cell and the text refuses to shrink until it is told it may. These two
+   * are that file's missing links, and they live here because they are this
+   * file's elements.
+   *
+   * Only at this width. Above it the trip and city names sit in slots of a
+   * settled width, deliberately, so that nothing downstream of them moves when
+   * the selection changes.
+   */
+  .menuAnchor,
+  .menuAnchor > .button {
+    min-width: 0;
+  }
+
+  /*
+   * A menu becomes a sheet.
+   *
+   * The same element, the same component, the same dismissal contract — only
+   * where it is drawn changes. Everything `Menu` owes the reader is unpositional:
+   * outside press, Escape, focus back to the trigger, a named region, an
+   * `aria-expanded` that is true. None of it is touched here, which is the whole
+   * reason the trip, city, filter and account controls needed no changes at all
+   * to gain a phone layout.
+   *
+   * `fixed` and not `absolute`: this has to escape the header it is declared
+   * inside and stand on the bottom edge of the screen. Nothing between here and
+   * the viewport sets a `transform`, `filter` or `contain`, which are the three
+   * things that would make a fixed element position against an ancestor
+   * instead — worth knowing before adding an animation to the bar.
+   */
+  .menuPanel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+    max-height: 76vh;
+    /* Rounded at the top only. The bottom is the screen edge, and a radius
+       there shows the map through the corners. */
+    border-width: 1px 0 0;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: calc(var(--pp-space-md) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* `align="end"` is a laptop instruction — which side of a trigger to hang
+     from. A sheet spans the width and has no side to take. */
+  .menuPanelEnd {
+    right: 0;
+    left: 0;
+  }
+
+  /*
+   * The map, set back while a decision is being made over it.
+   *
+   * This is what carries the tie between the panel and what opened it once
+   * adjacency cannot: on a laptop the panel hangs off its own control, and here
+   * the whole rest of the screen steps back instead. It is also the difference
+   * between the two kinds of sheet — the marker sheet describes a pin the person
+   * is looking at, so dimming the map would obscure the only thing that makes it
+   * meaningful, and it has no scrim.
+   *
+   * Drawn by the panel rather than by a sibling element, so that nothing has to
+   * be rendered or torn down for it and the two can never disagree about
+   * whether one is open.
+   */
+  /*
+   * The other kind of sheet, and the difference is the whole thing.
+   *
+   * This one describes something drawn on the map — a place that was tapped, or
+   * the one being saved — so it gets no scrim. Dimming the map would obscure the
+   * only thing that makes the panel meaningful, and covering the pin would make
+   * it describe something invisible. It therefore stops well short of the top
+   * and reports its height, so the camera can keep that pin out from under it.
+   *
+   * The 328px card this replaces was right where it was designed: anchored in a
+   * corner of a wide map, leaving most of the cartography visible. At 390px a
+   * 328px card *is* the screen, floating, with a hairline of map showing around
+   * two of its edges.
+   */
+  .panel {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+    max-height: 52%;
+    border-width: 1px 0 0;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: calc(var(--pp-space-md) + env(safe-area-inset-bottom, 0px));
+    /* Above the toolbar it takes the edge from, and above the map. Below a
+       menu's sheet, which is a decision being made over the top of it. */
+    z-index: 7;
+  }
+
+  .menuAnchor:has(.menuPanel)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    /*
+     * Between the page and the panel, and drawn by the *anchor* rather than by
+     * the panel.
+     *
+     * On the panel it could only be a negative-z-index child, and a negative
+     * child paints inside its parent's own stacking context — above that
+     * parent's background rather than below it — so the scrim would have been
+     * drawn over the sheet it was meant to sit behind. The anchor sets no
+     * `z-index`, so it establishes no context of its own and both of these land
+     * in the nearest one that does, in the order their numbers ask for.
+     */
+    z-index: 8;
+    background: #00000063;
+  }
+
+  /*
+   * The shape a control takes when it is standing in the bar at the bottom.
+   *
+   * Keyed on `role="toolbar"` rather than on the bar's own class, which is
+   * hashed into `trip-workspace.module.css` and unreachable from here. The role
+   * is not a styling hook borrowed for convenience — it is the true statement
+   * about what that element is, and every control inside it is a tool by
+   * definition. Written here rather than there because these rules have to see
+   * `.live` and `.caret`, which are this file's.
+   */
+  [role='toolbar'] .button {
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 9px 0 10px;
+    border-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    color: var(--pp-ink-muted);
+  }
+
+  /*
+   * No fill on a tool, and that is the point rather than an omission.
+   *
+   * `Drop` arrives here as the primary control and would draw a full-width
+   * amber block along the bottom of the map. An earlier pass on the phone did
+   * exactly that and it was rejected on sight, for a reason that is durable:
+   * this row sits over a map whose pins are the only saturated colour in the
+   * system, and a fourth amber thing at the bottom competes with what it is
+   * meant to be serving. All three weigh the same.
+   */
+  [role='toolbar'] .primary,
+  [role='toolbar'] .default,
+  [role='toolbar'] .danger {
+    background: none;
+  }
+
+  /*
+   * The one exception, and it is not decoration.
+   *
+   * A tool that is declaring a narrowing keeps its wash and its lettering,
+   * because a state carried only by a dot is one signal and this system asks
+   * for two. It is the wash and never the accent: on the dark ground `accent`
+   * and `accent-ink` are the same value, so filling with the accent would paint
+   * the word out.
+   */
+  [role='toolbar'] .live {
+    background: var(--pp-accent-wash);
+    color: var(--pp-accent-ink);
+  }
+
+  [role='toolbar'] .button:hover:not(.live) {
+    background: var(--pp-surface-muted);
+  }
+
+  /*
+   * A tool gives up its caret.
+   *
+   * Stacked under the label by the column direction, the chevron stopped
+   * reading as "this opens something" and started reading as a second, smaller
+   * glyph below the first. What it was there to say — that a label-shaped
+   * control is a control — is already said by the tool's own glyph above it,
+   * and by the bar it is standing in.
+   */
+  [role='toolbar'] .caret {
+    display: none;
+  }
+}

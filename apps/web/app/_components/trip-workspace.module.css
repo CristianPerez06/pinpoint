@@ -32,6 +32,17 @@
   align-items: center;
   gap: var(--pp-space-sm);
   padding: var(--pp-space-sm) var(--pp-space-md);
+  /*
+   * The sides clear the hardware, at every width.
+   *
+   * Not a phone-layout rule. Chrome is chosen by width alone, so a phone held
+   * in landscape is about 900px wide and gets *this* bar — with the notch down
+   * one side of it. `max()` rather than an addition, so the padding is the
+   * inset where there is one and the design's own spacing where there is not,
+   * and never both stacked.
+   */
+  padding-left: max(var(--pp-space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--pp-space-md), env(safe-area-inset-right, 0px));
   border-bottom: 1px solid var(--pp-line);
   background: var(--pp-surface);
 }
@@ -54,11 +65,55 @@
   flex: none;
 }
 
+/*
+ * The two names of the scope, each in a wrapper of its own.
+ *
+ * They do nothing at a laptop width beyond what the controls inside them
+ * already did — `display: flex` and a floor of zero so truncation works. They
+ * exist because the phone shape needs somewhere to put each name, and the
+ * controls themselves are two `Menu`s wearing the same class as every other
+ * menu in the chrome.
+ */
+.scope,
+.city {
+  display: flex;
+  min-width: 0;
+  flex: none;
+}
+
 /* Scope reads as a path, because that is what it is: a city is a narrowing of
    a trip. */
 .scopeSep {
   color: var(--pp-ink-faint);
   flex: none;
+}
+
+/*
+ * The tool spelling of a control, absent until the bar becomes a bottom bar.
+ *
+ * Both spellings are in the markup at every width and the cascade picks one.
+ * That is affordable here and nowhere else in this change: a word and a glyph
+ * carry no state, so drawing both costs a few bytes, while a second search
+ * field would be a second thing to type into and a second thing to keep in
+ * sync.
+ */
+.toolLabel,
+.toolGlyph {
+  display: none;
+}
+
+/*
+ * The two halves of search-as-a-screen, both absent at a laptop width where the
+ * field is permanently in the bar and neither has anything to do.
+ */
+.confirm,
+.searchTool,
+.searchBack {
+  display: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 /*
@@ -158,6 +213,74 @@
   text-align: right;
 }
 
+/* Who is signed in, at the top of the menu about them. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 3px var(--pp-space-sm) var(--pp-space-xs);
+}
+
+.initials {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  /* The wash and its ink, never the accent itself — on the dark ground `accent`
+     and `accent-ink` are one value and the letters would vanish. */
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-row-name-size);
+  font-weight: 700;
+}
+
+.identityName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+}
+
+.identityRule {
+  height: 1px;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  background: var(--pp-line);
+}
+
+/* A row in a menu that is a list of actions rather than a form. */
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuRow:hover {
+  background: var(--pp-surface-muted);
+}
+
+.menuRowGlyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--pp-ink-muted);
+}
+
 /*
  * The sign-out submit, still a server action inside a form.
  *
@@ -167,6 +290,7 @@
 .signOut {
   display: flex;
   align-items: center;
+  gap: 11px;
   width: 100%;
   padding: 7px var(--pp-space-sm);
   border: 0;
@@ -182,6 +306,12 @@
 
 .signOut:hover {
   background: var(--pp-danger-surface);
+}
+
+/* The glyph goes with the lettering here. Muted grey beside danger-red text
+   reads as two controls sharing a row rather than as one. */
+.signOut .menuRowGlyph {
+  color: currentColor;
 }
 
 /*
@@ -226,56 +356,329 @@
 }
 
 /*
- * Temporary, and named as such so it is not mistaken for a decision later.
+ * The phone shape, and the one place the number is decided.
  *
- * A phone-width window is a different arrangement, not a narrower version of
- * this one. Without this something clips or leaves the viewport — a
- * lost control, not an untidy one. Wrapping is what the toolbar did before,
- * kept on purpose and confined to narrow widths so the wide layout is no longer
- * at its mercy.
- *
- * Issue #41 replaces this with the phone layout — the tools in a bar within a
- * thumb's reach at the bottom edge — and deletes it. It exists so that item is
- * not a prerequisite for shipping one bar on a laptop.
+ * This replaces the wrapping rule that used to sit here, which said of itself
+ * that it was temporary and named this work as its replacement. It is deleted
+ * rather than amended: a phone-width window is a different arrangement, not a
+ * narrower version of the laptop's, and leaving both would be two rules
+ * claiming the same widths.
  *
  * 700px is a literal because custom properties do not resolve inside a media
- * query. It appears once, so the change that replaces it has one place to look.
+ * query — a breakpoint cannot be a token, on any project. It is therefore
+ * repeated in the four stylesheets that change shape (`ui.module.css`,
+ * `place-search.module.css`, `trip-map.module.css`, and the two scope
+ * stylesheets), each of which points back here rather than explaining it again.
+ * This is the file to change first if the number ever moves.
+ *
+ * Chosen by width alone, which is what `DESIGN.md` asks for. A phone held in
+ * landscape is about 900px wide and therefore gets the laptop bar; that is a
+ * known consequence, accepted, and the reason the bar takes horizontal
+ * safe-area padding below.
+ *
+ * Left to right stops meaning anything here, so the reading becomes top to
+ * bottom: what is being looked at, then the map, then what a session is made
+ * of, on the edge where a thumb already is.
  */
 @media (max-width: 700px) {
-  .bar {
-    flex-wrap: wrap;
-  }
-
   /*
-   * The scope and the account keep the first line; the tools take their own.
+   * Two rows, because the specification says so.
    *
-   * `order` rather than markup order, because the reading left to right —
-   * scope, session, person — is right at a laptop width and only the wrapping
-   * is wrong. Without it the full-width tools row falls between the city and
-   * the account and pushes the account onto a third line by itself.
+   * `workspace-chrome` requires the trip's name and the city's to take separate
+   * lines wherever the chrome is phone-shaped, and the reason is measurable:
+   * two names that a person typed, sharing a 390px row, leave each other about
+   * eleven characters, so both are cut to stubs and the row answers neither
+   * "which trip is this" nor "which part of it am I in".
+   *
+   * A grid rather than wrapping. Wrapping puts things in a new row when they
+   * stop fitting, which is a statement about width; this is a statement about
+   * what belongs with what, and the grid says it directly.
    */
-  .account {
-    order: 0;
-    margin-left: auto;
+  .bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'mark trip account'
+      '.    city city';
+    align-items: center;
+    column-gap: var(--pp-space-xs);
+    row-gap: 0;
+    padding-top: 10px;
+    padding-bottom: 9px;
   }
 
-  .tools {
-    order: 1;
-    width: 100%;
-    margin-left: 0;
-    flex-wrap: wrap;
+  .mark {
+    grid-area: mark;
+    margin-right: 5px;
+  }
+
+  .scope {
+    grid-area: trip;
+    display: flex;
+    min-width: 0;
   }
 
   /*
-   * Search takes its own line rather than sharing one.
+   * The floor has to be put on every link of the chain, not just the top of it.
    *
-   * At 390px the three tools do not fit across, and a flex item that shrinks
-   * past its content does not clip politely — the field ran under the drop
-   * button and the words of both were drawn on top of each other. A control
-   * that overlaps another is a lost control, not an untidy one.
+   * A flex item's default `min-width` is `auto`, which means "never shrink below
+   * your content" — so a floor on this wrapper alone stops nothing: the menu
+   * anchor inside it still refuses, and the button inside that still refuses,
+   * and the name arrives at its `text-overflow` rule having never been given a
+   * width to overflow. The name then ran straight through the menu glyph and
+   * off the edge, which is the arrangement the specification has a scenario
+   * forbidding.
+   *
+   * **Learn the shape of this one**: every rule involved is present and correct
+   * — `overflow: hidden` is set, `text-overflow: ellipsis` is set, the grid
+   * column is `minmax(0, 1fr)` — and the text still does not truncate, so it
+   * reads as the ellipsis rule failing and never is. The missing thing is not a
+   * property on the text; it is permission, on every ancestor between the text
+   * and the thing that has a width.
+   */
+  .scope > *,
+  .city > * {
+    min-width: 0;
+  }
+
+  /* The narrowing is said by the indent, so the path separator has nothing
+     left to do. */
+  .scopeSep {
+    display: none;
+  }
+
+  /*
+   * Under the trip, and indented to it rather than to the bar.
+   *
+   * A city is a narrowing of the trip and reads as one only when it stands
+   * where the trip does. Left against the bar's own edge it reads as a second
+   * thing of equal rank; under the name it reads as part of it.
+   */
+  .city {
+    grid-area: city;
+    display: flex;
+    min-width: 0;
+    margin-top: 1px;
+  }
+
+  .account {
+    grid-area: account;
+    margin-left: 0;
+  }
+
+  /*
+   * The tools leave the bar for the bottom edge.
+   *
+   * Taken out of the flow rather than moved in the markup: one set of controls,
+   * in one place, drawn where the shape of the screen wants them. `fixed`
+   * escapes the header — which is `position: relative`, and that establishes a
+   * containing block for absolute descendants but not for fixed ones — so this
+   * lands against the viewport and not inside the bar it came from.
+   *
+   * The map owns the edge beneath it: this is a surface standing on the floor,
+   * not a pill floating over cartography. Two pills over open map read as
+   * debris rather than as chrome, which the phone learned by looking.
+   */
+  .tools {
+    position: fixed;
+    z-index: 5;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin-left: 0;
+    gap: 0;
+    background: var(--pp-surface);
+    border-top: 1px solid var(--pp-line);
+    /* Flush to the edge, carrying the inset in its own padding so its contents
+       clear the home indicator. A bar that stops short of the edge is a wide
+       pill with a gap under it, and the gap fills with whatever it was
+       clearing. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /*
+   * Three targets of equal weight.
+   *
+   * A toolbar and deliberately not a tab bar: every one of these fires an
+   * action, and drawing them as tab items would promise navigation that does
+   * not exist.
+   */
+  .tools > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /*
+   * The field gives up its place rather than its size.
+   *
+   * Shrinking it until it still fits is how a search box reaches thirty pixels
+   * — present, focusable and useless. Here it steps out of the row entirely and
+   * comes back as the whole screen.
    */
   .search {
-    flex: 1 1 100%;
+    display: none;
+  }
+
+  /*
+   * Armed, the row is replaced rather than added to.
+   *
+   * The three tools go entirely. A `Cancel` added beside them would say the map
+   * had gained an option; replacing them says it is doing something else, which
+   * is what is true — and it is what the phone does, for the same reason.
+   */
+  .tools.armed > *:not(.confirm) {
+    display: none;
+  }
+
+  .tools.armed .confirm {
+    display: flex;
+    align-items: center;
+    gap: var(--pp-space-sm);
+    width: 100%;
+    padding: 10px var(--pp-space-md) 11px;
+  }
+
+  .confirmHint {
+    flex: 1;
+    font-size: var(--pp-type-note-size);
+    line-height: 1.3;
+    color: var(--pp-ink-muted);
+  }
+
+  .confirmCancel,
+  .confirmUse {
+    flex: none;
+    padding: 7px 13px;
+    border: 1px solid var(--pp-line-strong);
+    border-radius: var(--pp-radius-pill);
+    background: none;
+    color: var(--pp-ink);
+    font-family: inherit;
+    font-size: var(--pp-type-control-size);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* The one thing being asked for, so it carries the wash — and its lettering
+     changes with it, because `accent` and `accent-ink` converge on the dark
+     ground and amber on amber is not thin, it is absent. */
+  .confirmUse {
+    border-color: var(--pp-accent);
+    background: var(--pp-accent-wash);
+    color: var(--pp-accent-ink);
+    font-weight: 600;
+  }
+
+  /*
+   * The banner is the laptop's way of saying this, and the confirm row is the
+   * phone's. Both at once would be the same sentence twice.
+   */
+  .banner {
+    display: none;
+  }
+
+  .searchTool {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: 9px 0 10px;
+    color: var(--pp-ink-muted);
+  }
+
+  .searchTool:hover {
+    background: var(--pp-surface-muted);
+  }
+
+  /*
+   * Open, and taking everything.
+   *
+   * A screen rather than a sheet, and that is the one place this arrangement
+   * departs from the two kinds of sheet the rest of the chrome uses. Searching
+   * is not a decision made over the map — the map has nothing to say about it
+   * until a result is chosen — so there is no reason to keep it visible, and a
+   * list of results carrying a name, a type and a distance per row wants the
+   * height.
+   */
+  .search.searchOpen {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--pp-space-sm);
+    padding: 10px var(--pp-space-md);
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    background: var(--pp-surface);
+  }
+
+  .search.searchOpen .searchBack {
+    display: block;
+    flex: none;
+    padding: 7px 3px 0 0;
+    color: var(--pp-ink-muted);
+  }
+
+  .search.searchOpen .toolGlyph {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+
+  .drop {
+    width: auto;
+  }
+
+  /* The long spelling is a sentence for a bar that has room for one. */
+  .wideLabel {
+    display: none;
+  }
+
+  .toolLabel,
+  .toolGlyph {
+    display: block;
+  }
+
+  .toolGlyph {
+    width: 22px;
+    height: 22px;
+  }
+
+  .toolLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pp-ink);
+  }
+
+  /*
+   * The shape a tool takes is stated in `ui.module.css`, keyed on this bar's
+   * `role`, because that is where the button vocabulary lives — and because
+   * `Filter` fills with the accent wash when it is declaring a narrowing, and
+   * that fill is a class in that file which nothing here can see. Overriding
+   * the background from here killed it.
+   */
+
+  /*
+   * The bar yields the edge to a sheet that is describing something on the map.
+   *
+   * Not hidden behind it — gone. A sheet rounds its top corners, so a row left
+   * standing behind them shows through at the edges; and a control that is
+   * present but unreachable is worse than one that is absent, because it is
+   * still in the tab order and still announced. The phone reached this the same
+   * way: its bottom row is not rendered at all while a marker is selected, and
+   * dismissing the sheet brings it back.
+   */
+  .tools.yielded {
+    display: none;
+  }
+
+  /*
+   * The address goes; the glyph stays.
+   *
+   * Both spellings are in the label and the width picks one, exactly as `Drop`'s
+   * two words do.
+   */
+  .you {
+    display: none;
   }
 }
 

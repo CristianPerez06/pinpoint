@@ -19,6 +19,20 @@ export const viewport: Viewport = {
    * light around a dark page.
    */
   colorScheme: 'light dark',
+  /**
+   * The page draws to the edges of the glass, and clears the hardware itself.
+   *
+   * Without this the browser insets the whole document above the home indicator
+   * and `env(safe-area-inset-*)` answers `0px` — so the declarations that clear
+   * it are present, correct, and do nothing, which is the worst version of this
+   * to debug. With it the insets become real numbers and every edge the
+   * application draws on has to say what it does about them.
+   *
+   * Document-wide, so it is not a phone-layout setting. It is also why the
+   * laptop bar takes horizontal safe-area padding: width alone sends a phone
+   * held in landscape to that bar, and the notch is on its side there.
+   */
+  viewportFit: 'cover',
 }
 
 /**
