@@ -58,14 +58,7 @@ import styles from './filter-bar.module.css'
  * which value.
  */
 
-export function FilterBar({
-  filter,
-  onChange,
-  members,
-  ownMemberId,
-  open,
-  onOpen,
-}: {
+export type FilterBarLiveProps = {
   filter: MarkerFilter
   onChange: (filter: MarkerFilter) => void
   members: readonly TripMember[]
@@ -80,7 +73,27 @@ export function FilterBar({
    */
   open: boolean
   onOpen: (open: boolean) => void
-}) {
+}
+
+/**
+ * Either this control has what it names, or it is waiting for it.
+ *
+ * A union rather than a bag of optionals, so the waiting form cannot be
+ * rendered with half its handlers and the live form cannot be rendered
+ * without them. There is nothing to pass while waiting, and the type says so.
+ */
+export type FilterBarProps =
+  | { waiting: true }
+  | ({ waiting?: false } & FilterBarLiveProps)
+
+function FilterBarLive({
+  filter,
+  onChange,
+  members,
+  ownMemberId,
+  open,
+  onOpen,
+}: FilterBarLiveProps) {
   const nameOf = (member: TripMember) =>
     member.id === ownMemberId ? 'You' : member.displayName
 
@@ -109,26 +122,7 @@ export function FilterBar({
   return (
     <Menu
       name="Filter"
-      label={
-        <>
-          {/*
-            A glyph, and only where the control is standing in the bar at the
-            bottom as one of three equals.
-
-            Sliders rather than a funnel: a funnel says "narrow a list", and
-            sliders says "options you can change", which is what this opens.
-            The phone chose the same glyph for the same reason.
-
-            Drawn at every width and hidden by the cascade above the phone's,
-            for the reason the drop control's two labels already record — a
-            glyph carries no state, so rendering both spellings costs nothing
-            that branching would.
-          */}
-          <SlidersHorizontal aria-hidden className={styles.glyph} />
-          Filter
-          {narrowed ? <span className={styles.count}>{active}</span> : null}
-        </>
-      }
+      label={<FilterLabel narrowed={narrowed} active={active} />}
       marked={narrowed}
       align="end"
       open={open}
@@ -229,5 +223,77 @@ export function FilterBar({
         Clear the filter
       </button>
     </Menu>
+  )
+}
+
+/**
+ * FilterBar, before and after its data.
+ *
+ * `waiting` is a variant of this control rather than a choice made by whoever
+ * renders it, for the reason `write-feedback` gives about pending state: a flag
+ * held by the screen cannot say *which* control it is about, and the control is
+ * the only thing that knows what it looks like with nothing to show.
+ *
+ * The waiting form is the same `Menu` the live one renders. Only the label
+ * differs, because the label is the part nobody knows yet.
+ */
+export function FilterBar(props: FilterBarProps) {
+  if (props.waiting) {
+    /*
+      No placeholder, because nothing here is unknown.
+
+      This trigger reads `Filter` — a glyph and a word, both fixed — and gains a
+      count only once a filter has been applied, which cannot have happened
+      before the trip has been read. So the waiting label *is* the loaded label,
+      and standing a block in its place would be inventing a question. It also
+      measured: a placeholder here was 33px wider than the word it replaced, and
+      every control between it and the account moved when the data landed.
+    */
+    return (
+      <Menu
+        name="Filter"
+        label={<FilterLabel narrowed={false} active={0} />}
+        align="end"
+        open={false}
+        onOpen={() => {}}
+        disabled
+      >
+        {null}
+      </Menu>
+    )
+  }
+  return <FilterBarLive {...props} />
+}
+
+/**
+ * What the filter's trigger says — which is the same thing whether or not the
+ * trip has been read.
+ *
+ * A glyph and a word, both fixed, plus a count that can only exist once a
+ * filter has been applied. That is why the waiting form of this control shows
+ * the real label rather than a placeholder: there is nothing here that has to
+ * be waited for, and a block standing in its place would be inventing a
+ * question nobody asked.
+ */
+function FilterLabel({ narrowed, active }: { narrowed: boolean; active: number }) {
+  return (
+        <>
+          {/*
+            A glyph, and only where the control is standing in the bar at the
+            bottom as one of three equals.
+
+            Sliders rather than a funnel: a funnel says "narrow a list", and
+            sliders says "options you can change", which is what this opens.
+            The phone chose the same glyph for the same reason.
+
+            Drawn at every width and hidden by the cascade above the phone's,
+            for the reason the drop control's two labels already record — a
+            glyph carries no state, so rendering both spellings costs nothing
+            that branching would.
+          */}
+          <SlidersHorizontal aria-hidden className={styles.glyph} />
+          Filter
+          {narrowed ? <span className={styles.count}>{active}</span> : null}
+        </>
   )
 }

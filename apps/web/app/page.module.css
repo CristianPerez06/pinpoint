@@ -5,14 +5,40 @@
   color: var(--pp-ink);
 }
 
-/* Positioned, so anything absolutely placed inside has something to sit in. */
+/*
+ * Positioned, so anything absolutely placed inside has something to sit in —
+ * and a grid, so the height it takes reaches what it holds.
+ *
+ * `flex: 1` correctly takes everything `.shell` leaves. Without a `display`
+ * that passes it on, the child was a block box that shrank to its own contents
+ * and sat against the top of it, so a failed trip read as a band of text on an
+ * otherwise empty page. Every declaration on the state itself was right:
+ * `.panel` centres, and it was centring inside a box the size of a spinner.
+ *
+ * `place-items: center` rather than a stretch, because all three things that
+ * land here — the failed state, the empty state and first-trip setup — are
+ * cards with their own width and border. Stretched, the danger card's outline
+ * would be drawn around the whole screen.
+ */
 .centred {
   position: relative;
   flex: 1;
   min-height: 0;
+  display: grid;
+  place-items: center;
 }
 
+/*
+ * The route's own waiting screen, which is a screen rather than a card.
+ *
+ * A grid with one child stretches it in both axes by default, so the panel
+ * finally has the height its own centring was written against. This is the
+ * opposite treatment from `.centred` above and deliberately so: what lands
+ * here is a full-bleed ground with a spinner in the middle, not something with
+ * an edge.
+ */
 .full {
+  display: grid;
   height: 100dvh;
 }
 

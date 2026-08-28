@@ -36,6 +36,96 @@ export const overlayPanelClass = styles.panel
 export const iconOnlyLabelClass = styles.iconOnly
 
 /**
+ * Where a name goes, before anybody knows what it is.
+ *
+ * Drawn rather than written, and the reason is the contrast floor rather than
+ * taste: `styling` covers placeholder text at 4.5:1 like any other text, so
+ * there is no colour recessive enough to read as "not yet" that is also legal
+ * to write words in. A block sidesteps the question by making no claim a person
+ * can read — and `ink-faint`, which that same rule reserves for what is drawn
+ * and never read, is precisely the token for it.
+ *
+ * **It wears the label's own class, and is given that label's own measure.**
+ *
+ * The first version guessed a pixel width, and it was wrong in both directions:
+ * measured, the city came out 24px narrow, which pushed search, drop and filter
+ * 24px right, and left the header 5px shorter than it would be. The guess was
+ * never necessary. Every name in this bar is already pinned in `ch` — the trip
+ * to `12ch`, the city to `11ch`, the account to `13ch` — because a control whose
+ * width follows its own contents moves whatever sits after it, which is the same
+ * reason `.drop` reserves a slot for its longer label. So the measure is handed
+ * in rather than invented, and the class is worn for the *type*: `1lh` inside it
+ * is the line box the name would have had, which is what stops the header
+ * changing height.
+ *
+ * The measure is given inline rather than left to the borrowed class because at
+ * a phone width that class becomes `width: auto` — the live name sizes itself to
+ * its own text there and truncates. An empty box sizing itself to its own text
+ * is zero, and the placeholder disappeared: control drawn, class applied, rule
+ * correct, nothing on screen.
+ *
+ * `aria-hidden`, because what this stands for is already being said: the
+ * control around it reports itself unavailable. A second announcement of the
+ * same fact is noise.
+ */
+export function NamePlaceholder({
+  className,
+  measure,
+}: {
+  className?: string
+  /** The label's own width, in `ch`, so both states occupy the same box. */
+  measure: string
+}) {
+  return (
+    <span
+      aria-hidden
+      className={`${className ?? ''} ${styles.namePlaceholderBox}`}
+      style={{ width: measure }}
+    >
+      <span className={styles.namePlaceholderBar} />
+    </span>
+  )
+}
+
+/**
+ * A menu whose data has not been read, so there is nothing behind it yet.
+ *
+ * The same `Menu` the live control renders, given the one thing that differs:
+ * a label nobody knows. That is the whole reason this is three lines rather
+ * than a second trigger built to match the first — a lookalike is a thing to
+ * keep in agreement, and this bar's whole point is that there is nothing to
+ * keep in agreement.
+ *
+ * `open={false}` with a `onOpen` that does nothing rather than the workspace's
+ * real handler: the panel is guarded inside `Menu` as well, but a control that
+ * cannot act should not be reaching for state it has no business in.
+ */
+export function WaitingMenu({
+  name,
+  labelClassName,
+  measure,
+}: {
+  name: string
+  /** The class the live label wears, so the type is identical in both states. */
+  labelClassName?: string
+  /** That label's own `ch` measure. */
+  measure: string
+}) {
+  return (
+    <Menu
+      name={name}
+      label={<NamePlaceholder className={labelClassName} measure={measure} />}
+      open={false}
+      onOpen={() => {}}
+      tone="quiet"
+      disabled
+    >
+      {null}
+    </Menu>
+  )
+}
+
+/**
  * A control that reveals a panel, and everything that owes the reader.
  *
  * There were five of these in the chrome, built four different ways: three
@@ -62,6 +152,7 @@ export function Menu({
   align = 'start',
   tone = 'default',
   marked = false,
+  disabled = false,
 }: {
   /** What the trigger shows. May carry a count or a caret, so not a plain string. */
   label: ReactNode
@@ -89,6 +180,20 @@ export function Menu({
    * whatever the label says is the third.
    */
   marked?: boolean
+  /**
+   * There is nothing to open yet.
+   *
+   * The same treatment `Button` already gives its own `disabled`, and for the
+   * same reason: `aria-disabled` and a no-op, never the attribute, which leaves
+   * the tab order and is skipped by a screen reader. Somebody arriving at the
+   * bar before its data has to be told this control is unavailable rather than
+   * find that it is absent.
+   *
+   * It guards `onOpen` as well as the styling. Without that, a menu with no
+   * data could still be opened onto an empty panel — and `Escape` and the
+   * outside-press listeners would go on running for a panel nobody can see.
+   */
+  disabled?: boolean
 }) {
   const anchor = useRef<HTMLDivElement | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -169,8 +274,12 @@ export function Menu({
       <button
         ref={trigger}
         type="button"
-        onClick={() => onOpen(!open)}
-        aria-expanded={open}
+        onClick={() => {
+          if (disabled) return
+          onOpen(!open)
+        }}
+        aria-disabled={disabled || undefined}
+        aria-expanded={disabled ? undefined : open}
         /*
          * `menu` would be a lie. These panels hold checkboxes, fields and
          * forms, and a reader told to expect a menu is told to expect
@@ -210,7 +319,7 @@ export function Menu({
         </svg>
       </button>
 
-      {open ? (
+      {open && !disabled ? (
         <div
           ref={panel}
           role="group"

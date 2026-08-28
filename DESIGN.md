@@ -150,7 +150,13 @@ components:
     typography: "{typography.note}"
   clear-inert:
     backgroundColor: "transparent"
-    textColor: "{colors.ink-faint}"
+    # Muted, not faint. This block said `ink-faint`, which this document's own
+    # prose contradicts, the shipped control does not use, and the `styling`
+    # spec forbids: the text of a control that is present but inert has to clear
+    # the 4.5:1 floor like any other text, and `ink-faint` measures 2.78:1 on the
+    # light ground. The border, the fill and the weight already carry the state,
+    # so the colour never has to go under the floor to say it.
+    textColor: "{colors.ink-muted}"
     rounded: "{rounded.pill}"
     padding: "5px 10px"
     typography: "{typography.control}"
