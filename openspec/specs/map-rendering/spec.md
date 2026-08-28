@@ -70,6 +70,14 @@ rendered in a way that fails to appear when the map does.
 On opening, the map SHALL position itself to show every marker of the current trip,
 using the shared framing logic and the actual size of the surface it is drawn into.
 
+Where chrome is drawn over the map rather than beside it, framing SHALL use the part of
+the map that is **not** covered. Both halves of framing are affected and both SHALL
+account for it: the zoom SHALL be chosen so the markers fit the uncovered part, and the
+centre SHALL be offset so they land in it. Choosing the zoom for the whole surface and
+only shifting the centre satisfies neither — the markers are then fitted to an area
+twice the height of the one that can be seen, so the outer ones sit behind the chrome
+while the framing reports success.
+
 When the trip has no markers, the map SHALL open at the shared default position rather
 than failing or showing an undefined region.
 
@@ -99,6 +107,12 @@ application moved on its own.
 - **WHEN** a trip with markers spread across a city is opened
 - **THEN** every marker is within the visible area
 - **AND** none sits against the edge of the viewport
+
+#### Scenario: A trip framed while a sheet covers part of the map
+
+- **WHEN** markers are framed while a sheet stands over part of the map
+- **THEN** every marker is within the part of the map that is not covered
+- **AND** none is behind the sheet
 
 #### Scenario: A trip with no markers
 
@@ -632,4 +646,40 @@ zoom is gone, and says nothing about why.
 - **WHEN** the map is rendered at any window or device size
 - **THEN** the attribution for the tile data is fully visible
 - **AND** the zoom control overlaps neither it nor anything else standing on that edge
+
+### Requirement: Framing stays usable as the visible strip shrinks
+
+Framing SHALL produce a usable camera for every height the uncovered part of the map can
+take, including none at all, and the zoom it produces SHALL always be a finite value
+inside the shared range.
+
+An application that frames against a reduced height SHALL NOT reduce it without limit.
+It SHALL keep a floor under the strip it frames against, so that a tall sheet cannot
+drive the camera to the end of the zoom range.
+
+Rationale: the zoom is derived by dividing by the usable height. Zero does not produce a
+value that is *not a number* — it produces negative infinity, which the shared clamp then
+turns into the minimum zoom — so the failure is not a broken camera but a camera showing
+the entire world, which reads as the map having jumped somewhere rather than as a
+framing decision. The floor is what keeps the correction proportionate: the point of
+framing against the visible strip is to see the places, and a strip small enough to zoom
+out to the ocean has stopped serving that.
+
+#### Scenario: A sheet covering the whole map
+
+- **WHEN** framing is asked for while the covered height is at least the height of the
+  surface
+- **THEN** a camera with a finite zoom inside the shared range is produced
+- **AND** the map continues to render
+
+#### Scenario: A tall sheet does not zoom the map out to nothing
+
+- **WHEN** a sheet covers most of the map and framing is asked for
+- **THEN** the zoom is chosen against a bounded strip rather than against what is left
+- **AND** it does not fall to the shared minimum
+
+#### Scenario: The visible strip shrinking never zooms in
+
+- **WHEN** the same points are framed against a full surface and against a strip of it
+- **THEN** the zoom for the strip is no greater than the zoom for the full surface
 
