@@ -1,8 +1,11 @@
 'use client'
 
 import type { Marker } from '@pinpoint/core'
+import type { Camera } from '@pinpoint/map'
 import {
   ATTRIBUTION,
+  MAP_CREDITS,
+  offsetCenter,
   DEFAULT_VIEWPORT,
   fitBounds,
   MAX_ZOOM,
@@ -27,6 +30,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { DraftPin, Pin } from '@/app/_components/pin'
+import { Menu } from '@/app/_components/ui'
 import { themedBasemap } from '@/lib/basemap'
 import { useColourScheme } from '@/lib/use-colour-scheme'
 
@@ -96,6 +100,47 @@ function offsetFor(
  */
 function asRendererStyle(document: StyleDocument): StyleSpecification {
   return document as unknown as StyleSpecification
+}
+
+/**
+ * The camera that puts points where they can actually be seen.
+ *
+ * Two corrections, and both are needed. The **zoom** is chosen for the strip of
+ * map that is not covered rather than for the whole surface, or a spread-out
+ * group is fitted into an area twice the height of the one on screen and its
+ * outer members sit behind the sheet while the framing reports success. The
+ * **centre** is then shifted by half the covered height, or the middle of the
+ * view — which is what `center` means to the renderer — is behind the sheet, and
+ * centring on a place is exactly how to hide it.
+ *
+ * `fitBounds` has taken a viewport since it was written and `offsetCenter` is
+ * already in `@pinpoint/map` carrying a comment that it is waiting for a browser
+ * window narrow enough to want the same sheet. Nothing is added to the shared
+ * package: composing the two is the application's business, because only the
+ * application knows what is covering its map.
+ *
+ * The clamp is not defensive tidiness. `fitBounds` derives the zoom by dividing
+ * by the usable height, so a strip of zero yields `log2(0)` — negative infinity,
+ * or `NaN` once the clamp to the shared range touches it — and a `NaN` zoom
+ * handed to either renderer neither throws nor logs. The camera simply stops
+ * being a camera, which reads as the map failing to load and never is. A sheet
+ * at its tallest over a short landscape viewport reaches this, so it is a state
+ * that happens rather than one that is imagined.
+ */
+function frameAround(
+  points: readonly LngLat[],
+  surface: { width: number; height: number },
+  floor: number,
+): Camera {
+  const covered = Math.max(0, Math.min(floor, surface.height * 0.65))
+  const camera = fitBounds([...points], {
+    viewport: { width: surface.width, height: surface.height - covered },
+  })
+
+  return {
+    center: offsetCenter(camera.center, camera.zoom, 0, covered / 2),
+    zoom: camera.zoom,
+  }
 }
 
 /**
@@ -176,6 +221,7 @@ export function TripMap({
   frameToken,
   centreRef,
   onMarkersInView,
+  floor = 0,
 }: {
   groups: readonly MarkerGroup<Marker>[]
   onSelectGroup: (group: MarkerGroup<Marker>) => void
@@ -197,6 +243,20 @@ export function TripMap({
    */
   frameTo: readonly LngLat[]
   frameToken: number
+  /**
+   * How much of the bottom of the map is covered by chrome standing on it.
+   *
+   * Zero at a laptop width, where the tools are in the bar above the map and
+   * nothing stands on the floor. At a phone width it is the height of whatever
+   * does — the toolbar, or the sheet that replaces it. Measured by the
+   * workspace, which is the only thing that can see both the map and what is
+   * over it.
+   *
+   * Two things here need it: the licence credit, which has to rise off the
+   * floor rather than sit under it, and the zoom control, which has to clear
+   * both.
+   */
+  floor?: number
   /** Where the map is looking, for biasing search. A ref because it changes on every pan. */
   centreRef: { current: DraftPosition | null }
   /**
@@ -271,6 +331,82 @@ export function TripMap({
   }, [map])
 
   /**
+   * How tall our own credit is, measured for the same reason the corner is.
+   *
+   * It is one line at 390px and two at 320px with a long enough licence string,
+   * and the zoom control has to clear whichever it turns out to be. The corner
+   * measurement above answers the laptop; this one answers the phone, and
+   * exactly one of them is non-zero at a time because each belongs to a width
+   * where the other is not drawn.
+   */
+  /*
+   * The floor, held in a ref as well as a prop.
+   *
+   * The two framing effects must not re-run because something opened over the
+   * map — re-framing is a thing the person asks for, and `map-rendering` is
+   * explicit that nothing else moves the camera. They need the current value at
+   * the moment they fire, not a dependency on it.
+   */
+  const floorRef = useRef(floor)
+  useEffect(() => {
+    floorRef.current = floor
+  }, [floor])
+
+  const creditRef = useRef<HTMLDivElement | null>(null)
+  const [creditHeight, setCreditHeight] = useState(0)
+  useEffect(() => {
+    const credit = creditRef.current
+    if (!credit) return
+    const measure = () => setCreditHeight(credit.offsetHeight)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(credit)
+    return () => observer.disconnect()
+  }, [])
+
+  /** Whether the credits sheet is open. Local: it is about the map, not the trip. */
+  const [creditsOpen, setCreditsOpen] = useState(false)
+
+  /**
+   * Whatever is being described stays clear of whatever is describing it.
+   *
+   * A sheet rising over the lower half of the map is the exact condition under
+   * which centring on a point hides it, and the point this one is about is the
+   * pin somebody just tapped. `map-rendering` asks for the narrow version of
+   * this — the position moves "only far enough, if at all" — so this checks
+   * before it moves, and a pin already in the visible strip is left alone.
+   *
+   * Not a re-frame: the zoom is untouched and `frameToken` is not involved, so
+   * this stays inside "nothing else moves the camera". It is the same request
+   * the person already made, honoured against a map that is now smaller than it
+   * was.
+   */
+  useEffect(() => {
+    if (!map || floor <= 0) return
+
+    const described =
+      draft ??
+      groups.find((group) => group.key === selectedKey)?.markers[0] ??
+      null
+    if (!described) return
+
+    const height = map.getContainer().clientHeight
+    const clearOf = height - floor
+    const where = map.project([described.lng, described.lat])
+    // A margin, so a pin resting a few pixels above the sheet still gets lifted
+    // clear of it rather than sitting on its edge.
+    if (where.y <= clearOf - 32) return
+
+    const target = offsetCenter(
+      { lng: described.lng, lat: described.lat },
+      map.getZoom(),
+      0,
+      floor / 2,
+    )
+    map.easeTo({ center: [target.lng, target.lat], duration: 260 })
+  }, [map, floor, draft, selectedKey, groups])
+
+  /**
    * The style has to be fetched and transformed before the renderer can be
    * given one, so it is state rather than a value.
    */
@@ -331,7 +467,7 @@ export function TripMap({
           // division by zero.
           DEFAULT_VIEWPORT
 
-    const camera = fitBounds([...initialFraming.current], { viewport })
+    const camera = frameAround(initialFraming.current, viewport, floorRef.current)
 
     const instance = new MapLibreMap({
       container,
@@ -612,7 +748,7 @@ export function TripMap({
         ? { width: rect.width, height: rect.height }
         : DEFAULT_VIEWPORT
 
-    const camera = fitBounds([...frameTo], { viewport })
+    const camera = frameAround(frameTo, viewport, floorRef.current)
     map.flyTo({
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
@@ -644,6 +780,71 @@ export function TripMap({
       <div ref={containerRef} className={styles.canvas} />
 
       {/*
+        The sight, drawn only while the map is armed.
+
+        The other half of `marker-capture`'s "how a position is indicated
+        follows the shape of the screen": a pointer indicates a coordinate
+        directly, and a screen operated by touch frames the map under a fixed
+        sight instead — because a finger covers the place it is aiming at.
+        Neither is a fallback for the other, and the laptop keeps arming and
+        tapping at every width above the phone's.
+
+        Not a marker: it belongs to the screen rather than to the map, so it
+        must not move when the map does. `pointer-events: none`, so the map
+        underneath still pans and zooms with the sight sitting over it.
+      */}
+      {dropping ? <span className={styles.sight} aria-hidden /> : null}
+
+      {/*
+        The licence credit, ours rather than the renderer's.
+
+        Only at a phone width, where a bar flush to the bottom edge lands on top
+        of MapLibre's own control — and the credit is a condition of the tiles,
+        not decoration, so being covered is a licence problem rather than an
+        untidy one. MapLibre's control is stood down at the same width in the
+        stylesheet, so exactly one credit is ever on screen and exactly one is
+        ever in the accessibility tree.
+
+        The phone answered this first and this is the same answer: our own strip
+        riding above whatever holds the floor, expanding into the projects the
+        map is built from. `ATTRIBUTION` and `MAP_CREDITS` both come from
+        `@pinpoint/map`, so neither application gets to invent its own account
+        of where the map came from.
+
+        A `Menu`, which means the sheet it opens is dismissed by an outside
+        press and by Escape and hands focus back — the same contract as every
+        other panel in the chrome, for free.
+      */}
+      <div
+        ref={creditRef}
+        className={styles.credit}
+        style={{ bottom: `calc(${floor}px + var(--pp-space-sm))` }}
+      >
+        <Menu
+          name="About this map"
+          label={ATTRIBUTION}
+          tone="quiet"
+          open={creditsOpen}
+          onOpen={setCreditsOpen}
+        >
+          <p className={styles.creditsHeading}>About this map</p>
+          <p className={styles.creditsBlurb}>Four projects, none of them ours.</p>
+          {MAP_CREDITS.map((credit) => (
+            <a
+              key={credit.url}
+              href={credit.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={styles.creditRow}
+            >
+              <span className={styles.creditName}>{credit.name}</span>
+              <span className={styles.creditRole}>{credit.role}</span>
+            </a>
+          ))}
+        </Menu>
+      </div>
+
+      {/*
         Zoom, as something you can see.
 
         Drawn only once the map exists, which is the same condition as "the map
@@ -666,7 +867,20 @@ export function TripMap({
           aria-label="Zoom"
           // Rises off the credit rather than clearing a height guessed at once.
           // The gap is a token; only the thing being cleared is a measurement.
-          style={{ bottom: `calc(${cornerHeight}px + var(--pp-space-md))` }}
+          /*
+           * Above everything standing on this edge, which the specification
+           * requires by name: the zoom control "overlaps neither it nor
+           * anything else standing on that edge", at any window or device size.
+           *
+           * Three terms, and at most two are ever non-zero. `cornerHeight` is
+           * MapLibre's credit and belongs to the laptop; `floor` and
+           * `creditHeight` are the toolbar and our own credit and belong to the
+           * phone. Adding all three is therefore the same as choosing between
+           * them, without this file having to ask how wide the window is.
+           */
+          style={{
+            bottom: `calc(${cornerHeight + floor + creditHeight}px + var(--pp-space-md))`,
+          }}
         >
           <ZoomButton
             direction={1}

@@ -154,3 +154,19 @@
   text-transform: uppercase;
   color: var(--pp-ink-muted);
 }
+
+/*
+ * The tool glyph — absent until the bar becomes a bottom bar. See
+ * `trip-workspace.module.css` for where 700px is decided and why.
+ */
+.glyph {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .glyph {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+}

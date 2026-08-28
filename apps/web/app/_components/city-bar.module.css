@@ -187,3 +187,18 @@
 .spacer {
   margin-left: auto;
 }
+
+/*
+ * The phone shape — see `trip-workspace.module.css` for the breakpoint.
+ *
+ * Fluid for the same reason the trip's name is, and with the same justification
+ * for abandoning the fixed slot: on its own line, with nothing downstream of it
+ * to be pushed sideways, a reserved width buys nothing and costs the only
+ * characters the control has.
+ */
+@media (max-width: 700px) {
+  .name {
+    width: auto;
+    min-width: 0;
+  }
+}

@@ -422,8 +422,24 @@ a line of their own and the scope keeps the first with the account. That number 
 derived rather than picked: what cannot shrink in the bar — the two fixed scope names,
 the drop slot, the filter, the account, the gaps and the padding — comes to about 764px,
 and a search field stops being one at about 240px, so the single row runs out around
-1004px. Below **700px** a further temporary rule gives search its own line; that one is
-marked as holding, not as a decision, and the phone layout replaces it.
+1004px. Below **700px** the chrome takes its phone shape, which is an arrangement rather than a
+narrower version of the bar: the trip's name and the city stack on two lines with a menu
+of rare actions at the far end, the map takes everything under them, and search, drop and
+filter become a toolbar standing on the bottom edge. Three bands, therefore — one bar, a
+wrapped bar, and the phone's shape — and the phone's is the only one of the three that
+changes what the controls *are* rather than where they sit.
+
+That last number is chosen rather than derived, and it is worth saying so. 1024 is
+arithmetic: it is where the bar's incompressible contents stop fitting. Nothing fails at
+700 — the wrapped bar goes on working down to about 445px — so 700 is a judgement about
+what a screen that width is *for*, not a measurement of what fits on it. A breakpoint
+also cannot be a token, because custom properties do not resolve inside a media query, so
+it is a literal repeated in each stylesheet that changes shape; `trip-workspace.module.css`
+is where it is decided and every other copy points there.
+
+Chosen by width alone, which means a phone held in landscape is about 900px wide and gets
+the laptop bar. That is accepted rather than overlooked, and it is why the bar carries
+horizontal safe-area padding at every width.
 
 **A control gives up its place before it gives up its size.** Shrinking a field until it
 still fits is how a search box reaches thirty pixels — present, focusable and useless.

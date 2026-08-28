@@ -154,3 +154,86 @@
 .noteDanger {
   color: var(--pp-danger);
 }
+
+/*
+ * The results become the screen, rather than a list hanging under a field.
+ *
+ * See `trip-workspace.module.css` for where 700px is decided. Above it this
+ * list is a panel dropping out of the bar and is sized to its own rows; here
+ * the field is already the whole screen, so the list takes what is left of it
+ * and scrolls inside that instead of inventing a height of its own.
+ */
+@media (max-width: 700px) {
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+
+  /*
+   * A row stacks, because a name and its region cannot share 360px.
+   *
+   * Laid out side by side the row was unreadable in the one way that matters:
+   * `.meta` refuses to shrink — right at a laptop width, where the list sizes
+   * itself to its widest row and nothing is ever squeezed — so at a fixed width
+   * the *name* absorbed every pixel of the squeeze and every result read
+   * `Fushi…` against a full-width `Kyoto, Kyoto Prefecture, Japan`. The name is
+   * the answer to what was asked; the region is context for telling two answers
+   * apart. Truncating the answer and sparing the context is exactly backwards,
+   * and it still overflowed, so the list scrolled sideways as well.
+   *
+   * Two lines under one glyph, which is what the phone already does. The
+   * distance keeps its whole width — it is the thing that separates a correct
+   * match from a same-named place on another continent — and the region yields
+   * instead.
+   */
+  .candidate {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'glyph name'
+      'glyph meta';
+    column-gap: 10px;
+    row-gap: 1px;
+    align-items: center;
+  }
+
+  .glyph {
+    grid-area: glyph;
+  }
+
+  .name {
+    grid-area: name;
+  }
+
+  .meta {
+    grid-area: meta;
+    min-width: 0;
+    margin-left: 0;
+    flex-shrink: 1;
+  }
+
+  .context {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .distance {
+    flex: none;
+  }
+
+  .results {
+    position: static;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    flex: 1;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+  }
+}

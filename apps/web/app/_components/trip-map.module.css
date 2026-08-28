@@ -189,3 +189,158 @@
   width: 15px;
   height: 15px;
 }
+
+/*
+ * The licence credit, ours, at a phone width — see `trip-workspace.module.css`
+ * for where 700px is decided.
+ *
+ * Absent above that width, where MapLibre's own control is doing this job and
+ * is not covered by anything. Below it the toolbar stands on the bottom edge,
+ * so the renderer's credit is stood down and this rides above whatever holds
+ * the floor. `bottom` is set from the component, because what has to be cleared
+ * is measured rather than known.
+ */
+.credit {
+  display: none;
+}
+
+.creditsHeading {
+  margin: 0;
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+}
+
+.creditsBlurb {
+  margin: 0;
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+.creditRow {
+  display: grid;
+  gap: 2px;
+  padding: 9px var(--pp-space-sm);
+  border-radius: var(--pp-radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.creditRow:hover {
+  background: var(--pp-surface-muted);
+}
+
+.creditName {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+}
+
+.creditRole {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+@media (max-width: 700px) {
+  .credit {
+    position: absolute;
+    z-index: 5;
+    left: var(--pp-space-sm);
+    display: block;
+  }
+
+  /*
+   * A strip, not a control that wants attention.
+   *
+   * A surface behind it rather than bare text, because this sits over
+   * cartography that is a different colour every few hundred metres and a
+   * licence credit has to stay legible over all of it. The phone reached the
+   * same shape for the same reason.
+   *
+   * It keeps its chevron. `DESIGN.md` asks every trigger to carry one, and this
+   * one genuinely opens something — the four projects the map is built from.
+   */
+  .credit > * > button {
+    padding: 2px var(--pp-space-sm);
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-surface);
+    opacity: 0.88;
+    color: var(--pp-ink-muted);
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  /*
+   * The renderer's own credit stands down, because ours has taken over.
+   *
+   * Not hidden to be rid of it — it is replaced, and the replacement says the
+   * same line from the same shared constant, unprompted, in a place the toolbar
+   * does not cover. Removing it from the document rather than merely painting
+   * over it is what keeps exactly one credit in the accessibility tree.
+   */
+  :global(.maplibregl-ctrl-bottom-right) {
+    display: none;
+  }
+}
+
+/*
+ * The credit's own sheet has to dim the header too.
+ *
+ * A scrim can only paint inside the nearest ancestor that establishes a
+ * stacking context, and this element is one — it is positioned and carries a
+ * `z-index` so it can sit over cartography. Left at 5 its sheet would set back
+ * the map and leave the bar above it lit, which reads as the bar being
+ * unreachable-but-awake rather than as the map waiting.
+ *
+ * Raised only while something is open, so the credit goes back under the
+ * chrome the moment it is dismissed.
+ */
+.credit:has([role='group']) {
+  z-index: 20;
+}
+
+/*
+ * The sight: a position indicated by framing the map under it rather than by
+ * pointing at it. Only where the screen is operated by touch — see
+ * `trip-workspace.module.css` for the breakpoint.
+ *
+ * `marker-capture` requires this to sit at the centre of the map **as drawn**
+ * rather than at the centre of the screen, so that the position taken is the
+ * one the sight appears over. That is exactly what 50%/50% of this element is:
+ * the map's own box, which the header has already shortened. The coordinate is
+ * then read from the camera's centre, which is the same point by construction —
+ * so there is no offset to write down and nothing to keep in sync.
+ */
+.sight {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .sight {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    left: 50%;
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: -32px 0 0 -32px;
+    border: 2px dashed var(--pp-ink);
+    border-radius: 50%;
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  /* The point itself, because a ring says "near here" and the coordinate taken
+     is exact. */
+  .sight::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 13px;
+    height: 13px;
+    margin: -6.5px 0 0 -6.5px;
+    border-radius: 50%;
+    background: var(--pp-ink);
+  }
+}
