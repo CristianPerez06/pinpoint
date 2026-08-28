@@ -306,6 +306,32 @@ Two of those columns are the whole product:
   requirements this change leans on were written a day earlier, off four contrast
   defects that CI had been green over for months.
 
+- **Web at a phone width** — the browser takes the phone's arrangement below 700px:
+  a two-line header, the map owning the bottom edge, three tools standing on it,
+  and sheets rising from it. The wait paid, exactly as this file predicted: there
+  was a built shape to port rather than a guess at one, and the two things it was
+  told to inherit — the bar is the floor, and the credit rises off whatever stands
+  on it — arrived as facts rather than as discoveries.
+
+  It went the other way on one prediction. This file expected the camera to move
+  to an imperative call; instead the `{ points, token }` value stayed and the
+  correction went into how the camera is *derived*. Framing now picks its zoom
+  against the strip of map that is not covered and then shifts the centre into it,
+  which is the half the phone still does not do — filed as `#70` and recorded as a
+  loose end rather than folded in.
+
+  Almost none of it is a branch. Search turned out not to be two components but one
+  field that changes where it lives, so the cascade moves it and there is no
+  JavaScript test of viewport width anywhere in the change; the sheets are the
+  existing `Menu` with one rule restyled. What JavaScript there is only measures.
+
+  Four defects were found by opening it and none by the static set, which is now
+  five changes running. Two are general enough to cost somebody else real time: a
+  flex item's `min-width` defaults to `auto`, so text does not truncate until every
+  link between it and a width says it may shrink; and a pseudo-element cannot be an
+  event target, so a backdrop drawn as `::after` reports its *host* as the target
+  and an "outside the anchor" test reads a press on it as inside.
+
 ## Next
 
 Two items. The parity work is finished, the product can be given to somebody,
@@ -339,36 +365,7 @@ parity gap produces a task list nobody can review and a branch that cannot be
 tested until the end, which is the opposite of how the last four shipped. Two
 changes, and the second was reviewable.
 
-### 1. Responsive web — the phone layout at a narrow window
-
-The web application has one layout, built for a laptop. A browser window the width
-of a phone is held together by a media query that lets the toolbar wrap and gives
-search a line of its own — enough that no control is lost, and no more than that.
-This gives it the same bottom layout the phone gets, at narrow widths only; a wide
-window keeps its one bar, and the holding rule is deleted.
-
-It waited for the phone deliberately, and the wait paid: there is now a built
-shape to port rather than a guess at one. It stayed a separate change for the same
-reason it was worth waiting — a different application with different mechanics, a
-sheet a finger drags against a sheet a browser draws, and pretending otherwise is
-how one of them ends up with the other's compromises.
-
-Two things the phone learned that this should inherit rather than rediscover. The
-bottom row is the floor, flush to the edge, or whatever it clears fills the gap
-underneath it. And the camera moves by one imperative call rather than by a
-`{ points, token }` value threaded through state — the phone's version is the
-better one, and this is where web could take it back.
-
-One thing it must **not** inherit: the phone puts the form on its own screen
-because it has no room for a map beside it. A browser window at 375px has the same
-problem and a browser window at 900px does not, so the layout that follows the
-shape is not simply the phone's copied over.
-
-This is still the item that could slide without costing anything — nothing is
-blocked by a narrow browser window rendering untidily — but it is now the only
-one it could slide behind.
-
-### 2. What's near me right now
+### 1. What's near me right now
 
 The one thing a spreadsheet fundamentally cannot do, and the only genuinely new
 design work left: location permission, a denied state that is not a dead end, and
@@ -521,15 +518,14 @@ Debt and known limitations. Nothing here is a missing feature, and nothing here 
 a defect — each is something already built that is untidy, or correct only at the
 scale the product runs at today.
 
-- [ ] **A holding media query keeps the web bar usable at phone width.** The bar is
-      one row now, which is a laptop arrangement. It wraps twice on the way down,
-      and only the second is debt: at 1024px the tools take a line of their own,
-      which is a decision derived from what in the bar cannot shrink; below 700px a
-      further rule gives search its own line so nothing clips or leaves the
-      viewport. That second one is labelled temporary in the stylesheet and names
-      its successor. Closed by "Responsive web" above, which replaces it with the
-      phone layout rather than tuning it. Both breakpoints are literals, because
-      custom properties do not resolve inside a media query, and each appears once.
+- [ ] **The two applications frame a covered map differently.** Where a sheet stands
+      over part of the map, `map-rendering` now asks for both halves of framing to
+      account for it — the zoom chosen for the strip that is visible, and the centre
+      then shifted into it. Web does both. The phone shifts the centre and still
+      picks its zoom against the whole surface, so a spread-out city keeps its outer
+      places behind the sheet while the framing reports success. It is two lines and
+      needs nothing new in `@pinpoint/map`; it was left out of the web change rather
+      than widening that change's scope. Filed as `#70`.
 - [ ] **The phone's narrowed state has not been read in greyscale.** The filter tool
       declares a narrowed trip with the accent *and* a dot, and the dot is what is
       supposed to carry it for a colour-blind reader or a greyscale screen. That it does
