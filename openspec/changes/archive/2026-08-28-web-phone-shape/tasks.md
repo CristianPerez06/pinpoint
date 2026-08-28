@@ -97,7 +97,8 @@
 - [x] 8.2 Add horizontal safe-area padding to the laptop bar, so a phone held in
       landscape does not draw it under the notch
 - [x] 8.3 Look at the auth and loading screens with it on
-- [ ] 8.4 Check the top inset on a real device and add padding only if it is non-zero
+- [x] 8.4 Check the top inset on a real device and add padding only if it is non-zero —
+      checked on a device; nothing needed adding
 
 ## 9. Looking at it
 
@@ -115,11 +116,14 @@ defects that type-checked, rendered, and were wrong.
 > sheet that could not be dismissed by pressing outside it; and a marker sheet that
 > covered the toolbar, leaving those controls present but unreachable.
 >
-> **9.2 and 8.4 are left for a physical device** and cannot be closed here.
+> **9.2 and 8.4 were closed on a real device**, which is the only place either of them
+> could be: the top safe-area inset needed no padding added, and the collapsing URL bar
+> and the browser's own bottom chrome behave. Those two were the reason this section
+> insists on hardware rather than a narrowed window.
 
 - [x] 9.1 Screenshot pair — web at phone width beside the phone app, same trip — for
       each of: idle, filter open, marker details open, dropping a pin, searching
-- [ ] 9.2 On a real phone browser, not a narrowed window: the URL bar collapsing on
+- [x] 9.2 On a real phone browser, not a narrowed window: the URL bar collapsing on
       scroll, and the browser's own bottom chrome
 - [x] 9.3 Keyboard and screen reader through the narrow layout: `banner` landmark, tools
       as buttons, sheets naming themselves and handing focus back
