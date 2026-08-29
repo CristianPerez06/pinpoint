@@ -214,6 +214,17 @@ export function Menu({
    * reason: a click listener fires after the map has already decided what the
    * press meant, so pressing the map to dismiss this would also drop a pin
    * while the map is armed.
+   *
+   * That reason is also the whole of the difficulty. The decision to close is
+   * taken on `pointerdown`, and everything that would act on the same press —
+   * the map's drop, a marker, another control's `onClick` — acts on `click`,
+   * which is a separate event dispatched later. Nothing done to the pointerdown
+   * reaches it: `stopPropagation` and `preventDefault` act on the event they
+   * are handed, not on the one that follows. Even the phone's scrim does not
+   * help, and for the same reason inverted — it is torn down by the very press
+   * it looks like it should absorb, so it is already gone by the time the click
+   * is hit-tested. A press that dismisses therefore has to be *followed*, and
+   * the click it is about to become taken out of the air.
    */
   useEffect(() => {
     if (!open) return
@@ -236,12 +247,113 @@ export function Menu({
       other menu in the chrome behaves — it is only the one gesture, on the one
       shape, and a backdrop that looks exactly like it is doing its job.
     */
+    /**
+     * Whether this press is spent on the dismissal alone.
+     *
+     * `workspace-chrome` — *Anything that opens can be dismissed without
+     * hunting* — splits this in two, and splits it on what is drawn rather than
+     * on a width:
+     *
+     * - Where the screen behind is dimmed, nothing beneath the press acts. The
+     *   dimming is a claim that the rest of the screen has stepped back, and a
+     *   screen drawn as stepped back should be stepped back. At a phone width
+     *   every menu here is a sheet with a scrim, and the whole toolbar under it
+     *   — `Drop pin` included, which is how this was found.
+     * - Where nothing is dimmed the panel hangs off its own control and makes
+     *   no such claim, so another control of the chrome still acts on the same
+     *   press: pressing the next trigger switches menus, which is what somebody
+     *   means by pressing it. The map is the exception at either width, because
+     *   it turns a press into a pin or a selection and there is no reading of
+     *   "I am closing this" that also means either of those.
+     *
+     * The dimming is read off the scrim itself rather than from a `matchMedia`
+     * repeating the stylesheet's breakpoint. A second copy of a width is a
+     * second copy to keep in agreement, and `NamePlaceholder` above already
+     * carries the scar from guessing one the stylesheet owned. This asks the
+     * question the requirement asks — is the screen dimmed, now — of the thing
+     * that answers it.
+     *
+     * The map is found by `.maplibregl-map`, which `trip-map.module.css` states
+     * is carried by the canvas element. The credit's own menu is a sibling of
+     * that element rather than a child, so it stays a control of the chrome and
+     * is not mistaken for the map it sits over.
+     */
+    const spent = (target: Node) => {
+      const dimmed =
+        anchor.current !== null &&
+        getComputedStyle(anchor.current, '::after').content !== 'none'
+      if (dimmed) return true
+      const element = target instanceof Element ? target : target.parentElement
+      return element?.closest('.maplibregl-map') != null
+    }
+
+    /**
+     * Take the click this press is about to become.
+     *
+     * Capture, so it lands before its target rather than after: a bubbling
+     * listener on `document` runs once the map and the buttons have already had
+     * the event, which is this same bug moved into a different phase.
+     *
+     * Armed here rather than inside the effect's own lifetime, because closing
+     * is what arms it — tying it to `open` would tear it down on the render
+     * that the dismissal causes, before the click it exists to catch arrives.
+     *
+     * It stands down again as soon as the press ends, because not every press
+     * becomes a click: a touch that turns into a scroll ends in `pointercancel`
+     * and a secondary button ends in a context menu. One left armed would eat
+     * an unrelated click later on — this bug again, with a longer fuse and
+     * nothing to reproduce it from. Standing down is deferred by a task on
+     * `pointerup` because `click` follows immediately after it, and releasing
+     * on the spot would release before the thing being waited for.
+     */
+    const swallowNextClick = () => {
+      const armed = new AbortController()
+      const { signal } = armed
+      document.addEventListener(
+        'click',
+        (event) => {
+          event.stopPropagation()
+          event.preventDefault()
+          armed.abort()
+        },
+        { capture: true, signal },
+      )
+      document.addEventListener(
+        'pointerup',
+        () => setTimeout(() => armed.abort(), 0),
+        { capture: true, signal },
+      )
+      document.addEventListener('pointercancel', () => armed.abort(), {
+        capture: true,
+        signal,
+      })
+    }
+
     const dismiss = (event: PointerEvent) => {
       const target = event.target as Node
       // The trigger toggles itself on click; dismissing here as well would
       // close and reopen on one press.
       if (trigger.current?.contains(target)) return
       if (panel.current?.contains(target)) return
+      if (spent(target)) {
+        /*
+          Say nothing was pressed, as well as doing nothing.
+
+          Swallowing only the click leaves the press looking answered: `.button`
+          above depresses on `:active` and runs a background transition, both of
+          which the browser applies on `mousedown`, long before anything here
+          knows the press is spent. The control sinks under the finger, springs
+          back, and nothing happens — which reads as a control that failed
+          rather than one that was never going to act.
+
+          `preventDefault` on the pointerdown suppresses the compatibility mouse
+          events, and `mousedown` is where both of those come from. `click` is
+          explicitly *not* suppressed by it, which is why the swallower below is
+          still needed rather than replaced.
+        */
+        event.preventDefault()
+        swallowNextClick()
+      }
       onOpen(false)
     }
     const escape = (event: KeyboardEvent) => {
