@@ -173,16 +173,51 @@ dismiss it.
 These SHALL be consistent across every such menu and panel, rather than each carrying
 its own contract.
 
+A press that dismisses SHALL do only that. Where what is open dims the screen behind
+it, the press SHALL NOT reach anything beneath it. Where nothing is dimmed, the press
+SHALL NOT act on the map, and MAY act on another control of the chrome.
+
 Rationale: a panel that closes only by finding one particular button inside it is a trap
 in proportion to how tall it is — and the way out is furthest away exactly when the
 panel is longest. Consistency is the requirement, not merely the presence of some way
 out: a person learns one contract, not five.
+
+Rationale for what the press must not do: dismissing is not free if the press that
+dismisses also acts. On a screen mostly filled by a map there is little empty space to
+aim at, so the ordinary act of changing your mind drops a marker, opens a marker's card,
+or arms a mode nobody asked for. The two halves differ because the dimming is itself a
+claim — a screen drawn as stepped back should be stepped back — while a panel hanging
+off its own control makes no such claim, and there switching from one control to the
+next in a single press is what somebody means by it. The cost of the difference is
+recorded rather than hidden: switching between two menus takes one press where nothing
+is dimmed and two where something is.
 
 #### Scenario: Pressing outside dismisses
 
 - **WHEN** a menu or panel raised from the chrome is open
 - **AND** a press lands outside it
 - **THEN** it is dismissed
+
+#### Scenario: A press outside a dimmed panel does nothing else
+
+- **WHEN** a menu or panel that dims the screen behind it is open
+- **AND** a press lands outside it
+- **THEN** it is dismissed
+- **AND** nothing beneath that press acts on it
+
+#### Scenario: The dismissing press does not act on the map
+
+- **WHEN** a menu or panel raised from the chrome is open
+- **AND** a press lands on the map
+- **THEN** it is dismissed
+- **AND** no marker is created, and none is selected
+
+#### Scenario: Where nothing is dimmed, another control still acts
+
+- **WHEN** a menu or panel raised from the chrome is open and nothing is dimmed behind it
+- **AND** a press lands on another control of the chrome
+- **THEN** the open one is dismissed
+- **AND** that control acts on the same press
 
 #### Scenario: Escape dismisses
 
