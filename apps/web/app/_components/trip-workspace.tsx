@@ -30,12 +30,14 @@ import {
 } from '@pinpoint/data'
 import type { SearchBias } from '@pinpoint/geocode'
 import {
+  coveredBandHeight,
   DEFAULT_VIEWPORT,
   FALLBACK_MARKER_TYPE,
   fitBounds,
   groupCoincident,
   type LngLat,
   type MarkerGroup,
+  type Rect,
 } from '@pinpoint/map'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -54,6 +56,23 @@ import { useRows } from '@/lib/use-rows'
 import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-workspace.module.css'
+
+/**
+ * Whether two measurements describe the same rectangle.
+ *
+ * Only so that a measurement which found nothing new can return the object it
+ * already had. The camera treats this rectangle as a dependency, and a
+ * `ResizeObserver` fires far more often than the layout actually changes.
+ */
+function sameRect(a: Rect | null, b: Rect | null): boolean {
+  if (a === null || b === null) return a === b
+  return (
+    a.top === b.top &&
+    a.left === b.left &&
+    a.right === b.right &&
+    a.bottom === b.bottom
+  )
+}
 
 
 /**
@@ -339,18 +358,30 @@ export function TripWorkspace({
   const [archivedTrips, setArchivedTrips] = useState<readonly Trip[] | null>(null)
 
   /**
-   * How much of the bottom of the map is covered by chrome standing on it.
+   * What part of the map its own chrome is standing over.
    *
-   * One number, measured rather than branched on, and that is what makes it
-   * work at both shapes without asking how wide the window is. At a laptop
-   * width the tools are a run of controls inside the bar *above* the map, so
-   * the overlap comes out negative and clamps to zero. At a phone width they
-   * are pinned to the bottom edge and the overlap is their height. Nothing here
-   * knows which of those is happening, and nothing here needs to.
+   * A rectangle, and the fact that it is one is the whole of a defect that took
+   * four visible forms. This was a single height, measured as the distance from
+   * the map's bottom edge up to the top of each piece of chrome — which is the
+   * right question only for chrome whose top edge is inside the map. At a
+   * laptop width the tools are a run of controls in the bar *above* it, so the
+   * subtraction reached past the map's own top and returned a number larger
+   * than the surface. It read as a plausible positive integer, so nothing
+   * typechecked or linted it, and every consumer then behaved correctly and
+   * visibly wrongly: the camera lifted a dropped pin off the top of the map,
+   * framing crammed every marker against the top edge, and the zoom control was
+   * positioned off the document entirely.
    *
-   * Two things consume it: the licence credit, which has to rise off whatever
-   * holds the floor, and the camera, which has to stop putting places
-   * underneath it.
+   * Measured rather than branched on, which is the property worth keeping from
+   * the version that was wrong: nothing here asks how wide the window is. What
+   * changes is that the overlap is now an intersection with the map's own box,
+   * so chrome beside the map contributes nothing however tall it is.
+   *
+   * `floor` beside it is the same measurement asked the other question — how
+   * much of the map's height is taken by chrome standing right *across* it.
+   * Zero for a card in a corner, which leaves the map beside it entirely
+   * usable. Both are derived here because this is the only thing that can see
+   * the map and what is over it at once.
    *
    * Measured rather than assumed, for the reason the credit's own height
    * already is in `trip-map.tsx`: the bar carries a safe-area inset on a device
@@ -359,6 +390,7 @@ export function TripWorkspace({
    */
   const stageRef = useRef<HTMLElement | null>(null)
   const toolsRef = useRef<HTMLSpanElement | null>(null)
+  const [covered, setCovered] = useState<Rect | null>(null)
   const [floor, setFloor] = useState(0)
 
   /**
@@ -397,20 +429,61 @@ export function TripWorkspace({
     const standing = () =>
       [tools, stage.querySelector(`.${overlayPanelClass}`)]
         .filter((element): element is HTMLElement => element instanceof HTMLElement)
-        // A hidden element reports a rect of all zeros, and `bottom - 0` is the
-        // whole height of the stage — so without this the floor reads as the
-        // entire map the moment the bar yields to a sheet, and the camera
-        // frames against nothing.
+        // A hidden element reports a rect of all zeros, which the intersection
+        // below would discard anyway. Kept so that nothing invisible ends up in
+        // the observer list either.
         .filter((element) => element.getBoundingClientRect().height > 0)
 
     const measure = () => {
-      const bottom = stage.getBoundingClientRect().bottom
-      const covered = standing().reduce(
-        (deepest, element) =>
-          Math.max(deepest, bottom - element.getBoundingClientRect().top),
-        0,
-      )
-      setFloor(Math.max(0, Math.round(covered)))
+      const box = stage.getBoundingClientRect()
+
+      /*
+        The overlap with the map, not the distance to it.
+
+        Every edge is clamped to the map's own box before anything is
+        subtracted, so a piece of chrome in the bar above the map intersects it
+        in nothing at all and is skipped. That clamp is the fix: the previous
+        `stage.bottom - element.top` had no way to notice that the element it
+        was measuring was never over the map in the first place.
+
+        Expressed against the map's top-left corner, so that nothing
+        downstream has to know where the map sits on the page.
+      */
+      let top = Infinity
+      let left = Infinity
+      let right = -Infinity
+      let bottom = -Infinity
+
+      for (const element of standing()) {
+        const rect = element.getBoundingClientRect()
+        const overlapTop = Math.max(rect.top, box.top)
+        const overlapLeft = Math.max(rect.left, box.left)
+        const overlapRight = Math.min(rect.right, box.right)
+        const overlapBottom = Math.min(rect.bottom, box.bottom)
+        if (overlapRight <= overlapLeft || overlapBottom <= overlapTop) continue
+
+        top = Math.min(top, overlapTop - box.top)
+        left = Math.min(left, overlapLeft - box.left)
+        right = Math.max(right, overlapRight - box.left)
+        bottom = Math.max(bottom, overlapBottom - box.top)
+      }
+
+      const next =
+        top === Infinity
+          ? null
+          : {
+              top: Math.round(top),
+              left: Math.round(left),
+              right: Math.round(right),
+              bottom: Math.round(bottom),
+            }
+      const surface = { width: box.width, height: box.height }
+
+      // Referentially stable when nothing moved. A `ResizeObserver` fires on
+      // every frame of a window drag, and the camera watches this — a fresh
+      // object each time would re-run the lift on every one of them.
+      setCovered((current) => (sameRect(current, next) ? current : next))
+      setFloor(Math.round(coveredBandHeight(next, surface)))
     }
 
     measure()
@@ -1173,6 +1246,7 @@ export function TripWorkspace({
       */}
       <main ref={stageRef} className={styles.stage}>
         <TripMap
+          covered={covered}
           floor={floor}
           groups={groups}
           onSelectGroup={(group: MarkerGroup<Marker>) => {

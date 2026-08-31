@@ -8,7 +8,7 @@ import {
   TILE_SIZE,
   ZOOM_STEP,
 } from './constants'
-import type { Bounds, Camera, LngLat, Viewport } from './types'
+import type { Bounds, Camera, LngLat, Rect, Viewport } from './types'
 
 export interface FitBoundsOptions {
   viewport?: Viewport
@@ -78,6 +78,108 @@ export function offsetCenter(
     // the top of the projection lands at the pole rather than producing NaN.
     lat: latitudeAt(y / worldSize),
   }
+}
+
+/**
+ * Whether a covered rectangle takes a band right across the map.
+ *
+ * The distinction the two consumers below both turn on. A sheet flush to both
+ * edges halves the map: everything below its top edge is gone, at every
+ * horizontal position, and framing has to fit the places into what is left. A
+ * card in one corner takes nothing of the sort — the map beside it is entirely
+ * usable, and describing it as a band throws that away.
+ *
+ * The tolerance is for sub-pixel layout, not a proportion. A fixed element
+ * flush to both edges and a surface it is measured against can differ in the
+ * last fraction of a pixel; a 328px card in a 1440px map cannot come near this.
+ * It is deliberately not a fraction of the width: no arrangement in either
+ * application sits anywhere near a boundary, so a threshold would be a number
+ * nothing justifies and a second thing to get wrong.
+ */
+function spansWidth(covered: Rect, surface: Viewport): boolean {
+  return covered.left <= 1 && covered.right >= surface.width - 1
+}
+
+/**
+ * How much of the map's height framing must treat as gone.
+ *
+ * Zero for a rectangle that does not span the width, and that is the decision
+ * rather than an oversight. Framing fits points into a rectangle, so it cannot
+ * express the shape left by a card in a corner and has to approximate. Of the
+ * two approximations available, one risks a single marker landing behind a
+ * panel that can be dismissed; the other reduces the surface by 70% because a
+ * quarter of one column is occupied, and opens the map on empty space with
+ * every marker pressed against the top edge. Those are not comparable failures.
+ *
+ * Zero, too, for a rectangle that does not exist — chrome standing beside the
+ * map rather than over it produces no overlap at all, which is the whole of the
+ * defect this pair of functions was written for.
+ *
+ * The band is measured from the rectangle's top edge to the bottom of the map,
+ * not from its own height. Chrome standing on the floor leaves a strip beneath
+ * it when it is inset by a token, and that strip is no more usable than the
+ * chrome is.
+ */
+export function coveredBandHeight(
+  covered: Rect | null,
+  surface: Viewport,
+): number {
+  if (!covered) return 0
+  if (!spansWidth(covered, surface)) return 0
+
+  return Math.max(0, Math.min(surface.height, surface.height - covered.top))
+}
+
+/**
+ * The vertical offset that lifts a place clear of what is describing it, or
+ * `null` when the camera should not move at all.
+ *
+ * `null` rather than zero, and the difference is not a nicety. The offset
+ * returned is applied to the *place*, not to the current centre — the caller
+ * hands it to `offsetCenter` with the place as the origin, which is what makes
+ * this idempotent under a re-run while its own animation is still in flight. So
+ * zero would mean "centre the camera on the place", which is a move, and the
+ * loudest possible one. Nothing to do has to be its own answer.
+ *
+ * Two behaviours, and they differ because the situations do:
+ *
+ * - **A band across the map.** What is left is a strip, and the place belongs
+ *   in the middle of it. This is what the phone shape has always done and it is
+ *   correct there; the arithmetic is unchanged.
+ * - **A rectangle in a corner.** The map is essentially whole. A place beside
+ *   the rectangle does not move — it was never hidden, and moving it takes the
+ *   view away from somebody who chose where to look. A place behind it rises by
+ *   the least that clears its top edge.
+ *
+ * `margin` keeps a place from coming to rest exactly on the boundary, in both
+ * the test for whether to move and the distance moved.
+ *
+ * Total: the place is on the map afterwards, at every input. A correction that
+ * carries it off the edge has not kept it clear of anything — it has hidden it
+ * more completely than the chrome would have, while reporting success.
+ */
+export function liftOffset(
+  place: { x: number; y: number },
+  covered: Rect | null,
+  surface: Viewport,
+  margin: number,
+): number | null {
+  if (!covered) return null
+
+  // Beside the rectangle rather than behind it. Only asked of a corner, but
+  // true of a band as well, where it can never fire.
+  if (place.x < covered.left || place.x > covered.right) return null
+
+  const clearOf = covered.top - margin
+  if (place.y <= clearOf) return null
+
+  const strip = spansWidth(covered, surface) ? covered.top / 2 : clearOf
+  // A rectangle reaching within a margin of the top edge leaves nowhere to lift
+  // to. Resting the place on the edge is a poor answer and an off-screen place
+  // is not an answer at all.
+  const target = Math.max(0, Math.min(surface.height, strip))
+
+  return surface.height / 2 - target
 }
 
 /**

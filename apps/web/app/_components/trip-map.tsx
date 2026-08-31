@@ -5,6 +5,7 @@ import type { Camera } from '@pinpoint/map'
 import {
   ATTRIBUTION,
   MAP_CREDITS,
+  liftOffset,
   offsetCenter,
   DEFAULT_VIEWPORT,
   fitBounds,
@@ -12,6 +13,7 @@ import {
   MIN_ZOOM,
   zoomStep,
   type LngLat,
+  type Rect,
   type MarkerAnchor,
   type MarkerGroup,
   type StyleDocument,
@@ -119,6 +121,14 @@ function asRendererStyle(document: StyleDocument): StyleSpecification {
  * package: composing the two is the application's business, because only the
  * application knows what is covering its map.
  *
+ * `floor` is the band standing right *across* the map, not everything drawn
+ * over it. A panel in one corner reduces nothing here, and that is the decision
+ * rather than an oversight: framing fits points into a rectangle, so it cannot
+ * express the shape a corner leaves and has to approximate. Reducing the whole
+ * surface because a quarter of one column is occupied is how this opened the map
+ * on empty space with every marker pressed against the top edge. See
+ * `coveredBandHeight`, which is where that question is now answered.
+ *
  * The clamp is not defensive tidiness. `fitBounds` derives the zoom by dividing
  * by the usable height, so a strip of zero yields `log2(0)` — negative infinity,
  * or `NaN` once the clamp to the shared range touches it — and a `NaN` zoom
@@ -142,6 +152,15 @@ function frameAround(
     zoom: camera.zoom,
   }
 }
+
+/**
+ * How much clear map a described place is given above whatever describes it.
+ *
+ * Read twice by `liftOffset` — once to decide whether a place needs moving at
+ * all, and once for how far — so a place already within this of the chrome's
+ * edge is lifted rather than left resting on it.
+ */
+const LIFT_MARGIN = 32
 
 /**
  * One of the two zoom buttons.
@@ -222,6 +241,7 @@ export function TripMap({
   centreRef,
   onMarkersInView,
   floor = 0,
+  covered = null,
 }: {
   groups: readonly MarkerGroup<Marker>[]
   onSelectGroup: (group: MarkerGroup<Marker>) => void
@@ -244,19 +264,33 @@ export function TripMap({
   frameTo: readonly LngLat[]
   frameToken: number
   /**
-   * How much of the bottom of the map is covered by chrome standing on it.
+   * How much of the bottom of the map is covered by chrome standing right
+   * across it.
    *
    * Zero at a laptop width, where the tools are in the bar above the map and
-   * nothing stands on the floor. At a phone width it is the height of whatever
-   * does — the toolbar, or the sheet that replaces it. Measured by the
+   * the one panel that does stand on the map is a card in a corner rather than
+   * a band across it. At a phone width it is the height of whatever holds the
+   * edge — the toolbar, or the sheet that replaces it. Measured by the
    * workspace, which is the only thing that can see both the map and what is
    * over it.
    *
-   * Two things here need it: the licence credit, which has to rise off the
-   * floor rather than sit under it, and the zoom control, which has to clear
-   * both.
+   * Three things here need it: framing, the licence credit, which has to rise
+   * off the floor rather than sit under it, and the zoom control, which has to
+   * clear both.
    */
   floor?: number
+  /**
+   * The part of the map its chrome is standing over, as a rectangle.
+   *
+   * `floor` above answers "how much of the map's height is gone", which is the
+   * question framing and the two corner controls ask. This answers "is *this
+   * place* behind something", which is the question the lift asks, and a height
+   * cannot answer it — asked with a height alone it says yes for every place on
+   * the map, which is how a dropped pin ended up off the top of it.
+   *
+   * Null when nothing stands over the map at all.
+   */
+  covered?: Rect | null
   /** Where the map is looking, for biasing search. A ref because it changes on every pan. */
   centreRef: { current: DraftPosition | null }
   /**
@@ -373,8 +407,21 @@ export function TripMap({
    * A sheet rising over the lower half of the map is the exact condition under
    * which centring on a point hides it, and the point this one is about is the
    * pin somebody just tapped. `map-rendering` asks for the narrow version of
-   * this — the position moves "only far enough, if at all" — so this checks
-   * before it moves, and a pin already in the visible strip is left alone.
+   * this — the position moves "only far enough, if at all" — and both halves of
+   * that clause were false here. It moved when nothing was in front of the pin,
+   * because it asked a height whether a point was covered and a height says yes
+   * to every point; and it moved too far, because the height it asked was
+   * larger than the map. A pin dropped in the middle of a 614px map landed 25px
+   * above its top edge.
+   *
+   * `liftOffset` answers both, and returns null rather than zero for "do not
+   * move" — the offset is applied to the *place*, so zero would mean centring
+   * the camera on it, which is a move and the loudest one available.
+   *
+   * Applied to the place rather than to the current centre, which is what keeps
+   * this idempotent: re-running while its own animation is still in flight
+   * computes the same destination rather than travelling again from wherever
+   * the camera has got to.
    *
    * Not a re-frame: the zoom is untouched and `frameToken` is not involved, so
    * this stays inside "nothing else moves the camera". It is the same request
@@ -382,7 +429,7 @@ export function TripMap({
    * was.
    */
   useEffect(() => {
-    if (!map || floor <= 0) return
+    if (!map || !covered) return
 
     const described =
       draft ??
@@ -390,21 +437,26 @@ export function TripMap({
       null
     if (!described) return
 
-    const height = map.getContainer().clientHeight
-    const clearOf = height - floor
+    const container = map.getContainer()
     const where = map.project([described.lng, described.lat])
-    // A margin, so a pin resting a few pixels above the sheet still gets lifted
-    // clear of it rather than sitting on its edge.
-    if (where.y <= clearOf - 32) return
+    const dy = liftOffset(
+      { x: where.x, y: where.y },
+      covered,
+      { width: container.clientWidth, height: container.clientHeight },
+      // A margin, so a pin resting a few pixels above the chrome still gets
+      // lifted clear of it rather than sitting on its edge.
+      LIFT_MARGIN,
+    )
+    if (dy === null) return
 
     const target = offsetCenter(
       { lng: described.lng, lat: described.lat },
       map.getZoom(),
       0,
-      floor / 2,
+      dy,
     )
     map.easeTo({ center: [target.lng, target.lat], duration: 260 })
-  }, [map, floor, draft, selectedKey, groups])
+  }, [map, covered, draft, selectedKey, groups])
 
   /**
    * The style has to be fetched and transformed before the renderer can be
@@ -877,6 +929,14 @@ export function TripMap({
            * `creditHeight` are the toolbar and our own credit and belong to the
            * phone. Adding all three is therefore the same as choosing between
            * them, without this file having to ask how wide the window is.
+           *
+           * That was the intent and it was not true. `floor` was measured as
+           * the distance from the map's bottom edge up to the top of the tools,
+           * which at a laptop width are in the bar *above* the map — so it came
+           * out larger than the map and this sum put the control off the
+           * document, at every laptop width, reachable by nothing. It is true
+           * now because `floor` counts only chrome standing right across the
+           * map, and at a laptop width nothing does.
            */
           style={{
             bottom: `calc(${cornerHeight + floor + creditHeight}px + var(--pp-space-md))`,
