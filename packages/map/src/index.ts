@@ -2,6 +2,7 @@ export type {
   Bounds,
   Camera,
   LngLat,
+  Rect,
   Viewport,
 } from './types'
 
@@ -21,7 +22,9 @@ export { distanceKm } from './distance'
 export {
   boundsOf,
   boundsWidth,
+  coveredBandHeight,
   fitBounds,
+  liftOffset,
   normalizeLongitude,
   offsetCenter,
   zoomStep,

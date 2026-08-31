@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   boundsOf,
   boundsWidth,
+  coveredBandHeight,
   fitBounds,
+  liftOffset,
   normalizeLongitude,
   offsetCenter,
   zoomStep,
@@ -317,5 +319,116 @@ describe('fitBounds with a viewport that has been squeezed', () => {
     const strip = fitBounds(spread, { viewport: { width: 390, height: 260 } })
 
     expect(strip.zoom).toBeLessThanOrEqual(whole.zoom)
+  })
+})
+
+/*
+ * The readings these are written from, taken out of the running web application
+ * before it was fixed. A 1470px window: the map 614px tall, a toolbar in the bar
+ * above it reporting an overlap of 664 and a save form in the bottom-left corner
+ * reporting 446. `floor` was 664 on a 614px map, and a pin dropped in the middle
+ * of it landed 25px above the top edge.
+ *
+ * Each case below is one of those, expressed as a rectangle.
+ */
+const LAPTOP = { width: 1470, height: 614 }
+const PHONE = { width: 390, height: 572 }
+
+/** The save form on a laptop: a card in the bottom-left, inset from both edges. */
+const CARD = { top: 168, left: 16, right: 344, bottom: 598 }
+/** The toolbar on a phone: flush to both edges, standing on the floor. */
+const BAR = { top: 505, left: 0, right: 390, bottom: 572 }
+
+describe('coveredBandHeight', () => {
+  it('is zero when nothing covers the map', () => {
+    expect(coveredBandHeight(null, LAPTOP)).toBe(0)
+  })
+
+  it('is zero for a card that does not reach across the map', () => {
+    expect(coveredBandHeight(CARD, LAPTOP)).toBe(0)
+  })
+
+  it('is the strip below its top edge for a bar that does reach across', () => {
+    expect(coveredBandHeight(BAR, PHONE)).toBe(67)
+  })
+
+  it('never exceeds the map it is measured against', () => {
+    const taller = { top: -200, left: 0, right: 390, bottom: 572 }
+
+    expect(coveredBandHeight(taller, PHONE)).toBe(PHONE.height)
+  })
+
+  it('tolerates sub-pixel layout at the edges', () => {
+    const flush = { top: 505, left: 0.4, right: 389.6, bottom: 572 }
+
+    expect(coveredBandHeight(flush, PHONE)).toBe(67)
+  })
+})
+
+describe('liftOffset', () => {
+  it('does not move the camera when nothing covers the map', () => {
+    expect(liftOffset({ x: 700, y: 300 }, null, LAPTOP, 32)).toBeNull()
+  })
+
+  it('does not move the camera for a place beside the card', () => {
+    // The defect: a pin dropped on the right-hand side of a laptop map was
+    // lifted to clear a 328px card it was never behind.
+    expect(liftOffset({ x: 900, y: 500 }, CARD, LAPTOP, 32)).toBeNull()
+  })
+
+  it('does not move the camera for a place already clear of what covers it', () => {
+    expect(liftOffset({ x: 100, y: 100 }, CARD, LAPTOP, 32)).toBeNull()
+    expect(liftOffset({ x: 100, y: 400 }, BAR, PHONE, 32)).toBeNull()
+  })
+
+  it('lifts a place behind the card by the least that clears it', () => {
+    const dy = liftOffset({ x: 100, y: 500 }, CARD, LAPTOP, 32)
+
+    // The place lands at `height / 2 - dy`, which is the card's top edge less
+    // the margin — just clear of it, rather than in the middle of the map.
+    expect(dy).not.toBeNull()
+    expect(LAPTOP.height / 2 - dy!).toBe(CARD.top - 32)
+  })
+
+  it('centres a place in the strip a full-width bar leaves', () => {
+    const dy = liftOffset({ x: 100, y: 540 }, BAR, PHONE, 32)
+
+    expect(PHONE.height / 2 - dy!).toBe(BAR.top / 2)
+  })
+
+  it('matches what the phone shape did before, for a bar', () => {
+    // The offset the old code applied was half the covered height, and this is
+    // the case it was right for. Holding it here is what says the phone shape's
+    // behaviour did not change.
+    const dy = liftOffset({ x: 100, y: 540 }, BAR, PHONE, 32)
+
+    expect(dy).toBe(coveredBandHeight(BAR, PHONE) / 2)
+  })
+
+  it('never carries a place off the map', () => {
+    const surfaces = [LAPTOP, PHONE]
+    const rects = [
+      CARD,
+      BAR,
+      // Chrome taller than the map, which is what the defect produced.
+      { top: -50, left: 0, right: 390, bottom: 572 },
+      // A card reaching within the margin of the top edge, leaving no strip.
+      { top: 8, left: 16, right: 344, bottom: 598 },
+    ]
+
+    for (const surface of surfaces) {
+      for (const covered of rects) {
+        for (let y = 0; y <= surface.height; y += 19) {
+          for (const x of [0, covered.left + 1, surface.width - 1]) {
+            const dy = liftOffset({ x, y }, covered, surface, 32)
+            if (dy === null) continue
+
+            const landsAt = surface.height / 2 - dy
+            expect(landsAt).toBeGreaterThanOrEqual(0)
+            expect(landsAt).toBeLessThanOrEqual(surface.height)
+          }
+        }
+      }
+    }
   })
 })

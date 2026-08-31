@@ -78,6 +78,30 @@ only shifting the centre satisfies neither — the markers are then fitted to an
 twice the height of the one that can be seen, so the outer ones sit behind the chrome
 while the framing reports success.
 
+Which part of the map is covered SHALL be determined by the actual overlap between the
+chrome and the map, and not by the chrome's position on the screen alone. Chrome drawn
+beside the map — above it, beneath it, or to one side — SHALL contribute nothing to the
+covered part however tall it is, and the covered part SHALL never be larger than the map
+itself.
+
+Rationale: this is not defensive tidiness. An application measuring the covered part as
+the distance from the map's bottom edge up to the top of each piece of chrome gets the
+right answer only for chrome whose top edge is inside the map; for a control in a bar
+above the map the same subtraction reaches past the map's own top and returns a value
+larger than the surface. The result is a plausible positive number that no type and no
+lint can question, and every consumer of it then behaves correctly and visibly wrongly.
+
+Only chrome that spans the map's width SHALL reduce the area framing fits markers into.
+Chrome occupying part of the width leaves the rest of the map usable, and framing against
+a reduced height because one corner is occupied discards the map that is plainly visible
+beside it.
+
+Rationale: framing fits points into a rectangle and cannot express the shape left by a
+panel in a corner, so it has to approximate. Of the two approximations available, one
+risks a single marker landing behind a panel that can be dismissed, and the other opens
+the map on empty space with every marker pressed against the top edge. They are not
+comparable failures, and the second reads as the application being broken.
+
 When the trip has no markers, the map SHALL open at the shared default position rather
 than failing or showing an undefined region.
 
@@ -107,6 +131,20 @@ application moved on its own.
 - **WHEN** a trip with markers spread across a city is opened
 - **THEN** every marker is within the visible area
 - **AND** none sits against the edge of the viewport
+
+#### Scenario: Chrome beside the map rather than over it
+
+- **WHEN** markers are framed while the application's controls sit in a bar above the
+  map rather than over it
+- **THEN** framing uses the whole of the map's surface
+- **AND** no part of the map is treated as covered
+
+#### Scenario: Chrome covering one corner of the map
+
+- **WHEN** markers are framed while a panel covers part of the map's width
+- **THEN** the area framing fits the markers into is not reduced
+- **AND** the markers are not compressed into the part of the map the panel does not
+  reach
 
 #### Scenario: A trip framed while a sheet covers part of the map
 
@@ -353,6 +391,17 @@ the only way to check the claim. Where the form cannot sit beside the map it SHA
 leave enough of it showing for the drawn position to be read against what is
 around it.
 
+Any movement of the camera made to keep the position clear SHALL be bounded by what it is
+correcting for. A position that nothing is drawn in front of SHALL NOT move the camera at
+all, and after any movement the position SHALL be within the map.
+
+Rationale: "only far enough, if at all" is unenforceable until it says what too far
+looks like. A correction that carries the position off the edge of the map has not kept
+it clear of the chrome — it has hidden it more completely than the chrome would have,
+and it does so while reporting that it made the position visible. The person is then
+asked to describe a place they cannot see, having chosen it by pointing at a map they
+could.
+
 It SHALL NOT be counted among the trip's markers: it SHALL NOT contribute to framing,
 and it SHALL NOT be included wherever the trip's markers are counted or listed.
 
@@ -368,6 +417,17 @@ be drawn like every other.
   already looking at
 - **AND** it moves only far enough, if at all, to keep that position clear of
   anything drawn over the map
+
+#### Scenario: A position nothing is drawn in front of
+
+- **WHEN** a person points at a part of the map that no chrome covers
+- **THEN** the camera does not move at all
+
+#### Scenario: The correction does not overshoot
+
+- **WHEN** the camera moves to keep a position clear of chrome drawn over the map
+- **THEN** the position is within the map afterwards
+- **AND** it is not behind the chrome
 
 #### Scenario: A position is shown by a fixed sight
 
@@ -641,6 +701,12 @@ zoom is gone, and says nothing about why.
   keyboard shortcut
 - **THEN** the map zooms as it did before the control existed
 
+#### Scenario: The control is on the map at every width
+
+- **WHEN** the map is rendered at any window or device size
+- **THEN** the zoom control is within the map's own bounds
+- **AND** it can be reached by pointer, by keyboard and by a screen reader
+
 #### Scenario: The control does not cover the attribution
 
 - **WHEN** the map is rendered at any window or device size
@@ -712,3 +778,4 @@ tells a person that the thing they are waiting for is the map and not the applic
 - **WHEN** the waiting area is drawn directly beneath or above a piece of chrome
 - **THEN** it is distinguishable from that chrome
 - **AND** it does not read as a second band of chrome
+
