@@ -298,13 +298,35 @@ export function Menu({
      * is what arms it — tying it to `open` would tear it down on the render
      * that the dismissal causes, before the click it exists to catch arrives.
      *
-     * It stands down again as soon as the press ends, because not every press
-     * becomes a click: a touch that turns into a scroll ends in `pointercancel`
-     * and a secondary button ends in a context menu. One left armed would eat
-     * an unrelated click later on — this bug again, with a longer fuse and
-     * nothing to reproduce it from. Standing down is deferred by a task on
-     * `pointerup` because `click` follows immediately after it, and releasing
-     * on the spot would release before the thing being waited for.
+     * It has to stand down again, because not every press becomes a click: a
+     * touch that turns into a scroll ends in `pointercancel`, and a secondary
+     * button ends in a context menu. One left armed would eat an unrelated
+     * click later on — this bug again, with a longer fuse and nothing to
+     * reproduce it from.
+     *
+     * **It stands down on a signal, never on a clock.** The first version
+     * released a task after `pointerup`, on the reasoning that `click` follows
+     * immediately. It does — for a press with no duration. A press somebody
+     * actually makes has a gap between going down and coming up, the click
+     * lands in a later task than the timer, and the swallower is gone before
+     * the thing it exists to catch arrives:
+     *
+     *     instant press:  pointerdown, pointerup, click, timer   → held
+     *     real press:     pointerdown, pointerup, timer, click   → released
+     *
+     * Every automated test passed because synthesised clicks dispatch the whole
+     * sequence in one task, which is exactly the shape that cannot show this.
+     *
+     * The next `pointerdown` is the honest signal. Nothing can release the
+     * swallower before its own click, because the only thing that releases it
+     * is a fresh press — and a fresh press *should*. It is registered in
+     * capture during a pointerdown that has already passed that phase, so it
+     * cannot hear the press that armed it.
+     *
+     * The residue: between a press that never became a click and the next
+     * press, a click raised by the keyboard would still be swallowed.
+     * `pointercancel` covers the common way into that state, and the rest is
+     * narrower than the failure it replaces.
      */
     const swallowNextClick = () => {
       const armed = new AbortController()
@@ -318,11 +340,10 @@ export function Menu({
         },
         { capture: true, signal },
       )
-      document.addEventListener(
-        'pointerup',
-        () => setTimeout(() => armed.abort(), 0),
-        { capture: true, signal },
-      )
+      document.addEventListener('pointerdown', () => armed.abort(), {
+        capture: true,
+        signal,
+      })
       document.addEventListener('pointercancel', () => armed.abort(), {
         capture: true,
         signal,
