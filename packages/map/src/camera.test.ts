@@ -5,6 +5,7 @@ import {
   boundsWidth,
   coveredBandHeight,
   fitBounds,
+  frameAround,
   liftOffset,
   normalizeLongitude,
   offsetCenter,
@@ -12,6 +13,7 @@ import {
 } from './camera'
 import {
   DEFAULT_CAMERA,
+  MAX_COVERED_FRACTION,
   MAX_ZOOM,
   MIN_ZOOM,
   SINGLE_MARKER_ZOOM,
@@ -430,5 +432,88 @@ describe('liftOffset', () => {
         }
       }
     }
+  })
+})
+
+describe('frameAround', () => {
+  const PHONE = { width: 390, height: 740 }
+  /** A city's worth of places, spread far enough that the zoom has to fit them. */
+  const spreadOut = [
+    { lng: 139.6, lat: 35.6 },
+    { lng: 139.8, lat: 35.8 },
+    { lng: 139.7, lat: 35.5 },
+  ]
+
+  it('is fitBounds unchanged when nothing covers the map', () => {
+    expect(frameAround(spreadOut, PHONE, 0)).toEqual(
+      fitBounds(spreadOut, { viewport: PHONE }),
+    )
+  })
+
+  it('chooses the zoom for the visible strip, not the whole surface', () => {
+    // The defect this function was extracted for: shifting the centre without
+    // reducing the height fits the places into an area twice the one on screen,
+    // so the outer ones sit behind the sheet while framing reports success.
+    const covered = 300
+    const framed = frameAround(spreadOut, PHONE, covered)
+    const wholeSurface = fitBounds(spreadOut, { viewport: PHONE })
+
+    expect(framed.zoom).toBeLessThan(wholeSurface.zoom)
+    expect(framed.zoom).toBe(
+      fitBounds(spreadOut, {
+        viewport: { width: PHONE.width, height: PHONE.height - covered },
+      }).zoom,
+    )
+  })
+
+  it('shifts the centre by half the covered height', () => {
+    const covered = 300
+    const framed = frameAround(spreadOut, PHONE, covered)
+    const strip = fitBounds(spreadOut, {
+      viewport: { width: PHONE.width, height: PHONE.height - covered },
+    })
+
+    expect(framed.center).toEqual(
+      offsetCenter(strip.center, strip.zoom, 0, covered / 2),
+    )
+  })
+
+  it('still opens a single place at the single-marker zoom', () => {
+    const framed = frameAround([{ lng: 139.7, lat: 35.6 }], PHONE, 300)
+
+    expect(framed.zoom).toBe(SINGLE_MARKER_ZOOM)
+  })
+
+  it('does not send a tall sheet on a short viewport to world view', () => {
+    const short = { width: 740, height: 390 }
+    const framed = frameAround(spreadOut, short, short.height)
+
+    expect(Number.isFinite(framed.zoom)).toBe(true)
+    expect(framed.zoom).toBeGreaterThan(MIN_ZOOM)
+  })
+
+  it('clamps the covered height rather than letting the strip collapse', () => {
+    const beyond = frameAround(spreadOut, PHONE, PHONE.height * 2)
+    const atTheLimit = frameAround(
+      spreadOut,
+      PHONE,
+      PHONE.height * MAX_COVERED_FRACTION,
+    )
+
+    expect(beyond).toEqual(atTheLimit)
+  })
+
+  it('answers an empty set with the shared default rather than failing', () => {
+    expect(frameAround([], PHONE, 200)).toEqual(DEFAULT_CAMERA)
+  })
+
+  it('frames the same trip identically for both applications', () => {
+    // `map-rendering`: given the same markers and the same viewport, both
+    // applications frame them identically. They can only do that by calling
+    // this — which is the whole reason it is here rather than written twice.
+    const web = frameAround(spreadOut, PHONE, 120)
+    const phone = frameAround(spreadOut, PHONE, 120)
+
+    expect(web).toEqual(phone)
   })
 })

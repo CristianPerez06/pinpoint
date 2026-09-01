@@ -9,7 +9,8 @@ import {
 import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
 import {
   ATTRIBUTION,
-  fitBounds,
+  DEFAULT_VIEWPORT,
+  frameAround,
   groupCoincident,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -624,31 +625,42 @@ export function TripMap({
       flyTo: (position: LngLat, bottomInset = 0) => {
         // Framed by the shared derivation rather than a zoom written here. A
         // single point has no extent to fit, and what that should mean is
-        // already decided once in `@pinpoint/map` for both platforms.
-        const camera = fitBounds([position], viewport ? { viewport } : {})
-        // Centred on the visible strip rather than on the view, so the place
-        // lands above whatever is about to cover the bottom of the map instead
-        // of behind it.
-        const target = visibleCentre(camera.center, camera.zoom, bottomInset)
+        // already decided once in `@pinpoint/map` for both platforms — as is
+        // what a covered strip does to a camera, which is why this composes
+        // nothing of its own any more.
+        const camera = frameAround(
+          [position],
+          viewport ?? DEFAULT_VIEWPORT,
+          bottomInset,
+        )
         cameraRef.current?.flyTo({
-          center: [target.lng, target.lat],
+          center: [camera.center.lng, camera.center.lat],
           zoom: camera.zoom,
         })
       },
       frameOn: (points: readonly LngLat[], bottomInset?: number) => {
-        // Guarded here rather than left to `fitBounds`, which answers an empty
-        // set with `DEFAULT_CAMERA` — a real camera pointing at a default place.
-        // Flying there would be the map wandering off for a city that holds
-        // nothing, which is the one outcome the specification rules out.
+        // Guarded here rather than left to the shared derivation, which
+        // answers an empty set with `DEFAULT_CAMERA` — a real camera pointing
+        // at a default place. Flying there would be the map wandering off for a
+        // city that holds nothing, which is the one outcome the specification
+        // rules out.
         if (points.length === 0) return
         // The same expression as `lift` below, and it has to be written twice:
         // `lift` is declared after this hook, so naming it here would be a
         // reference into its own temporal dead zone on every render.
         const covered = bottomInset ?? (formSheet ? formHeight : barHeight)
-        const camera = fitBounds(points, viewport ? { viewport } : {})
-        const target = visibleCentre(camera.center, camera.zoom, covered)
+        // Both corrections, from the shared derivation. This composed only the
+        // centre shift for as long as it existed, so the zoom was chosen as if
+        // the whole surface were visible and a spread-out group was fitted into
+        // an area about twice the height of the one on screen — its outer
+        // members behind the sheet, with the framing reporting success.
+        const camera = frameAround(
+          points,
+          viewport ?? DEFAULT_VIEWPORT,
+          covered,
+        )
         cameraRef.current?.flyTo({
-          center: [target.lng, target.lat],
+          center: [camera.center.lng, camera.center.lat],
           zoom: camera.zoom,
         })
       },
@@ -694,12 +706,26 @@ export function TripMap({
    * Never a sum. Exactly one of these is drawn at a time.
    */
   const lift = formSheet ? formHeight : barHeight
+  /*
+    The camera the map opens with, framed clear of the bar standing on it.
+
+    `barHeight` rather than `lift`, and the difference is what this frame is
+    for: nothing is being described when the map opens, so the bar is the only
+    thing on the floor. Reading `lift` would make this recompute when the form
+    sheet opens, for a value that is handed to `initialViewState` and therefore
+    ignored once the camera is mounted — a dependency that could never do
+    anything.
+
+    It accounted for neither correction before: not the reduced height and not
+    even the centre shift `frameOn` did, so a trip could open with its outermost
+    places framed into the strip the bar covers.
+  */
   const camera = useMemo(
-    () => (viewport ? fitBounds([...markers], { viewport }) : null),
+    () => (viewport ? frameAround([...markers], viewport, barHeight) : null),
     // Deliberately not depending on `markers`: the frame is decided by the
     // markers present when the surface was first measured.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [viewport],
+    [viewport, barHeight],
   )
 
   /**
