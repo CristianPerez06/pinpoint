@@ -2,6 +2,7 @@ import {
   DEFAULT_CAMERA,
   DEFAULT_PADDING,
   DEFAULT_VIEWPORT,
+  MAX_COVERED_FRACTION,
   MAX_ZOOM,
   MIN_ZOOM,
   SINGLE_MARKER_ZOOM,
@@ -297,4 +298,60 @@ export function fitBounds(
   )
 
   return { center, zoom: clampZoom(zoom) }
+}
+
+/**
+ * The camera that puts points where they can actually be seen.
+ *
+ * Two corrections, and both are needed. The **zoom** is chosen for the strip of
+ * map that is not covered rather than for the whole surface, or a spread-out
+ * group is fitted into an area twice the height of the one on screen and its
+ * outer members sit behind the sheet while the framing reports success. The
+ * **centre** is then shifted by half the covered height, or the middle of the
+ * view — which is what `center` means to both renderers — is behind the sheet,
+ * and centring on a place is exactly how to hide it.
+ *
+ * Shared, and the history is the argument. Each application composed
+ * `fitBounds` and `offsetCenter` for itself, on the reasoning that only an
+ * application knows what is covering its map. That is true of the *covered
+ * height* and false of what to do with it: web took both corrections, the phone
+ * took only the centre shift, and the two drew the same trip differently for
+ * long enough to be filed as its own defect. `map-rendering` had already ruled
+ * on it — both applications obtain the framing camera from this package, and a
+ * change to the rule is made once here — so the divergence was never a design
+ * choice either application was entitled to make.
+ *
+ * `covered` is how much of the bottom of the surface is hidden by chrome
+ * standing across it, in pixels. Zero is the ordinary case and needs no special
+ * handling by a caller: it clamps away and the result is `fitBounds` unchanged.
+ * What counts as covered is still the application's business — a panel in one
+ * corner of a wide map covers no band at all.
+ */
+export function frameAround(
+  points: readonly LngLat[],
+  surface: Viewport,
+  covered: number,
+): Camera {
+  const band = Math.max(
+    0,
+    Math.min(covered, surface.height * MAX_COVERED_FRACTION),
+  )
+
+  const camera = fitBounds([...points], {
+    viewport: { width: surface.width, height: surface.height - band },
+  })
+
+  // Nothing to frame means nothing to lift clear of anything, and the
+  // specification asks for the shared default position rather than a shifted
+  // one. The shift is not harmless here: an empty set is answered at zoom 1,
+  // where the whole world is about a thousand pixels tall, so half a phone's
+  // sheet moves the centre by tens of degrees of latitude — a default position
+  // that is nowhere in particular, arrived at by arithmetic nobody asked for.
+  // What the default *is* stays `fitBounds`'s to know.
+  if (points.length === 0) return camera
+
+  return {
+    center: offsetCenter(camera.center, camera.zoom, 0, band / 2),
+    zoom: camera.zoom,
+  }
 }

@@ -1,14 +1,13 @@
 'use client'
 
 import type { Marker } from '@pinpoint/core'
-import type { Camera } from '@pinpoint/map'
 import {
   ATTRIBUTION,
   MAP_CREDITS,
+  frameAround,
   liftOffset,
   offsetCenter,
   DEFAULT_VIEWPORT,
-  fitBounds,
   MAX_ZOOM,
   MIN_ZOOM,
   zoomStep,
@@ -102,55 +101,6 @@ function offsetFor(
  */
 function asRendererStyle(document: StyleDocument): StyleSpecification {
   return document as unknown as StyleSpecification
-}
-
-/**
- * The camera that puts points where they can actually be seen.
- *
- * Two corrections, and both are needed. The **zoom** is chosen for the strip of
- * map that is not covered rather than for the whole surface, or a spread-out
- * group is fitted into an area twice the height of the one on screen and its
- * outer members sit behind the sheet while the framing reports success. The
- * **centre** is then shifted by half the covered height, or the middle of the
- * view — which is what `center` means to the renderer — is behind the sheet, and
- * centring on a place is exactly how to hide it.
- *
- * `fitBounds` has taken a viewport since it was written and `offsetCenter` is
- * already in `@pinpoint/map` carrying a comment that it is waiting for a browser
- * window narrow enough to want the same sheet. Nothing is added to the shared
- * package: composing the two is the application's business, because only the
- * application knows what is covering its map.
- *
- * `floor` is the band standing right *across* the map, not everything drawn
- * over it. A panel in one corner reduces nothing here, and that is the decision
- * rather than an oversight: framing fits points into a rectangle, so it cannot
- * express the shape a corner leaves and has to approximate. Reducing the whole
- * surface because a quarter of one column is occupied is how this opened the map
- * on empty space with every marker pressed against the top edge. See
- * `coveredBandHeight`, which is where that question is now answered.
- *
- * The clamp is not defensive tidiness. `fitBounds` derives the zoom by dividing
- * by the usable height, so a strip of zero yields `log2(0)` — negative infinity,
- * or `NaN` once the clamp to the shared range touches it — and a `NaN` zoom
- * handed to either renderer neither throws nor logs. The camera simply stops
- * being a camera, which reads as the map failing to load and never is. A sheet
- * at its tallest over a short landscape viewport reaches this, so it is a state
- * that happens rather than one that is imagined.
- */
-function frameAround(
-  points: readonly LngLat[],
-  surface: { width: number; height: number },
-  floor: number,
-): Camera {
-  const covered = Math.max(0, Math.min(floor, surface.height * 0.65))
-  const camera = fitBounds([...points], {
-    viewport: { width: surface.width, height: surface.height - covered },
-  })
-
-  return {
-    center: offsetCenter(camera.center, camera.zoom, 0, covered / 2),
-    zoom: camera.zoom,
-  }
 }
 
 /**
