@@ -43,11 +43,26 @@ A city SHALL be treated as being where its markers are. No city name SHALL be re
 a position by lookup — a city is a name somebody chose for a group of nearby places, and
 the places filed under it already say where that group is.
 
-A city SHALL claim a place when the place is within a stated distance of that city's
-markers. The distance SHALL be derived from real trip data rather than chosen, and SHALL
-be biased toward claiming less rather than more: a place left unclaimed is reported, while
-a place wrongly claimed is filed under a city it is not in, which is the defect this
-requirement exists to prevent.
+A city SHALL claim a place when the place is within **15 km** of that city's nearest
+marker. The distance SHALL be biased toward claiming less rather than more: a place left
+unclaimed is reported, while a place wrongly claimed is filed under a city it is not in,
+which is the defect this requirement exists to prevent.
+
+The number is floored by measurement and chosen above that floor, and SHALL be described
+that way rather than as derived. Measured on the trip in hand: a place sits within 4.61 km
+of the nearest other place in its own city, and 360.78 km from the nearest place in a
+different one. Those distributions do not overlap, which is what establishes that a
+threshold exists at all — but they are so far apart that any value between about 5 km and
+360 km satisfies them equally, so the data sets a floor and does not choose the value.
+
+15 km is roughly three times the observed maximum, so a city whose places are more spread
+than any measured still holds together, and it is comfortably below the distance separating
+two cities close enough to be day trips of one another, so neither can claim the other's
+places.
+
+This SHALL be revisited against a trip whose cities are near each other. The trip it was
+taken from has two cities 360 km apart and therefore cannot test the case the distance
+exists to get right.
 
 The default SHALL follow from how many cities claim the place:
 

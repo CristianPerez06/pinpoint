@@ -5,20 +5,23 @@ rather than from theory, and this needs the same treatment — with one differen
 holding on to: being wrong about `FAR_AWAY_KM` costs a misplaced highlight, and being wrong
 here files a place under a city it is not in.
 
-- [ ] 1.1 For every city on the real trip, record the distance from each of its markers to
+- [x] 1.1 For every city on the real trip, record the distance from each of its markers to
       the nearest *other* marker filed under the same city. This is how tightly a city's
       places actually cluster
-- [ ] 1.2 Record the distance from each marker to the nearest marker of a *different* city.
+- [x] 1.2 Record the distance from each marker to the nearest marker of a *different* city.
       This is how close two cities get to each other in practice
-- [ ] 1.3 Find the gap between the two distributions. The threshold lives in it. **If there
+- [x] 1.3 Find the gap between the two distributions. The threshold lives in it. **If there
       is no gap, stop** — the rule needs rethinking, and a number chosen to paper over an
       overlap would file places wrongly and look measured while doing it
-- [ ] 1.4 Take the same readings against the centre of each city's markers as well as the
+- [x] 1.4 Take the same readings against the centre of each city's markers as well as the
       nearest marker. The design chose nearest-marker on reasoning; this is where that gets
       confirmed or overturned before any code depends on it
-- [ ] 1.5 Record how many places on the trip today would change city under the rule, and
+      — **cannot be discriminated by this trip.** Its two cities are 360 km apart, so both
+      metrics give the same answer for all 35 places. The choice stands on the reasoning in
+      `design.md` and is untested
+- [x] 1.5 Record how many places on the trip today would change city under the rule, and
       name them. A rule that would refile a third of the trip is not describing this trip
-- [ ] 1.6 Keep every reading in this change directory
+- [x] 1.6 Keep every reading in this change directory
 
 ## 2. The rule, in `@pinpoint/core`, with tests
 
@@ -75,7 +78,9 @@ here files a place under a city it is not in.
 
 - [ ] 5.1 Add **Unassigned** to the city list on both platforms, with its count, selecting
       the places no city holds
-- [ ] 5.2 Decide whether it appears when nothing is unassigned. A row reading `0 places` is
+- [ ] 5.2 Decide whether it appears when nothing is unassigned. **The live trip has zero
+      unassigned places**, so on real data the row is empty until this feature first
+      declines to guess — a row reading `0 places` would be permanent furniture until then. A row reading `0 places` is
       noise and a row that comes and goes moves the list under the pointer —
       `marker-filtering` has answered this shape of question once already, for the filter
       control, and that reasoning is the place to start

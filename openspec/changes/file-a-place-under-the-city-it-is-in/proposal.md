@@ -122,11 +122,16 @@ actually in; the city list gains the Unassigned row.
 **Database, dependencies, configuration** — none. No column, no query, no new service, no
 extra request. The `$0` constraint is untouched.
 
-**Verified by looking, and it has to be** — a threshold is a number that will look correct
-while being wrong, and the ordinary case is defined by *nothing happening*, which no test
-here can observe. The number should be derived from the real trip the way `FAR_AWAY_KM`
-was: that comment records thirty-five Osaka places where every correct match landed within
-17 km, and this change needs the same measurement across the cities actually on the trip.
+**The threshold is 15 km, and the readings behind it are in `readings.md`** — taken against
+the live trip before any code was written. A place sits within 4.61 km of the nearest other
+place in its own city and 360.78 km from the nearest place in a different one. The
+distributions do not overlap, which is what establishes that a threshold exists; they are
+also so far apart that the data cannot choose the value, so 15 km is chosen above a measured
+floor and the specification says so rather than claiming it was derived.
+
+**Verified by looking, and it has to be** — the ordinary case is defined by *nothing
+happening*, which no test here can observe, and the boundary case is absent from the only
+trip there is to measure.
 
 **Adjacent** — `#83`, now merged, which also asks what the trip already knows about a
 candidate but answers a different question about it (whether the place is already saved).

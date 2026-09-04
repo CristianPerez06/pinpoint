@@ -132,27 +132,42 @@ that group", which is what nearest-marker measures literally.
 trip modelled in a way the product does not encourage, and it lands in the ambiguous branch
 rather than producing a confident wrong answer, which is the acceptable direction.
 
-### The threshold is measured, not chosen
+### The threshold: 15 km, floored by measurement rather than derived from it
 
-**Decision:** the distance is derived from the real trip's data before it is written down,
-the way `FAR_AWAY_KM` was.
+**Decision:** a city claims a place within **15 km** of its nearest marker. The readings
+behind it are in `readings.md`, taken against the live trip before any code was written.
 
-That comment is the model: *"Chosen from a real list rather than from theory: running
-thirty-five Osaka places through the geocoder, every correct match landed within 17 km and
-the nearest wrong one was 270 km."*
+What the data gives:
 
-Two cautions carry over and one does not. The 17 km reading is a distance to a **bias
-point**, roughly a city centre — so it bounds a city's radius, and is *not* the threshold
-for a nearest-marker rule, which needs a smaller number measured its own way. And unlike
-`FAR_AWAY_KM`, being wrong here is not free: that one only ever changed emphasis, while this
-one changes what a place is filed under. It is therefore biased toward claiming less rather
-than more — an unclaimed place lands in the "say so" branch, and a wrongly claimed one is
-the defect being fixed.
+```
+nearest place in the SAME city        max  4.61 km
+nearest place in a DIFFERENT city     min  360.78 km
+```
 
-**What to measure:** for each city on the trip, the distance from each of its markers to the
-nearest *other* marker in the same city, and the distance from each marker to the nearest
-marker of a *different* city. The threshold lives in the gap, and if there is no gap the
-rule needs rethinking before it ships rather than a number chosen to paper over it.
+The distributions do not overlap, which clears the stop condition the task list carried —
+no gap, no threshold, rethink the approach. 4.61 km is the floor: below it, places that
+plainly belong together stop being claimed.
+
+**What the data does not give is the number.** Any value between about 5 km and 360 km
+behaves identically on this trip, because its two cities are Tokyo and Kyoto and they are
+360 km apart. The case this rule was designed to survive — neighbouring cities about 35 km
+apart, where a threshold could reach across — is absent from the data entirely.
+
+So 15 km is *chosen*: three times the observed maximum, so a sparser city than either of
+these still holds together, and comfortably under 35 km, so two neighbours cannot claim each
+other's places.
+
+**This is deliberately weaker than `FAR_AWAY_KM` and must be described that way.** That
+number came from a distribution with a meaningful edge — every correct match inside 17 km,
+the nearest wrong one at 270 km — so the value sat in a gap the data itself defined. Here
+the gap is so wide it cannot discriminate. Writing "measured" in the specification would let
+a later reader believe the boundary case had been tested when nothing in this trip touches
+it, which is the same failure as a token described by how it should feel: an accurate
+sentence that licenses a wrong reading.
+
+**Revisit condition:** a trip whose cities are close enough to be day trips of one another.
+That is the shape of trip that can falsify this number, and no amount of data from this one
+will.
 
 ### Ambiguity is "more than one city claims it", and it chooses nothing
 
