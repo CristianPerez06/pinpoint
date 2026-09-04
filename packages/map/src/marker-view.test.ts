@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { FALLBACK_MARKER_TYPE, MARKER_ICONS } from './marker-type'
 import {
   groupCoincident,
+  markersAt,
   markerView,
   type MarkerViewInput,
   VISITED_OPACITY,
@@ -183,5 +184,92 @@ describe('markerView — visited', () => {
     // A draft has never been anywhere and is not asked.
     expect(markerView(place).visited).toBe(false)
     expect(markerView(place).opacity).toBe(1)
+  })
+})
+
+describe('markersAt', () => {
+  const trip = [
+    at(135.7588, 34.9858, { name: 'Kyoto Station' }),
+    at(135.78, 35.0, { name: 'Kiyomizu-dera' }),
+  ]
+
+  it('finds the marker a searched position already holds', () => {
+    // The case the whole rule exists for: a place saved from search stores the
+    // geocoder's position unchanged, so searching it again asks about the very
+    // same pair of numbers.
+    const found = markersAt({ lng: 135.7588, lat: 34.9858 }, trip)
+
+    expect(found?.markers.map((m) => m.name)).toEqual(['Kyoto Station'])
+  })
+
+  it('finds nothing where the trip holds nothing', () => {
+    expect(markersAt({ lng: 139.7671, lat: 35.6812 }, trip)).toBeNull()
+  })
+
+  it('finds nothing for a place a few metres away', () => {
+    // Roughly ten metres — a different premises on the same street, which the
+    // rule must not swallow. This is the assertion that would fail first if
+    // anybody introduced a tolerance.
+    expect(markersAt({ lng: 135.75889, lat: 34.98589 }, trip)).toBeNull()
+  })
+
+  it('returns every marker on a shared point rather than choosing one', () => {
+    // A geocoder answers with a building's centre, so this is ordinary rather
+    // than exotic. The caller opens a chooser; it must not be handed one marker
+    // and left unaware of the other.
+    const found = markersAt({ lng: 135.7588, lat: 34.9858 }, [
+      at(135.7588, 34.9858, { name: 'Kyoto Station' }),
+      at(135.7588, 34.9858, { name: 'Hotel Granvia' }),
+    ])
+
+    expect(found?.markers.map((m) => m.name)).toEqual([
+      'Kyoto Station',
+      'Hotel Granvia',
+    ])
+  })
+
+  it('treats -0 and 0 as the same position', () => {
+    expect(markersAt({ lng: -0, lat: 0 }, [at(0, -0)])?.markers).toHaveLength(1)
+  })
+
+  it('finds nothing in an empty trip', () => {
+    expect(markersAt({ lng: 135.7588, lat: 34.9858 }, [])).toBeNull()
+  })
+
+  it('does not modify the position it was asked about, or the markers', () => {
+    const position = { lng: 135.7588, lat: 34.9858 }
+    markersAt(position, trip)
+
+    expect(position).toEqual({ lng: 135.7588, lat: 34.9858 })
+    expect(trip[0]!.lng).toBe(135.7588)
+  })
+
+  it('agrees with groupCoincident about which key the markers fall under', () => {
+    // One assertion rather than two each stating its own answer. Both cards are
+    // addressed by the key `groupCoincident` derives, so a match that agreed
+    // about the position and disagreed about the key would open a card on a
+    // group not containing the marker it was opened for.
+    const markers = [
+      at(135.7588, 34.9858, { name: 'Kyoto Station' }),
+      at(135.7588, 34.9858, { name: 'Hotel Granvia' }),
+      at(135.78, 35.0, { name: 'Kiyomizu-dera' }),
+    ]
+    const groups = groupCoincident(markers)
+
+    for (const group of groups) {
+      const found = markersAt({ lng: group.lng, lat: group.lat }, markers)
+
+      expect(found?.key).toBe(group.key)
+      expect(found?.markers).toEqual(group.markers)
+    }
+  })
+
+  it('agrees with groupCoincident about the key at -0 as well', () => {
+    // The normalisation is the half most likely to be rewritten by hand, and
+    // this is the input that tells the two apart.
+    const markers = [at(-0, 0, { name: 'Null Island' })]
+    const group = groupCoincident(markers)[0]!
+
+    expect(markersAt({ lng: 0, lat: -0 }, markers)?.key).toBe(group.key)
   })
 })

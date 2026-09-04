@@ -59,6 +59,28 @@ import { role } from '@/lib/type'
  */
 const SHEET_CAP = 0.5
 
+/**
+ * The most of the map this sheet can cover, for whoever has to get a place out
+ * from under it before it exists.
+ *
+ * The same job `openingHeight` does for the capture form, and exported for the
+ * same reason: recognising a searched place moves the camera and opens this
+ * sheet in one breath, so the camera has to know where the sheet will be while
+ * it is still being decided. A camera that centres on the map's own middle puts
+ * the place exactly where the sheet is about to be.
+ *
+ * The **cap** rather than the height it will actually take. This sheet sizes to
+ * its content and only reaches the cap when there is enough to fill it, so this
+ * is an upper bound and a place will sometimes sit higher than it strictly had
+ * to. That is the direction to be wrong in: a place lifted further than needed
+ * is visible, and one lifted too little is behind the sheet and reads as never
+ * having been drawn. There is no third option without measuring a sheet that
+ * does not exist yet.
+ */
+export function openingHeight(windowHeight: number): number {
+  return Math.round(windowHeight * SHEET_CAP)
+}
+
 const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row', gap: SPACE.sm, paddingTop: SPACE.xs },
   action: {
@@ -103,6 +125,20 @@ const styles = StyleSheet.create({
   fieldValue: { ...role(TYPE.body) },
   absent: { ...role(TYPE.body), fontStyle: 'italic' },
   hint: { ...role(TYPE.note) },
+  /*
+    A place the filter is not drawing, opened anyway because search recognised
+    it. Muted rather than warning-coloured: nothing failed and the trip is
+    intact — the only thing worth saying is why the map behind this sheet is
+    empty. Coloured `inkMuted` rather than `inkFaint` at the call site: this
+    sentence is the whole explanation for an otherwise inexplicable screen and
+    has to be read.
+  */
+  hiddenNote: {
+    ...role(TYPE.note),
+    marginTop: SPACE.sm,
+    padding: SPACE.sm,
+    borderRadius: RADIUS.sm,
+  },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -190,10 +226,51 @@ function Dismiss({ onDismiss }: { onDismiss: () => void }) {
   )
 }
 
+/**
+ * Why the map behind this sheet is empty.
+ *
+ * A sheet only ever shows a place the map is drawing, with one exception:
+ * searching for somewhere the trip already holds opens it wherever it is,
+ * behind a filter included. Without this sentence the result is a camera that
+ * moves, a sheet about a place with no pin under it, and no way to tell that
+ * from the application failing.
+ *
+ * It does not offer to clear the filter. The filter was set deliberately, and a
+ * product that quietly unsets one so its own output makes sense leaves somebody
+ * to notice and undo it. Clearing is already reachable from the bar that says
+ * the view is narrowed.
+ */
+function HiddenNote() {
+  const theme = useTheme()
+
+  return (
+    <Text
+      style={[
+        styles.hiddenNote,
+        {
+          backgroundColor: theme.colour.surfaceSunk,
+          color: theme.colour.inkMuted,
+        },
+      ]}
+    >
+      Already saved on this trip. Your filter is hiding it, so it is not drawn on
+      the map.
+    </Text>
+  )
+}
+
 export interface Selection {
   group: MarkerGroup<Marker>
   /** Null while a group of several is still being chosen between. */
   index: number | null
+  /**
+   * Whether the filter is hiding what this sheet is showing.
+   *
+   * Only ever true for a sheet the application opened by identity — recognising
+   * a searched place the trip already holds. Tapping the map cannot produce it,
+   * because a tap can only reach what is drawn.
+   */
+  hidden: boolean
 }
 
 /**
@@ -254,7 +331,7 @@ export function MarkerDetails({
   removingId: string | null
 }) {
   const theme = useTheme()
-  const { group, index } = selection
+  const { group, index, hidden } = selection
   // The sheet is pinned to the very bottom of the screen, so its last field —
   // or its "Others at this point" button — would otherwise sit under the home
   // indicator, which is exactly where a thumb reaches for it.
@@ -295,6 +372,7 @@ export function MarkerDetails({
           They share the same coordinates, so zooming will not separate them.
           Nothing has been moved — pick one.
         </Text>
+        {hidden ? <HiddenNote /> : null}
         {/* Same reasoning as the fields below: a ScrollView here reports almost
             no height to a sheet that is asking how tall its children are, and
             takes the list down with it. Markers sharing one point come in twos
@@ -456,6 +534,8 @@ export function MarkerDetails({
           </View>
         )}
       </View>
+
+      {hidden ? <HiddenNote /> : null}
 
       {/*
         A ScrollView only once the sheet has a height to give it.

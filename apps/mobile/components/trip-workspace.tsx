@@ -33,7 +33,12 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
-import { FALLBACK_MARKER_TYPE, fitBounds, type LngLat } from '@pinpoint/map'
+import {
+  FALLBACK_MARKER_TYPE,
+  fitBounds,
+  type LngLat,
+  markersAt,
+} from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import {
   type ReactNode,
@@ -64,6 +69,7 @@ import {
 import { MenuSheet } from '@/components/menu-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
+import { openingHeight as detailsOpeningHeight } from '@/components/marker-details'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState, LoadingState } from '@/components/states'
@@ -1153,6 +1159,7 @@ export function TripWorkspace({
           }
           total={held.length}
           visible={visible}
+          held={held}
           currencyOf={currencyOf}
           members={members}
           interestFor={interestFor}
@@ -1307,6 +1314,22 @@ export function TripWorkspace({
         biasRef={biasRef}
         onChoose={(candidate: PlaceCandidate) => {
           const position = { lng: candidate.lng, lat: candidate.lat }
+
+          /*
+            Does the trip already hold this place?
+
+            Asked against `held` and never `visible`. A filter decides what the
+            map draws; it has never decided what the trip contains, and matching
+            the drawn set would let a view setting produce the very duplicate
+            this is here to prevent — narrow to food, search a saved temple, get
+            a second temple.
+
+            The match is exact, and `markersAt` is where that is written down.
+            What it deliberately does not catch — a marker repositioned after
+            saving, one dropped by pointing — falls through to a capture and
+            behaves exactly as it did before.
+          */
+          const found = markersAt(position, held)
           /*
             Moved to, because a searched place is usually not on screen — that is
             generally why somebody searched. Leaving the camera still would put
@@ -1320,6 +1343,29 @@ export function TripWorkspace({
           // same breath as this and does not exist yet to be measured. Without
           // it the camera centres the place on the middle of the map view, which
           // is the part the sheet is about to cover.
+          /*
+            Told what will cover the map, on both branches.
+
+            This was written to pass nothing here, reasoning that a details
+            sheet is not the form and does not cover as much. Looking at it
+            settled that: the sheet sat squarely on top of the pin. The form
+            opens at 52% of the window and this sheet is capped at 50% — at the
+            sizes that matter they are the same thing, and the difference the
+            argument rested on does not exist.
+
+            Each branch asks the sheet that is about to open, rather than one
+            borrowing the other's number. They are close today and nothing keeps
+            them that way.
+          */
+          if (found) {
+            mapRef.current?.flyTo(position, detailsOpeningHeight(windowHeight))
+            mapRef.current?.openMarkers(
+              found.key,
+              found.markers.map((marker) => marker.id),
+            )
+            return
+          }
+
           mapRef.current?.flyTo(position, openingHeight(windowHeight))
           beginCreate(position, {
             name: candidate.name,
@@ -1356,6 +1402,7 @@ function Body({
   failed,
   total,
   visible,
+  held,
   currencyOf,
   members,
   interestFor,
@@ -1382,6 +1429,12 @@ function Body({
   failed: string | null
   total: number
   visible: readonly Marker[]
+  /**
+   * Everything the trip holds. Passed through to the map for one lookup — a
+   * sheet opened by identity may name a place the filter is hiding — and never
+   * drawn from.
+   */
+  held: readonly Marker[]
   currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
   interestFor: (marker: Marker) => readonly MarkerInterest[]
@@ -1412,6 +1465,7 @@ function Body({
         onAbandonCapture={onAbandonCapture}
         bottomRow={bottomRow}
         markers={visible}
+        held={held}
         currencyOf={currencyOf}
         members={members}
         interestFor={interestFor}

@@ -73,6 +73,7 @@ function Absent() {
 function Details({
   marker,
   view,
+  hidden,
   currency,
   members,
   interest,
@@ -87,6 +88,8 @@ function Details({
 }: {
   marker: Marker
   view: MarkerView
+  /** The current filter is not drawing this place. See `HiddenNote`. */
+  hidden: boolean
   /** Of the city this marker is filed under. Null is shown as a bare amount, never assumed. */
   currency: string | null
   members: readonly TripMember[]
@@ -134,6 +137,8 @@ function Details({
           </span>
         )}
       </div>
+
+      {hidden ? <HiddenNote /> : null}
 
       <div className={styles.fields}>
         <ControlField label="Who wants to go">
@@ -196,6 +201,29 @@ function Details({
 }
 
 /**
+ * Why the map behind this card is empty.
+ *
+ * A card only ever shows a place the map is drawing, with one exception:
+ * searching for somewhere the trip already holds opens it wherever it is,
+ * including behind a filter that is hiding it. Without this sentence the result
+ * is a camera that moves, a card about a place with no pin under it, and no way
+ * to tell that from the application failing.
+ *
+ * It does not offer to clear the filter. The filter was set deliberately, and a
+ * product that quietly unsets one so its own output makes sense leaves somebody
+ * to notice and undo it. Clearing is already reachable from the bar that says
+ * the view is narrowed.
+ */
+function HiddenNote() {
+  return (
+    <p className={styles.hiddenNote}>
+      Already saved on this trip. Your filter is hiding it, so it is not drawn on
+      the map.
+    </p>
+  )
+}
+
+/**
  * More than one marker sits on this exact point, so which one is a question
  * that has to be asked before it can be answered.
  *
@@ -204,10 +232,12 @@ function Details({
  */
 function Chooser({
   group,
+  hidden,
   onChoose,
   onDismiss,
 }: {
   group: MarkerGroup<Marker>
+  hidden: boolean
   onChoose: (index: number) => void
   onDismiss: () => void
 }) {
@@ -221,6 +251,7 @@ function Chooser({
         They share the same coordinates, so zooming will not separate them.
         Nothing has been moved — pick one.
       </p>
+      {hidden ? <HiddenNote /> : null}
 
       <ul className={styles.list}>
         {group.markers.map((marker, index) => (
@@ -245,6 +276,14 @@ export interface Selection {
   group: MarkerGroup<Marker>
   /** Null while a group of several is still being chosen between. */
   index: number | null
+  /**
+   * Whether the filter is hiding what this card is showing.
+   *
+   * Only ever true for a card the application opened by identity — recognising
+   * a searched place the trip already holds. Clicking the map cannot produce
+   * it, because clicking can only reach what is drawn.
+   */
+  hidden: boolean
 }
 
 /**
@@ -283,10 +322,17 @@ export function MarkerDetails({
   onEdit: (marker: Marker) => void
   onDelete: (marker: Marker) => Promise<unknown>
 }) {
-  const { group, index } = selection
+  const { group, index, hidden } = selection
 
   if (index === null) {
-    return <Chooser group={group} onChoose={onChoose} onDismiss={onDismiss} />
+    return (
+      <Chooser
+        group={group}
+        hidden={hidden}
+        onChoose={onChoose}
+        onDismiss={onDismiss}
+      />
+    )
   }
 
   const marker = group.markers[index]!
@@ -295,6 +341,7 @@ export function MarkerDetails({
     <Details
       marker={marker}
       view={group.views[index]!}
+      hidden={hidden}
       currency={currencyOf(marker)}
       members={members}
       interest={interestFor(marker)}

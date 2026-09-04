@@ -27,7 +27,7 @@ import {
   setWorkerUrl,
   type StyleSpecification,
 } from 'maplibre-gl'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { DraftPin, Pin } from '@/app/_components/pin'
@@ -180,6 +180,7 @@ function ZoomButton({
  */
 export function TripMap({
   groups,
+  revealed,
   onSelectGroup,
   selectedKey,
   draft,
@@ -194,6 +195,20 @@ export function TripMap({
   covered = null,
 }: {
   groups: readonly MarkerGroup<Marker>[]
+  /**
+   * One point the filter is not drawing, shown anyway because the person named
+   * it — search recognised a place the trip already holds.
+   *
+   * Separate from `groups` rather than merged into it by the caller, and the
+   * separation is the point: this pin is drawn, and it is counted nowhere. It
+   * does not frame the map, it does not answer "are any markers in view", and
+   * it is not what the filter says the trip contains. The draft pin has exactly
+   * this shape and exists for the same reason — something on the map that the
+   * trip's own set does not include.
+   *
+   * Null whenever the point is already drawn, so nothing is ever drawn twice.
+   */
+  revealed: MarkerGroup<Marker> | null
   onSelectGroup: (group: MarkerGroup<Marker>) => void
   /** Which drawn point is selected, so the pin can show it. */
   selectedKey: string | null
@@ -378,12 +393,24 @@ export function TripMap({
    * the person already made, honoured against a map that is now smaller than it
    * was.
    */
+  /**
+   * Every point that gets a pin: the trip's drawn set, plus a revealed one.
+   *
+   * Used only where a pin is drawn or lifted clear of chrome. Framing and the
+   * "any markers in view" question both stay on `groups`, because a pin shown
+   * because somebody named it is not evidence about what the filter left.
+   */
+  const shown = useMemo(
+    () => (revealed ? [...groups, revealed] : groups),
+    [groups, revealed],
+  )
+
   useEffect(() => {
     if (!map || !covered) return
 
     const described =
       draft ??
-      groups.find((group) => group.key === selectedKey)?.markers[0] ??
+      shown.find((group) => group.key === selectedKey)?.markers[0] ??
       null
     if (!described) return
 
@@ -406,7 +433,7 @@ export function TripMap({
       dy,
     )
     map.easeTo({ center: [target.lng, target.lat], duration: 260 })
-  }, [map, covered, draft, selectedKey, groups])
+  }, [map, covered, draft, selectedKey, shown])
 
   /**
    * The style has to be fetched and transformed before the renderer can be
@@ -608,7 +635,7 @@ export function TripMap({
   useEffect(() => {
     if (!map) return
 
-    const mounted = groups.map((group) => {
+    const mounted = shown.map((group) => {
       const element = document.createElement('button')
       element.type = 'button'
       element.className = styles.marker
@@ -655,7 +682,7 @@ export function TripMap({
         queueMicrotask(() => root.unmount())
       }
     }
-  }, [map, groups, selectedKey])
+  }, [map, shown, selectedKey])
 
   /**
    * Pointing at the map creates a place, but only when that was armed first.

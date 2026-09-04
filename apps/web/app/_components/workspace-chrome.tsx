@@ -9,8 +9,6 @@ import { FilterBar, type FilterBarLiveProps } from '@/app/_components/filter-bar
 import { PlaceSearch, type PlaceSearchLiveProps } from '@/app/_components/place-search'
 import { TripBar, type TripBarLiveProps } from '@/app/_components/trip-bar'
 import type { PlaceCandidate } from '@pinpoint/geocode'
-import type { MarkerFormValues } from '@/app/_components/marker-form'
-import type { DraftPosition } from '@/app/_components/trip-map'
 import {
   Button,
   iconOnlyLabelClass,
@@ -70,17 +68,16 @@ export type ChromeBindings = {
 
   biasRef: PlaceSearchLiveProps['biasRef']
   /**
-   * A place was chosen from search: open the capture form on it.
+   * A place was chosen from search. What that leads to is not this file's
+   * business.
    *
-   * Typed from the workspace's own `beginCreate` rather than restated, for the
-   * reason above — the first draft of this file restated it, got the third
-   * argument's type wrong, and only the compiler noticed.
+   * It used to be: the chrome unpacked the candidate and asked for a capture,
+   * which meant the one component with no access to the trip's markers was the
+   * one deciding whether to add another. The whole candidate is handed over
+   * instead, and the workspace — which holds the markers — decides between
+   * opening the place the trip already has and starting a new one.
    */
-  onCreateFrom: (
-    position: DraftPosition,
-    initial: Partial<MarkerFormValues>,
-    moveCamera: boolean,
-  ) => void
+  onChooseCandidate: (candidate: PlaceCandidate) => void
 
   toolsRef: RefObject<HTMLSpanElement | null>
   searchRef: RefObject<HTMLSpanElement | null>
@@ -286,11 +283,7 @@ export function WorkspaceChrome({
               biasRef={live.biasRef}
               onChoose={(candidate: PlaceCandidate) => {
                 live.onSearchOpen(false)
-                live.onCreateFrom(
-                  { lng: candidate.lng, lat: candidate.lat },
-                  { name: candidate.name, type: candidate.typeGuess },
-                  true,
-                )
+                live.onChooseCandidate(candidate)
               }}
             />
             ) : (

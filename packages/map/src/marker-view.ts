@@ -227,3 +227,48 @@ export function groupCoincident<T extends MarkerViewInput>(
     view: entry.views[0]!,
   }))
 }
+
+/**
+ * Which of a trip's markers sit exactly on a position, and under which key.
+ *
+ * `groupCoincident` asked in the other direction. That is the whole design of
+ * this function: search hands over a position and needs to know whether the trip
+ * already holds it, which is the same question the map answers every render when
+ * it decides which markers share a drawn point.
+ *
+ * It shares `coordinateKey` rather than comparing coordinates itself, and that
+ * is load-bearing rather than tidy. Both applications address an open details
+ * card by the group key this normalisation produces. A match computed by a
+ * separately written comparison could agree that two positions are the same
+ * while disagreeing about the key they fall under, and the failure is a card
+ * opening on a group that does not contain the marker it was opened for.
+ *
+ * Equality is exact, for the reason written above `groupCoincident`, and one
+ * more that belongs here: a marker saved from search stores the geocoder's
+ * position unchanged, so searching the same place again yields the identical
+ * pair of numbers. The rule works because the second search is the same request
+ * against the same service for the same object — not because coordinates are
+ * generally comparable.
+ *
+ * What that deliberately does not catch: a marker whose position was corrected
+ * after saving, and one dropped by pointing at the map. Both are offered as new,
+ * exactly as they were before this function existed. A tolerance would catch
+ * them and would also swallow the premises either side, which are the same few
+ * metres away — see `place-search`, which states this as a limit rather than
+ * leaving it to a constant here.
+ *
+ * Null rather than an empty group when nothing matches: there is no point on the
+ * map to name, so there is no key to return, and a caller that has to check
+ * `count > 0` is a caller that can forget to.
+ */
+export function markersAt<T extends MarkerViewInput>(
+  position: LngLat,
+  markers: readonly T[],
+): { key: string; markers: readonly T[] } | null {
+  const key = coordinateKey(position.lng, position.lat)
+  const found = markers.filter(
+    (marker) => coordinateKey(marker.lng, marker.lat) === key,
+  )
+
+  return found.length > 0 ? { key, markers: found } : null
+}
