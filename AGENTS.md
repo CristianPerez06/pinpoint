@@ -194,6 +194,41 @@ placeholders.
   impression it should leave, or the description licenses the defect and every reviewer
   after that sees intent.
 
+- **Two states that have never co-occurred get depended on silently, and the first
+  thing that makes them co-occur breaks code that reads correctly.** Selecting a
+  marker by pointing at it necessarily puts it in view, so an open details card and
+  "N places match, none of them in view" could not both be true — and two separate
+  pieces of code quietly relied on that, neither of them saying so. Drawing one pin
+  outside the filtered set, so a card could open on a place the filter hides, made
+  the pair possible for the first time: the notice appeared beside the place that had
+  just been found and its `Show it` framed the filter's matches, a *different* place,
+  one click from the one being read. Nothing was wrong with the notice's condition or
+  with `anyInView`; the condition had always meant "there is nothing on the map to
+  look at" and `!anyInView` had always been the same thing as that, until it wasn't.
+  **Learn the shape of this one**: every part reads correctly in isolation, the diff
+  that breaks it does not touch either part, and no type or test can see it because
+  the invariant was never written down. Before drawing anything outside a set that
+  something else counts, go and find what reads that count.
+
+- **A `MODIFIED` spec delta deletes every sentence you do not carry forward.** The
+  delta replaces the whole requirement at archive time, so a paragraph left out is
+  removed from the specification silently and the diff looks like the change you
+  meant. Rewriting *A place is filed under a city chosen as it is saved* nearly took
+  out "Every application SHALL offer a way to select the city being worked on" — which
+  exists in that requirement and nowhere else, so archiving would have dropped the
+  obligation to have a city selector at all, in a change about defaults. Rewrite a
+  requirement by editing a full copy of it, and grep the specifications for any
+  sentence you drop to check it is stated somewhere else.
+
+- **"It is a different kind of thing, so it must cover a different amount" is a
+  category argument, and the constants are right there.** The match branch on the
+  phone passed no camera inset, reasoning that a details sheet is not the capture form
+  and does not take as much of the map. The form opens at `DETENTS[0] = 0.52` of the
+  window and the details sheet is capped at `SHEET_CAP = 0.5`: the same thing at every
+  size that matters. The sheet sat on top of the pin. Two greps would have settled it
+  before the argument was written down. Where something covering the map is involved,
+  read the number rather than reasoning from what the thing is.
+
 ## Styling
 
 Web and mobile share **token values**, not styling code. There is no cross-platform
