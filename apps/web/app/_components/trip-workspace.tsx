@@ -28,7 +28,7 @@ import {
   updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
-import type { SearchBias } from '@pinpoint/geocode'
+import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
 import {
   coveredBandHeight,
   DEFAULT_VIEWPORT,
@@ -36,6 +36,7 @@ import {
   fitBounds,
   groupCoincident,
   type LngLat,
+  markersAt,
   type MarkerGroup,
   type Rect,
 } from '@pinpoint/map'
@@ -136,7 +137,26 @@ type Panel =
    * a different place than the one somebody opened. Removal could already do
    * that; filtering makes it ordinary rather than exceptional.
    */
-  | { kind: 'details'; groupKey: string; markerId: string | null }
+  | {
+      kind: 'details'
+      groupKey: string
+      markerId: string | null
+      /**
+       * Whether this card may resolve a marker the filter is not drawing.
+       *
+       * False for a card opened by clicking the map, which can only address
+       * what is drawn anyway. True only where the application opened the card
+       * on somebody's behalf — recognising a searched place the trip already
+       * holds — because there the marker was found in the trip rather than
+       * picked off the map, and the filter may well be hiding it.
+       *
+       * A flag rather than a general widening. Without it, every card would
+       * survive its marker being filtered away mid-read, which is a different
+       * change: the card is meant to close when what it is showing stops being
+       * on the map, and the comment on `open` explains why.
+       */
+      reveal: boolean
+    }
   | { kind: 'create'; initial: MarkerFormValues }
   | { kind: 'edit'; marker: Marker; initial: MarkerFormValues }
 
@@ -577,17 +597,63 @@ export function TripWorkspace({
    * Null when what was open is no longer there, and the card closes rather than
    * showing something else in its place.
    */
+  /**
+   * The same grouping over everything the trip holds, filter included.
+   *
+   * Only ever consulted for a card the application opened by identity, and only
+   * after the drawn set has failed to answer. Derived with `groupCoincident`
+   * rather than assembled here so the key it is looked up by is the key
+   * everything else uses — `markersAt` returns that same key, which is what
+   * makes a card openable from a search match at all.
+   */
+  const allGroups = useMemo(() => groupCoincident([...markers]), [markers])
+
   const open = useMemo(() => {
     if (panel.kind !== 'details') return null
 
-    const group = groups.find((each) => each.key === panel.groupKey)
-    if (!group) return null
+    const resolve = (group: MarkerGroup<Marker>) => {
+      if (panel.markerId === null) return { group, index: null }
 
-    if (panel.markerId === null) return { group, index: null }
+      const index = group.markers.findIndex((marker) => marker.id === panel.markerId)
+      return index === -1 ? null : { group, index }
+    }
 
-    const index = group.markers.findIndex((marker) => marker.id === panel.markerId)
-    return index === -1 ? null : { group, index }
-  }, [panel, groups])
+    const drawn = groups.find((each) => each.key === panel.groupKey)
+    const fromDrawn = drawn ? resolve(drawn) : null
+    if (fromDrawn) return { ...fromDrawn, hidden: false }
+
+    // Nothing drawn answers this. Either the filter is hiding the place, or it
+    // is gone — and those are not the same thing, so the fallback is looked up
+    // in the trip's markers rather than in a snapshot. A marker somebody
+    // removed is in neither set, so the card still closes on it, which is the
+    // behaviour the comment above exists to protect.
+    if (!panel.reveal) return null
+
+    const held = allGroups.find((each) => each.key === panel.groupKey)
+    const fromHeld = held ? resolve(held) : null
+    return fromHeld ? { ...fromHeld, hidden: true } : null
+  }, [panel, groups, allGroups])
+
+  /**
+   * The point a revealed card is standing on, when the filter is not drawing it.
+   *
+   * The problem this answers was found by looking, on the phone: the camera flew
+   * to a recognised place, the card explained that the filter was hiding it, and
+   * the map behind was simply empty. On the laptop the surrounding pins made
+   * that legible; centred on one place under a sheet, with nothing else on
+   * screen, it read as the map having failed.
+   *
+   * So the place is drawn for as long as its card is open. Not a hole in the
+   * filter: the map still draws only what the filter allows, and this one pin is
+   * there because it was asked for by name — the same standing the draft pin
+   * has. It goes when the card does.
+   *
+   * Null when the point is already drawn, so nothing appears twice.
+   */
+  const revealed = useMemo(() => {
+    if (!open?.hidden) return null
+    return groups.some((each) => each.key === open.group.key) ? null : open.group
+  }, [open, groups])
 
   /**
    * A refusal with no form to sit above.
@@ -989,31 +1055,31 @@ export function TripWorkspace({
     setCameraTarget((current) => ({ points, token: current.token + 1 }))
   }
 
-  function beginCreate(
-    position: DraftPosition,
-    initial: Partial<MarkerFormValues>,
-    /**
-     * Whether to move the camera to the new place.
-     *
-     * True for a search result, which is usually not on screen — that is
-     * generally why somebody searched — so leaving the camera still would put
-     * the place they just chose somewhere they cannot see, and ask them to
-     * confirm a position while it was invisible.
-     *
-     * False for a pointed one, where the position is by definition somewhere
-     * they were already looking, and moving would be the map taking the view
-     * away from them.
-     */
-    moveThere: boolean,
-  ) {
+  /**
+   * Move the camera to one place.
+   *
+   * Lifted out of `beginCreate`, where it used to live behind a `moveThere`
+   * flag that only search ever set. Choosing a searched place now has two
+   * outcomes — a capture, or the marker the trip already holds — and the camera
+   * has to move for both: a person who picks a place expects the map to go
+   * there, and moving only for places that turn out to be new would make the
+   * trip's own contents the reason the map behaves differently. Left inside
+   * `beginCreate` it would silently have moved for one branch and not the
+   * other, which no type and no test here would have reported.
+   *
+   * Pointing at the map still moves nothing, and now says so by not calling
+   * this rather than by passing `false`.
+   */
+  function moveCameraTo(position: DraftPosition) {
+    setCameraTarget((current) => ({
+      points: [position],
+      token: current.token + 1,
+    }))
+  }
+
+  function beginCreate(position: DraftPosition, initial: Partial<MarkerFormValues>) {
     setDraft(position)
     setDropping(false)
-    if (moveThere) {
-      setCameraTarget((current) => ({
-        points: [position],
-        token: current.token + 1,
-      }))
-    }
     setFieldErrors({})
     setMessage(null)
     setConflict(null)
@@ -1031,6 +1097,57 @@ export function TripWorkspace({
         ...initial,
       },
     })
+  }
+
+  /**
+   * A place was chosen from search, and the trip may already hold it.
+   *
+   * The decision lives here rather than in the chrome because this is where the
+   * trip's markers are. The chrome asked for a capture unconditionally, which
+   * is the defect: nothing on the path from a candidate to a marker ever
+   * consulted what the trip already contained.
+   *
+   * Matched against `markers` and never `visibleMarkers`. A filter decides what
+   * is drawn; it has never decided what the trip holds, and matching the drawn
+   * set would let a view setting produce the very duplicate this exists to
+   * prevent — filter to food, search a saved temple, get a second temple.
+   *
+   * The match is exact, and `markersAt` is where that is written down. What it
+   * deliberately does not catch — a marker repositioned after saving, one
+   * dropped by pointing — falls through to a capture and behaves as it always
+   * did.
+   */
+  function chooseCandidate(candidate: PlaceCandidate) {
+    const position = { lng: candidate.lng, lat: candidate.lat }
+
+    // Before the branch, so both outcomes move the map by construction rather
+    // than by two call sites remembering to agree.
+    moveCameraTo(position)
+
+    const found = markersAt(position, markers)
+
+    if (found) {
+      setDraft(null)
+      setDropping(false)
+      setFieldErrors({})
+      setMessage(null)
+      setConflict(null)
+      setPanel({
+        kind: 'details',
+        groupKey: found.key,
+        // One marker resolves to itself; several open the chooser, exactly as
+        // clicking that point does. A geocoder answering with a building's
+        // centre makes the second case ordinary, and picking one of them here
+        // would be choosing on somebody's behalf.
+        markerId: found.markers.length === 1 ? found.markers[0]!.id : null,
+        // The trip holds this place, so the card may show it even if the filter
+        // is not drawing it. The only path that sets this.
+        reveal: true,
+      })
+      return
+    }
+
+    beginCreate(position, { name: candidate.name, type: candidate.typeGuess })
   }
 
   function cancel() {
@@ -1209,7 +1326,7 @@ export function TripWorkspace({
         ownMemberId,
 
         biasRef,
-        onCreateFrom: beginCreate,
+        onChooseCandidate: chooseCandidate,
 
         toolsRef,
         searchRef,
@@ -1225,7 +1342,7 @@ export function TripWorkspace({
         onCancelSight: () => setDropping(false),
         onUseSpot: () => {
           const centre = centreRef.current
-          if (centre) beginCreate(centre, {}, false)
+          if (centre) beginCreate(centre, {})
         },
 
         panelOpen: panel.kind !== 'none',
@@ -1249,17 +1366,20 @@ export function TripWorkspace({
           covered={covered}
           floor={floor}
           groups={groups}
+          revealed={revealed}
           onSelectGroup={(group: MarkerGroup<Marker>) => {
             setDraft(null)
             setPanel({
               kind: 'details',
               groupKey: group.key,
               markerId: group.count === 1 ? group.markers[0]!.id : null,
+              // Clicked off the map, so it can only be something drawn.
+              reveal: false,
             })
           }}
           draft={draft}
           dropping={dropping}
-          onDropAt={(position) => beginCreate(position, {}, false)}
+          onDropAt={(position) => beginCreate(position, {})}
           onDraftMove={setDraft}
           frameTo={cameraTarget.points}
           frameToken={cameraTarget.token}
@@ -1339,11 +1459,27 @@ export function TripWorkspace({
           state on its own: a map with nothing on it while the toolbar reports
           matches, which is the indistinguishable-empty problem from the other
           side. So it is said, and moving there is offered rather than taken.
+
+          Withheld while a place is revealed, and that condition was found by
+          looking rather than reasoned about. The notice exists to answer "the
+          map is empty, where did everything go?" — and a revealed place is a
+          pin on screen, deliberately navigated to, with its card open on it.
+          Nobody is lost. What the notice did there was offer to fly somewhere
+          else entirely: `anyInView` counts only the drawn set, correctly, so
+          the notice appeared beside the very place that had just been found and
+          `Show it` framed the filter's matches instead — a different place, by
+          name, one click from the one being read.
+
+          Nothing about `anyInView` is wrong and it is not what changed. The
+          notice's own condition was always "nothing on the map to look at", and
+          until a place could be drawn outside the filtered set, `!anyInView`
+          said exactly that. It no longer does, so the missing half is stated.
         */}
         {refusal === null &&
         isFiltered(filter) &&
         visibleMarkers.length > 0 &&
-        !anyInView ? (
+        !anyInView &&
+        revealed === null ? (
           <MapOverlayNote tone="muted">
             {visibleMarkers.length}{' '}
             {visibleMarkers.length === 1 ? 'place matches' : 'places match'}, none
@@ -1373,11 +1509,16 @@ export function TripWorkspace({
             onRecordInterest={(marker, interested) => void answer(marker, interested)}
             onWithdrawInterest={(marker) => void unanswer(marker)}
             onSetVisited={(marker, visited) => void markVisited(marker, visited)}
+            // Both of these move within the card that is already open, so they
+            // carry its own permission rather than granting or dropping one. A
+            // group revealed from a search match would otherwise close the
+            // moment somebody picked a place out of it.
             onChoose={(index) =>
               setPanel({
                 kind: 'details',
                 groupKey: open.group.key,
                 markerId: open.group.markers[index]!.id,
+                reveal: panel.kind === 'details' ? panel.reveal : false,
               })
             }
             onBack={() =>
@@ -1385,6 +1526,7 @@ export function TripWorkspace({
                 kind: 'details',
                 groupKey: open.group.key,
                 markerId: null,
+                reveal: panel.kind === 'details' ? panel.reveal : false,
               })
             }
             // Dismissal touches no map method, so the camera cannot move.

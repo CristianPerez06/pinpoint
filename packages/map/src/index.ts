@@ -61,7 +61,12 @@ export type {
   MarkerTypeDefinition,
 } from './marker-type'
 
-export { groupCoincident, markerView, VISITED_OPACITY } from './marker-view'
+export {
+  groupCoincident,
+  markersAt,
+  markerView,
+  VISITED_OPACITY,
+} from './marker-view'
 export type {
   MarkerAnchor,
   MarkerGroup,

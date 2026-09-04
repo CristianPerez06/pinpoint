@@ -116,6 +116,25 @@
   line-height: var(--pp-type-note-leading);
 }
 
+/*
+  A place the filter is not drawing, opened anyway because search recognised it.
+
+  Muted rather than warning-coloured: the trip is intact, nothing failed, and
+  the only thing worth saying is why the map behind this card looks empty.
+  `--pp-ink-muted` rather than `--pp-ink-faint` — this sentence is the whole
+  explanation for an otherwise inexplicable screen and has to be read, which is
+  exactly the reading `--pp-ink-faint` licensed and got wrong before.
+*/
+.hiddenNote {
+  margin: var(--pp-space-sm) 0 0;
+  padding: var(--pp-space-sm);
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
 .list {
   list-style: none;
   margin: var(--pp-space-md) 0 0;

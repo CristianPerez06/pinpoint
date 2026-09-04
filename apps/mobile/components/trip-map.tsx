@@ -17,6 +17,7 @@ import {
   offsetCenter,
   zoomStep,
   type LngLat,
+  type MarkerGroup,
   type Viewport,
 } from '@pinpoint/map'
 import { ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
@@ -346,6 +347,24 @@ export interface TripMapRef {
    */
   flyTo: (position: LngLat, bottomInset?: number) => void
   /**
+   * Open the details sheet on a place, named rather than pointed at.
+   *
+   * A method on the handle because the sheet's open state lives in here while
+   * the decision that opens it — recognising a searched place the trip already
+   * holds — is made in the workspace, where the trip's markers are. Lifting the
+   * state up to meet the caller would drag selection, framing and the sheet's
+   * own lifecycle along with it, for one new caller.
+   *
+   * `markerIds` is every marker at the point, not just one: a geocoder answers
+   * with a building's centre, so a matched position routinely holds more than
+   * one place and the person picks between them. One id opens that place; more
+   * than one opens the chooser.
+   *
+   * The sheet opened this way may show a place the filter is hiding — see
+   * `reveal` on the open state. Nothing else on this component can do that.
+   */
+  openMarkers: (key: string, markerIds: readonly string[]) => void
+  /**
    * Frame a group of positions, the way the map frames a trip when it opens.
    *
    * Separate from `flyTo` rather than an overload of it, because they answer
@@ -372,6 +391,7 @@ export interface TripMapRef {
 export function TripMap({
   ref,
   markers,
+  held,
   currencyOf,
   members,
   interestFor,
@@ -398,6 +418,16 @@ export function TripMap({
    * workspace disagreeing about what the trip contains.
    */
   markers: readonly Marker[]
+  /**
+   * Everything the trip holds, filter included.
+   *
+   * Drawn from never — `markers` is what gets drawn, and the two must not be
+   * confused. This exists for one lookup: a sheet opened by identity through
+   * `openMarkers` may name a place the filter is hiding, and resolving it needs
+   * a set the filter has not narrowed. A place that is *gone* is in neither,
+   * which is what keeps hidden and removed distinguishable.
+   */
+  held: readonly Marker[]
   /** Passed straight through to the details sheet; the map itself has no use for it. */
   currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
@@ -500,6 +530,18 @@ export function TripMap({
   const [open, setOpen] = useState<{
     groupKey: string
     markerId: string | null
+    /**
+     * Whether this sheet may resolve a marker the filter is not drawing.
+     *
+     * False for a sheet opened by tapping a pin, which can only reach something
+     * already drawn. True only for one opened through `openMarkers`, where the
+     * place was found in the trip rather than picked off the map.
+     *
+     * Without the flag every sheet would survive its marker being filtered away
+     * mid-read, and the sheet is meant to close when what it shows leaves the
+     * map — see the comment on `selection`.
+     */
+    reveal: boolean
   } | null>(null)
   const theme = useTheme()
   const mode = useThemeMode()
@@ -664,6 +706,16 @@ export function TripMap({
           zoom: camera.zoom,
         })
       },
+      openMarkers: (key: string, markerIds: readonly string[]) => {
+        setOpen({
+          groupKey: key,
+          // One place opens itself; several open the chooser, exactly as
+          // tapping that point does. Picking one here would be choosing on
+          // somebody's behalf.
+          markerId: markerIds.length === 1 ? markerIds[0]! : null,
+          reveal: true,
+        })
+      },
     }),
     [viewport, barHeight, formSheet, formHeight],
   )
@@ -677,16 +729,62 @@ export function TripMap({
    * was removed — and the sheet closes rather than showing something else in its
    * place.
    */
+  /**
+   * The same grouping over everything the trip holds, filter included.
+   *
+   * Consulted only for a sheet opened by identity, and only once the drawn set
+   * has failed to answer. Grouped with `groupCoincident` rather than assembled
+   * here so that the key it is found under is the key everything else uses —
+   * which is the key `markersAt` hands the workspace in the first place.
+   */
+  const heldGroups = useMemo(() => groupCoincident([...held]), [held])
+
   const selection: Selection | null = useMemo(() => {
     if (!open) return null
 
-    const group = groups.find((each) => each.key === open.groupKey)
-    if (!group) return null
-    if (open.markerId === null) return { group, index: null }
+    const resolve = (group: MarkerGroup<Marker>): Selection | null => {
+      if (open.markerId === null) return { group, index: null, hidden: false }
 
-    const index = group.markers.findIndex((marker) => marker.id === open.markerId)
-    return index === -1 ? null : { group, index }
-  }, [open, groups])
+      const index = group.markers.findIndex((marker) => marker.id === open.markerId)
+      return index === -1 ? null : { group, index, hidden: false }
+    }
+
+    const drawn = groups.find((each) => each.key === open.groupKey)
+    const fromDrawn = drawn ? resolve(drawn) : null
+    if (fromDrawn) return fromDrawn
+
+    // Nothing drawn answers this, and the two reasons for that are not the same
+    // thing. The filter may be hiding the place, or it may be gone — so the
+    // fallback looks in the trip's markers, where a removed one is absent and
+    // the sheet still closes on it.
+    if (!open.reveal) return null
+
+    const kept = heldGroups.find((each) => each.key === open.groupKey)
+    const fromKept = kept ? resolve(kept) : null
+    return fromKept ? { ...fromKept, hidden: true } : null
+  }, [open, groups, heldGroups])
+
+  /**
+   * The point a revealed sheet is standing on, when the filter is not drawing it.
+   *
+   * Found by looking rather than by reasoning: the camera flew to a recognised
+   * place, the sheet explained that the filter was hiding it, and the map behind
+   * was empty. Centred on one place with a sheet over the bottom and nothing
+   * else on screen, the explanation was not enough — it read as the map having
+   * failed.
+   *
+   * So the place is drawn for as long as its sheet is open. Not a hole in the
+   * filter: `markers` still decides everything the map draws, and this one pin
+   * is here because somebody named it — the same standing the draft pin has,
+   * counted in no group and framing nothing. It goes when the sheet does.
+   *
+   * Null when the point is already drawn, so nothing appears twice.
+   */
+  const revealed = useMemo(() => {
+    if (!selection?.hidden) return null
+    const key = selection.group.key
+    return groups.some((each) => each.key === key) ? null : selection.group
+  }, [selection, groups])
 
   /*
    * How far the credit stands off the bottom edge.
@@ -872,6 +970,8 @@ export function TripMap({
                 setOpen({
                   groupKey: group.key,
                   markerId: group.count === 1 ? group.markers[0]!.id : null,
+                  // Tapped on the map, so it can only be something drawn.
+                  reveal: false,
                 })
               }}
             >
@@ -895,6 +995,23 @@ export function TripMap({
             Neither application writes this by hand: two apps choosing their own
             is where the last drift defect lived.
           */}
+          {/*
+            A place the filter is hiding, drawn because its sheet is open on it.
+
+            Between the saved markers and the draft, which is the order these
+            three sit in: this one is a saved place, so it goes above the others
+            it may share a point with and below anything being added.
+          */}
+          {revealed ? (
+            <MapLibreMarker
+              id={`revealed-${revealed.key}`}
+              lngLat={[revealed.lng, revealed.lat]}
+              anchor={anchorName(revealed.view.anchor)}
+            >
+              <Pin view={revealed.view} count={revealed.count} selected />
+            </MapLibreMarker>
+          ) : null}
+
           {draft ? (
             <MapLibreMarker
               id="draft"
@@ -1102,12 +1219,23 @@ export function TripMap({
           onDelete={onDeleteMarker}
           removingId={removingId}
           onChoose={(index) =>
+            // Both of these move within the sheet that is already open, so they
+            // carry its own permission rather than granting or dropping one. A
+            // group revealed from a search match would otherwise close the
+            // instant somebody picked a place out of it.
             setOpen({
               groupKey: selection.group.key,
               markerId: selection.group.markers[index]!.id,
+              reveal: open?.reveal ?? false,
             })
           }
-          onBack={() => setOpen({ groupKey: selection.group.key, markerId: null })}
+          onBack={() =>
+            setOpen({
+              groupKey: selection.group.key,
+              markerId: null,
+              reveal: open?.reveal ?? false,
+            })
+          }
           // Nothing here touches the camera, so dismissing cannot move it.
           onDismiss={() => setOpen(null)}
         />
