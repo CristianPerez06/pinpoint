@@ -59,3 +59,34 @@ export const cityPatchSchema = citySchema
   .partial()
 
 export type CityPatch = z.infer<typeof cityPatchSchema>
+
+/**
+ * What a city selection is set to when it means "the places no city holds".
+ *
+ * A city id is a uuid, so no real city can ever collide with this. It travels
+ * in the web application's URL as `?city=unassigned`, which is why it reads as
+ * a word rather than as a symbol nobody could guess the meaning of.
+ *
+ * `null` already means something else and could not be reused: it is *all
+ * places*, the whole trip, which is a wider view rather than a narrower one.
+ * Three states, three values.
+ */
+export const UNASSIGNED_CITY = 'unassigned'
+
+/**
+ * Which of a trip's markers a city selection means.
+ *
+ * Here rather than in either application by the same rule as `marker-filter.ts`:
+ * two implementations of "the unassigned ones" would eventually disagree, and
+ * the disagreement would surface as a row counting four places and a map drawing
+ * three. That reads as a data problem and would not be one.
+ */
+export function markersSelectedBy<M extends { readonly cityId: string | null }>(
+  selection: string | null,
+  markers: readonly M[],
+): readonly M[] {
+  if (selection === null) return markers
+  if (selection === UNASSIGNED_CITY)
+    return markers.filter((marker) => marker.cityId === null)
+  return markers.filter((marker) => marker.cityId === selection)
+}

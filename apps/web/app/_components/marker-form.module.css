@@ -148,3 +148,32 @@
   line-height: var(--pp-type-note-leading);
   font-weight: 550;
 }
+
+/*
+ * Where the city came from, when it did not come from where you were working.
+ *
+ * Deliberately quieter than `.notice` above, which is the conflict banner and
+ * shouts because somebody else changed the thing under you. This one is a fact
+ * about the save you are already making: it has to be readable in the field you
+ * are about to look at, and it must not read as a warning. Sunk rather than
+ * washed in the accent, and no border colour of its own.
+ */
+.cityNotice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  margin-top: calc(var(--pp-space-sm) * -1);
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-sunk);
+}
+
+.cityNoticeText {
+  margin: 0;
+  flex: 1 1 12rem;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}

@@ -238,12 +238,22 @@ Rollback is reverting the commit.
 
 ## Open Questions
 
-- **The threshold itself.** Deliberately not chosen here; the measurement is a task.
-- **What the third outcome says when the geocoder gave no city.** A rural place can come
-  back with only a county or a state. Offering "create Kyoto Prefecture" is worse than
-  offering nothing, so the form probably falls back to leaving the field empty and saying
-  nothing further. Settled when the wording is written against the screen.
-- **Whether the Unassigned row appears when nothing is unassigned.** A row reading `0
-  places` is noise; a row that appears and disappears moves the list under the pointer.
-  `marker-filtering` has already answered this shape of question once, for the filter
-  control, and that reasoning should be read before deciding.
+- **The threshold itself.** ~~Deliberately not chosen here; the measurement is a task.~~
+  **Settled: 15 km**, above a measured floor of 4.61 km. See the section above and
+  `readings.md`.
+- **What the third outcome says when the geocoder gave no city.** ~~A rural place can come
+  back with only a county or a state.~~ **Settled in words, still to be looked at.** The
+  field is left empty, nothing is offered for creation, and the form says *"Not near any
+  city on this trip. Choose one, or leave it unassigned."* Offering "create Kyoto
+  Prefecture" would make a group nobody meant to make, named after something that is not a
+  city, so no wider area is substituted. The same sentence covers a position pointed at on
+  the map, which carries no name for the same reason: there was never one to carry. Whether
+  it reads right *on the screen* is section 6's business, not this document's.
+- **Whether the Unassigned row appears when nothing is unassigned.** **Settled: always,
+  count and all.** `marker-filtering`'s *A narrowed view declares that it is narrowed* had
+  already decided this shape of question for the filter control — a control that appears on
+  selection moves everything beside it, and makes the way out discoverable only once you
+  are already in the state it leads out of. It holds more sharply here: the row is how
+  somebody checks whether anything went unfiled, so withdrawing it when the answer is
+  *nothing* withdraws it exactly when they came to look. The cost is one row reading `0
+  places` on a tidy trip, which is the live trip today.

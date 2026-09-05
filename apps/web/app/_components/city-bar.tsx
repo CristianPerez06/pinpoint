@@ -1,6 +1,7 @@
 'use client'
 
 import type { City, Marker } from '@pinpoint/core'
+import { UNASSIGNED_CITY } from '@pinpoint/core'
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 
@@ -13,11 +14,23 @@ import styles from './city-bar.module.css'
  * Choosing which group of places is being worked on, and correcting a group
  * after the fact.
  *
- * Selecting a city does three things and deliberately not a fourth: it frames
- * the map on that city's places, it biases place search toward them, and it
- * becomes the default for the next place saved. It does not filter the map —
- * hiding the rest would answer "what is near what" with a lie, and filtering is
- * a later change with a whole vocabulary of its own.
+ * Selecting a city does two things, and it used to do three: it frames the map
+ * on that city's places and biases place search toward them. It no longer
+ * becomes the default for the next place saved — where a place is filed is
+ * decided by where the place actually is, because a selection says what is being
+ * *looked at* and filing says where something *is*. It does not filter the map
+ * either: hiding the rest would answer "what is near what" with a lie, and
+ * filtering is a change with a whole vocabulary of its own.
+ *
+ * ## Unassigned is a row like any other
+ *
+ * `marker-capture` and `markers` both say a place saved without a city "appears
+ * among the trip's markers, grouped as unassigned", and until this row existed
+ * there was no such group: such a place sat in no bucket that could be selected
+ * and was findable only by opening it. It is drawn whether or not it holds
+ * anything, for the reason `marker-filtering` gives about the filter control — a
+ * row that appears on demand moves everything beside it, and makes the way to a
+ * place discoverable only once you already have one.
  *
  * ## Picking and fixing are separate, and used not to be
  *
@@ -94,6 +107,19 @@ function CityBarLive({
   const [editing, setEditing] = useState<string | null>(null)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
+  /**
+   * What the bar calls the selection.
+   *
+   * Three states, so three names. Unassigned resolves to no city — it is defined
+   * by the absence of one — and would otherwise fall through to `All places`,
+   * which is the widest view rather than this narrow one and would leave the bar
+   * saying the opposite of what is on the map.
+   */
+  const selectionName =
+    selectedCityId === UNASSIGNED_CITY
+      ? 'Unassigned'
+      : (selected?.name ?? 'All places')
+
   /** Opening always starts at the list, never wherever it was last left. */
   function setOpen(next: boolean) {
     if (next) {
@@ -110,12 +136,13 @@ function CityBarLive({
     <Menu
       name="City"
       /*
-        The selected city's name, or `All places` — not a `CITY` label beside a
+        What the selection is called — a city's name, `All places`, or
+        `Unassigned` — not a `CITY` label beside a
         control that already says what it holds. The label was the only one of
         its kind in a row of controls that name themselves, and it shouted a
         category over a value reading `All places`, which is not a city.
       */
-      label={<span className={styles.name}>{selected?.name ?? 'All places'}</span>}
+      label={<span className={styles.name}>{selectionName}</span>}
       open={open}
       onOpen={setOpen}
       tone="quiet"
@@ -192,6 +219,31 @@ function CityBarLive({
           </div>
         )
       })}
+
+      {/*
+        Below the cities rather than beside `All places`, because it is a
+        narrowing like a city and not a widening like that one. Its count is
+        stated the same way, so the rows above plus this one account for the
+        whole trip.
+      */}
+      <button
+        type="button"
+        onClick={() => {
+          onSelect(UNASSIGNED_CITY)
+          setOpen(false)
+        }}
+        aria-current={selectedCityId === UNASSIGNED_CITY}
+        className={styles.row}
+      >
+        <span className={styles.rowName}>Unassigned</span>
+        <span className={styles.rowNote}>
+          {countLabel(markers.filter((marker) => marker.cityId === null).length)}
+        </span>
+        {/* Holds the pencil column, as `All places` does. There is nothing to
+            edit here: a group defined by the absence of a city has no name and
+            no currency of its own. */}
+        <span className={styles.penSlot} aria-hidden />
+      </button>
     </Menu>
   )
 }

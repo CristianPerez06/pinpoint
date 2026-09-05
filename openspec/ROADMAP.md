@@ -50,6 +50,15 @@ Two of those columns are the whole product:
   geocoder answers the "assign a city" question; it can suggest, and the person
   decides.
 
+  Suggesting turned out to be worth a lot more than "can". `#52` — a place filed
+  under whichever city happened to be selected, silently and sometimes wrongly —
+  was fixed by asking both witnesses: the city name the geocoder reported, and
+  failing that, whether the place is within 15 km of some city's nearest marker.
+  Neither resolves a name to a position, so the decision above survives intact.
+  A selection stopped being an input to filing at the same time: it frames the
+  map and biases search, which are statements about what is being looked at, and
+  filing is a statement about where a place is.
+
   And the bias is a focus point, never a bounding box. Photon offers both, and
   only the first ranks rather than excludes — a trip is mostly day trips, and the
   place an hour away has to stay findable.

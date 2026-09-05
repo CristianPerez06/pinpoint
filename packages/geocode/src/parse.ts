@@ -106,6 +106,10 @@ function toCandidate(
     lat,
     typeGuess: guessMarkerType(str(props.osm_key), str(props.osm_value)),
     context: contextOf(props, name),
+    // `city` alone. `contextOf` above falls back to a district or a county for a
+    // disambiguation hint, which is the right answer for reading and the wrong
+    // one here — this name selects and creates cities.
+    city: str(props.city),
     distanceKm: bias ? distanceKm(bias, { lng, lat }) : null,
   }
 }

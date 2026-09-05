@@ -2,6 +2,7 @@
 
 import type {
   City,
+  CityNotice,
   FieldErrors,
   Marker,
   MarkerFilter,
@@ -9,7 +10,14 @@ import type {
   Trip,
   TripMember,
 } from '@pinpoint/core'
-import { isFiltered, matchesFilter, NO_FILTER } from '@pinpoint/core'
+import {
+  cityClaiming,
+  cityNoticeFor,
+  isFiltered,
+  markersSelectedBy,
+  matchesFilter,
+  NO_FILTER,
+} from '@pinpoint/core'
 import {
   createCity,
   createMarker,
@@ -157,7 +165,16 @@ type Panel =
        */
       reveal: boolean
     }
-  | { kind: 'create'; initial: MarkerFormValues }
+  | {
+      kind: 'create'
+      initial: MarkerFormValues
+      /**
+       * What the trip's cities said about where this place is, when it is worth
+       * saying. Null for the ordinary case — near the city being worked in —
+       * which is a requirement rather than a gap.
+       */
+      cityNotice: CityNotice | null
+    }
   | { kind: 'edit'; marker: Marker; initial: MarkerFormValues }
 
 /**
@@ -666,10 +683,7 @@ export function TripWorkspace({
     panel.kind === 'create' || panel.kind === 'edit' ? null : message
 
   const cityMarkers = useMemo(
-    () =>
-      selectedCityId === null
-        ? markers
-        : markers.filter((marker) => marker.cityId === selectedCityId),
+    () => markersSelectedBy(selectedCityId, markers),
     [markers, selectedCityId],
   )
 
@@ -1045,10 +1059,7 @@ export function TripWorkspace({
     // Framed on what is visible rather than on everything filed under the city:
     // framing to include markers a filter is hiding would zoom out to fit places
     // that are not drawn, and the empty margin would have no explanation.
-    const points =
-      cityId === null
-        ? visibleMarkers
-        : visibleMarkers.filter((marker) => marker.cityId === cityId)
+    const points = markersSelectedBy(cityId, visibleMarkers)
 
     // An empty list leaves the camera alone: there is nothing to frame, and
     // moving somewhere arbitrary would be worse than not moving.
@@ -1077,25 +1088,51 @@ export function TripWorkspace({
     }))
   }
 
-  function beginCreate(position: DraftPosition, initial: Partial<MarkerFormValues>) {
+  /**
+   * Starting a new place, from either entry path.
+   *
+   * `reportedCity` is what the geocoding service called the city this place is
+   * in, and is null for a position pointed at on the map — which knows where it
+   * is and nothing else. Both paths go through the same rule; only the name half
+   * is missing from one of them.
+   */
+  function beginCreate(
+    position: DraftPosition,
+    initial: Partial<MarkerFormValues>,
+    reportedCity: string | null = null,
+  ) {
     setDraft(position)
     setDropping(false)
     setFieldErrors({})
     setMessage(null)
     setConflict(null)
+
+    /*
+     * Where this place actually is decides the city, not what is selected.
+     *
+     * Matched against `markers` and never `visibleMarkers`, for the same reason
+     * `chooseCandidate` is: a filter decides what is drawn and has never decided
+     * what the trip holds. Filing a place differently because a filter was on
+     * would be a view setting reaching into stored data.
+     */
+    const claim = cityClaiming(
+      { ...position, city: reportedCity },
+      cities,
+      markers,
+    )
+
     setPanel({
       kind: 'create',
       initial: {
         name: '',
         note: null,
-        // Defaults to what is being worked on, which is almost always right and
-        // is a select away when it is not.
-        cityId: selectedCityId,
+        cityId: claim.kind === 'one' ? claim.city.id : null,
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
         ...initial,
       },
+      cityNotice: cityNoticeFor(claim, selectedCityId),
     })
   }
 
@@ -1147,7 +1184,11 @@ export function TripWorkspace({
       return
     }
 
-    beginCreate(position, { name: candidate.name, type: candidate.typeGuess })
+    beginCreate(
+      position,
+      { name: candidate.name, type: candidate.typeGuess },
+      candidate.city,
+    )
   }
 
   function cancel() {
@@ -1547,6 +1588,10 @@ export function TripWorkspace({
             title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
             initial={panel.initial}
             cities={cities}
+            // Editing never carries one: the rule guesses where a place is
+            // filed as it is saved, and re-guessing it while somebody corrects a
+            // note would be the form arguing with a decision already made.
+            cityNotice={panel.kind === 'create' ? panel.cityNotice : null}
             fieldErrors={fieldErrors}
             message={message}
             notice={conflict}

@@ -114,17 +114,18 @@ state ends with that city's first marker.
 A place SHALL be saveable with no city, and SHALL remain visible and addressable
 rather than being hidden until it is filed.
 
-#### Scenario: A place saved while the whole trip is in view
-
-- **WHEN** a person saves a place while no city is selected
-- **THEN** the same rule decides the default city
-- **AND** it is not defaulted to no city on account of the selection
-
-#### Scenario: A place inside a city other than the selected one
+#### Scenario: Saving with a city selected
 
 - **WHEN** a city is selected and a person saves a place the rule assigns elsewhere
 - **THEN** the form defaults to where the rule assigns it
 - **AND** the selection does not override it
+- **AND** they can change it before saving
+
+#### Scenario: Saving with nothing selected
+
+- **WHEN** a person saves a place while no city is selected
+- **THEN** the same rule decides the default city
+- **AND** it is not defaulted to no city on account of the selection
 
 #### Scenario: Selection still frames and biases
 
