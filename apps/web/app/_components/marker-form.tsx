@@ -219,7 +219,7 @@ export function MarkerForm({
                   className={styles.typeChip}
                   style={{
                     backgroundColor: chosen
-                      ? `var(--pp-family-${definition.family})`
+                      ? `var(--pp-pin-${definition.id})`
                       : 'var(--pp-surface-muted)',
                     color: chosen ? 'var(--pp-marker-foreground)' : 'var(--pp-ink-muted)',
                   }}

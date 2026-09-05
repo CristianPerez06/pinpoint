@@ -15,62 +15,80 @@ import { FALLBACK_MARKER_TYPE, isMarkerType } from '@pinpoint/map'
  * for the person to correct. Guessing is a convenience, never a gate.
  */
 
-/** Specific: matched on `osm_value`. */
+/**
+ * Specific: matched on `osm_value`.
+ *
+ * This table is the one place the type collapse *gained* precision rather than
+ * losing it. `zoo` and `aquarium` were both flattened into `attraction` because
+ * the old list had nowhere better to put them; they now go to `nature`, which is
+ * what somewhere you go to look at living things is. A tag says more than a
+ * stored identifier can — see `RETIRED_TYPES` in `@pinpoint/map`, which only ever
+ * sees `attraction` and so must send a zoo saved earlier to `culture`.
+ */
 const BY_VALUE: Readonly<Record<string, string>> = {
-  restaurant: 'restaurant',
-  fast_food: 'street-food',
-  food_court: 'street-food',
-  street_vendor: 'street-food',
-  cafe: 'cafe',
-  coffee: 'cafe',
-  bar: 'bar',
-  pub: 'bar',
-  biergarten: 'bar',
+  restaurant: 'food',
+  fast_food: 'food',
+  food_court: 'food',
+  street_vendor: 'food',
+  cafe: 'food',
+  coffee: 'food',
+  bar: 'food',
+  pub: 'food',
+  biergarten: 'food',
 
-  museum: 'museum',
-  gallery: 'museum',
-  artwork: 'museum',
-  attraction: 'attraction',
-  theme_park: 'attraction',
-  zoo: 'attraction',
-  aquarium: 'attraction',
-  viewpoint: 'viewpoint',
-  castle: 'castle',
-  fort: 'castle',
-  temple: 'temple',
-  shrine: 'temple',
-  monastery: 'temple',
-  place_of_worship: 'temple',
-  park: 'park',
-  garden: 'park',
-  nature_reserve: 'park',
+  museum: 'culture',
+  gallery: 'culture',
+  artwork: 'culture',
+  attraction: 'culture',
+  castle: 'culture',
+  fort: 'culture',
+  temple: 'culture',
+  shrine: 'culture',
+  monastery: 'culture',
+  place_of_worship: 'culture',
+  /* Neither culture nor nature, and not worth an eighth colour. `culture` is
+     where the rest of the built attractions are. */
+  theme_park: 'culture',
 
-  marketplace: 'market',
-  supermarket: 'market',
-  mall: 'shop',
-  department_store: 'shop',
+  zoo: 'nature',
+  aquarium: 'nature',
+  viewpoint: 'nature',
+  park: 'nature',
+  garden: 'nature',
+  nature_reserve: 'nature',
 
-  hotel: 'lodging',
-  hostel: 'lodging',
-  guest_house: 'lodging',
-  motel: 'lodging',
-  apartment: 'lodging',
+  marketplace: 'shopping',
+  supermarket: 'shopping',
+  mall: 'shopping',
+  department_store: 'shopping',
 
-  station: 'station',
-  subway_entrance: 'station',
-  bus_station: 'station',
-  aerodrome: 'airport',
+  hotel: 'stay',
+  hostel: 'stay',
+  guest_house: 'stay',
+  motel: 'stay',
+  apartment: 'stay',
+
+  station: 'transport',
+  subway_entrance: 'transport',
+  bus_station: 'transport',
+  aerodrome: 'transport',
 }
 
-/** Coarse: matched on `osm_key` when the value said nothing. */
+/**
+ * Coarse: matched on `osm_key` when the value said nothing.
+ *
+ * `leisure` -> `nature` looks like a decision and is not: it resolved to `park`
+ * before, and `park` is one of the two types `nature` absorbs, so this is the
+ * same grouping written under a new name.
+ */
 const BY_KEY: Readonly<Record<string, string>> = {
-  tourism: 'attraction',
-  historic: 'attraction',
-  leisure: 'park',
-  shop: 'shop',
-  railway: 'station',
-  aeroway: 'airport',
-  natural: 'viewpoint',
+  tourism: 'culture',
+  historic: 'culture',
+  leisure: 'nature',
+  natural: 'nature',
+  shop: 'shopping',
+  railway: 'transport',
+  aeroway: 'transport',
 }
 
 /**

@@ -210,6 +210,21 @@ placeholders.
   the invariant was never written down. Before drawing anything outside a set that
   something else counts, go and find what reads that count.
 
+- **A type predicate on a zod `refine` narrows the inferred type through every
+  consumer of the schema.** `markerTypeSchema` is `z.string().refine(isMarkerType)`,
+  and changing `isMarkerType` from `(id: string): boolean` to `(id: string): id is
+  MarkerType` silently retyped `Marker.type` from `string` to the union — which broke
+  the data layer, where a row's type is deliberately *not* validated because the
+  column is unconstrained text and a value written by an older build must still
+  render. The error surfaced in `packages/data/src/markers.ts`, three packages away
+  from the edit, and named neither zod nor the predicate. **Learn the shape of this
+  one**: the change was a strictly-more-precise signature, which is the kind of edit
+  nobody expects to break anything, and the failure appears somewhere that does not
+  mention the thing that caused it. Reads and writes want different strictness here
+  on purpose — `isMarkerType` answers "may this be written", `markerTypeOf` answers
+  "what does this stored value mean" — so keep the predicate off the one the schema
+  refines on.
+
 - **A `MODIFIED` spec delta deletes every sentence you do not carry forward.** The
   delta replaces the whole requirement at archive time, so a paragraph left out is
   removed from the specification silently and the diff looks like the change you

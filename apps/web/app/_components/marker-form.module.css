@@ -70,9 +70,13 @@
     color 0.15s ease;
 }
 
+/* Four columns, not `auto-fill`. With sixteen types any column count divided
+   tidily; with seven, a width-dependent count can leave a single orphan on the
+   second row. Four gives 4 + 3 at every width, and the cells are wider than they
+   were, which they can afford to be now there are fewer of them. */
 .types {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
 }
 

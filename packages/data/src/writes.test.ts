@@ -85,7 +85,7 @@ const MARKER_ROW = {
   note: null,
   lng: 135.7649,
   lat: 35.005,
-  type: 'market',
+  type: 'shopping',
   link: null,
   price: null,
   visited: false,
@@ -108,7 +108,7 @@ const VALID_MARKER = {
   note: null,
   lng: 135.7649,
   lat: 35.005,
-  type: 'market',
+  type: 'shopping',
   link: null,
   price: null,
 }
@@ -125,7 +125,7 @@ describe('createMarker', () => {
       id: MARKER_ID,
       name: 'Nishiki Market',
       cityId: CITY_ID,
-      type: 'market',
+      type: 'shopping',
     })
   })
 

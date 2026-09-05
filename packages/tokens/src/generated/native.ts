@@ -21,7 +21,7 @@ export interface Theme {
   readonly mode: 'light' | 'dark'
   readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'inkOnAccent' | 'accentWash' | 'accentRing' | 'danger' | 'dangerSurface', string>>
   readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'boundary' | 'label', string>>
-  readonly markerFamily: Readonly<Record<'see' | 'eat' | 'buy' | 'sleep' | 'move', string>>
+  readonly markerType: Readonly<Record<'place' | 'culture' | 'nature' | 'food' | 'shopping' | 'stay' | 'transport', string>>
   readonly markerForeground: string
   readonly elevation: Readonly<Record<'sm' | 'md' | 'lg' | 'pin', ThemeElevation>>
 }
@@ -56,12 +56,14 @@ export const LIGHT: Theme = {
     "boundary": "#DEDAD0",
     "label": "#9A948B"
   },
-  "markerFamily": {
-    "see": "#7C8896",
-    "eat": "#D2451E",
-    "buy": "#8A3FFC",
-    "sleep": "#0B5FD0",
-    "move": "#00857A"
+  "markerType": {
+    "place": "#8B857A",
+    "culture": "#7C8896",
+    "nature": "#3F7A32",
+    "food": "#D2451E",
+    "shopping": "#8A3FFC",
+    "stay": "#0B5FD0",
+    "transport": "#00857A"
   },
   "markerForeground": "#FFFFFF",
   "elevation": {
@@ -118,12 +120,14 @@ export const DARK: Theme = {
     "boundary": "#2A251E",
     "label": "#8A8378"
   },
-  "markerFamily": {
-    "see": "#98A3B0",
-    "eat": "#F0653A",
-    "buy": "#A97BFF",
-    "sleep": "#4A8FE8",
-    "move": "#16A99C"
+  "markerType": {
+    "place": "#A8A197",
+    "culture": "#98A3B0",
+    "nature": "#6FB45C",
+    "food": "#F0653A",
+    "shopping": "#A97BFF",
+    "stay": "#4A8FE8",
+    "transport": "#16A99C"
   },
   "markerForeground": "#171614",
   "elevation": {

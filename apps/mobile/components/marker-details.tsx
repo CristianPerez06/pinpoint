@@ -177,7 +177,7 @@ function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number }) {
         {
           width: size,
           height: size,
-          backgroundColor: theme.markerFamily[view.family],
+          backgroundColor: theme.markerType[view.type],
         },
       ]}
     >
@@ -517,7 +517,7 @@ export function MarkerDetails({
 
       <View style={styles.tags}>
         <View
-          style={[styles.tag, { backgroundColor: theme.markerFamily[view.family] }]}
+          style={[styles.tag, { backgroundColor: theme.markerType[view.type] }]}
         >
           <Text style={[styles.tagText, { color: theme.markerForeground }]}>
             {view.typeLabel}

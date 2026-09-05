@@ -18,11 +18,13 @@ colors:
   ink-on-accent: "#241703"
   danger: "#B3261E"
   danger-surface: "#FCEDEC"
-  family-see: "#7C8896"
-  family-eat: "#D2451E"
-  family-buy: "#8A3FFC"
-  family-sleep: "#0B5FD0"
-  family-move: "#00857A"
+  pin-place: "#8B857A"
+  pin-culture: "#7C8896"
+  pin-nature: "#3F7A32"
+  pin-food: "#D2451E"
+  pin-shopping: "#8A3FFC"
+  pin-stay: "#0B5FD0"
+  pin-transport: "#00857A"
   marker-foreground: "#FFFFFF"
   map-land: "#EFEEE9"
   map-block: "#E3E1D9"
@@ -207,7 +209,7 @@ deliberately short of that look.
 
 - One warm ground shared by the map and the interface, never two palettes meeting.
 - Five saturated marker families, ranked by deliberate prominence, as the only strong colour.
-- Amber as the single accent, chosen so it can never be mistaken for a sixth family.
+- Amber as the single accent, chosen so it can never be mistaken for a place type.
 - Every colour chosen twice, once against each ground; no theme is derived from the other.
 - One typeface doing all the work, at eight named roles.
 - Depth measured as distance from the map, not applied as decoration.
@@ -230,7 +232,7 @@ not a derivation.
 - **Signal Amber** (dark ground: `#F0AE4A`): The single accent. It carries the primary
   action, the current selection and the focus ring — and it is amber specifically
   because it must be distinguishable from all five marker families at a glance. An
-  accent that read as a sixth family would make the map's own colour vocabulary
+  accent that read as an eighth place type would make the map's own colour vocabulary
   ambiguous. Amber is nowhere near slate, orange-red, violet, blue or teal, and it is
   warm against a near-greyscale basemap.
 - **Deep Amber Ink** (dark ground: `#F0AE4A`): Amber *as text*, and not interchangeable
@@ -249,20 +251,31 @@ not a derivation.
   accent's own hue rather than a neutral, because a neutral over amber reads as a
   printing error (7.44:1). Dark is Ink's own ground (9.35:1).
 
-### Secondary — The Marker Families
+### Secondary — The Place Types
 
-Five fixed families, one colour each, and their **relative prominence is a product
-decision rather than a palette choice**. A real wishlist is lopsided: the seeded Kyoto
-trip is fourteen `see` against one each of the rest. If `see` took a loud colour,
-fourteen loud pins would drown the four carrying the information somebody is actually
-looking for. The minority is the signal.
+Seven types, one colour each, and their **relative prominence is a product decision
+rather than a palette choice**. A real wishlist is lopsided: the seeded Kyoto trip is
+ten `culture` against one each of the rest, and no `food` at all. If `culture` took a
+loud colour, ten loud pins would drown the ones carrying the information somebody is
+actually looking for. The minority is the signal.
 
-- **Quiet Slate** — `see` (dark: `#98A3B0`): The deliberate majority, deliberately the
-  most recessive value in the system.
-- **Burnt Orange** — `eat` (dark: `#F0653A`)
-- **Violet** — `buy` (dark: `#A97BFF`)
-- **Deep Blue** — `sleep` (dark: `#4A8FE8`)
-- **Teal** — `move` (dark: `#00857A` → `#16A99C`)
+Colour used to be carried by a closed set of five *families*, with the type deciding
+only the icon. Sixteen types arrived over those five colours, seven of them sharing
+one, and a castle, a museum and a park became indistinguishable except by a 15px
+glyph. The cap was never reached; the bucket was. Colour now names the type directly.
+
+- **Warm Neutral** — `place` (dark: `#A8A197`): The fallback, and deliberately the
+  least coloured pin on the map. Not ranked against the rest — it makes no claim.
+  Separated from Quiet Slate by hue direction, warm against cool, never by lightness:
+  lightness already means visited.
+- **Quiet Slate** — `culture` (dark: `#98A3B0`): The deliberate majority, deliberately
+  the most recessive *coloured* value in the system.
+- **Leaf Green** — `nature` (dark: `#6FB45C`): Pushed yellow rather than blue, to hold
+  its distance from Teal and its ground on the basemap's park fill.
+- **Burnt Orange** — `food` (dark: `#F0653A`)
+- **Violet** — `shopping` (dark: `#A97BFF`)
+- **Deep Blue** — `stay` (dark: `#4A8FE8`)
+- **Teal** — `transport` (dark: `#00857A` → `#16A99C`)
 - **Pin Glyph** — `marker-foreground` (dark: `#171614`): White on light, near-black on
   dark. This is the one place the two themes differ in *kind* rather than in value, and
   it follows from the families being lifted rather than darkened for the dark ground.
@@ -271,7 +284,7 @@ looking for. The minority is the signal.
 
 Not decoration: `@pinpoint/map` rewrites the upstream style document with these, which
 is the entire North Star made literal. Chosen against Positron's structure, a
-near-greyscale style whose quietness is what lets five saturated pins be the only strong
+near-greyscale style whose quietness is what lets the marker pins be the only strong
 colour on screen.
 
 - **Map Land** (dark: `#1A1815`), **Map Block** (dark: `#262218`), **Map Road** (dark:
@@ -299,19 +312,26 @@ colour on screen.
   so recessive *text* goes to Muted Ink instead, which is already clearly quieter than Ink
   and still legible.
 - **Danger** — `danger` (dark: `#F2857C`) and **Danger Surface** — `danger-surface`
-  (dark: `#33211F`): Failure. Chosen distinct from every family colour, so a broken map
+  (dark: `#33211F`): Failure. Chosen distinct from every type colour, so a broken map
   never reads as a marker.
 
 ### Named Rules
 
-**The Sixth Family Rule.** There are exactly five colour families and one accent. Never
+**The Eighth Type Rule.** There are exactly seven place types and one accent. Never
 introduce a new saturated hue into the interface: any colour a person could mistake for
-a marker family breaks the map's vocabulary. New *types* join an existing family; they
-never bring a colour.
+a place type breaks the map's vocabulary. And a new *type* now costs a colour — which
+is the whole bound on the list. Do not add an eighth on the grounds that the budget of
+roughly eight allows one; the accent and `danger` are already spending two.
 
-**The Ranking Rule.** `see` is the most recessive value in both themes and the other four
-are prominent in both. A dark value that is legible but wrongly ranked does not satisfy
-this system. Changing the ranking is a product change, not a palette refresh.
+This inverts the rule it replaces, which read *new types join an existing family and
+never bring a colour*. That rule is why sixteen types arrived over five colours.
+
+**The Ranking Rule.** `culture` is the most recessive coloured value in both themes and
+the rest are prominent in both. `place` is exempt: it is a near-neutral rather than a
+quiet colour, because it means *nothing was determined*. A dark value that is legible
+but wrongly ranked does not satisfy this system. Changing the ranking is a product
+change, not a palette refresh — and which type holds the majority is a fact about how
+trips get filled in, so the recessive value follows it rather than being assigned once.
 
 **The Amber Pair Rule.** Never write text in `accent`. Anything amber and legible uses
 `accent-ink`, and anything amber and filled uses `accent-wash` beneath it. The single
@@ -546,8 +566,8 @@ there shows the map through the corners.
   faint caret. The border appears in Stated Edge on hover or while open — the control
   states nothing at rest.
 - **Toggle pill:** Same construction, holding a checkbox tinted with the accent.
-- **Tag:** Muted Fill with Muted Ink at 3×9, `note` type. A family tag inverts to the
-  family colour with the pin glyph foreground.
+- **Tag:** Muted Fill with Muted Ink at 3×9, `note` type. A type tag inverts to the
+  type colour with the pin glyph foreground.
 - **Interest choice:** Outlined in Stated Edge with Muted Ink at rest; **active** is
   Amber Wash with a Deep Amber Ink border and text. Never the raw accent.
 - **Filter `Clear`:** two states of one permanent control. Live is Amber Wash with a
@@ -579,7 +599,7 @@ there shows the map through the corners.
 ### Navigation & Chrome
 
 - **The mark:** a 9px accent dot with a 3px Amber Ring halo. The dot *is* the mark — a
-  pin reduced to the point it names, in the one colour that is not a marker family. The
+  pin reduced to the point it names, in the one colour that is not a place type. The
   full wordmark, "pinpoint" at 16.5px/800/−0.032em, is for signed-out screens.
 - **Web header:** it *is* the bar — the dot, the trip name and the city as menus, the
   session's three tools, and the account at the far end holding what is about the person
@@ -600,8 +620,10 @@ behind while keyboard navigation always shows one.
 ### Signature Component — The Pin
 
 The system's one piece of real iconography and the only place saturated colour is
-allowed. A 32×42 teardrop filled with its family colour, a 15px stroked glyph in the
+allowed. A 32×42 teardrop filled with its type colour, a 15px stroked glyph in the
 marker foreground centred on the head, and a `pin` drop-shadow following the outline.
+The glyph reinforces what the colour has already said; it is not what separates one
+type from another, which is why it can afford to be small.
 
 - **Selected:** scales to 1.2 from a `50% 100%` origin over 0.18s on a
   `cubic-bezier(0.2, 0.8, 0.3, 1)`, and the Amber Ring halo fades in behind it.
@@ -652,8 +674,9 @@ marker foreground centred on the head, and a `pin` drop-shadow following the out
 
 ### Don't:
 
-- **Don't** introduce a sixth saturated hue. New marker types join an existing family and
-  bring an icon, never a colour.
+- **Don't** introduce an eighth saturated hue, and don't add a place type casually. A
+  type now costs a colour: adding one is a palette decision somebody has to argue for,
+  not an edit to a list.
 - **Don't** write text in `--pp-accent`, and don't letter an accent fill with `ground` or
   with white — white clears 2.26:1 on it. Amber *text* is `accent-ink`; text *on* amber is
   `ink-on-accent`.

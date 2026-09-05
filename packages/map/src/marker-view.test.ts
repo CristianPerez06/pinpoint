@@ -1,4 +1,4 @@
-import { MARKER_ANCHOR, MARKER_FAMILY_COLOURS, MARKER_SIZE } from '@pinpoint/tokens'
+import { MARKER_ANCHOR, MARKER_SIZE, MARKER_TYPE_COLOURS } from '@pinpoint/tokens'
 import { describe, expect, it } from 'vitest'
 
 import { FALLBACK_MARKER_TYPE, MARKER_ICONS } from './marker-type'
@@ -11,25 +11,40 @@ import {
 } from './marker-view'
 
 function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) {
-  return { lng, lat, name: 'A place', type: 'other', ...overrides }
+  return { lng, lat, name: 'A place', type: 'place', ...overrides }
 }
 
 describe('markerView', () => {
-  it('gives two types of different families different icons and families', () => {
-    const temple = markerView(at(135.78, 35.0, { name: 'Kiyomizu-dera', type: 'temple' }))
-    const restaurant = markerView(at(135.77, 35.0, { name: 'Pontocho', type: 'restaurant' }))
+  it('gives two different types different colours and different icons', () => {
+    const museum = markerView(at(135.78, 35.0, { name: 'Kyoto Museum', type: 'culture' }))
+    const restaurant = markerView(at(135.77, 35.0, { name: 'Pontocho', type: 'food' }))
 
-    expect(temple.icon).not.toBe(restaurant.icon)
-    expect(temple.family).toBe('see')
-    expect(restaurant.family).toBe('eat')
+    expect(museum.icon).not.toBe(restaurant.icon)
+    expect(museum.type).toBe('culture')
+    expect(restaurant.type).toBe('food')
   })
 
-  it('gives two types of the same family one family and two icons', () => {
+  it('gives two markers that used to share a family two colours', () => {
+    // Inverted from what this file asserted, and kept rather than deleted. It
+    // read: a temple and a castle share a colour and differ only by icon. That
+    // was the behaviour — seven types over one slate — and it is what this
+    // change removes. A temple and a park are now told apart without reading
+    // either glyph.
     const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
-    const castle = markerView(at(135.75, 35.01, { type: 'castle' }))
+    const park = markerView(at(135.75, 35.01, { type: 'park' }))
 
-    expect(temple.family).toBe(castle.family)
-    expect(temple.icon).not.toBe(castle.icon)
+    expect(temple.type).not.toBe(park.type)
+    expect(temple.icon).not.toBe(park.icon)
+  })
+
+  it('resolves a retired stored type to the type that replaced it', () => {
+    // Not the fallback. A saved temple drawn as a generic `place` pin raises no
+    // error and fails no test that does not look for this.
+    const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
+
+    expect(temple.type).toBe('culture')
+    expect(temple.typeId).toBe('culture')
+    expect(temple.typeId).not.toBe(FALLBACK_MARKER_TYPE)
   })
 
   it('renders an unrecognised stored type as the fallback rather than omitting it', () => {
@@ -37,10 +52,10 @@ describe('markerView', () => {
 
     expect(view.typeId).toBe(FALLBACK_MARKER_TYPE)
     expect(MARKER_ICONS).toContain(view.icon)
-    expect(view.family).toBe('see')
+    expect(view.type).toBe('place')
   })
 
-  it('names an icon rather than carrying one, and names a family rather than a colour', () => {
+  it('names an icon rather than carrying one, and names a type rather than a colour', () => {
     // The whole point of the indirection: nothing here is ready to draw, so a
     // theme can decide the colour and a platform can decide the glyph.
     const view = markerView(at(135.78, 35.0, { type: 'cafe' }))
@@ -69,13 +84,24 @@ describe('markerView', () => {
     expect(view.label).toBe('Fushimi Inari')
   })
 
-  it('gives every declared family a colour on both grounds', () => {
+  it('gives every declared type a colour on both grounds', () => {
     // The compile-time check in marker-view.ts is the real guard; this catches
     // a colour that exists but is empty.
-    for (const colour of Object.values(MARKER_FAMILY_COLOURS)) {
+    for (const colour of Object.values(MARKER_TYPE_COLOURS)) {
       expect(colour.light).toMatch(/^#[0-9A-F]{6}$/i)
       expect(colour.dark).toMatch(/^#[0-9A-F]{6}$/i)
       expect(colour.light).not.toBe(colour.dark)
+    }
+  })
+
+  it('gives no two types the same colour', () => {
+    // The load-bearing property of the whole change: colour is the channel that
+    // separates one type from another, so a duplicate silently merges two of
+    // them back together — which is the condition this change exists to undo.
+    for (const ground of ['light', 'dark'] as const) {
+      const values = Object.values(MARKER_TYPE_COLOURS).map((colour) => colour[ground])
+
+      expect(new Set(values).size).toBe(values.length)
     }
   })
 })
@@ -169,10 +195,10 @@ describe('markerView — visited', () => {
     const seen = markerView({ ...place, visited: true })
     const unseen = markerView({ ...place, visited: false })
 
-    // The whole point of the rule: colour names the family and only the family,
-    // so a visited place and an unvisited one of the same type are the same
-    // colour and differ only in how solidly they are drawn.
-    expect(seen.family).toBe(unseen.family)
+    // The whole point of the rule: colour names the type and only the type, so
+    // a visited place and an unvisited one of the same type are the same colour
+    // and differ only in how solidly they are drawn.
+    expect(seen.type).toBe(unseen.type)
     expect(seen.icon).toBe(unseen.icon)
     expect(seen.opacity).toBe(VISITED_OPACITY)
     expect(unseen.opacity).toBe(1)

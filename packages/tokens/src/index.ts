@@ -5,7 +5,7 @@
  *
  * The `styling` spec forbids a token package until a value is genuinely needed
  * by both applications, and requires one the moment such a value appears.
- * Marker family colours were that value — the same temple must be the same
+ * Marker type colours were that value — the same temple must be the same
  * colour on a laptop and on a phone.
  *
  * WHAT IS DERIVED FROM IT, AND WHAT IS NOT
@@ -35,10 +35,10 @@
 export {
   BASEMAP_COLOUR,
   COLOUR,
-  MARKER_FAMILY_COLOURS,
+  MARKER_TYPE_COLOURS,
   MARKER_FOREGROUND,
 } from './colour'
-export type { MarkerFamilyColourKey, Themed, ThemeMode } from './colour'
+export type { MarkerTypeColourKey, Themed, ThemeMode } from './colour'
 
 export { ELEVATION } from './elevation'
 export type { Elevation, ElevationLevel } from './elevation'

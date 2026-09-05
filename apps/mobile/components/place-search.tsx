@@ -276,7 +276,7 @@ function Candidate({
       <View
         style={[
           styles.glyph,
-          { backgroundColor: theme.markerFamily[definition.family] },
+          { backgroundColor: theme.markerType[definition.id] },
         ]}
       >
         <MarkerGlyph icon={definition.icon} size={15} colour={theme.markerForeground} />

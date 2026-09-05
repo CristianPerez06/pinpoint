@@ -280,7 +280,7 @@ function Glyph({ candidate }: { candidate: PlaceCandidate }) {
   return (
     <span
       className={styles.glyph}
-      style={{ backgroundColor: `var(--pp-family-${definition.family})` }}
+      style={{ backgroundColor: `var(--pp-pin-${definition.id})` }}
       aria-hidden
       title={definition.label}
     >

@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import {
   BASEMAP_COLOUR,
   COLOUR,
-  MARKER_FAMILY_COLOURS,
+  MARKER_TYPE_COLOURS,
   MARKER_FOREGROUND,
   type Themed,
   type ThemeMode,
@@ -76,7 +76,7 @@ function checkGroup(name: string, group: Record<string, Themed>): void {
 
 checkGroup('COLOUR', COLOUR)
 checkGroup('BASEMAP_COLOUR', BASEMAP_COLOUR)
-checkGroup('MARKER_FAMILY_COLOURS', MARKER_FAMILY_COLOURS)
+checkGroup('MARKER_TYPE_COLOURS', MARKER_TYPE_COLOURS)
 checkThemed('MARKER_FOREGROUND', MARKER_FOREGROUND)
 for (const [level, value] of Object.entries(ELEVATION)) {
   checkThemed(`ELEVATION.${level}.colour`, value.colour)
@@ -102,7 +102,7 @@ function themeObject(mode: ThemeMode) {
     mode,
     colour: resolve(COLOUR, mode),
     basemap: resolve(BASEMAP_COLOUR, mode),
-    markerFamily: resolve(MARKER_FAMILY_COLOURS, mode),
+    markerType: resolve(MARKER_TYPE_COLOURS, mode),
     markerForeground: MARKER_FOREGROUND[mode],
     elevation: Object.fromEntries(
       Object.entries(ELEVATION).map(([level, value]) => [
@@ -136,7 +136,7 @@ export interface Theme {
   readonly mode: 'light' | 'dark'
   readonly colour: Readonly<Record<${Object.keys(COLOUR).map((k) => `'${k}'`).join(' | ')}, string>>
   readonly basemap: Readonly<Record<${Object.keys(BASEMAP_COLOUR).map((k) => `'${k}'`).join(' | ')}, string>>
-  readonly markerFamily: Readonly<Record<${Object.keys(MARKER_FAMILY_COLOURS).map((k) => `'${k}'`).join(' | ')}, string>>
+  readonly markerType: Readonly<Record<${Object.keys(MARKER_TYPE_COLOURS).map((k) => `'${k}'`).join(' | ')}, string>>
   readonly markerForeground: string
   readonly elevation: Readonly<Record<${Object.keys(ELEVATION).map((k) => `'${k}'`).join(' | ')}, ThemeElevation>>
 }
@@ -163,9 +163,12 @@ function customProperties(mode: ThemeMode): string {
     lines.push(`  --pp-map-${kebab(key)}: ${token[mode]};`)
   }
 
-  lines.push('', '  /* marker families — fixed by the product, not by the palette */')
-  for (const [key, token] of Object.entries(MARKER_FAMILY_COLOURS)) {
-    lines.push(`  --pp-family-${key}: ${token[mode]};`)
+  /* `--pp-pin-*` rather than `--pp-type-*`: the typography scale already owns
+     that prefix (`--pp-type-body-size`), and two unrelated things under one
+     namespace is how a stylesheet becomes unreadable. These colour a pin. */
+  lines.push('', '  /* marker types — fixed by the product, not by the palette */')
+  for (const [key, token] of Object.entries(MARKER_TYPE_COLOURS)) {
+    lines.push(`  --pp-pin-${key}: ${token[mode]};`)
   }
   lines.push(`  --pp-marker-foreground: ${MARKER_FOREGROUND[mode]};`)
 

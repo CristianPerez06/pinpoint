@@ -33,7 +33,7 @@ describe('toCandidates', () => {
       name: 'Kiyomizu-dera',
       lng: 135.7681,
       lat: 35.0116,
-      typeGuess: 'temple',
+      typeGuess: 'culture',
     })
     expect(candidate?.context).toContain('Kyoto')
   })
