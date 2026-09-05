@@ -133,3 +133,55 @@ describe('toCandidates', () => {
     expect(candidate?.distanceKm).toBeNull()
   })
 })
+
+describe('toCandidates — the city a place is in', () => {
+  it('carries the service’s city as a field of its own', () => {
+    const [candidate] = toCandidates(
+      collection(feature({ name: 'Kiyomizu-dera', city: 'Kyoto', country: 'Japan' })),
+    )
+
+    expect(candidate?.city).toBe('Kyoto')
+  })
+
+  it('carries nothing when the service named no city', () => {
+    // Nothing wider is substituted. "Create Kyoto Prefecture" is a group nobody
+    // meant to make, named after something that is not a city.
+    const [candidate] = toCandidates(
+      collection(
+        feature({ name: 'Ama-no-Hashidate', county: 'Yosa', state: 'Kyoto Prefecture', country: 'Japan' }),
+      ),
+    )
+
+    expect(candidate?.city).toBeNull()
+    // The context still uses the wider parts — reading and filing want different
+    // answers, which is why this is not read back out of that string.
+    expect(candidate?.context).toContain('Yosa')
+  })
+
+  it('carries a city that is also the place’s own name', () => {
+    // `context` drops a part equal to the name, to avoid saying "Kyoto, Kyoto".
+    // This field must not: it is what the trip's cities are compared against.
+    const [candidate] = toCandidates(
+      collection(feature({ name: 'Kyoto', city: 'Kyoto', country: 'Japan' })),
+    )
+
+    expect(candidate?.city).toBe('Kyoto')
+    expect(candidate?.context).not.toContain('Kyoto,')
+  })
+
+  it('does not withhold, reorder, or drop a candidate on account of its city', () => {
+    const candidates = toCandidates(
+      collection(
+        feature({ name: 'First', city: 'Kyoto' }),
+        feature({ name: 'Second' }),
+        feature({ name: 'Third', city: 'Nara' }),
+      ),
+    )
+
+    expect(candidates.map((candidate) => candidate.name)).toEqual([
+      'First',
+      'Second',
+      'Third',
+    ])
+  })
+})

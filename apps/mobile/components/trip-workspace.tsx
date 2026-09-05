@@ -5,6 +5,7 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
 import type {
+  CityNotice,
   FieldErrors,
   Marker,
   MarkerFilter,
@@ -12,7 +13,15 @@ import type {
   Trip,
   TripMember,
 } from '@pinpoint/core'
-import { isFiltered, matchesFilter, NO_FILTER } from '@pinpoint/core'
+import {
+  cityClaiming,
+  cityNoticeFor,
+  isFiltered,
+  markersSelectedBy,
+  matchesFilter,
+  NO_FILTER,
+  UNASSIGNED_CITY,
+} from '@pinpoint/core'
 import {
   createCity,
   createMarker,
@@ -133,7 +142,17 @@ import { type Query, useQuery } from '@/lib/use-query'
  */
 type Panel =
   | { kind: 'none' }
-  | { kind: 'create'; position: LngLat; initial: MarkerFormValues }
+  | {
+      kind: 'create'
+      position: LngLat
+      initial: MarkerFormValues
+      /**
+       * What the trip's cities said about where this place is, when it is worth
+       * saying. Null for the ordinary case — near the city being worked in —
+       * which is a requirement rather than a gap.
+       */
+      cityNotice: CityNotice | null
+    }
   | { kind: 'edit'; marker: Marker; position: LngLat; initial: MarkerFormValues }
 
 /**
@@ -364,6 +383,19 @@ export function TripWorkspace({
    */
   const selectedCity = cities.find((city) => city.id === selectedCityId) ?? null
 
+  /**
+   * What the header calls the selection.
+   *
+   * Three states, so three names. Unassigned resolves to no city — it is defined
+   * by the absence of one — and would otherwise fall through to `All places`,
+   * which is the widest view rather than this narrow one and would leave the
+   * header saying the opposite of what is on the map.
+   */
+  const selectionName =
+    selectedCityId === UNASSIGNED_CITY
+      ? 'Unassigned'
+      : (selectedCity?.name ?? 'All places')
+
   const currencyOf = (marker: Marker) =>
     cities.find((city) => city.id === marker.cityId)?.currency ?? null
 
@@ -496,10 +528,7 @@ export function TripWorkspace({
    * set — see `selectCity`.
    */
   const cityMarkers = useMemo(
-    () =>
-      selectedCityId === null
-        ? held
-        : held.filter((marker) => marker.cityId === selectedCityId),
+    () => markersSelectedBy(selectedCityId, held),
     [held, selectedCityId],
   )
 
@@ -540,10 +569,13 @@ export function TripWorkspace({
   /**
    * Choosing which group of places is being worked on.
    *
-   * Three consequences and deliberately not a fourth: the camera re-frames, the
-   * next save defaults to it, and search biases toward it. It does not filter —
-   * hiding the rest would answer "what is near what" with a lie, and the pins of
-   * other cities stay drawn wherever they fall on screen.
+   * Two consequences, and it used to be three: the camera re-frames and search
+   * biases toward it. It no longer decides where the next save is filed — that
+   * is decided by where the place actually is, because a selection is a
+   * statement about what is being *looked at* and filing is about where a place
+   * *is*. It does not filter either: hiding the rest would answer "what is near
+   * what" with a lie, and the pins of other cities stay drawn wherever they fall
+   * on screen.
    *
    * Framed on what is *visible* rather than on everything filed under the city:
    * framing to include markers a filter is hiding would zoom out to fit places
@@ -555,10 +587,7 @@ export function TripWorkspace({
   function selectCity(cityId: string | null) {
     setSelectedCityId(cityId)
 
-    const points =
-      cityId === null
-        ? visible
-        : visible.filter((marker) => marker.cityId === cityId)
+    const points = markersSelectedBy(cityId, visible)
 
     // Not told what covers the bottom edge: the toolbar was already there and
     // the map has already measured it, so it frames above it on its own. An
@@ -566,27 +595,51 @@ export function TripWorkspace({
     mapRef.current?.frameOn(points)
   }
 
-  /** Starting a new place, from either entry path. */
-  function beginCreate(position: LngLat, initial: Partial<MarkerFormValues>) {
+  /**
+   * Starting a new place, from either entry path.
+   *
+   * `reportedCity` is what the geocoding service called the city this place is
+   * in, and is null for a position aimed at with the sight — which knows where
+   * it is and nothing else. Both paths go through the same rule; only the name
+   * half is missing from one of them.
+   */
+  function beginCreate(
+    position: LngLat,
+    initial: Partial<MarkerFormValues>,
+    reportedCity: string | null = null,
+  ) {
     setFieldErrors({})
     setFormMessage(null)
     setConflict(null)
     setSight(null)
+
+    /*
+     * Where this place actually is decides the city, not what is selected.
+     *
+     * Measured against `held` — the whole trip — and never `visible`. A filter
+     * decides what is drawn and has never decided what the trip holds, so filing
+     * a place differently because a filter was on would be a view setting
+     * reaching into stored data.
+     */
+    const claim = cityClaiming(
+      { ...position, city: reportedCity },
+      cities,
+      held,
+    )
+
     setPanel({
       kind: 'create',
       position,
       initial: {
         name: '',
         note: null,
-        // Defaults to what is being worked on, which is almost always right and
-        // is one tap away when it is not. Null when the whole trip is in view,
-        // which files the place as unassigned unless the form is told otherwise.
-        cityId: selectedCityId,
+        cityId: claim.kind === 'one' ? claim.city.id : null,
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
         ...initial,
       },
+      cityNotice: cityNoticeFor(claim, selectedCityId),
     })
   }
 
@@ -954,6 +1007,10 @@ export function TripWorkspace({
         title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
         initial={panel.initial}
         cities={cities}
+        // Editing never carries one: the rule guesses where a place is filed as
+        // it is saved, and re-guessing it while somebody corrects a note would
+        // be the form arguing with a decision already made.
+        cityNotice={panel.kind === 'create' ? panel.cityNotice : null}
         fieldErrors={fieldErrors}
         message={formMessage}
         notice={conflict}
@@ -1045,9 +1102,9 @@ export function TripWorkspace({
             onPress={() => showSheet(setCitiesOpen, true, cityQuery.refetch)}
             accessibilityRole="button"
             accessibilityLabel={
-              selectedCity === null
+              selectedCityId === null
                 ? 'All places. Choose a city to work on'
-                : `${selectedCity.name}. Change which city you are working on`
+                : `${selectionName}. Change which city you are working on`
             }
             hitSlop={6}
             style={styles.cityButton}
@@ -1060,12 +1117,12 @@ export function TripWorkspace({
                   // quieter than a city so the two states are told apart
                   // without reading the word.
                   color:
-                    selectedCity === null ? theme.colour.inkMuted : theme.colour.ink,
+                    selectedCityId === null ? theme.colour.inkMuted : theme.colour.ink,
                 },
               ]}
               numberOfLines={1}
             >
-              {selectedCity?.name ?? 'All places'}
+              {selectionName}
             </Text>
             <ChevronDown size={14} color={theme.colour.inkMuted} strokeWidth={2.4} />
           </Pressable>
@@ -1367,10 +1424,11 @@ export function TripWorkspace({
           }
 
           mapRef.current?.flyTo(position, openingHeight(windowHeight))
-          beginCreate(position, {
-            name: candidate.name,
-            type: candidate.typeGuess,
-          })
+          beginCreate(
+            position,
+            { name: candidate.name, type: candidate.typeGuess },
+            candidate.city,
+          )
         }}
       />
 

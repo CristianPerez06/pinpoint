@@ -27,6 +27,25 @@ export interface PlaceCandidate {
    */
   context: string | null
   /**
+   * The name the service gave for the city this place is in. Null where it gave
+   * none.
+   *
+   * Carried as a field of its own rather than read back out of `context`, which
+   * joins several parts into one string for reading and drops any part equal to
+   * the place's own name. A name that is going to be compared against the trip's
+   * cities, and offered as a city to create, has to be the city alone.
+   *
+   * Carried **unaltered**: not trimmed to a shorter form, not corrected against
+   * any list, not reconciled with anything else the service returned. An
+   * improvement made in passing here becomes a city named something the service
+   * never said.
+   *
+   * Nothing wider is substituted. A county or a state offered as a city to
+   * create would make a group nobody meant to make, named after something that
+   * is not a city.
+   */
+  city: string | null
+  /**
    * How far this is from the point the search was biased toward, in kilometres.
    * Null when there was no bias, because there is then nothing to measure from
    * and a fabricated number would appear in the same place a real one does.

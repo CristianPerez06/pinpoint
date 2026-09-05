@@ -1,8 +1,23 @@
 export { signInSchema, signUpSchema } from './auth'
 export type { SignInInput, SignUpInput } from './auth'
 
-export { citySchema, cityPatchSchema, newCitySchema } from './city'
+export {
+  citySchema,
+  cityPatchSchema,
+  markersSelectedBy,
+  newCitySchema,
+  UNASSIGNED_CITY,
+} from './city'
 export type { City, CityPatch, NewCity } from './city'
+
+export { CITY_CLAIM_KM, cityClaiming, cityNoticeFor } from './city-claim'
+export type {
+  CityClaim,
+  CityNotice,
+  FiledPlace,
+  NamedCity,
+  PlaceBeingFiled,
+} from './city-claim'
 
 export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'

@@ -1,4 +1,5 @@
 import type { City, Marker } from '@pinpoint/core'
+import { UNASSIGNED_CITY } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
@@ -32,6 +33,10 @@ import { role } from '@/lib/type'
  * that web's city bar also selects which city is being worked on — framing the
  * map, biasing search, setting the next save's default — and that none of it
  * came over, because each job had another answer here.
+ *
+ * The third of those jobs no longer exists on either platform. Where a place is
+ * filed is decided by where the place actually is, because a selection says what
+ * is being *looked at* and filing says where something *is*.
  *
  * Each job did. What that argument missed is that it left a control called
  * `Cities` which looks like the laptop's and does a third of what it does, and
@@ -225,6 +230,26 @@ export function CitySheet({
                   />
                 ))
               )}
+
+              {/*
+                Below the cities rather than beside `All places`, because it is a
+                narrowing like a city and not a widening like that one.
+
+                Drawn whether or not it holds anything, for the reason
+                `marker-filtering` gives about the filter control: a row that
+                appears on demand moves everything beside it, and makes the way
+                to a place discoverable only once you already have one. There is
+                no pencil, because a group defined by the absence of a city has
+                no name and no currency to correct.
+              */}
+              <PickRow
+                name="Unassigned"
+                meta={countLabel(
+                  markers.filter((marker) => marker.cityId === null).length,
+                )}
+                current={selectedCityId === UNASSIGNED_CITY}
+                onPress={() => pick(UNASSIGNED_CITY)}
+              />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>

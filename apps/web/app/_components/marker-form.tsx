@@ -1,6 +1,6 @@
 'use client'
 
-import type { City, FieldErrors } from '@pinpoint/core'
+import type { City, CityNotice, FieldErrors } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { X } from 'lucide-react'
 import { useState } from 'react'
@@ -51,6 +51,7 @@ export function MarkerForm({
   title,
   initial,
   cities,
+  cityNotice,
   fieldErrors,
   message,
   notice,
@@ -61,6 +62,19 @@ export function MarkerForm({
   title: string
   initial: MarkerFormValues
   cities: readonly City[]
+  /**
+   * What the trip's cities had to say about where this place is, when it is
+   * worth saying.
+   *
+   * Null in the ordinary case — a place near the city being worked in — and that
+   * is a requirement rather than an absence. A form that remarks on every save
+   * is noise, and noise is how the three saves a trip that matter get ignored.
+   *
+   * The form does not work any of this out. The rule lives in `@pinpoint/core`
+   * and the parent applies it, because deciding this needs the trip's markers
+   * and this component has never seen one.
+   */
+  cityNotice: CityNotice | null
   fieldErrors: FieldErrors
   message: string | null
   /**
@@ -241,6 +255,22 @@ export function MarkerForm({
           { value: NEW_CITY, label: '+ New city…' },
         ]}
       />
+
+      {cityNotice ? (
+        <div className={styles.cityNotice}>
+          <p role="status" className={styles.cityNoticeText}>
+            {cityNotice.message}
+          </p>
+          {cityNotice.offer && !newCity ? (
+            <Button
+              onClick={() => setNewCity({ name: cityNotice.offer ?? '', currency: '' })}
+              tone="quiet"
+            >
+              {`Create ${cityNotice.offer}`}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {newCity ? (
         <div className={styles.newCity}>

@@ -1,4 +1,4 @@
-import type { City, FieldErrors } from '@pinpoint/core'
+import type { City, CityNotice, FieldErrors } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -90,6 +90,7 @@ export function MarkerFormSheet({
   title,
   initial,
   cities,
+  cityNotice,
   fieldErrors,
   message,
   notice,
@@ -111,6 +112,18 @@ export function MarkerFormSheet({
    */
   initial: MarkerFormValues
   cities: readonly City[]
+  /**
+   * What the trip's cities had to say about where this place is, when it is
+   * worth saying.
+   *
+   * Null in the ordinary case — a place near the city being worked in — and that
+   * is a requirement rather than an absence. A form that remarks on every save
+   * is noise, and noise is how the three saves a trip that matter get ignored.
+   *
+   * Decided by the parent, from the rule in `@pinpoint/core`: working it out
+   * needs the trip's markers, and this sheet has never seen one.
+   */
+  cityNotice: CityNotice | null
   fieldErrors: FieldErrors
   message: string | null
   /**
@@ -500,6 +513,31 @@ export function MarkerFormSheet({
                 onPress={() => setNewCity({ name: '', currency: '' })}
               />
             </View>
+            {cityNotice ? (
+              <View
+                style={[
+                  styles.cityNotice,
+                  {
+                    borderColor: theme.colour.line,
+                    backgroundColor: theme.colour.surfaceSunk,
+                  },
+                ]}
+              >
+                <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+                  {cityNotice.message}
+                </Text>
+                {cityNotice.offer && !newCity ? (
+                  <View style={styles.row}>
+                    <Button
+                      label={`Create ${cityNotice.offer}`}
+                      onPress={() =>
+                        setNewCity({ name: cityNotice.offer ?? '', currency: '' })
+                      }
+                    />
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
             {fieldErrors.cityId ? (
               <Text
                 accessibilityRole="alert"
@@ -754,6 +792,21 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   hint: { ...role(TYPE.note) },
+  /*
+   * Where the city came from, when it did not come from where you were working.
+   *
+   * Deliberately quieter than `FormNote`, which washes the accent across the
+   * whole strip because somebody else changed the thing under you. This is a
+   * fact about the save being made right now: it belongs under the chips, has to
+   * be readable there, and must not read as a warning.
+   */
+  cityNotice: {
+    marginTop: SPACE.sm,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACE.sm + 2,
+    gap: SPACE.sm,
+  },
   error: { ...role(TYPE.note), paddingTop: SPACE.xs },
   row: { flexDirection: 'row', gap: SPACE.sm },
   grow: { flex: 1 },
