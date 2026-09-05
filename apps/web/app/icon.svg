@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    The tab mark.
+
+    The teardrop is the path `apps/web/app/_components/pin.tsx` and
+    `apps/mobile/components/pin.tsx` draw on the map, unchanged, in the 32x42
+    box they draw it in — head circle r13 at (16,15), point at (16,41) — scaled
+    to 24 units tall and centred here. The product's mark is the thing the
+    product draws, so it is copied rather than redrawn; a mark that merely
+    resembles the pin would drift from it silently.
+
+    The head is knocked out with `fill-rule="evenodd"` rather than being a
+    second shape in the tile's colour, so the pin stays one path and the hole
+    cannot land a half-pixel off the fill at 16px.
+
+    Amber is `accent` and the drop is `inkOnAccent` — that pairing is not a
+    choice made here. The styling spec requires anything drawn on the accent to
+    be lettered in `inkOnAccent`, and both are literals rather than `var()`
+    because a favicon is fetched outside the document and inherits none of its
+    custom properties.
+
+    The tile is rounded because nothing masks a favicon: a browser draws what it
+    is given. `apple-icon.png` and the manifest icons are the same mark drawn
+    square to the edge with a smaller drop, because iOS and Android cut their
+    own corners out of whatever they are handed and would round these again.
+
+    One asset serves both themes. It carries its own ground, so there is no
+    `prefers-color-scheme` here and nothing to be resolved by a host that may
+    not consult the media query for an icon at all.
+  -->
+  <rect width="32" height="32" rx="7" fill="#E39A2B"/>
+  <path
+    fill="#241703"
+    fill-rule="evenodd"
+    transform="translate(16 16) scale(0.6154) translate(-16 -21.5)"
+    d="M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z M16 9 A 6 6 0 1 0 16 21 A 6 6 0 1 0 16 9 Z"
+  />
+</svg>
