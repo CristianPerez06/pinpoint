@@ -60,6 +60,23 @@ apps/web/public/maplibre/
 .github/agents/impeccable-*.agent.md
 .github/hooks/impeccable.json
 
+# `.agents/skills/` is the same rule applied a second time, to a second runner.
+# Impeccable's installer knows several provider directories — `.claude`, `.cursor`,
+# `.gemini`, `.codex`, `.agents` and others — and writing to one of them mirrors
+# every skill this repository already keeps under `.claude/`. What lands there is
+# not a variant: nine of the ten are byte-identical, and the tenth differs only in
+# having its own script paths rewritten to a directory that does not exist here.
+# The `source-command-opsx-*` entries are `.claude/commands/opsx/*.md` restated as
+# skills, for a runtime that has no slash commands.
+#
+# So it is 3.5 MB of second copy, and it is stale the moment `.claude/skills/`
+# is edited, in a way nothing reports. Install it locally if you work in a runtime
+# that reads it.
+#
+# `.agents/skills/`, not `.agents/`, for the reason given above: a context or hook
+# directory added there later should have to be looked at rather than swallowed.
+.agents/skills/
+
 # Generated design mocks. The builder is committed; its ~290 KB output, which
 # embeds the bundled font, is not — it regenerates in under a second.
 openspec/changes/**/mock/*.html
