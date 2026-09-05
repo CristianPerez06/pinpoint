@@ -127,7 +127,7 @@ function Details({
       <div className={styles.tags}>
         <span
           className={`${styles.tag} ${styles.tagFamily}`}
-          style={{ backgroundColor: `var(--pp-family-${view.family})` }}
+          style={{ backgroundColor: `var(--pp-pin-${view.type})` }}
         >
           {view.typeLabel}
         </span>

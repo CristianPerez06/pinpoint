@@ -341,6 +341,44 @@ Two of those columns are the whole product:
   event target, so a backdrop drawn as `::after` reports its *host* as the target
   and an "outside the anchor" test reads a press on it as inside.
 
+- **One colour per place type** — sixteen marker types collapse into seven, the
+  `see`/`eat`/`buy`/`sleep`/`move` family channel is deleted, and colour names the
+  type directly. Answers `#89`, which asked for more colours, by removing types
+  instead.
+
+  **The ticket's arithmetic was the interesting part, and it was wrong.** It read
+  the roughly-eight colour cap as the binding constraint and concluded three
+  colours were available to split the overcrowded `see` family. The constraint
+  that actually binds is the ranking rule: colours spent inside `see` may not be
+  loud, and two quiet colours are two greys. The budget was not three colours, it
+  was three colours that may not be seen.
+
+  So the type list shrank until type and colour were the same channel. Five of the
+  seven keep a value that already existed; one hue was invented and one neutral
+  was, because after green there is no gap left on the wheel that does not crowd
+  `food`, `shopping` or the accent. The recessive slate moved with the majority
+  from `see` to `culture`.
+
+  **Adding a type now costs a colour**, which is the whole bound on the list and
+  the part worth carrying forward. The old scheme made types free and that is
+  exactly how sixteen of them arrived over five colours.
+
+  Three things fell out of implementation rather than planning. `--pp-type-*` was
+  the obvious custom-property name and is taken by the typography scale, so pin
+  colours are `--pp-pin-*`. Making `isMarkerType` a type predicate quietly
+  narrowed `Marker.type` through zod's inference, which contradicts the standing
+  rule that rows are not validated on read — a stored `temple` is valid data, not
+  a type error. And the web type grid moved off `auto-fill`: with sixteen items
+  any column count divided tidily, with seven a width-dependent count can leave
+  one orphan on the second row.
+
+  The seed migration also turned out not to say what `colour.ts` claimed about it.
+  The comment described fourteen `see` against four; the file holds fourteen
+  markers total, eleven of them `see`. Both numbers were wrong and had been cited
+  as the justification for the ranking. The ranking survives — ten of fourteen are
+  `culture` — but it is worth remembering that a number in a comment had gone
+  uncheckable for long enough to be quoted back.
+
 ## Next
 
 Two items. The parity work is finished, the product can be given to somebody,
@@ -526,6 +564,22 @@ it does untidily.
 Debt and known limitations. Nothing here is a missing feature, and nothing here is
 a defect — each is something already built that is untidy, or correct only at the
 scale the product runs at today.
+
+- [ ] **A visited pin loses its colour and its glyph at the same time.**
+      `VISITED_OPACITY = 0.45` blends the whole pin — fill *and* glyph — toward the
+      basemap. On the light ground a visited `culture` pin measures about **1.58:1**
+      against the land and its white glyph about **1.66:1** against the pin, so both
+      channels are gone at once and what is left is a smudge the colour of the map.
+      A visited `food` pin survives the same treatment because its hue does the work
+      the luminance no longer can, which is why this reads as a problem with the
+      quiet types rather than with the mechanism.
+
+      Found while answering `#89` and deliberately left out of it: that change was
+      about which colours exist, and this is about a second channel being given to
+      opacity on top of the one it already has. Muting is supposed to be a
+      comparison, not an erasure. The likely answer is that "visited" stops being a
+      uniform opacity multiplier — the tick and an outline can carry it while the
+      fill keeps enough luminance to stay itself.
 
 - [ ] **The two applications frame a covered map differently.** Where a sheet stands
       over part of the map, `map-rendering` now asks for both halves of framing to

@@ -19,21 +19,12 @@ import type { MarkerIconName } from '@pinpoint/map'
  * a supported entry point rather than a reach into its internals.
  */
 import Bed from 'lucide-react-native/icons/bed'
-import Beer from 'lucide-react-native/icons/beer'
-import Castle from 'lucide-react-native/icons/castle'
-import Coffee from 'lucide-react-native/icons/coffee'
-import Frame from 'lucide-react-native/icons/frame'
 import Landmark from 'lucide-react-native/icons/landmark'
 import MapPin from 'lucide-react-native/icons/map-pin'
-import Mountain from 'lucide-react-native/icons/mountain'
-import Plane from 'lucide-react-native/icons/plane'
 import ShoppingBag from 'lucide-react-native/icons/shopping-bag'
-import Star from 'lucide-react-native/icons/star'
-import Store from 'lucide-react-native/icons/store'
 import TrainFront from 'lucide-react-native/icons/train-front'
 import Trees from 'lucide-react-native/icons/trees'
 import Utensils from 'lucide-react-native/icons/utensils'
-import UtensilsCrossed from 'lucide-react-native/icons/utensils-crossed'
 import type { LucideIcon } from 'lucide-react-native'
 import { createElement } from 'react'
 
@@ -48,24 +39,18 @@ import { createElement } from 'react'
  * shared list without a glyph beside it fails to typecheck here — and, being a
  * separate record, fails on web too. Both applications break, which is what
  * makes the omission impossible to ship rather than merely likely to be caught.
+ *
+ * There are seven, one per type. The colour now says what the place is, so the
+ * glyph only has to be recognisable at 15px rather than precise.
  */
 const GLYPHS: Record<MarkerIconName, LucideIcon> = {
   pin: MapPin,
-  star: Star,
   landmark: Landmark,
-  castle: Castle,
-  picture: Frame,
   trees: Trees,
-  mountain: Mountain,
   utensils: Utensils,
-  coffee: Coffee,
-  beer: Beer,
-  skewer: UtensilsCrossed,
   'shopping-bag': ShoppingBag,
-  storefront: Store,
   bed: Bed,
   train: TrainFront,
-  plane: Plane,
 }
 
 /**

@@ -1,14 +1,14 @@
 import {
   MARKER_ANCHOR,
-  MARKER_FAMILY_COLOURS,
+  MARKER_TYPE_COLOURS,
   MARKER_SIZE,
   type Themed,
 } from '@pinpoint/tokens'
 
 import {
   markerTypeOf,
-  type MarkerFamily,
   type MarkerIconName,
+  type MarkerType,
   type MarkerTypeDefinition,
 } from './marker-type'
 import type { LngLat } from './types'
@@ -19,28 +19,31 @@ import type { LngLat } from './types'
  *
  * The rule the specification states is that applications render a description
  * and never inspect a marker's type to decide how it looks. What the description
- * carries changed with theming: a family *name* rather than a colour, and an
- * icon *name* rather than a glyph.
+ * carries changed with theming: a type *name* rather than a colour, and an icon
+ * *name* rather than a glyph.
  *
  * That is not a weakening of the rule, it is the only way to keep it. A colour
  * now depends on which ground the interface is drawn on, and this package has
  * no business knowing that; an icon is a rendered component, and a package
  * declaring no third-party dependencies cannot hold one. Both are resolved by
- * the application — the family through the shared tokens, the icon through the
- * platform's icon set — and neither application decides *which* family or
+ * the application — the type through the shared tokens, the icon through the
+ * platform's icon set — and neither application decides *which* colour or
  * *which* icon, which is the part that had to stay shared.
  */
 
 /**
- * Every family has a colour, checked at compile time.
+ * Every type has a colour, checked at compile time.
  *
- * `@pinpoint/tokens` cannot import `MarkerFamily` — it declares no third-party
+ * `@pinpoint/tokens` cannot import `MarkerType` — it declares no third-party
  * dependencies and this package depends on it, so the import would point the
- * wrong way. This assertion is the tie instead: adding a family without adding
- * its colour fails to typecheck here rather than rendering an undefined colour
+ * wrong way. This assertion is the tie instead: adding a type without adding its
+ * colour fails to typecheck here rather than rendering an undefined colour
  * somewhere downstream.
+ *
+ * It is also what makes "a new type costs a colour" a build error rather than a
+ * convention.
  */
-MARKER_FAMILY_COLOURS satisfies Record<MarkerFamily, Themed>
+MARKER_TYPE_COLOURS satisfies Record<MarkerType, Themed>
 
 /**
  * What the descriptor needs from a marker.
@@ -78,8 +81,11 @@ export interface MarkerView {
   /**
    * Names a colour rather than being one. The application resolves it through
    * `@pinpoint/tokens` for whichever ground it is currently drawing on.
+   *
+   * This is the resolved type, so a marker stored under a retired identifier
+   * carries the type that replaced it rather than the string in the database.
    */
-  family: MarkerFamily
+  type: MarkerType
   /** The marker's own name. Not drawn permanently beside the pin; see the spec. */
   label: string
   /** The resolved type, for a detail view that wants to say "Temple". */
@@ -105,9 +111,10 @@ export interface MarkerView {
    * are: two applications choosing their own amount is how they drift apart, and
    * the specification requires them to produce the same map from the same data.
    *
-   * Muting rather than recolouring is deliberate. Colour names the family and
-   * only the family — that is what lets the type list grow without the map
-   * turning into confetti — so a second meaning cannot be given to it.
+   * Muting rather than recolouring is deliberate. Colour names the type and only
+   * the type, so a second meaning cannot be given to it — and lightness is
+   * already spoken for here, which is why `place` is separated from `culture` by
+   * hue rather than by being paler.
    */
   opacity: number
 }
@@ -116,7 +123,7 @@ export interface MarkerView {
  * How solidly a visited marker is drawn.
  *
  * Low enough to read as done at a glance among unvisited pins, high enough that
- * the glyph and the family colour are still legible: a visited place is still a
+ * the glyph and the type colour are still legible: a visited place is still a
  * place, and somebody standing in the street may well be looking for the one
  * they already found.
  */
@@ -137,7 +144,7 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     lng: marker.lng,
     lat: marker.lat,
     icon: type.icon,
-    family: type.family,
+    type: type.id,
     label: marker.name,
     typeId: type.id,
     typeLabel: type.label,

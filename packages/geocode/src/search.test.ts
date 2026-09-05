@@ -25,7 +25,7 @@ describe('searchPlaces', () => {
     expect(result.status).toBe('ready')
     if (result.status === 'ready') {
       expect(result.candidates[0]?.name).toBe('Nishiki Market')
-      expect(result.candidates[0]?.typeGuess).toBe('market')
+      expect(result.candidates[0]?.typeGuess).toBe('shopping')
     }
   })
 

@@ -10,7 +10,7 @@ const VALID = {
   note: null,
   lng: 135.7727,
   lat: 34.9671,
-  type: 'temple',
+  type: 'culture',
   link: null,
   price: null,
   visited: false,

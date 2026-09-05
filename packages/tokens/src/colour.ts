@@ -17,9 +17,9 @@
  *
  * A colour is meaningless without the ground it is drawn on. Defining one value
  * and deriving the other by inversion produces contrast and destroys meaning —
- * see `MARKER_FAMILY_COLOURS` below, where the ranking between the five values
- * is the whole point and inversion would scramble it. So each colour is chosen
- * twice, against each ground.
+ * see `MARKER_TYPE_COLOURS` below, where the ranking between the values is the
+ * whole point and inversion would scramble it. So each colour is chosen twice,
+ * against each ground.
  *
  * Non-colour tokens stay single-valued. Nothing about a spacing step changes
  * with the ground it sits on, and duplicating them would create two places for
@@ -35,56 +35,87 @@ export interface Themed {
 }
 
 /**
- * One colour per marker family, and the reason they are not an even palette.
+ * One colour per marker type, and the reason they are not an even palette.
  *
- * A real wishlist is lopsided: the seeded Kyoto trip is fourteen `see` against
- * one each of `eat`, `buy`, `move` and `sleep`. If `see` took a loud colour,
- * fourteen loud pins would drown the four that carry information — and the
- * minority is the signal. Finding the one restaurant among fourteen temples is
- * exactly the question asked at lunchtime.
+ * These were keyed by *family* until this change, and seven of the sixteen types
+ * shared one of them. The map could not tell a castle from a park by colour at
+ * all, and the reason it could not was structural: the family set was closed on
+ * purpose, so growth in the type list had nowhere to go but the icon. Colour now
+ * names the type directly. Adding a type costs a colour, which is what bounds the
+ * list — see `@pinpoint/map`'s `marker-type.ts`.
  *
- * So `see` is deliberately the most recessive value here, and the other four
- * are deliberately prominent. Changing that is a product decision, not a
- * palette refresh.
+ * WHY THEY ARE NOT EVEN
+ *
+ * A real wishlist is lopsided: the seeded Kyoto trip is ten `culture` against one
+ * each of `nature`, `shopping`, `transport` and `stay`, and no `food` at all. If
+ * `culture` took a loud colour, ten loud pins would drown the ones that carry
+ * information — and the minority is the signal. Finding the one restaurant among
+ * ten temples is exactly the question asked at lunchtime.
+ *
+ * So `culture` is deliberately the most recessive *coloured* value here, and the
+ * rest are deliberately prominent. It holds the majority for the same reason
+ * `see` did before it. Changing that is a product decision, not a palette
+ * refresh.
+ *
+ * `place` is exempt from that ranking because it is not making a claim. It is the
+ * fallback — the type a marker takes when nothing was determined — so it is the
+ * least coloured thing on the map rather than the quietest colour on it. A pin
+ * meaning *we do not know what this is* should look like it.
+ *
+ * It is separated from `culture` by hue direction, warm against cool, rather than
+ * by lightness. Lightness already means visited: a `place` pin that read as a
+ * paler `culture` would be read as one already seen, which is the one misreading
+ * this palette cannot afford.
  *
  * THE DARK VALUES ARE CHOSEN, NOT DERIVED
  *
  * The light values were picked against white and several fail outright on a
- * dark ground — `sleep` at `#0B5FD0` on `#1D1B18` is close to invisible. Each
+ * dark ground — `stay` at `#0B5FD0` on `#1D1B18` is close to invisible. Each
  * dark value is picked against `#1D1B18` instead, and the ranking above is
- * preserved in both: `see` is still the most recessive, the other four are still
+ * preserved in both: `culture` is still the most recessive, the rest are still
  * prominent. A value that is legible but wrongly ranked does not satisfy this.
  *
- * The keys are the marker families defined in `@pinpoint/map`. This package
- * cannot import them — it declares no dependencies, and `@pinpoint/map` depends
- * on it — so the two are tied together by a compile-time completeness check on
- * the map side rather than by an import here.
+ * The keys are the marker types defined in `@pinpoint/map`. This package cannot
+ * import them — it declares no dependencies, and `@pinpoint/map` depends on it —
+ * so the two are tied together by a compile-time completeness check on the map
+ * side rather than by an import here.
  */
-export const MARKER_FAMILY_COLOURS = {
+export const MARKER_TYPE_COLOURS = {
+  /**
+   * Warm neutral. The null, and deliberately the least coloured pin on the map.
+   * Not ranked against the others — see above.
+   */
+  place: { light: '#8B857A', dark: '#A8A197' },
   /** Muted slate. The quiet majority. */
-  see: { light: '#7C8896', dark: '#98A3B0' },
+  culture: { light: '#7C8896', dark: '#98A3B0' },
+  /**
+   * Leaf green, pushed yellow rather than blue. The distance it has to keep is
+   * from `transport`'s teal, and it has to hold its ground on the basemap's own
+   * park fill — which is where a viewpoint usually is.
+   */
+  nature: { light: '#3F7A32', dark: '#6FB45C' },
   /** Burnt orange. */
-  eat: { light: '#D2451E', dark: '#F0653A' },
+  food: { light: '#D2451E', dark: '#F0653A' },
   /** Violet. */
-  buy: { light: '#8A3FFC', dark: '#A97BFF' },
+  shopping: { light: '#8A3FFC', dark: '#A97BFF' },
   /** Blue. */
-  sleep: { light: '#0B5FD0', dark: '#4A8FE8' },
+  stay: { light: '#0B5FD0', dark: '#4A8FE8' },
   /** Teal. */
-  move: { light: '#00857A', dark: '#16A99C' },
+  transport: { light: '#00857A', dark: '#16A99C' },
 } as const satisfies Record<string, Themed>
 
-export type MarkerFamilyColourKey = keyof typeof MARKER_FAMILY_COLOURS
+export type MarkerTypeColourKey = keyof typeof MARKER_TYPE_COLOURS
 
 /**
  * The pin's glyph, drawn on top of a family colour.
  *
- * White on the light theme, against five values chosen to carry it. On the dark
+ * White on the light theme, against seven values chosen to carry it. On the dark
  * theme the pins are the lighter element and the glyph inverts with them: white
- * on `see`'s dark value clears about 2:1, which is thin at a 16px stroked icon,
- * where near-black clears comfortably against all five.
+ * on `culture`'s dark value clears about 2:1, which is thin at a 16px stroked
+ * icon, where near-black clears comfortably against all seven.
  *
  * This is the one place the two themes differ in kind rather than in value, and
- * it follows from the families being lifted rather than darkened.
+ * it follows from the types being lifted rather than darkened.
  */
 export const MARKER_FOREGROUND: Themed = { light: '#FFFFFF', dark: '#171614' }
 
@@ -136,10 +167,14 @@ export const COLOUR = {
    * The accent, and why it is amber.
    *
    * It carries the primary action, the current selection, and the focus ring,
-   * so it must be distinguishable from all five marker families at a glance —
-   * an accent that reads as a sixth family would make the map's own colour
-   * vocabulary ambiguous. Amber is nowhere near slate, orange-red, violet,
-   * blue, or teal, and it is warm against the cool greyscale basemap.
+   * so it must be distinguishable from all seven marker types at a glance — an
+   * accent that reads as an eighth type would make the map's own colour
+   * vocabulary ambiguous. Amber is nowhere near slate, taupe, green, orange-red,
+   * violet, blue, or teal, and it is warm against the cool greyscale basemap.
+   *
+   * Green is the closest of the seven and the one to watch: `nature` is a leaf
+   * green at low lightness where the accent is a light warm amber, so they part
+   * on lightness as well as on hue.
    */
   accent: { light: '#E39A2B', dark: '#F0AE4A' },
   /**
@@ -175,7 +210,7 @@ export const COLOUR = {
   /** The focus ring. Alpha, so it reads over a surface or over the map. */
   accentRing: { light: '#E39A2B61', dark: '#F0AE4A6B' },
 
-  /** Failure. Distinct from every family colour, so a broken map never reads as a marker. */
+  /** Failure. Distinct from every type colour, so a broken map never reads as a marker. */
   danger: { light: '#B3261E', dark: '#F2857C' },
   dangerSurface: { light: '#FCEDEC', dark: '#33211F' },
 } as const satisfies Record<string, Themed>
@@ -190,8 +225,7 @@ export const COLOUR = {
  * place a colour is written.
  *
  * Values are chosen against positron's structure — a near-greyscale style whose
- * quietness is what lets five saturated pins be the only strong colour on
- * screen.
+ * quietness is what lets the marker pins be the only strong colour on screen.
  */
 /**
  * HOW THESE VALUES WERE CHOSEN, AND THE MISTAKE THEY CORRECT

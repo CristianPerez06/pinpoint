@@ -48,18 +48,21 @@ export type { BasemapCategory, StyleDocument } from './basemap-theme'
 
 export {
   FALLBACK_MARKER_TYPE,
+  isKnownMarkerType,
   isMarkerType,
-  MARKER_FAMILIES,
   MARKER_ICONS,
   MARKER_TYPE_IDS,
+  MARKER_TYPE_IDS_TUPLE,
   MARKER_TYPES,
   markerTypeOf,
 } from './marker-type'
 export type {
-  MarkerFamily,
   MarkerIconName,
+  MarkerType,
   MarkerTypeDefinition,
 } from './marker-type'
+
+export { RETIRED_TYPES } from './marker-migrate'
 
 export {
   groupCoincident,

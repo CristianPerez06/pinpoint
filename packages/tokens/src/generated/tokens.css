@@ -98,12 +98,14 @@
   --pp-map-boundary: #DEDAD0;
   --pp-map-label: #9A948B;
 
-  /* marker families — fixed by the product, not by the palette */
-  --pp-family-see: #7C8896;
-  --pp-family-eat: #D2451E;
-  --pp-family-buy: #8A3FFC;
-  --pp-family-sleep: #0B5FD0;
-  --pp-family-move: #00857A;
+  /* marker types — fixed by the product, not by the palette */
+  --pp-pin-place: #8B857A;
+  --pp-pin-culture: #7C8896;
+  --pp-pin-nature: #3F7A32;
+  --pp-pin-food: #D2451E;
+  --pp-pin-shopping: #8A3FFC;
+  --pp-pin-stay: #0B5FD0;
+  --pp-pin-transport: #00857A;
   --pp-marker-foreground: #FFFFFF;
 
   /* elevation, composed — CSS wants one string */
@@ -143,12 +145,14 @@
     --pp-map-boundary: #2A251E;
     --pp-map-label: #8A8378;
 
-    /* marker families — fixed by the product, not by the palette */
-    --pp-family-see: #98A3B0;
-    --pp-family-eat: #F0653A;
-    --pp-family-buy: #A97BFF;
-    --pp-family-sleep: #4A8FE8;
-    --pp-family-move: #16A99C;
+    /* marker types — fixed by the product, not by the palette */
+    --pp-pin-place: #A8A197;
+    --pp-pin-culture: #98A3B0;
+    --pp-pin-nature: #6FB45C;
+    --pp-pin-food: #F0653A;
+    --pp-pin-shopping: #A97BFF;
+    --pp-pin-stay: #4A8FE8;
+    --pp-pin-transport: #16A99C;
     --pp-marker-foreground: #171614;
 
     /* elevation, composed — CSS wants one string */

@@ -1,21 +1,12 @@
 import type { MarkerIconName } from '@pinpoint/map'
 import {
-  Beer,
   Bed,
-  Castle,
-  Coffee,
-  Frame,
   Landmark,
   MapPin,
-  Mountain,
-  Plane,
   ShoppingBag,
-  Star,
-  Store,
   TrainFront,
   Trees,
   Utensils,
-  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 import { createElement } from 'react'
@@ -33,28 +24,20 @@ import { createElement } from 'react'
  * on the next build rather than an empty pin somebody notices on a map. The
  * mobile application holds the same record against its own icon set, and fails
  * the same way.
+ *
+ * There are seven, one per type, where there were sixteen. The glyph is no longer
+ * what separates a castle from a museum — the colour is — so what it has to do is
+ * be recognisable at 15px, not be precise.
  */
 const GLYPHS: Record<MarkerIconName, LucideIcon> = {
   pin: MapPin,
-  star: Star,
   landmark: Landmark,
-  castle: Castle,
-  // A frame rather than a photograph: a museum is the thing on the wall.
-  picture: Frame,
   trees: Trees,
-  mountain: Mountain,
   utensils: Utensils,
-  coffee: Coffee,
-  beer: Beer,
-  // Crossed utensils for street food — the closest thing to a skewer that still
-  // reads at 15px, where anything more literal turns to noise.
-  skewer: UtensilsCrossed,
   'shopping-bag': ShoppingBag,
-  storefront: Store,
   bed: Bed,
   // The front of a train, not its side: it survives being shrunk.
   train: TrainFront,
-  plane: Plane,
 }
 
 /**

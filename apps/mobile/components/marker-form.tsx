@@ -458,7 +458,7 @@ export function MarkerFormSheet({
                         styles.typeChip,
                         {
                           backgroundColor: chosen
-                            ? theme.markerFamily[definition.family]
+                            ? theme.markerType[definition.id]
                             : theme.colour.surfaceMuted,
                         },
                       ]}

@@ -136,7 +136,7 @@ export function Pin({
         {selected ? (
           <Circle cx={16} cy={15} r={17} fill={theme.colour.accentRing} />
         ) : null}
-        <Path d={PATH} fill={theme.markerFamily[view.family]} />
+        <Path d={PATH} fill={theme.markerType[view.type]} />
       </Svg>
 
       {/*

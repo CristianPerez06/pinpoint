@@ -44,7 +44,7 @@ export function Pin({
         opacity: view.opacity,
         // The family is a name; this is where it becomes a colour, for whichever
         // ground the cascade has chosen.
-        ['--family' as string]: `var(--pp-family-${view.family})`,
+        ['--family' as string]: `var(--pp-pin-${view.type})`,
       }}
     >
       <svg
@@ -125,7 +125,7 @@ export function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number 
       style={{
         width: size,
         height: size,
-        backgroundColor: `var(--pp-family-${view.family})`,
+        backgroundColor: `var(--pp-pin-${view.type})`,
       }}
       aria-hidden="true"
     >
