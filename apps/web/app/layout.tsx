@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 
+import { COLOUR } from '@pinpoint/tokens'
+
 import { figtree } from '@/app/fonts'
 
 import './globals.css'
@@ -11,6 +13,22 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  /**
+   * The browser's own furniture, dressed to match the page under it.
+   *
+   * `colorScheme` below tells the browser the document handles both grounds;
+   * this says which colour each of them is, so the address bar is the app's
+   * ground rather than the browser's guess at one. Two entries rather than one
+   * for the same reason every colour token is a pair — a single value would be
+   * a light bar over a dark page on one of the two themes.
+   *
+   * This is the one place both grounds can be stated. `manifest.ts` names a
+   * single colour because the manifest has no media query, and says so.
+   */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: COLOUR.ground.light },
+    { media: '(prefers-color-scheme: dark)', color: COLOUR.ground.dark },
+  ],
   width: 'device-width',
   initialScale: 1,
   /**
