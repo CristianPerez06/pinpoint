@@ -131,6 +131,14 @@ jobs:
       - name: Check the bundled typeface
         run: pnpm check:fonts
 
+      # The product's icons are binaries nobody reads and the Android background
+      # is a string that is valid whatever it says, so a disagreement between
+      # them is invisible to every other check. It has already happened once:
+      # five icons cut by hand in two sittings came out as two different
+      # drawings, and it was found by a person looking at two home screens.
+      - name: Check every icon is still the mark
+        run: pnpm check:icons
+
       # A migration that creates a table and forgets row level security ships a
       # table any signed-in account can read and write in full — the browser
       # holds a key that reaches the database directly. Nothing else catches it:
