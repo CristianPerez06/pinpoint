@@ -471,6 +471,37 @@ be chosen rather than arrived at.
   that meaning is shared and controls are native: what converges here is the
   arrangement a *shape* calls for, and each platform still builds it with its own
   parts.
+- **The mark does not vary by platform.** One drawing on every surface a host may
+  show: an amber tile carrying the pin's teardrop, dark. What varies is scale, and it
+  varies by *what crops the asset* — a canvas drawn as given, a canvas whose corners are
+  cut, a canvas cropped to a mask — with the drop measured against the region that
+  survives rather than against the file.
+
+  The platform axis is the one this had been indexed on and the one that cannot work:
+  an installed copy of the site and the installed application reach the *same Android
+  home screen*, so a platform-shaped rule puts two marks in one place. It is worth
+  noticing that this looked like the "chrome follows the screen shape, not the platform"
+  question above and is not one. That rule works because window width is a measurable
+  property with an obvious test, and because chrome is seen one at a time inside the
+  product. An icon is seen beside other products' icons and beside itself.
+
+  The dark tile was chosen against, and not for want of merit: it is the better drawing
+  at launcher size, it was a close second when the web mark was picked, and this
+  document's own restraint thesis — saturated colour reserved for the pins — argues for
+  it. That thesis is scoped to *on screen*, where marker colour carries meaning, and a
+  launcher has no markers to compete with. What settled it was 16px: in a tab strip a
+  dark tile with an amber pin is a speck, and an amber tile is a solid block of the one
+  colour that is not a place type.
+
+  Two things found while settling it, recorded so they are not re-found. The Android
+  icon's hole was never white — the foreground is transparent there and composites to
+  the background colour, so iOS and Android had always agreed with each other. And both
+  cropping assets always cleared their safe regions; the earlier doubt came from
+  measuring a web manifest `maskable` icon against Android's 66-of-108 figure instead of
+  against the 80%-of-width circle its own specification names. The real defect was
+  polarity, and the real cause was that five icons were cut by hand in two sittings with
+  nothing able to compare them. `pnpm check:icons` is that comparison.
+
 - **Wishlist, not itinerary.** The broken dimension is *where*, not *when*. If days
   ever arrive they arrive as a second, independent grouping — a marker can be
   "Kyoto" *and* "day 3" — never as a level underneath City. Trip planners that grew
