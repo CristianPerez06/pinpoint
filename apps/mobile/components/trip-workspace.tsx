@@ -1037,7 +1037,7 @@ export function TripWorkspace({
           What is rare, and one thing that is not a control.
 
           The wordmark is gone: inside the pinpoint application it says nothing
-          the reader does not know, and the dot beside it is already the mark —
+          the reader does not know, and the point beside it already stands for it —
           a pin reduced to the point it names, in the one colour that is not a
           marker family. The trip name says which trip, which becomes a real
           question the moment more than one can exist.
@@ -1650,14 +1650,14 @@ const styles = StyleSheet.create({
     paddingBottom: HEADER_PAD,
     borderBottomWidth: 1,
   },
-  /** The trip, the mark, and the way out. What used to be the whole header. */
+  /** The trip, the point, and the way out. What used to be the whole header. */
   headerLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
   },
   /*
-   * Indented to clear the mark, so the city hangs off the trip's name rather
+   * Indented to clear the point, so the city hangs off the trip's name rather
    * than starting a second column. `flexDirection` so the control shrinks to
    * its label instead of spanning the width, which would read as a field.
    */

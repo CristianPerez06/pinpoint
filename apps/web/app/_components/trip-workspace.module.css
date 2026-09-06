@@ -48,14 +48,20 @@
 }
 
 /*
- * The whole mark: a pin reduced to the point it names, in the one colour that
- * is not a marker family.
+ * The point: a pin reduced to the point it names, in the one colour that is not
+ * a marker family.
+ *
+ * Called the point and not the mark. The mark is the teardrop tile the product
+ * hands a browser tab and a home screen — a drawing for hosts that have never
+ * run the application. This is a header ornament inside an application already
+ * open. They were both called the mark until the icons were settled, and that
+ * is how a change draws the wrong one.
  *
  * The wordmark's letters are gone. Inside the application they said nothing the
  * reader did not know, and the trip's name is the thing that answers a real
  * question — which is exactly the trade the phone header already made.
  */
-.mark {
+.point {
   width: 9px;
   height: 9px;
   margin-right: 5px;

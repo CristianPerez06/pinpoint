@@ -598,9 +598,14 @@ there shows the map through the corners.
 
 ### Navigation & Chrome
 
-- **The mark:** a 9px accent dot with a 3px Amber Ring halo. The dot *is* the mark — a
-  pin reduced to the point it names, in the one colour that is not a place type. The
-  full wordmark, "pinpoint" at 16.5px/800/−0.032em, is for signed-out screens.
+- **The point:** a 9px accent dot with a 3px Amber Ring halo — a pin reduced to the
+  point it names, in the one colour that is not a place type. The full wordmark,
+  "pinpoint" at 16.5px/800/−0.032em, is for signed-out screens.
+
+  It is *not* "the mark", which it was called until the icons were settled. The mark is
+  the teardrop tile below; this is a header ornament. One is a drawing for hosts that
+  have never run the product, the other is for a screen inside a product already open,
+  and a shared name is how a change draws the wrong one.
 - **Web header:** it *is* the bar — the dot, the trip name and the city as menus, the
   session's three tools, and the account at the far end holding what is about the person
   rather than the trip. The wordmark's letters are not in it: inside the application they
@@ -610,6 +615,46 @@ there shows the map through the corners.
   instead of pushing the menu off.
 - **Phone bottom bar:** the map owns the edge; the row is only what stands on it.
   Frequent controls only.
+
+### The Mark
+
+What a browser tab, a home screen and an installed copy's splash screen show to identify
+the product. One drawing on every surface: **an amber `accent` tile carrying the pin's
+own teardrop in `ink-on-accent`, with the head knocked out so the tile shows through
+it.** The path is the one the map draws, copied rather than redrawn — a mark that merely
+resembles the pin drifts from it silently.
+
+**It does not vary by platform.** An installed copy of the site and the installed
+application reach the same Android home screen, so a rule indexed on platform puts two
+marks in one place. That is not hypothetical: it is the defect this section was written
+after. The dark tile is the better drawing at launcher size and was a close second when
+the mark was picked; it loses on the surface the mark cannot afford to lose on, because
+at 16px in a tab strip a dark tile with an amber pin is a speck where an amber tile is a
+solid block of the one colour that is not a place type. The restraint thesis at the top
+of this document argues for the dark tile and is scoped to *on screen*, where marker
+colour is the signal. A launcher has no markers to compete with.
+
+**What varies is scale, and it varies by what crops the asset** — never by platform.
+Three contracts, and the drop is measured against the region that survives each:
+
+| Contract | The host | Drop |
+| --- | --- | --- |
+| Drawn as given | Draws the whole canvas, adds nothing — so the asset carries its own corners | **50%** of the canvas |
+| Corners cut | Rounds or squircles it and shows substantially all of it — so the asset is square to the edge | **41%** of the canvas |
+| Cropped to a mask | Crops to a shape of its choosing — so the asset bleeds under the crop | **41% of what it renders**, which is less of the file |
+
+The last row is the one that matters and the one that was got wrong. An Android launcher
+draws the middle 72 of a 108-unit adaptive layer, so that asset's drop is 27.3% of its
+file in order to arrive the same size as everything else. The drop's bounding box is
+centred on the canvas, because the tip is the exposed end under a mask and it is the
+part carrying the pin's meaning.
+
+The favicon's 50% is not about masking. It is drawn at 16px, where 41% is six pixels
+across and the tile has to do the reading.
+
+Every asset is cut by `node .github/scripts/build-icons.mjs` and `pnpm check:icons`
+fails if what is committed is not what the mark would cut. Do not hand-edit an icon:
+hand-cutting in two sittings is precisely what produced two different drawings.
 
 ### The Focus Ring
 

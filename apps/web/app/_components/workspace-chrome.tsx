@@ -153,7 +153,7 @@ export function WorkspaceChrome({
         rare destructive things kept.
       */}
       <header className={styles.bar}>
-        <span className={styles.mark} aria-hidden />
+        <span className={styles.point} aria-hidden />
 
         {/*
           The scope's two names are wrapped rather than placed directly.

@@ -23,7 +23,7 @@
       "package": "ar.com.pinpoint.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A1917"
+        "backgroundColor": "#E39A2B"
       }
     },
     "extra": {
