@@ -621,8 +621,11 @@ there shows the map through the corners.
 What a browser tab, a home screen and an installed copy's splash screen show to identify
 the product. One drawing on every surface: **an amber `accent` tile carrying the pin's
 own teardrop in `ink-on-accent`, with the head knocked out so the tile shows through
-it.** The path is the one the map draws, copied rather than redrawn — a mark that merely
-resembles the pin drifts from it silently.
+it.** The path is `MARKER_PATH` in `packages/tokens/src/layout.ts` — the same definition
+both applications draw on the map, beside the box it is drawn in. Not a copy of it: a
+mark that merely resembles the pin drifts from it silently, and so does one that copies
+it and is checked, because a check reports a divergence only after somebody has made it
+and only for the copies it was told about.
 
 **It does not vary by platform.** An installed copy of the site and the installed
 application reach the same Android home screen, so a rule indexed on platform puts two

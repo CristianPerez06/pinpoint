@@ -477,6 +477,20 @@ be chosen rather than arrived at.
   cut, a canvas cropped to a mask — with the drop measured against the region that
   survives rather than against the file.
 
+  **The path has one definition.** It was written out three times — once per
+  application and once in the favicon — and the first attempt at this settled for a
+  check that the three agreed. That was the wrong shape and the argument for it was
+  wrong: the `styling` rule it cited forbids sharing styling code, a class-name
+  vocabulary and component markup, and a path is a list of coordinates. The evidence was
+  one export away the whole time — `MARKER_SIZE`, the box the path is drawn in, was
+  already a shared token for exactly this reason. `MARKER_PATH` now sits beside it, and
+  every icon including `icon.svg` is generated from it.
+
+  The lesson worth keeping is not about paths. A comment in the code asserted the
+  duplication was required, and it was believed rather than checked against the
+  requirement it named. Comments record what somebody once concluded; the specification
+  records what is in force.
+
   The platform axis is the one this had been indexed on and the one that cannot work:
   an installed copy of the site and the installed application reach the *same Android
   home screen*, so a platform-shaped rule puts two marks in one place. It is worth
