@@ -25,55 +25,85 @@
  * be proved, or it is just a divergence nobody has noticed yet.
  */
 
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, relative as relativePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { bytesFor } from './build-icons.mjs'
 import { ASSETS } from './icon-assets.mjs'
 import { decodeIco, decodePng, meanDifference } from './icon-pixels.mjs'
-import { DROP, TILE } from './icon-mark.mjs'
+import { DROP, markerPath, TILE } from './icon-mark.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const read = (path) => readFileSync(join(ROOT, path), 'utf8')
+const relative_ = (path) => relativePath(ROOT, path)
 
 const problems = []
 
 /**
- * The path, wherever it is written.
+ * Nowhere but the token holds the path.
  *
- * `icon.svg` holds it with the head's knockout appended as a second subpath, so
- * the comparison is of the leading outline rather than of the whole attribute.
+ * This used to assert that three copies were equal — one per application and a
+ * third in the favicon. There is one now, `MARKER_PATH` in
+ * `packages/tokens/src/layout.ts`, so the useful assertion inverts: nothing
+ * else may carry the literal.
+ *
+ * That is a strictly stronger check than the one it replaces. An equality
+ * comparison over a list of known copies cannot see a fourth: somebody pasting
+ * the string into a new component passes, because the new file was never on the
+ * list. This looks for the string instead of for disagreement.
  */
-const OUTLINE = 'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z'
+const OUTLINE = markerPath()
 
-const PATH_COPIES = [
-  'apps/web/app/_components/pin.tsx',
-  'apps/mobile/components/pin.tsx',
-  'apps/web/app/icon.svg',
-]
+const SEARCHED = ['apps', 'packages', '.github/scripts']
+const HOME = 'packages/tokens/src/layout.ts'
+
+/**
+ * Generated assets are exempt: they carry the path because it was cut into
+ * them, which is the opposite of a copy somebody has to keep in step. They are
+ * held honest by the regeneration comparison below instead.
+ */
+const GENERATED = new Set(ASSETS.map((asset) => asset.path))
 
 console.log('The mark:\n')
+console.log(`  ${HOME}\n    holds the path`)
 
-const carrying = []
-for (const path of PATH_COPIES) {
-  if (read(path).includes(OUTLINE)) {
-    carrying.push(path)
-    console.log(`  ${path}\n    carries the outline`)
-  } else {
-    problems.push(
-      `${path} does not carry the teardrop's outline.\n` +
-        `    Expected to find: ${OUTLINE}\n` +
-        `    The path is held once per application and once in the mark, which ` +
-        `\`styling\` requires by forbidding shared rendered markup. The copies have drifted.`,
-    )
+const copies = []
+for (const root of SEARCHED) {
+  for (const file of walk(join(ROOT, root))) {
+    const relative = relative_(file)
+    if (relative === HOME || GENERATED.has(relative)) continue
+    let text
+    try {
+      text = readFileSync(file, 'utf8')
+    } catch {
+      continue
+    }
+    if (text.includes(OUTLINE)) copies.push(relative)
   }
 }
 
-if (carrying.length > 0 && carrying.length < PATH_COPIES.length) {
+if (copies.length > 0) {
   problems.push(
-    `Only ${carrying.length} of ${PATH_COPIES.length} copies carry it: ${carrying.join(', ')}.`,
+    `The path is written out again in:\n${copies.map((c) => `      ${c}`).join('\n')}\n` +
+      `    It has one definition, \`MARKER_PATH\` in ${HOME}. Import it rather than ` +
+      `copying it — three copies held in agreement is what this replaced, and a copy ` +
+      `is only ever in agreement until somebody edits one.`,
   )
+} else {
+  console.log(`    and nothing under ${SEARCHED.join(', ')} carries a copy`)
+}
+
+/** Every file under a directory, skipping build output and dependencies. */
+function* walk(directory) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.next') || entry.name === 'ios') {
+      continue
+    }
+    const full = join(directory, entry.name)
+    if (entry.isDirectory()) yield* walk(full)
+    else if (/\.(tsx?|jsx?|mjs|svg|css|json|html)$/.test(entry.name)) yield full
+  }
 }
 
 /**
@@ -150,6 +180,25 @@ for (const asset of ASSETS) {
   }
 
   const fresh = bytesFor(asset)
+
+  // The favicon is text, so it is compared as text. Everything else is
+  // compared as pixels — never as bytes, because zlib may legitimately encode
+  // the same picture differently.
+  if (asset.kind === 'svg') {
+    if (fresh.toString('utf8') !== committed.toString('utf8')) {
+      problems.push(
+        `${asset.path} is not what the mark would cut. ` +
+          `It is generated now — edit the path, the colours or the generator, not this file. ` +
+          `Run \`node .github/scripts/build-icons.mjs\`.`,
+      )
+    }
+    console.log(
+      `  ${asset.path}\n    ${String(asset.size).padEnd(11)} ${asset.contract.padEnd(18)} ` +
+        `drop ${(asset.dropWidth * 100).toFixed(1)}% of canvas   text, exact`,
+    )
+    continue
+  }
+
   const pairs =
     asset.kind === 'ico'
       ? decodeIco(fresh).map((image, i) => [image, decodeIco(committed)[i]])

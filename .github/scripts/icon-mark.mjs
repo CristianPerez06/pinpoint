@@ -21,7 +21,38 @@
  * cubics, one arc, one line, and a circle knocked out of it.
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import zlib from 'node:zlib'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/**
+ * The teardrop, read out of the token that defines it.
+ *
+ * `MARKER_PATH` in `packages/tokens/src/layout.ts` is the one definition the
+ * applications draw. This script runs on bare `node` before and outside any
+ * build, so it cannot import TypeScript — it reads the literal the same way the
+ * colours are read from `colour.ts`, and for the same reason.
+ *
+ * A regex over source can be lossy, which is the objection `styling` raises to
+ * recovering values by parsing. So it is written to fail loudly: no match
+ * throws here rather than yielding a default that would cut a wrong icon and
+ * pass a comparison against itself.
+ */
+export function markerPath() {
+  const source = readFileSync(join(ROOT, 'packages/tokens/src/layout.ts'), 'utf8')
+  const match = source.match(/export const MARKER_PATH\s*=\s*\n?\s*'([^']+)'/)
+  if (!match) {
+    throw new Error(
+      'Could not read MARKER_PATH from packages/tokens/src/layout.ts. ' +
+        'The mark is cut from that constant; if it has moved or been reformatted, ' +
+        'update this reader rather than pasting the path back in here.',
+    )
+  }
+  return match[1]
+}
 
 /**
  * The mark's two colours, and why they are literals.
@@ -55,21 +86,22 @@ export const HOLE = { cx: 16, cy: 15, r: 6 }
 /**
  * Flatten the pin's outline to a polygon.
  *
- * The path is
+ * The path is read from `MARKER_PATH` and parsed rather than transcribed: the
+ * point at the bottom, a cubic up the left flank, a large-arc sweep over the
+ * top, and a cubic back down. Writing those segments out here as numbers was
+ * how this file came to hold a fourth copy of the shape, which is the thing the
+ * token exists to prevent.
  *
- *   M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z
- *
- * — the point at (16,41), a cubic up the left flank to (5,24.4), a large-arc
- * sweep of radius 13 over the top to (27,24.4), and a cubic back down to the
- * point. Rather than parse that, the four segments are named below and the
- * literal in `icon.svg` is checked against them by `check-icons.mjs`.
+ * The parser handles only the commands this path uses, and throws on anything
+ * else rather than approximating it.
  *
  * `steps` is per segment. 256 puts the flattening error far below a pixel at
  * 1024, where the head's radius is about 300px: the chord of a 1/256 turn on a
  * 300px circle deviates from the arc by under 0.02px.
  */
-export function outline(steps = 256) {
+export function outline(steps = 256, path = markerPath()) {
   const points = []
+  let cursor = [0, 0]
 
   const cubic = (p0, c0, c1, p1) => {
     for (let i = 1; i <= steps; i++) {
@@ -82,46 +114,96 @@ export function outline(steps = 256) {
     }
   }
 
-  points.push([16, 41])
-  cubic([16, 41], [16, 41], [6.6, 27.8], [5, 24.4])
-
-  /**
-   * The arc, with its centre derived rather than assumed.
-   *
-   * This is the part it is easy to get wrong, and the pin's own comment gets it
-   * wrong: it describes "a circle of radius 13 centred at (16, 15)", and the
-   * endpoints the path gives are 14.47 from that point, not 13. They cannot be
-   * on it.
-   *
-   * SVG does not take a centre. It takes two endpoints, two radii and two
-   * flags, and computes the centre — so the head's real centre is (16, 17.47),
-   * two and a half units below where the comment puts it, and the drop's top is
-   * at y 4.47 rather than at y 2. That is a 6% difference in the mark's height
-   * and it is why the committed web assets measure 1.405 tall per unit wide
-   * where the described geometry would give 1.5.
-   *
-   * The endpoints are level and the radius is equal on both axes, so the
-   * conversion collapses to the perpendicular bisector: the centre sits on
-   * x = 16, at a distance sqrt(r^2 - halfChord^2) from the chord, on whichever
-   * side the flags select. Large-arc with a positive sweep, from the left
-   * endpoint to the right one, goes over the top — so the centre is the lower
-   * of the two candidates.
-   */
-  const r = 13
-  const halfChord = (27 - 5) / 2
-  const c = { x: 16, y: 24.4 - Math.sqrt(r * r - halfChord * halfChord), r }
-  const a0 = Math.atan2(24.4 - c.y, 5 - c.x)
-  const a1 = Math.atan2(24.4 - c.y, 27 - c.x)
-  let sweep = a1 - a0
-  while (sweep <= 0) sweep += Math.PI * 2
-  for (let i = 1; i <= steps; i++) {
-    const a = a0 + (sweep * i) / steps
-    points.push([c.x + c.r * Math.cos(a), c.y + c.r * Math.sin(a)])
+  for (const [command, a] of commands(path)) {
+    if (command === 'M') {
+      cursor = [a[0], a[1]]
+      points.push(cursor)
+    } else if (command === 'C') {
+      const to = [a[4], a[5]]
+      cubic(cursor, [a[0], a[1]], [a[2], a[3]], to)
+      cursor = to
+    } else if (command === 'A') {
+      arc(points, cursor, a, steps)
+      cursor = [a[5], a[6]]
+    } else if (command === 'Z') {
+      // The path closes on the point it opened at, which is already plotted.
+    } else {
+      throw new Error(
+        `MARKER_PATH uses the "${command}" command, which this rasteriser does not ` +
+          `implement. Add it rather than approximating the shape.`,
+      )
+    }
   }
 
-  cubic([27, 24.4], [25.4, 27.8], [16, 41], [16, 41])
-
   return points
+}
+
+/** Split a path into `[command, numbers]` pairs. Absolute commands only. */
+function commands(path) {
+  const out = []
+  for (const [, letter, rest] of path.matchAll(/([A-Za-z])([^A-Za-z]*)/g)) {
+    if (letter !== letter.toUpperCase()) {
+      throw new Error(`MARKER_PATH uses the relative command "${letter}"; only absolute are read.`)
+    }
+    const numbers = (rest.match(/-?\d*\.?\d+/g) ?? []).map(Number)
+    out.push([letter, numbers])
+  }
+  return out
+}
+
+/**
+ * An elliptical arc, with its centre derived rather than assumed.
+ *
+ * This is the part it is easy to get wrong, and the pin's own comment got it
+ * wrong for a long time: it described "a circle of radius 13 centred at
+ * (16, 15)", and the endpoints the path gives are 14.47 from that point. They
+ * cannot be on it.
+ *
+ * SVG does not take a centre. It takes two endpoints, two radii and two flags
+ * and computes one — so the head's real centre is (16, 17.47), and the drop's
+ * top is at y 4.47 rather than y 2. That is a 6% difference in the mark's
+ * height, and it is why the icons measure 1.405 tall per unit wide where the
+ * described geometry would give 1.5.
+ *
+ * This is the endpoint-to-centre conversion from the SVG specification's
+ * implementation notes, restricted to equal radii and no rotation — which is
+ * everything this path uses, and anything else throws rather than being
+ * quietly approximated.
+ */
+function arc(points, from, a, steps) {
+  const [rx, ry, rotation, largeArc, sweepFlag, x, y] = a
+  if (rx !== ry || rotation !== 0) {
+    throw new Error('MARKER_PATH has an arc with unequal radii or a rotation; not implemented.')
+  }
+
+  const r = rx
+  const midX = (from[0] + x) / 2
+  const midY = (from[1] + y) / 2
+  const half = Math.hypot(x - from[0], y - from[1]) / 2
+  // Perpendicular offset from the chord's midpoint to the centre. Clamped at
+  // zero because a radius too small for the chord is scaled up by SVG rather
+  // than being an error.
+  const offset = Math.sqrt(Math.max(0, r * r - half * half))
+  const ux = (x - from[0]) / (half * 2)
+  const uy = (y - from[1]) / (half * 2)
+  // Which of the two candidate centres: the flags disagreeing picks one side.
+  const side = largeArc === sweepFlag ? -1 : 1
+  const cx = midX + side * offset * -uy
+  const cy = midY + side * offset * ux
+
+  const a0 = Math.atan2(from[1] - cy, from[0] - cx)
+  const a1 = Math.atan2(y - cy, x - cx)
+  let span = a1 - a0
+  if (sweepFlag) {
+    while (span <= 0) span += Math.PI * 2
+  } else {
+    while (span >= 0) span -= Math.PI * 2
+  }
+
+  for (let i = 1; i <= steps; i++) {
+    const angle = a0 + (span * i) / steps
+    points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)])
+  }
 }
 
 /** The hole, as a polygon, so one fill rule covers both subpaths. */
@@ -437,4 +519,74 @@ export function encodeIco(images) {
   })
 
   return Buffer.concat([header, ...pngs])
+}
+
+/**
+ * The favicon, as text.
+ *
+ * The one asset a host renders itself rather than being handed pixels, so it
+ * stays SVG — and it is emitted rather than hand-kept for the same reason the
+ * rasters are. It carried its own copy of the path, its own colour literals and
+ * its own transform, none of which anything compared to anything.
+ *
+ * The comment is part of the output. It is where the reasoning about knockouts,
+ * literals and one-asset-for-both-themes is written down, and a generated file
+ * that drops it would trade a maintenance problem for an amnesia problem.
+ */
+export function renderSvg({ size = 32, dropWidth, radius }) {
+  const box = pathBounds()
+  const scale = (dropWidth * size) / box.width
+  const centreX = (box.minX + box.maxX) / 2
+  const centreY = (box.minY + box.maxY) / 2
+  const round = (n) => Number(n.toFixed(4))
+
+  // The head, knocked out as a second subpath under `evenodd`. Written from the
+  // same constants the rasteriser uses, as two half-circle arcs.
+  const hole =
+    `M${HOLE.cx} ${HOLE.cy - HOLE.r} ` +
+    `A ${HOLE.r} ${HOLE.r} 0 1 0 ${HOLE.cx} ${HOLE.cy + HOLE.r} ` +
+    `A ${HOLE.r} ${HOLE.r} 0 1 0 ${HOLE.cx} ${HOLE.cy - HOLE.r} Z`
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <!--
+    The tab mark. GENERATED — do not edit.
+
+    Cut by \`.github/scripts/build-icons.mjs\` from \`MARKER_PATH\` in
+    \`packages/tokens/src/layout.ts\`, which is the same path both applications
+    draw on the map. \`pnpm check:icons\` fails if this file is not what the mark
+    would cut. It was hand-kept until it was not, and it held its own copy of the
+    path and its own colour literals, which nothing compared to anything.
+
+    The head is knocked out with \`fill-rule="evenodd"\` rather than being a
+    second shape in the tile's colour, so the pin stays one path and the hole
+    cannot land a half-pixel off the fill at 16px.
+
+    Amber is \`accent\` and the drop is \`inkOnAccent\` — that pairing is not a
+    choice made here. The styling spec requires anything drawn on the accent to
+    be lettered in \`inkOnAccent\`, and both are literals rather than \`var()\`
+    because a favicon is fetched outside the document and inherits none of its
+    custom properties.
+
+    The drop is larger here than on any other asset, and not because of masking:
+    this is drawn at 16px in a tab strip, where 41% is six pixels across and the
+    tile has to do the reading.
+
+    The tile is rounded because nothing masks a favicon: a browser draws what it
+    is given. The apple and manifest icons are the same mark drawn square to the
+    edge, because iOS and Android cut their own corners out of whatever they are
+    handed and would round these again.
+
+    One asset serves both themes. It carries its own ground, so there is no
+    \`prefers-color-scheme\` here and nothing to be resolved by a host that may
+    not consult the media query for an icon at all.
+  -->
+  <rect width="${size}" height="${size}" rx="${round(radius * size)}" fill="${TILE}"/>
+  <path
+    fill="${DROP}"
+    fill-rule="evenodd"
+    transform="translate(${size / 2} ${size / 2}) scale(${round(scale)}) translate(${round(-centreX)} ${round(-centreY)})"
+    d="${markerPath()} ${hole}"
+  />
+</svg>
+`
 }

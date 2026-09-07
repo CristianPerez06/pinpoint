@@ -17,7 +17,16 @@ import { test } from 'node:test'
 import { ASSETS, ANDROID_RENDERED, DROP_OF_RENDERED } from './icon-assets.mjs'
 import { bytesFor } from './build-icons.mjs'
 import { decodeIco, decodePng, dropBounds } from './icon-pixels.mjs'
-import { encodePng, holeOutline, outline, pathBounds, render, TILE } from './icon-mark.mjs'
+import {
+  encodePng,
+  holeOutline,
+  markerPath,
+  outline,
+  pathBounds,
+  render,
+  renderSvg,
+  TILE,
+} from './icon-mark.mjs'
 
 /**
  * The head's real centre, from SVG's endpoint-to-centre conversion.
@@ -245,4 +254,47 @@ test('the mark still matches the assets it was cut to reproduce', () => {
       `${path}: ${box.width}x${box.height} against the original ${width}x${height}`,
     )
   }
+})
+
+test('the path is read from the token, not held here', () => {
+  // The generator must not carry its own copy — that is what the token is for,
+  // and a copy here would be invisible to the copy-detector that exempts
+  // generated assets.
+  const source = readFileSync(new URL('../../packages/tokens/src/layout.ts', import.meta.url), 'utf8')
+  assert.ok(source.includes(markerPath()), 'layout.ts holds the literal')
+
+  const mine = readFileSync(new URL('./icon-mark.mjs', import.meta.url), 'utf8')
+  assert.ok(!mine.includes(markerPath()), 'the generator holds no copy of it')
+})
+
+test('the parser refuses what it cannot draw rather than approximating it', () => {
+  // A future path using a quadratic, a relative command or a rotated ellipse
+  // must stop the build, not be silently straightened. `outline` takes a path so
+  // this exercises the real parser rather than a stand-in for it.
+  assert.throws(() => outline(8, 'M0 0 q 1 1 2 2'), /relative command/)
+  assert.throws(() => outline(8, 'M0 0 Q 1 1 2 2'), /does not implement/)
+  assert.throws(() => outline(8, 'M0 0 A 6 3 0 1 0 6 0'), /unequal radii|rotation/)
+})
+
+test('the parser draws a circle it can check itself against', () => {
+  // Two half-arcs back to the start is a circle of radius 6 at (16, 15) — the
+  // same shape `holeOutline` produces from its constants, by a different route.
+  const drawn = outline(256, `M16 9 A 6 6 0 1 0 16 21 A 6 6 0 1 0 16 9 Z`)
+  for (const [x, y] of drawn) {
+    assert.ok(Math.abs(Math.hypot(x - 16, y - 15) - 6) < 1e-9, `(${x}, ${y}) off the circle`)
+  }
+})
+
+test('the favicon centres the drop on the box the path actually draws', () => {
+  const svg = renderSvg({ size: 32, dropWidth: 0.5, radius: 7 / 32 })
+  const box = pathBounds()
+  const centreY = (box.minY + box.maxY) / 2
+
+  // The hand-kept favicon centred on 21.5 — the midpoint of the box the old
+  // comment described, which was never the box the path draws. That put the
+  // drop 0.76px low on a 32 canvas.
+  assert.ok(!svg.includes('translate(-16 -21.5)'), 'not the assumed centre')
+  assert.ok(svg.includes(`translate(-16 -${centreY.toFixed(4)})`), `centre ${centreY}`)
+  assert.ok(svg.includes(markerPath()), 'carries the shared path')
+  assert.ok(svg.includes(TILE) && svg.includes('#241703'), 'carries the token colours')
 })
