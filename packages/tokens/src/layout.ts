@@ -51,6 +51,40 @@ export const MARKER_SIZE = { width: 32, height: 42 } as const
 export const MARKER_ANCHOR = { x: 0.5, y: 1 } as const
 
 /**
+ * The teardrop itself, as an SVG path drawn in the `MARKER_SIZE` box.
+ *
+ * One definition, consumed by both applications and by the tooling that cuts
+ * the product's icons. It sits here rather than in `@pinpoint/map` because it
+ * is a value with no behaviour attached and it is meaningless without the box
+ * above — a shape in one package and its coordinate system in another would be
+ * two things to keep in step instead of none.
+ *
+ * WHY THIS IS NOT THE SHARED MARKUP `styling` FORBIDS
+ *
+ * That requirement forbids sharing styling code, a class-name vocabulary or
+ * component markup, and rejects a cross-platform styling runtime. This is a
+ * list of coordinates. Each application still draws it with its own parts — a
+ * `<path>` on the web, `react-native-svg`'s `Path` on the phone — exactly as
+ * each applies a shared colour with its own styling mechanism.
+ *
+ * It was three literals before: one per application, and a third in the
+ * favicon. A check held them equal, which is not the same as there being one of
+ * them — a check reports a divergence after somebody has made it, and only for
+ * the copies it was told about.
+ *
+ * THE HEAD IS NOT WHERE IT LOOKS
+ *
+ * The obvious reading is a circle of radius 13 centred at (16, 15), and both
+ * applications said so for a while. The arc's endpoints are 14.47 from that
+ * point, so they cannot lie on it. SVG takes two endpoints, two radii and two
+ * flags and *derives* the centre, which puts it at (16, 17.47) — so the drawn
+ * shape starts at y 4.47 rather than y 2 and is 36.53 tall, not 39. Anything
+ * measuring this path should measure it rather than assume those numbers.
+ */
+export const MARKER_PATH =
+  'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z' as const
+
+/**
  * Where the glyph sits inside the pin, normalised the same way.
  *
  * Not the centre of the box: the teardrop's head is the round part at the top,
