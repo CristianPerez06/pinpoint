@@ -13,13 +13,19 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { ASSETS } from './icon-assets.mjs'
-import { encodeIco, encodePng, render, TILE } from './icon-mark.mjs'
+import { encodeIco, encodePng, render, renderSvg, TILE } from './icon-mark.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /** What one asset's bytes should be, so the builder and the check agree. */
 export function bytesFor(asset) {
   const tile = asset.transparent ? null : TILE
+  if (asset.kind === 'svg') {
+    return Buffer.from(
+      renderSvg({ size: asset.size, dropWidth: asset.dropWidth, radius: asset.radius ?? 0 }),
+      'utf8',
+    )
+  }
   if (asset.kind === 'ico') {
     return encodeIco(
       asset.sizes.map((size) =>

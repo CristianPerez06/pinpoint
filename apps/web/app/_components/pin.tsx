@@ -1,5 +1,5 @@
 import type { MarkerView } from '@pinpoint/map'
-import { MARKER_GLYPH_SIZE } from '@pinpoint/tokens'
+import { MARKER_GLYPH_SIZE, MARKER_PATH } from '@pinpoint/tokens'
 
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 
@@ -8,19 +8,19 @@ import styles from './pin.module.css'
 /**
  * The teardrop.
  *
- * The path is drawn in the box the shared description names, and its point is
- * at the bottom centre — which is the coordinate. Nothing here decides where
- * that point goes: the anchor comes from `@pinpoint/map` and is handed to
- * MapLibre, so this component and the mobile one cannot disagree about it.
+ * The path is `MARKER_PATH`, drawn in the box the shared description names, and
+ * its point is at the bottom centre — which is the coordinate. Nothing here
+ * decides where that point goes: the anchor comes from `@pinpoint/map` and is
+ * handed to MapLibre, so this component and the mobile one cannot disagree
+ * about it. Since the path is shared too, they cannot disagree about the shape
+ * either.
  *
- * The head is a circle of radius 13 centred at (16, 15) in a 32×42 box; the
- * two curves fall from its sides to the point at (16, 41). Drawn rather than
+ * The head is an arc of radius 13 whose centre SVG derives from the endpoints —
+ * (16, 17.47), not the (16, 15) this comment claimed for a while — and two
+ * curves fall from its sides to the point at (16, 41). Drawn rather than
  * composed from a circle and a triangle so the join is a single smooth outline
  * at every size.
  */
-
-const PATH =
-  'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z'
 
 export function Pin({
   view,
@@ -53,7 +53,7 @@ export function Pin({
         aria-hidden="true"
       >
         <circle className={styles.ring} cx="16" cy="15" r="17" />
-        <path d={PATH} className={styles.drop} />
+        <path d={MARKER_PATH} className={styles.drop} />
         <g
           transform={`translate(16 15) scale(${MARKER_GLYPH_SIZE / 24}) translate(-12 -12)`}
         >
@@ -102,7 +102,7 @@ export function DraftPin() {
   return (
     <span className={`${styles.pin} ${styles.draft}`} style={{ width: 32, height: 42 }}>
       <svg viewBox="0 0 32 42" className={styles.body} aria-hidden="true">
-        <path d={PATH} className={styles.dropDraft} />
+        <path d={MARKER_PATH} className={styles.dropDraft} />
         <path
           d="M16 11v8M12 15h8"
           className={styles.plus}

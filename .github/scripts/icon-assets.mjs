@@ -36,6 +36,15 @@ export const FAVICON_RADIUS = 7 / 32
 
 export const ASSETS = [
   {
+    path: 'apps/web/app/icon.svg',
+    kind: 'svg',
+    contract: 'drawn as given',
+    size: 32,
+    dropWidth: DROP_OF_FAVICON,
+    radius: FAVICON_RADIUS,
+    note: 'The one asset a host renders itself. Same contract as the favicon, expressed as text.',
+  },
+  {
     path: 'apps/web/app/favicon.ico',
     kind: 'ico',
     contract: 'drawn as given',

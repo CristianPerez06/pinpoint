@@ -1,5 +1,5 @@
 import type { MarkerView } from '@pinpoint/map'
-import { MARKER_BADGE_SIZE, MARKER_GLYPH_SIZE, RADIUS } from '@pinpoint/tokens'
+import { MARKER_BADGE_SIZE, MARKER_GLYPH_SIZE, MARKER_PATH, RADIUS } from '@pinpoint/tokens'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
@@ -7,21 +7,22 @@ import { MarkerGlyph } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
 
 /**
- * The teardrop, drawn with the same geometry as web.
+ * The teardrop, drawn from the same definition as web.
  *
- * The path is identical to the one in `apps/web/app/_components/pin.tsx` and
- * that duplication is deliberate — the `styling` spec forbids sharing rendered
- * markup between the platforms, and an SVG path in a shared package would be
- * exactly that. What is shared is the box it is drawn in and the point that
- * sits on the coordinate, both of which arrive in the marker description.
+ * The path was written out here and again in `apps/web/app/_components/pin.tsx`,
+ * and this comment argued the duplication was required — that an SVG path in a
+ * shared package would be the rendered markup `styling` forbids. It is not: that
+ * requirement forbids styling code, a class-name vocabulary and component
+ * markup, and the box this is drawn in was already a shared token. `MARKER_PATH`
+ * sits beside it, and each platform still draws it with its own parts.
+ *
+ * The head is an arc of radius 13 whose centre SVG derives from the endpoints —
+ * (16, 17.47), not the (16, 15) the old comment claimed.
  *
  * View-based rather than a symbol layer, as before. A symbol layer draws from a
  * sprite atlas, and rasterising these per platform would produce output that
  * differs between the two platforms it is meant to unify.
  */
-
-const PATH =
-  'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z'
 
 const styles = StyleSheet.create({
   badge: {
@@ -85,7 +86,7 @@ export function DraftPin() {
     >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Path
-          d={PATH}
+          d={MARKER_PATH}
           fill={theme.colour.surface}
           stroke={theme.colour.ink}
           strokeWidth={2}
@@ -136,7 +137,7 @@ export function Pin({
         {selected ? (
           <Circle cx={16} cy={15} r={17} fill={theme.colour.accentRing} />
         ) : null}
-        <Path d={PATH} fill={theme.markerType[view.type]} />
+        <Path d={MARKER_PATH} fill={theme.markerType[view.type]} />
       </Svg>
 
       {/*
