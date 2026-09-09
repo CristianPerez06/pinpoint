@@ -206,10 +206,18 @@ Above 700px the row is already one height, because it is one line and the glyph
 is taller than the text. It needs no floor and gets none.
 
 *Alternative considered:* a `SEARCH_ROW_HEIGHT` token in `@pinpoint/tokens`.
-Rejected: there is no single value, so it would be three tokens, and three
-constants naming three particular rows in two applications is not a scale.
-`styling` § *Shared styling infrastructure is introduced only when a token is
-shared* points the same way.
+Rejected on its own terms: there is no single value, so it would be three
+tokens, and three constants naming three particular rows in two applications is
+not a scale — a token is a value the product reasons in, and these are
+measurements of two specific layouts.
+
+This originally cited `styling` § *Shared styling infrastructure is introduced
+only when a token is shared* as agreeing. It does not. That requirement governs
+when a token **package** may first be created, and the package has existed since
+the first shared colour; it says nothing about what may be added to one that
+exists. The citation was decoration on an argument that did not need it, which
+is the failure `#99` recorded on its way out — a requirement named rather than
+read. The reason above stands without it.
 
 ## Risks / Trade-offs
 
