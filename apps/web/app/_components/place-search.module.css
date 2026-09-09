@@ -65,13 +65,23 @@
   width: max-content;
   max-width: min(560px, 90vw);
   margin-top: var(--pp-space-xs);
-  max-height: 320px;
-  overflow-y: auto;
   background: var(--pp-surface);
   border: 1px solid var(--pp-line);
   border-radius: var(--pp-radius-lg);
   box-shadow: var(--pp-shadow-lg);
   z-index: 4;
+}
+
+/*
+ * The height cap moved off the panel and onto the box that scrolls.
+ *
+ * `Searching…` stands above the list while a refinement is outstanding, and it
+ * has to stay put: left inside the scrolling region it slid away from the rows
+ * it was describing at the first flick of a wheel.
+ */
+.scroll {
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 .list {
@@ -82,6 +92,14 @@
   gap: 1px;
 }
 
+/*
+ * One height, whatever the candidate carries.
+ *
+ * Above 700px this is already true and no floor is needed: the row is one line,
+ * and the 26px glyph is taller than the 14px name, so the optional region and
+ * distance change the row's width and never its height. The stacked layout
+ * below 700px is the one that varies, and it states its own floor there.
+ */
 .candidate {
   display: flex;
   align-items: center;
@@ -144,6 +162,66 @@
   font-weight: 600;
 }
 
+/*
+ * A row that is waiting to be a row.
+ *
+ * It carries `.candidate` for its layout — the same padding, the same glyph
+ * column, the same floor, and the same restyling at 700px — and adds only what
+ * makes it inert. Anything it declared for itself would be a second definition
+ * of a row's geometry, and the first thing a second definition does is stop
+ * matching.
+ */
+.shell {
+  cursor: default;
+}
+
+.shell:hover {
+  background: none;
+}
+
+/*
+ * The blocks themselves.
+ *
+ * `surface-muted` at the row's own radius, and nothing else. No shimmer: a
+ * sweeping highlight is a gradient fill and a decorative animation, and
+ * `DESIGN.md` names both among the things this product does not do. Static also
+ * means there is nothing here for `prefers-reduced-motion` to have to switch
+ * off.
+ */
+.block {
+  display: block;
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-surface-muted);
+}
+
+/*
+ * Each block is the line box it stands in for, so the shell row and the real
+ * row come to the same height by the same arithmetic rather than by a number
+ * copied from one to the other.
+ */
+.blockName {
+  width: var(--shell-name-width);
+  height: calc(var(--pp-type-row-name-size) * var(--pp-type-body-leading));
+}
+
+.blockMeta {
+  width: var(--shell-meta-width);
+  height: calc(var(--pp-type-note-size) * var(--pp-type-body-leading));
+}
+
+/*
+ * The answer to the previous query, while a newer one is outstanding.
+ *
+ * Dimmed rather than removed, and dimmed rather than merely marked: `aria-busy`
+ * says this to a screen reader and says nothing at all to everybody else, and
+ * a list that looks settled while it is not is the state this change exists to
+ * stop. Still choosable — every row says truthfully what it is, and the place
+ * you tap is the place you get.
+ */
+.superseded {
+  opacity: 0.55;
+}
+
 .note {
   margin: 0;
   padding: var(--pp-space-sm) var(--pp-space-md);
@@ -197,6 +275,27 @@
     column-gap: 10px;
     row-gap: 1px;
     align-items: center;
+    /*
+     * A floor, because the second line is optional and the first is not.
+     *
+     * `.meta` holds the region and the distance and a candidate may carry
+     * neither, in which case the span collapses to nothing and the row falls
+     * back to the 26px glyph — 42px against the 57.3px of a row that has one.
+     * A list mixing the two ripples as it is read, gives two neighbouring
+     * results different weight for a reason that has nothing to do with either
+     * of them, and cannot be mimed by a placeholder, whose whole job is to
+     * measure what has not arrived.
+     *
+     * Written as the sum rather than as the number it comes to, so it follows
+     * the tokens instead of being a measurement of them taken once. Both lines
+     * inherit `body`'s leading from the document — neither sets its own — which
+     * is why that is the ratio here.
+     */
+    min-height: calc(
+      var(--pp-type-row-name-size) * var(--pp-type-body-leading) + 1px +
+        var(--pp-type-note-size) * var(--pp-type-body-leading) +
+        var(--pp-space-sm) * 2
+    );
   }
 
   .glyph {
@@ -230,10 +329,36 @@
     max-width: none;
     min-width: 0;
     flex: 1;
-    max-height: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     border: 0;
     border-radius: 0;
     box-shadow: none;
     background: none;
+  }
+
+  /*
+   * The list takes what is left of the screen rather than a height of its own,
+   * which is what the panel above this breakpoint used the 320px cap for.
+   */
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+
+  /*
+   * The name block takes a share of the row here, because the row is the screen.
+   *
+   * Above the breakpoint the pixel width is what the panel is as wide as while
+   * it waits, so it has to be a length; below it the width is already decided by
+   * the viewport and a fixed block would leave a ragged column beside a name
+   * that spans. Both values come from the row as custom properties rather than
+   * as an inline `width`, so this rule can choose between them without having to
+   * out-shout one.
+   */
+  .blockName {
+    width: var(--shell-name-share);
   }
 }
