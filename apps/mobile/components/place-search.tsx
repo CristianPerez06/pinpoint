@@ -8,8 +8,9 @@ import { markerTypeOf } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
-  ActivityIndicator,
+  AccessibilityInfo,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -125,9 +126,26 @@ export function PlaceSearchScreen({
     null,
   )
 
+  /**
+   * Whether a request is actually on its way.
+   *
+   * A fact about the network, deliberately kept out of `result`'s derivation
+   * below — which stays exactly as it was, for the reason `answer`'s own
+   * comment gives. The two answer different questions and neither can answer
+   * the other's: `answer`'s stamp knows whether what is shown corresponds to
+   * what is typed, and only the timer knows whether anything has been asked.
+   *
+   * That distinction is the whole point. A request goes out `QUIET_PERIOD_MS`
+   * after typing stops, so from the first keystroke until then the screen is in
+   * a state that reads as searching while nothing has been asked at all — and
+   * that interval is unbounded, because it lasts as long as somebody keeps
+   * typing. Anything claiming "this is nearly here" is false for most of the
+   * time it would be on screen, which on a phone is most of the query.
+   */
+  const [asking, setAsking] = useState(false)
+
   const trimmed = query.trim()
   const result = answer?.query === trimmed ? answer.result : null
-  const searching = trimmed !== '' && result === null
 
   useEffect(() => {
     if (!open) return
@@ -136,6 +154,7 @@ export function PlaceSearchScreen({
     const controller = new AbortController()
 
     const timer = setTimeout(() => {
+      setAsking(true)
       void searchPlaces(nativeFetch, trimmed, {
         bias: biasRef.current(),
         signal: controller.signal,
@@ -144,6 +163,7 @@ export function PlaceSearchScreen({
         // superseded it is already showing as in progress, and reporting this
         // one would flash a stale answer on the way past.
         if (outcome.status === 'aborted') return
+        setAsking(false)
         setAnswer({ query: trimmed, result: outcome })
       })
     }, QUIET_PERIOD_MS)
@@ -151,8 +171,28 @@ export function PlaceSearchScreen({
     return () => {
       clearTimeout(timer)
       controller.abort()
+      // Whatever was on its way is not any more, and the effect that replaces
+      // this one starts its own quiet period before asking again.
+      setAsking(false)
     }
   }, [trimmed, biasRef, open])
+
+  /**
+   * Said out loud, because a phone has no equivalent of a live region on a
+   * piece of text.
+   *
+   * The laptop puts `role="status"` on the message and the browser does the
+   * rest. React Native has `accessibilityLiveRegion`, and it is Android-only —
+   * on iOS the words are simply drawn and never announced, which is the state
+   * this whole screen is most often mistaken for something else. So iOS is told
+   * directly, and Android is left to the live region rather than being told
+   * twice.
+   */
+  useEffect(() => {
+    if (!asking) return
+    if (Platform.OS !== 'ios') return
+    AccessibilityInfo.announceForAccessibility('Searching for places')
+  }, [asking])
 
   // Closing forgets what was typed. Search is a way into capture rather than a
   // place, so returning to a stale query and a stale list would be offering
@@ -163,8 +203,29 @@ export function PlaceSearchScreen({
     onClose()
   }
 
+  /**
+   * The answer to the previous query, kept while a newer one is outstanding.
+   *
+   * Only when it found something. A stale `No matches` or a stale failure has
+   * nothing worth keeping and would be read as the answer to what is now typed,
+   * which is the thing the specification forbids; a list of places is different,
+   * because every row still says truthfully what it is and choosing one still
+   * gives the place named on it.
+   *
+   * Derived from `answer` rather than stored, so it cannot outlive the answer
+   * that supersedes it: when a new one lands it matches the stamp, `result`
+   * stops being null, and this is null by construction rather than by anybody
+   * remembering to clear it.
+   */
+  const pending =
+    trimmed !== '' && result === null && answer?.result.status === 'ready'
+      ? answer.result.candidates
+      : null
+
   const candidates =
-    result?.status === 'ready' ? result.candidates : ([] as readonly PlaceCandidate[])
+    result?.status === 'ready'
+      ? result.candidates
+      : (pending ?? ([] as readonly PlaceCandidate[]))
 
   return (
     <Modal
@@ -211,38 +272,73 @@ export function PlaceSearchScreen({
         </View>
 
         <View style={styles.body}>
+          {/*
+            Before anything is typed, and only then. This is the one place the
+            product says a pin can be dropped when search cannot find something,
+            so it stays exactly where it is — it describes the empty field, not
+            the wait.
+          */}
           {trimmed === '' ? (
             <Note>
               Search for somewhere by name. If it cannot be found — and small,
               new, or locally-named places often cannot — close this and drop a
               pin instead.
             </Note>
-          ) : searching ? (
-            <View style={styles.searching}>
-              <ActivityIndicator color={theme.colour.inkMuted} />
-              <Note>Searching…</Note>
-            </View>
-          ) : result?.status === 'failed' ? (
-            /* Never phrased as "no matches". Rephrasing a query at a service
-               that is down is a way to spend five minutes learning nothing. */
-            <Note tone="danger">
-              {result.message} You can still add a place by dropping a pin.
-            </Note>
-          ) : result?.status === 'empty' ? (
-            <Note>No matches. Try fewer words, or drop a pin.</Note>
           ) : (
-            <View>
-              {candidates.map((candidate) => (
-                <Candidate
-                  key={candidate.id}
-                  candidate={candidate}
-                  onPress={() => {
-                    onChoose(candidate)
-                    close()
-                  }}
-                />
-              ))}
-            </View>
+            <>
+              {/*
+                Above the list rather than in place of it, and only once
+                something has been asked. During the quiet period there is
+                nothing to report, and the dimmed list below is already saying
+                the true thing: what you are reading does not answer what you
+                have now typed.
+              */}
+              {asking ? (
+                <View style={styles.searching} accessibilityLiveRegion="polite">
+                  <Note>Searching…</Note>
+                </View>
+              ) : null}
+
+              {result?.status === 'failed' ? (
+                /* Never phrased as "no matches". Rephrasing a query at a service
+                   that is down is a way to spend five minutes learning nothing. */
+                <Note tone="danger">
+                  {result.message} You can still add a place by dropping a pin.
+                </Note>
+              ) : result?.status === 'empty' ? (
+                <Note>No matches. Try fewer words, or drop a pin.</Note>
+              ) : candidates.length === 0 ? (
+                /*
+                  Only once something has been asked. The screen has no panel to
+                  withhold the way the laptop does — this body is always drawn —
+                  so the gate has to be here, and without it the shells would
+                  stand through the whole quiet period claiming a search that has
+                  not started.
+                */
+                asking ? (
+                  <Shells />
+                ) : null
+              ) : (
+                /*
+                  The list is still the previous query's answer while one is
+                  outstanding. Dimmed rather than removed: every row says
+                  truthfully what it is, and taking them away is taking away the
+                  thing search exists to produce, one keystroke into refining it.
+                */
+                <View style={pending !== null ? styles.superseded : undefined}>
+                  {candidates.map((candidate) => (
+                    <Candidate
+                      key={candidate.id}
+                      candidate={candidate}
+                      onPress={() => {
+                        onChoose(candidate)
+                        close()
+                      }}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
@@ -326,6 +422,82 @@ function Candidate({
   )
 }
 
+/**
+ * The shape of the list that is coming, standing where it will stand.
+ *
+ * Built on `styles.candidate` itself rather than on a layout of its own, so the
+ * row it stands in for is the only place a row's geometry is described. A shell
+ * that measures differently from the thing replacing it is a spinner that also
+ * makes the screen jump, which is the one thing it was brought in to prevent.
+ *
+ * Hidden from a screen reader as a group. The `Searching…` above is a sentence;
+ * three empty rows are not, and grey blocks read as content that happens to be
+ * blank — the reading this whole state exists to prevent.
+ *
+ * Not imported from the laptop, and not exported to it. The `styling` spec
+ * shares token values and not component markup, and `<div>` and `<View>` are
+ * not the same something; both `states.tsx` files already carry the argument.
+ */
+function Shells() {
+  const theme = useTheme()
+
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {SHELL_ROWS.map((row) => (
+        <View
+          key={row.name}
+          style={[styles.candidate, { borderColor: theme.colour.line }]}
+        >
+          <View
+            style={[styles.glyph, { backgroundColor: theme.colour.surfaceMuted }]}
+          />
+
+          <View style={styles.candidateText}>
+            <View
+              style={[
+                styles.blockName,
+                { width: row.name, backgroundColor: theme.colour.surfaceMuted },
+              ]}
+            />
+            <View
+              style={[
+                styles.blockContext,
+                { width: row.context, backgroundColor: theme.colour.surfaceMuted },
+              ]}
+            />
+          </View>
+
+          <View
+            style={[
+              styles.blockDistance,
+              { width: row.distance, backgroundColor: theme.colour.surfaceMuted },
+            ]}
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/**
+ * Three rows, and three name widths that are not the same.
+ *
+ * Three rather than eight. `DEFAULT_LIMIT` is a ceiling the geocoder rarely
+ * reaches for a specific name — one to three is the ordinary answer — and a list
+ * that grows into its content reads better than one that collapses out of it.
+ *
+ * Names of equal length read as a table rather than as a list of places, which
+ * is the one thing this must not look like.
+ */
+const SHELL_ROWS = [
+  { name: '70%', context: '46%', distance: 42 },
+  { name: '88%', context: '32%', distance: 30 },
+  { name: '54%', context: '61%', distance: 52 },
+] as const
+
 function Note({
   children,
   tone = 'muted',
@@ -348,6 +520,34 @@ function Note({
   )
 }
 
+/** The room above and below a candidate's content. */
+const CANDIDATE_PAD = 12
+
+/**
+ * One height per row, whatever the candidate happens to carry.
+ *
+ * The second line is optional and the first is not: `context` is only present
+ * when the geocoder returned somewhere to place the name, so a row is either
+ * two lines of type or one, and one line is shorter than the 28pt glyph beside
+ * it. Left alone, a list mixing the two ripples as it is read and gives two
+ * neighbouring results different weight for a reason that has nothing to do
+ * with either of them. It also cannot be mimed by a shell, whose whole job is
+ * to measure what has not arrived yet.
+ *
+ * Summed from the tokens rather than written as the number it comes to, so it
+ * follows the type scale instead of being a measurement of it taken once.
+ * `role()` sets an absolute `lineHeight` from each role's own ratio, which is
+ * what makes these two products the real line boxes; the 1 between them is
+ * `candidateText`'s gap, and the last 1 is the row's own bottom rule, which
+ * React Native lays out inside the box.
+ */
+const CANDIDATE_HEIGHT =
+  TYPE.rowName.size * TYPE.rowName.lineHeight +
+  1 +
+  TYPE.note.size * TYPE.note.lineHeight +
+  CANDIDATE_PAD * 2 +
+  1
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   searchRow: {
@@ -369,14 +569,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   body: { padding: SPACE.md, gap: SPACE.sm },
+  /*
+   * The words, and nothing beside them.
+   *
+   * There was a spinner here, and it earned its place while this said `Searching…`
+   * over an empty screen: motion was the only thing distinguishing a wait from a
+   * screen that had given up. The shells do that job now, and better — they say
+   * what is coming as well as that something is — so the spinner became a third
+   * element restating what the other two already say, and the only turning thing
+   * on a screen whose design system otherwise holds still. The laptop's message
+   * never had one, which is the other half of the argument.
+   *
+   * Still a row wrapping one line of text, because the live region needs an
+   * element to be attached to and the layout is what a second element would want
+   * if one is ever right here again.
+   */
   searching: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   note: { ...role(TYPE.note) },
   candidate: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
-    paddingVertical: 12,
+    paddingVertical: CANDIDATE_PAD,
     borderBottomWidth: 1,
+    minHeight: CANDIDATE_HEIGHT,
   },
   glyph: {
     width: 28,
@@ -391,4 +607,38 @@ const styles = StyleSheet.create({
   name: { ...role(TYPE.rowName) },
   context: { ...role(TYPE.note) },
   distance: { ...role(TYPE.numeric) },
+
+  /*
+   * A block is the line box it stands in for.
+   *
+   * Taken from the same product `CANDIDATE_HEIGHT` is summed from, so the shell
+   * row and the real row arrive at the same height by the same arithmetic rather
+   * than by a number copied from one to the other. No shimmer and no pulse: a
+   * sweeping highlight is a gradient fill and a decorative animation, and
+   * `DESIGN.md` names both among the things this product does not do. Static
+   * also means there is nothing here that would have to ask the system whether
+   * motion is wanted — which this app has no way of asking anywhere yet.
+   */
+  blockName: {
+    height: TYPE.rowName.size * TYPE.rowName.lineHeight,
+    borderRadius: RADIUS.sm,
+  },
+  blockContext: {
+    height: TYPE.note.size * TYPE.note.lineHeight,
+    borderRadius: RADIUS.sm,
+  },
+  blockDistance: {
+    height: TYPE.numeric.size * TYPE.numeric.lineHeight,
+    borderRadius: RADIUS.sm,
+  },
+
+  /*
+   * The previous query's answer, while a newer one is outstanding.
+   *
+   * Dimmed rather than removed. A list that looks settled while it is not is
+   * the state this change exists to stop, and on a phone the dimming is the
+   * only marking there is — React Native has no `aria-busy`, and the words
+   * above only appear once something has actually been asked.
+   */
+  superseded: { opacity: 0.55 },
 })
