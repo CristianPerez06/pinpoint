@@ -95,16 +95,28 @@
 }
 
 /*
- * The tool spelling of a control, absent until the bar becomes a bottom bar.
+ * `.toolGlyph` and `.toolLabel` were declared here and are now `ui.module.css`,
+ * which is where the comment below the tools already said the shape of a tool
+ * belongs. They are reached through `toolGlyphClass` and `toolLabelClass`.
  *
+ * `.wideLabel` stays: it is one control's laptop spelling, not part of a tool.
  * Both spellings are in the markup at every width and the cascade picks one.
- * That is affordable here and nowhere else in this change: a word and a glyph
- * carry no state, so drawing both costs a few bytes, while a second search
- * field would be a second thing to type into and a second thing to keep in
- * sync.
+ * That is affordable for a word and a glyph, which carry no state, and nowhere
+ * else in this bar — a second search field would be a second thing to type into
+ * and a second thing to keep in sync.
  */
-.toolLabel,
-.toolGlyph {
+
+/*
+ * The way back out of search-as-a-screen.
+ *
+ * Its own class, at the tool glyph's size but deliberately not the tool glyph's
+ * class, which it borrowed until the tool classes moved. This arrow is not a
+ * tool: it is not in the toolbar's row, it takes none of the column shape a
+ * tool takes, and it is drawn only while the search screen is covering the
+ * toolbar entirely. Borrowing the class made it subject to every rule about
+ * what a tool looks like, none of which it wants.
+ */
+.backGlyph {
   display: none;
 }
 
@@ -624,7 +636,7 @@
     color: var(--pp-ink-muted);
   }
 
-  .search.searchOpen .toolGlyph {
+  .search.searchOpen .backGlyph {
     display: block;
     width: 22px;
     height: 22px;
@@ -639,28 +651,17 @@
     display: none;
   }
 
-  .toolLabel,
-  .toolGlyph {
-    display: block;
-  }
-
-  .toolGlyph {
-    width: 22px;
-    height: 22px;
-  }
-
-  .toolLabel {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--pp-ink);
-  }
-
   /*
    * The shape a tool takes is stated in `ui.module.css`, keyed on this bar's
    * `role`, because that is where the button vocabulary lives — and because
-   * `Filter` fills with the accent wash when it is declaring a narrowing, and
-   * that fill is a class in that file which nothing here can see. Overriding
-   * the background from here killed it.
+   * `Filter` recolours to the accent ink when it is declaring a narrowing, and
+   * that is a class in that file which nothing here can see. Overriding it from
+   * here killed it.
+   *
+   * That now includes the glyph and the words. `.toolGlyph` and `.toolLabel`
+   * were the two parts of a tool still declared in this file, so the sentence
+   * above was true of everything except the two things a tool is made of; they
+   * moved, and it is true of all of it.
    */
 
   /*

@@ -11,7 +11,7 @@ import {
 
 import { SlidersHorizontal } from 'lucide-react'
 
-import { Menu } from '@/app/_components/ui'
+import { Menu, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 
 import styles from './filter-bar.module.css'
 
@@ -44,6 +44,25 @@ import styles from './filter-bar.module.css'
  *
  * The count comes from `@pinpoint/core`, like every other thing a filter means,
  * so the laptop and the phone cannot report different numbers for one filter.
+ *
+ * **All of that is about the control in the bar, and it took this long to say
+ * so.** Below 700px this control is not in a bar — it is a tool standing on the
+ * bottom edge as one of three, which means a glyph above one line of words, and
+ * a count is a second line rather than a longer first one. So the count is drawn
+ * where there is a line for it and not where there is not; `marker-filtering`
+ * makes it a MAY and now says explicitly that one rendering of a control may
+ * carry it while another does not.
+ *
+ * What may **not** vary is the declaration itself. It is carried at every width
+ * by the glyph recolouring, by a pip on that glyph, and — the part that was
+ * missing everywhere, count or no count — by the trigger's own accessible name,
+ * which says *"Filter this trip. Some places are hidden"* in words. The count
+ * was never doing that job: `Filter · 1` read aloud is "Filter 1", which is the
+ * same unitless number this comment already rejected, one digit shorter.
+ *
+ * `activeFilterCount` is therefore still called at every width, and is still
+ * correct — the count is withheld by the cascade, not stopped being computed.
+ * There is no dead code here to go looking for.
  *
  * Everything that narrows is in here, and so is the way out. That is what makes
  * the label honest and what the specification requires: the control that
@@ -122,6 +141,24 @@ function FilterBarLive({
   return (
     <Menu
       name="Filter"
+      /*
+        The narrowing, said in words, at every width.
+
+        The phone's two sentences verbatim, from `Tool`'s own `hint` — one
+        control across two platforms, so the wording is part of what makes it
+        one. Verbatim also because both begin with `Filter`, which is the word
+        the trigger shows: `aria-label` replaces the computed name rather than
+        adding to it, so a string that dropped the word would leave somebody
+        driving the page by voice unable to say what they can see.
+
+        This is what replaces the count below the breakpoint, and it is a better
+        answer than the count was at any width — read aloud, `Filter · 1` is
+        "Filter 1", which is a bare number beside the word `Filter` and is the
+        exact reading `marker-filtering` rejected `15 of 17` for.
+      */
+      hint={
+        narrowed ? 'Filter this trip. Some places are hidden' : 'Filter this trip'
+      }
       label={<FilterLabel narrowed={narrowed} active={active} />}
       marked={narrowed}
       align="end"
@@ -248,10 +285,21 @@ export function FilterBar(props: FilterBarProps) {
       and standing a block in its place would be inventing a question. It also
       measured: a placeholder here was 33px wider than the word it replaced, and
       every control between it and the account moved when the data landed.
+
+      Still true after the label grew a pip and a second spelling of its word,
+      and worth having checked rather than assumed: both spellings are the same
+      four letters, so neither state is wider than the other, and the pip is
+      drawn only when narrowed — which, as above, cannot be the case yet. The
+      one thing that arrives with the data is the count, and it arrives into a
+      row that is already the width of the word.
     */
     return (
       <Menu
         name="Filter"
+        /* Nothing has been read, so nothing is narrowed, so it is the unnarrowed
+           sentence. The control being unavailable is already announced by
+           `aria-disabled` and is not this string's job. */
+        hint="Filter this trip"
         label={<FilterLabel narrowed={false} active={0} />}
         align="end"
         open={false}
@@ -269,31 +317,87 @@ export function FilterBar(props: FilterBarProps) {
  * What the filter's trigger says — which is the same thing whether or not the
  * trip has been read.
  *
- * A glyph and a word, both fixed, plus a count that can only exist once a
- * filter has been applied. That is why the waiting form of this control shows
- * the real label rather than a placeholder: there is nothing here that has to
- * be waited for, and a block standing in its place would be inventing a
- * question nobody asked.
+ * A glyph and a word, both fixed, plus what a filter being applied adds: a pip
+ * on the glyph, and a count. Neither can exist before the trip has been read, so
+ * the waiting form of this control shows the real label rather than a
+ * placeholder — there is nothing here that has to be waited for, and a block
+ * standing in its place would be inventing a question nobody asked.
+ *
+ * **Every child here is drawn at every width, and the cascade decides which are
+ * seen.** That is four elements in two pairs — the glyph's wrapper against the
+ * word's laptop spelling, and the tool spelling against the count — and reading
+ * this function is not enough to know what is on screen. What decides is the
+ * 700px block in `filter-bar.module.css` and the `[role='toolbar']` rules in
+ * `ui.module.css`. Above the breakpoint: the word, and the count if narrowed,
+ * with `Menu`'s dot and caret after them. Below it: the glyph with its pip, and
+ * the word beneath, and nothing else — because the bar draws its controls as a
+ * column there, and anything else in this list would be another line.
  */
 function FilterLabel({ narrowed, active }: { narrowed: boolean; active: number }) {
   return (
-        <>
-          {/*
-            A glyph, and only where the control is standing in the bar at the
-            bottom as one of three equals.
+    <>
+      {/*
+        The glyph, and — where this control is a tool — the state sitting on it.
 
-            Sliders rather than a funnel: a funnel says "narrow a list", and
-            sliders says "options you can change", which is what this opens.
-            The phone chose the same glyph for the same reason.
+        Sliders rather than a funnel: a funnel says "narrow a list", and sliders
+        says "options you can change", which is what this opens. The phone chose
+        the same glyph for the same reason.
 
-            Drawn at every width and hidden by the cascade above the phone's,
-            for the reason the drop control's two labels already record — a
-            glyph carries no state, so rendering both spellings costs nothing
-            that branching would.
-          */}
-          <SlidersHorizontal aria-hidden className={styles.glyph} />
-          Filter
-          {narrowed ? <span className={styles.count}>{active}</span> : null}
-        </>
+        The wrapper exists to be the thing the pip is positioned against, and it
+        is the reason the pip is drawn here rather than by `Menu`. `Menu` draws
+        the dot that declares a state, and it draws it after the whole label —
+        correct in a row, and a line of its own in a column. Only this file knows
+        there is a glyph to put it on, and `Menu` cannot reach inside a label it
+        was handed.
+
+        So the state is drawn *twice* in this control and the cascade picks one:
+        `Menu`'s dot above the breakpoint, this pip below it, each hidden where
+        the other is drawn. That is affordable for the same reason both spellings
+        of the word below are — a dot carries no state, so drawing it twice costs
+        bytes, where duplicating something a person types would cost correctness.
+        `ui.module.css`'s `[role='toolbar'] .liveDot` is the other half of the
+        pair; if a dot ever appears twice, those two rules have stopped agreeing
+        about 700px.
+
+        Everything here is drawn at every width and hidden by the cascade, never
+        branched on a measured width — a branch needs the viewport in JavaScript,
+        which is a subscription and a first paint in the wrong shape.
+      */}
+      <span className={styles.mark}>
+        <SlidersHorizontal aria-hidden className={toolGlyphClass} />
+        {narrowed ? <span aria-hidden className={styles.pip} /> : null}
+      </span>
+
+      {/*
+        One word, spelled twice, because the two spellings are set differently
+        rather than worded differently.
+
+        In the bar it is the control's own type; as a tool it is `label` type at
+        11px/600, which is what `Search` and `Drop` are set at. This control was
+        the only one of the three that never took `toolLabel`, so its word came
+        out at 13.5px beside two words at 11px — three equals, one of them
+        lettered as though it outranked the others.
+
+        Two elements and not one: `toolLabel` is `display: none` above the
+        breakpoint, so a single span wearing it would leave the laptop trigger
+        with no word at all, and giving one span both classes would put two
+        `display` declarations of equal specificity in two stylesheets and let
+        the bundler's ordering decide. `Drop` already answers this the same way.
+      */}
+      <span className={styles.wideLabel}>Filter</span>
+      <span className={toolLabelClass}>Filter</span>
+
+      {/*
+        The count, in the bar only.
+
+        `marker-filtering` makes it a MAY and now says so per rendering, which is
+        this: there is no third line in a tool, and the tool's whole job is to
+        be a glyph above one line of words. What the count was carrying — that
+        the view is narrowed, and how much of it is being asked — is carried
+        there by the pip and by the trigger's accessible name, which is a better
+        place for it than a number whose unit has to be inferred.
+      */}
+      {narrowed ? <span className={styles.count}>{active}</span> : null}
+    </>
   )
 }

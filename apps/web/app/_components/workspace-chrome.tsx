@@ -14,6 +14,8 @@ import {
   iconOnlyLabelClass,
   Menu,
   NamePlaceholder,
+  toolGlyphClass,
+  toolLabelClass,
 } from '@/app/_components/ui'
 
 import styles from './trip-workspace.module.css'
@@ -247,8 +249,8 @@ export function WorkspaceChrome({
             aria-disabled={live ? undefined : true}
             className={styles.searchTool}
           >
-            <Search aria-hidden className={styles.toolGlyph} />
-            <span className={styles.toolLabel}>Search</span>
+            <Search aria-hidden className={toolGlyphClass} />
+            <span className={toolLabelClass}>Search</span>
           </button>
 
           {/*
@@ -275,7 +277,7 @@ export function WorkspaceChrome({
               aria-label="Close search"
               className={styles.searchBack}
             >
-              <ArrowLeft aria-hidden className={styles.toolGlyph} />
+              <ArrowLeft aria-hidden className={styles.backGlyph} />
             </button>
 
             {live ? (
@@ -316,11 +318,11 @@ export function WorkspaceChrome({
                 also carries a glyph, which is what makes three targets at the
                 bottom of a phone readable at a glance.
               */}
-              <MapPinPlus aria-hidden className={styles.toolGlyph} />
+              <MapPinPlus aria-hidden className={toolGlyphClass} />
               <span className={styles.wideLabel}>
                 {dropping ? 'Cancel' : '+ Drop a pin'}
               </span>
-              <span className={styles.toolLabel}>
+              <span className={toolLabelClass}>
                 {dropping ? 'Cancel' : 'Drop'}
               </span>
             </Button>

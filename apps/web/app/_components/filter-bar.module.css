@@ -156,17 +156,105 @@
 }
 
 /*
- * The tool glyph — absent until the bar becomes a bottom bar. See
- * `trip-workspace.module.css` for where 700px is decided and why.
+ * The word, in the bar.
+ *
+ * The laptop spelling of a label this control spells twice — same word, two
+ * settings — for the reason `filter-bar.tsx` records beside the markup. The
+ * tool spelling is `toolLabel` in `ui.module.css`, where the other two tools
+ * read it from, and it is `display: none` above the breakpoint; this is the
+ * half that goes the other way. `trip-workspace.module.css` names its own
+ * equivalent the same thing about `Drop`.
  */
-.glyph {
+.wideLabel {
+  display: inline;
+}
+
+/*
+ * What the glyph is drawn inside, so the pip has something to sit on.
+ *
+ * `position: relative` is the whole reason this element exists — the pip is
+ * positioned against it, and `.button` is the only other positioned ancestor
+ * available, which would mean offsets computed from the glyph's width and the
+ * button's padding written in a stylesheet that cannot see either.
+ *
+ * Hidden above the breakpoint along with the glyph inside it. Left drawn it
+ * would be an empty box taking a share of `.button`'s gap, and the pip would
+ * appear beside a glyph that is not there.
+ *
+ * See `trip-workspace.module.css` for where 700px is decided and why.
+ */
+.mark {
   display: none;
 }
 
 @media (max-width: 700px) {
-  .glyph {
+  .mark {
+    position: relative;
     display: block;
-    width: 22px;
-    height: 22px;
+    flex: none;
+  }
+
+  /*
+   * The narrowed state, sitting on the glyph.
+   *
+   * The phone's `pip` — its numbers unscaled, because a corner badge sits on the
+   * corner and 22px against 24pt does not want the offsets interpolated. Ringed
+   * in the bar's own surface so it reads as *on* the drawing rather than as part
+   * of it, which is the same relationship the phone's ring has to the phone's
+   * bar; there is no fill behind it any more, so `surface` is what is actually
+   * there.
+   *
+   * `accent` and not `accent-ink`. The two are the same value on the dark
+   * ground, so this is a distinction without a difference there, and on the
+   * light ground the brighter of the two is the right one for a 7px shape that
+   * has to be *seen* rather than read — the same reason the caret is a drawn
+   * path at a declared size rather than a typed character.
+   *
+   * The 2px border is inside these 7px, because `globals.css` sets
+   * `box-sizing: border-box` on everything — which is what makes these the
+   * phone's numbers rather than merely numbers resembling them, since React
+   * Native measures a border the same way.
+   *
+   * This is one of the two signals the declaration is carried by, and it is the
+   * one that survives greyscale: the recolour is hue and the accessible name is
+   * not drawn at all. It has never been read in greyscale on either platform.
+   */
+  .pip {
+    position: absolute;
+    top: -1px;
+    right: -5px;
+    width: 7px;
+    height: 7px;
+    border: 2px solid var(--pp-surface);
+    border-radius: 50%;
+    background: var(--pp-accent);
+  }
+
+  .wideLabel {
+    display: none;
+  }
+
+  /*
+   * The count goes, and the reason is the shape rather than the room.
+   *
+   * A tool is a glyph above one line of words — `workspace-chrome` requires it —
+   * and this bar draws its controls as a column, so a third element in the label
+   * is not a tighter fit, it is a third *line*. That is the defect this whole
+   * change is about: with a filter applied, this control drew four of them.
+   *
+   * The truer condition is "this control is a tool", which is `[role='toolbar']`
+   * and is reachable from here — the toolbar's role is a real statement about
+   * that element, not a styling hook. It is not used, because the role is on the
+   * bar at *every* width: the attribute alone would take the count off the
+   * laptop bar too, so the media query has to carry the condition regardless,
+   * and a predicate that excludes nothing is worse than a comment. Worth
+   * revisiting only if a second one of these is ever mounted outside the
+   * toolbar at a phone width.
+   *
+   * What the count said is not lost — see the trigger's `hint`, which says it in
+   * words at every width and reaches a reader this never did.
+   */
+  .count {
+    display: none;
   }
 }
