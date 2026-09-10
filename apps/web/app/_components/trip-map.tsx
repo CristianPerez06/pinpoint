@@ -481,6 +481,29 @@ export function TripMap({
     }
   }, [mode])
 
+  /**
+   * The style document the renderer is currently holding.
+   *
+   * Not derivable from anything else, which is why it is a ref rather than a
+   * comparison. React state holds the *latest* style, not the applied one — the
+   * map is created from the first style to arrive and repainted for every one
+   * after, so the two diverge by design. And the renderer cannot be asked:
+   * `map.getStyle()` returns MapLibre's resolved style rather than the document
+   * it was handed, so there is no identity to compare and comparing by value
+   * would mean deep-equalling a full OpenFreeMap document on every render.
+   *
+   * So it is written at the only moment the fact is known: where the document is
+   * handed to the constructor, and where it is handed to `setStyle`. It used to
+   * be written on the repaint effect's first run instead, reading `null` as "the
+   * map was built with whatever `style` is now" — true only if that run coincides
+   * with the map's creation, and it does not. `setMap` is state, so `map` is
+   * still null for the rest of that commit and the effect returns at `!map`
+   * having recorded nothing; by the time it runs with a live map, `style` may
+   * already have moved on. On a warm style cache it has, and the record then
+   * named a document the renderer had never been given. `#64`.
+   */
+  const appliedStyle = useRef<StyleDocument | null>(null)
+
   /** The map itself, created once the first style has arrived. */
   useEffect(() => {
     const container = containerRef.current
@@ -518,15 +541,27 @@ export function TripMap({
       attributionControl: { compact: false, customAttribution: ATTRIBUTION },
     })
 
+    // The same binding the constructor was given, recorded where it was given.
+    // Not a re-read: the point is that the record and the handoff cannot drift.
+    appliedStyle.current = style
+
     setMap(instance)
 
     return () => {
       instance.remove()
       setMap(null)
+      // While there is no map there is no document being held. Mostly this is
+      // unmount, where nothing reads it again — but development's double-invoke
+      // runs create → teardown → create, and a record surviving that pair would
+      // make the second map's first genuine repaint a no-op.
+      appliedStyle.current = null
     }
     // Created from the first style only. Later styles go through `setStyle`
     // below, which keeps the camera and the markers where they are — rebuilding
     // the map on a theme change would throw the view away.
+    //
+    // This effect also owns `appliedStyle`, because it owns the handoff the ref
+    // records. Anything that re-keys it has to keep the two together.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [style !== null])
 
@@ -536,14 +571,12 @@ export function TripMap({
    * `setStyle` swaps the document without touching the camera, and the markers
    * are DOM elements the renderer only positions — so nothing is refetched,
    * nothing is remounted, and the view does not move.
+   *
+   * A style that resolved while the map was being built arrives here like any
+   * other, because `appliedStyle` already names what the map was built with.
    */
-  const appliedStyle = useRef<StyleDocument | null>(null)
   useEffect(() => {
     if (!map || !style) return
-    if (appliedStyle.current === null) {
-      appliedStyle.current = style
-      return
-    }
     if (appliedStyle.current === style) return
 
     appliedStyle.current = style
