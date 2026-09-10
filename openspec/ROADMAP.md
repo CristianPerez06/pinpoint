@@ -699,6 +699,21 @@ scale the product runs at today.
       change because it is a migration that deletes rows, which is worth doing on
       its own rather than alongside something else.
 
+- [ ] **The laptop bar's one-row breakpoint is past its own derivation.**
+      `DESIGN.md` puts the wrap at **1024px** and derives it from what cannot shrink
+      in the bar plus a search field that "stops being one at about 240px". Measured,
+      what cannot shrink is **868px**, so the row runs out at about **1108px** — and at
+      1024px the search field is **156px**, well under the floor the same sentence
+      names. The bar is therefore one row for about 84px in which the field is too
+      narrow to be a field.
+
+      Found while fixing `#87` and deliberately left out of it. That change gave the
+      filter a settled 124px, which moved this by 41px; the gap was already there at
+      about 1067px, so the slot widened something it did not open. The numbers in
+      `DESIGN.md` are corrected — what is not settled is the breakpoint, because
+      moving it is a decision about the wrapped bar and the order its three bands read
+      in, not about the filter that exposed it.
+
 ## Open design questions
 
 - **Pin legibility.** Twenty-five markers in Kyoto with six stacked on one temple

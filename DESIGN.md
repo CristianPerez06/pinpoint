@@ -418,13 +418,23 @@ chosen by window width — a browser held in a hand looks like the phone applica
 phone, not because anybody remembered to mirror it.
 
 **A control in the bar reserves its width; it does not follow its own content.**
-Anything whose text varies — a trip's name, a city's, a button with two labels — is
-given a fixed width and truncates inside it. A control that sizes itself moves every
-control after it, so switching city or arming the map slid search, drop and filter
-sideways; the things a person aims at repeatedly must not move because a word somewhere
-else changed length. A short name therefore leaves air before its chevron, which is what
-a picker looks like, and the space costs nothing in a bar that had most of its width
-empty. The full text is in what the control opens.
+Anything whose text varies — a trip's name, a city's, a button with two labels, the
+filter — is given a fixed width and truncates or centres inside it. A control that sizes
+itself moves every control after it, so switching city or arming the map slid search,
+drop and filter sideways; the things a person aims at repeatedly must not move because a
+word somewhere else changed length. A short name therefore leaves air before its chevron,
+which is what a picker looks like, and the space costs nothing in a bar that had most of
+its width empty. The full text is in what the control opens.
+
+**And varying text is not the only thing that changes a width.** The filter was the last
+control here to size itself, and it was left out of this rule because its label is the
+fixed word `Filter` — so nothing in it *varied*, it merely gained parts. Declaring a
+narrowing added a count, a state dot, the two flex gaps those two children brought, and a
+heavier weight: 39.53px arriving at once on a control 82.93px wide. Its own panel hangs
+off it, so the panel walked sideways while somebody was choosing inside it, and the way
+out of the filter is a button in that panel — pressing `Clear` moved the thing being
+pressed. Read the rule as **a control's width does not follow its own state**, of which
+varying text is one case and an arriving badge is another.
 
 **The bottom bar is the floor.** Flush to the screen edge, with the map's own ornaments
 and licence credit rising off it. A bar that stops short of the edge is a wide pill with
@@ -446,9 +456,17 @@ recognise a street corner and enough sheet to show the fields being checked agai
 **Responsive:** the web bar holds one row down to **1024px**, below which the tools take
 a line of their own and the scope keeps the first with the account. That number is
 derived rather than picked: what cannot shrink in the bar — the two fixed scope names,
-the drop slot, the filter, the account, the gaps and the padding — comes to about 764px,
-and a search field stops being one at about 240px, so the single row runs out around
-1004px. Below **700px** the chrome takes its phone shape, which is an arrangement rather than a
+the drop slot, the filter slot, the account, the gaps and the padding — and a search
+field stops being one at about 240px, so the single row runs out below that sum.
+
+*Measured, and the arithmetic no longer agrees with the breakpoint.* What cannot shrink
+is **868px**, not the 764px this paragraph used to claim, so the row runs out at about
+**1108px** — and at the 1024px breakpoint the search field is **156px**, well under the
+240px this same sentence calls the floor. Giving the filter a settled width moved this by
+41px (it was ~1067px when the filter sized itself to `Filter` alone), so the slot widened
+a gap that was already there rather than opening it: the stated 1004px was wrong before
+that change too. **Left as found, and recorded rather than fixed** — moving the breakpoint
+is a decision about the wrapped bar and not about the filter. Below **700px** the chrome takes its phone shape, which is an arrangement rather than a
 narrower version of the bar: the trip's name and the city stack on two lines with a menu
 of rare actions at the far end, the map takes everything under them, and search, drop and
 filter become a toolbar standing on the bottom edge. Three bands, therefore — one bar, a

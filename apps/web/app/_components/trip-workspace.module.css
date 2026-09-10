@@ -190,6 +190,11 @@
  * fixed: a control whose width follows its own state moves whatever sits after
  * it. Here that is the filter, and the moment it moves is the moment the map
  * has just been armed and somebody is already reaching past it.
+ *
+ * The filter now stands in a slot of its own for the same reason — see `.filter`
+ * below. These are one decision applied twice and not one control's special
+ * case: this bar reserves the room a control's widest state needs, so that using
+ * a control never rearranges the row it was used from.
  */
 .drop {
   display: flex;
@@ -202,6 +207,58 @@
 
 .drop > button {
   width: 100%;
+  justify-content: center;
+}
+
+/*
+ * The filter's slot, cut to the widest thing the trigger ever says.
+ *
+ * The same construction as `.drop` above, and for the reason `.drop`'s own
+ * comment already gives — except that here the control being moved is the panel
+ * hanging off this very trigger. `Menu` positions it with `right: 0` against
+ * `.menuAnchor`, which shrink-wraps the button, so the trigger's width *is* the
+ * panel's right edge and every change to one moves the other.
+ *
+ * The width was measured in the running application rather than estimated, and
+ * the estimate was wrong by half. Applying the first filter takes the trigger
+ * from 82.93px to 122.46px — 39.53px — from four things at once:
+ *
+ *   20.93px  `.count`, the `· 1`
+ *    6.00px  `Menu`'s `liveDot` and its margin, drawn because `marked` turns true
+ *   12.00px  two further 6px gaps: the button goes from two children to four
+ *    0.60px  `Filter` re-set at weight 600 by `.live`
+ *
+ * The gaps are the term worth remembering. They belong to no element, so there
+ * is nothing to reserve space *on* — which is why this is a slot around the
+ * control and not room held open inside it.
+ *
+ * 122.46px is a true maximum and not the widest yet seen: `activeFilterCount`
+ * counts criteria and there are two, and `tabular-nums` makes `· 2` the width of
+ * `· 1`. **If a third criterion is ever added, or the count can reach two
+ * digits, re-measure — a slot that is too narrow does not fail, it silently
+ * resumes the defect.** 124px rather than 123px so this and `.drop` are one
+ * size; two controls side by side at nearly-but-not-quite the same width is a
+ * question nobody should have to answer.
+ *
+ * Below 700px `.tools > *` sets `flex: 1 1 0` and this width stops applying, the
+ * same way `.drop`'s does — the bottom bar's three tools are a third each.
+ */
+.filter {
+  display: flex;
+  flex: none;
+  width: 124px;
+}
+
+/* `Menu`'s anchor, then its trigger. Two levels rather than `.drop`'s one,
+   because the panel needs a positioned wrapper and `Menu` supplies it. Both
+   fill the slot, so the trigger's own edges are the slot's edges and the label
+   resizes inside them. */
+.filter > div,
+.filter button {
+  width: 100%;
+}
+
+.filter button {
   justify-content: center;
 }
 
