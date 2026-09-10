@@ -593,12 +593,24 @@
   /*
    * No fill on a tool, and that is the point rather than an omission.
    *
-   * `Drop` arrives here as the primary control and would draw a full-width
-   * amber block along the bottom of the map. An earlier pass on the phone did
-   * exactly that and it was rejected on sight, for a reason that is durable:
-   * this row sits over a map whose pins are the only saturated colour in the
-   * system, and a fourth amber thing at the bottom competes with what it is
-   * meant to be serving. All three weigh the same.
+   * The reason is not here any more, and that is deliberate. It used to be: an
+   * argument about *this row sitting over a map*, made about the phone, which
+   * was true and was also the only place it was written down — so the laptop
+   * bar, which sits on a surface strip above the map and not over it, drew one
+   * of these three as a filled amber control for the life of the project
+   * without contradicting anything.
+   *
+   * The decision now lives in DESIGN.md as **The Chrome Fill Rule**: the accent
+   * fills a control that *commits* an act inside a form or a panel, and never
+   * fills a control standing in the chrome at rest. That holds at every width
+   * and on both platforms, which is what the argument written here could not do.
+   *
+   * So this rule is a guard rather than the decision. `.primary` no longer
+   * arrives in this bar — the drop control asks for `default`, at every width —
+   * and it is kept in the selector anyway, because the regression it prevents
+   * has already been made and rejected on sight twice, once on each platform.
+   * The other two tones are live: `default` is drop and filter at rest, and
+   * `danger` is drop while the map is armed.
    */
   [role='toolbar'] .primary,
   [role='toolbar'] .default,

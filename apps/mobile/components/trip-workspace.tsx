@@ -1252,10 +1252,24 @@ export function TripWorkspace({
                 All three weigh the same. An earlier pass drew `Drop` in the
                 accent, on the argument that dropping a pin is what somebody
                 opened the application to do while standing in a street. It was
-                rejected on sight and the reason is the durable part: this row
-                sits over a map whose pins are the only saturated colour in the
-                system, and a fourth amber thing at the bottom competes with what
-                it is meant to be serving.
+                rejected on sight, and the reason given at the time was local to
+                this row: it sits over a map whose pins are the only saturated
+                colour in the system, and a fourth amber thing at the bottom
+                competes with what it is meant to be serving.
+
+                That reason was true and too small. Being true only of a row
+                over a map is why the web's laptop bar — a surface strip above
+                the map, not over it — kept a filled amber control long after
+                this one lost its, without contradicting anything anybody had
+                written. The rule that replaces it is **The Chrome Fill Rule**
+                in DESIGN.md: the accent fills a control that *commits* an act
+                inside a form or a panel, and never fills a control standing in
+                the chrome at rest. `Drop` arms the map and waits; it commits
+                nothing.
+
+                So this row is no longer the exception that got it right. It is
+                the shape both applications now hold, and nothing here changed
+                to reach that — the web came to meet it.
               */}
               <Tool
                 label="Search"

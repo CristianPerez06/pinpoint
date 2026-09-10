@@ -342,6 +342,33 @@ ground — the pair converges once the bright amber is already the readable one.
 state that fills with `accent` must also change its lettering, or it paints amber on
 amber at 1:1. Filling with the accent means lettering with `ink-on-accent`, always.
 
+**The Chrome Fill Rule.** The accent fills a control that **commits** an act inside a form
+or a panel. It never fills a control standing in the chrome at rest — at any width, on
+either platform. `Save place`, `Create trip` and `Add to trip` may take the fill; the bar's
+tools may not.
+
+Arming, opening and narrowing are not committing. Beginning an act is not completing one, so
+a control that puts the map into a state where a further action is expected is still chrome:
+`+ Drop a pin` arms and waits, and what commits is `Use this spot`.
+
+The reason, and it is the reason the rest of this palette is shaped the way it is: chrome is
+on screen at all times, in a fixed place the eye returns to. Every other piece of restraint
+here exists to buy five saturated marker families that are the only strong colour anywhere,
+so that when somebody scans the interface the pins are what they see. A fill in the chrome
+spends that budget continuously, and spends it emphasising a control at the moment nobody is
+using it. A fill on a commit spends it once, inside something raised on purpose and
+dismissed after.
+
+A second reason, narrower and just as load-bearing: where two controls are peers by
+specification, filling one of them asserts a hierarchy in colour that no requirement
+describes, in the one place no review reads. `marker-capture` says search and drop are peers
+of which *neither shall be described as a fallback for the other*, and for the life of the
+project the bar said otherwise by filling one of them.
+
+This rule bounds the accent as a *fill*. The focus ring, the pin's selection halo, and
+`accent-wash` beneath `accent-ink` all remain available to chrome — a state carried by a
+wash is not a fill.
+
 **The Chosen-Twice Rule.** Every colour is defined for both grounds, each chosen against
 the ground it will be drawn on. A theme is never derived by inverting or lightening the
 other. Contrast ratio is the wrong instrument at the dark end of the range — it reads
@@ -628,6 +655,11 @@ there shows the map through the corners.
   session's three tools, and the account at the far end holding what is about the person
   rather than the trip. The wordmark's letters are not in it: inside the application they
   say nothing the reader does not know, and the trip's name answers a real question.
+
+  The three tools weigh the same as each other, and the dot is the only amber in the bar at
+  rest. Search, drop and filter each fire an action and none navigates; drawing one of them
+  more strongly claims a hierarchy nothing else in the system describes. See The Chrome Fill
+  Rule.
 - **Phone header:** the same dot, the trip name at `title`, and a menu holding rare
   actions. The trip name is the only element that yields, so a long name truncates
   instead of pushing the menu off.
@@ -722,7 +754,8 @@ type from another, which is why it can afford to be small.
 - **Do** choose a new colour twice, once against each ground, and judge the dark value by
   CIE L* distance rather than by contrast ratio.
 - **Do** pair `accent-wash` with `accent-ink` for any active or selected state, and
-  reserve the raw `accent` for fills, the focus ring, and the pin halo.
+  reserve the raw `accent` for the focus ring, the pin halo, and the fill of a control that
+  *commits* an act inside a form or a panel. Which fills matters: see The Chrome Fill Rule.
 - **Do** carry every state in something besides hue. `Clear` differs from its inert twin
   by border *and* weight as well as colour; a visited marker is drawn visited without
   changing colour. A signal that survives only in hue survives neither a greyscale
@@ -746,6 +779,12 @@ type from another, which is why it can afford to be small.
 - **Don't** write text in `--pp-accent`, and don't letter an accent fill with `ground` or
   with white — white clears 2.26:1 on it. Amber *text* is `accent-ink`; text *on* amber is
   `ink-on-accent`.
+- **Don't** fill a control in the chrome with the accent, however primary it feels. The bar
+  is on screen at all times and the pins are what the palette was spent on. A control that
+  arms, opens or narrows is not committing anything, and the emphasis it seems to want is
+  emphasis at the moment nobody is using it. And don't reach for weight instead: bolding one
+  tool is the same hierarchy bought more cheaply, and it looks like typography rather than
+  like a claim, which is what makes it easy to do without noticing.
 - **Don't** use `ink-faint` for text of any kind, placeholders included. It measures
   **2.78:1 on the light ground and 4.02:1 on the dark**, both below WCAG AA. Recessive
   text is `ink-muted` (5.16:1 / 6.48:1); `ink-faint` is for what is drawn, not read.
