@@ -30,6 +30,16 @@ import styles from './filter-bar.module.css'
  * members, and at that size the label is unreadable and the control changes
  * width every time the filter is used, which rearranges the bar that applied it.
  *
+ * That second reason was right and this control did it anyway, by a shorter
+ * route: `#87`. The trigger goes from 82.93px to 122.46px the moment a filter is
+ * applied — the count, the dot `marked` brings, the two flex gaps those two
+ * children add, and a heavier weight — and its own panel is positioned against
+ * it, so the panel slid out from under whoever was choosing inside it. The width
+ * is settled by `.filter` in `trip-workspace.module.css` now, which is the slot
+ * `Drop` has always had; the measurements and what must be re-measured are
+ * written there. A label naming people would still be unbounded, so nothing
+ * above is softened — the bound is now enforced somewhere as well as argued for.
+ *
  * What it says instead is how many of its questions are being asked:
  * `Filter · 1`. The number counts criteria rather than choices, so naming five
  * people is still one — and it is `1` for hiding visited places too.
@@ -289,9 +299,17 @@ export function FilterBar(props: FilterBarProps) {
       Still true after the label grew a pip and a second spelling of its word,
       and worth having checked rather than assumed: both spellings are the same
       four letters, so neither state is wider than the other, and the pip is
-      drawn only when narrowed — which, as above, cannot be the case yet. The
-      one thing that arrives with the data is the count, and it arrives into a
-      row that is already the width of the word.
+      drawn only when narrowed — which, as above, cannot be the case yet.
+
+      The last sentence of this comment used to read "the one thing that arrives
+      with the data is the count, and it arrives into a row that is already the
+      width of the word". That was the defect, written down as a reassurance:
+      the row *was* the width of the word, the count did not fit inside it, and
+      the row grew by 39.53px to take it. What makes the claim true is the slot
+      the trigger now stands in — `.filter` in `trip-workspace.module.css`, cut
+      to the narrowed width — so the count really does arrive into room that is
+      already there. Not measured is not the same as not moving; this is what
+      that distinction cost.
     */
     return (
       <Menu

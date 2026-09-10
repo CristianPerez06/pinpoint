@@ -127,6 +127,16 @@
  * hand and with proportional digits a `1` is narrower than a `2`, so the control
  * would shift as it counted. The one thing this must never do is name the
  * people: that label grows without bound, and a trip may hold ten members.
+ *
+ * That covers the number changing and never covered the number *arriving*, which
+ * is the larger move and was `#87`: this whole segment is 20.93px that did not
+ * exist a moment earlier, and it was not the only thing to appear. The other
+ * half is `.filter` in `trip-workspace.module.css`, a slot cut to the narrowed
+ * width so the trigger's edges are fixed and this can appear inside them.
+ *
+ * The two are worth keeping apart in the reading. `tabular-nums` is why `· 2` is
+ * the width of `· 1`, which is also what makes the slot's number a true maximum
+ * rather than the widest seen so far.
  */
 .count {
   font-variant-numeric: tabular-nums;

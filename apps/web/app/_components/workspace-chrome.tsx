@@ -364,18 +364,34 @@ export function WorkspaceChrome({
             </button>
           </span>
 
-          {live ? (
-            <FilterBar
-              filter={live.filter}
-              onChange={live.onFilter}
-              members={live.members}
-              ownMemberId={live.ownMemberId}
-              open={live.detour === 'filter'}
-              onOpen={(open) => live.onDetour(open ? 'filter' : 'none')}
-            />
-          ) : (
-            <FilterBar waiting />
-          )}
+          {/*
+            The filter's slot, and the same reason the drop control has one.
+
+            This trigger grows when a filter is applied — a count, a state dot,
+            the two flex gaps those two children bring with them, and a heavier
+            weight on the word. Its panel is positioned against it, so without a
+            settled width the panel walks sideways at the moment somebody is
+            choosing inside it, and the way out of the filter is a button in that
+            panel, so pressing `Clear` moved the thing being pressed.
+
+            One slot around both branches rather than one each: the waiting form
+            and the live form are two spellings of one control, and a slot that
+            fitted only one of them would change width when the trip arrives.
+          */}
+          <span className={styles.filter}>
+            {live ? (
+              <FilterBar
+                filter={live.filter}
+                onChange={live.onFilter}
+                members={live.members}
+                ownMemberId={live.ownMemberId}
+                open={live.detour === 'filter'}
+                onOpen={(open) => live.onDetour(open ? 'filter' : 'none')}
+              />
+            ) : (
+              <FilterBar waiting />
+            )}
+          </span>
         </span>
 
         {/*
