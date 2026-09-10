@@ -304,8 +304,37 @@ export function WorkspaceChrome({
             bar, forcing a slot half again as wide as the control needed.
           */}
           <span className={styles.drop}>
+            {/*
+              `default`, and not `primary` — which is the decision #63 was
+              opened to make and DESIGN.md's *The Chrome Fill Rule* now states.
+
+              The accent fills a control that *commits* an act inside a form or
+              a panel. This one commits nothing: it arms the map and waits, and
+              what commits is `Use this spot`. So it is chrome, and chrome does
+              not take the fill — the five marker families are what the whole
+              palette's restraint was spent on, and a filled control standing
+              here spends that budget continuously, in a fixed place the eye
+              returns to, to emphasise a control at the moment nobody is using
+              it.
+
+              It also stops the row asserting a hierarchy `marker-capture`
+              denies: search and drop are peers of which *neither SHALL be
+              described as a fallback for the other*, and filling one of them
+              said otherwise in colour, where no review reads it.
+
+              `default` makes this and the filter a matched pair — two adjacent
+              slots of identical width and identical construction, which are
+              exactly the two controls a filled drop was ranking against each
+              other. The trip and the city are `quiet` and the account is too;
+              this bar was never a row of four identical pills.
+
+              On both themes `.default`'s background is `--pp-surface`, which is
+              also the bar's own, so the pair reads as hairline outlines rather
+              than as filled shapes. That is the intended result, not something
+              this control lost.
+            */}
             <Button
-              tone={dropping ? 'danger' : 'primary'}
+              tone={dropping ? 'danger' : 'default'}
               disabled={live === null}
               onClick={() => live?.onToggleDrop()}
             >

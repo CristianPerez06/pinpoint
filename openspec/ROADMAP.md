@@ -660,6 +660,17 @@ scale the product runs at today.
       label, so none of them is unidentifiable, which is the difference between
       this and the four defects that were fixed.
 
+      **Widened by `accent-never-fills-chrome` (#63), and recorded rather than
+      discovered later.** Removing the accent fill from `+ Drop a pin` moved one
+      more control into this set, and it is the clearest case in it: `.default`'s
+      background is `--pp-surface`, which is the bar's own background, so drop and
+      filter are identified by that 1.5:1 edge and their label alone. The "also
+      carries a fill" mitigation above is thinner than it was.
+      This does not argue for putting the fill back — the accent was never the
+      right way to make a boundary legible, and one control being visible is not a
+      reason for it to be the only coloured thing in the chrome. It argues for
+      `lineStrong`, which is where the fix belongs and always did.
+
 - [ ] **The web has nowhere to report a refusal inside an open menu, and below about
       934px the menu covers the place it reports instead.** Every write started from a
       panel in the chrome — rename, invite, and now archive and restore — writes its
