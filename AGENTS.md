@@ -244,6 +244,26 @@ placeholders.
   before the argument was written down. Where something covering the map is involved,
   read the number rather than reasoning from what the thing is.
 
+- **A resolved promise beats a `setState` scheduled from a mount effect, so a
+  cleanup's `live = false` cannot cancel it.** A cached value resolves in a
+  microtask; an update scheduled from `useEffect` is a task. The microtask wins,
+  every time, and the "stale response" guard written to protect the effect never
+  runs. This is why `#64` only reproduced on a *second* trip — the first load
+  fetched over the network, which is slow enough to hide it, and the module cache
+  made the second resolve before React could correct the theme. If an effect races
+  a promise that may already be settled, the ordering is not a coin flip and
+  testing on a cold cache proves nothing.
+
+- **`setMap`-style state lags a render behind the thing it holds.** An effect that
+  creates an imperative object and stores it with `setState` leaves every other
+  effect in that same commit seeing `null`. Any effect guarding on `if (!map)
+  return` therefore *skips its first run entirely*, which is fine for work that can
+  wait and wrong for anything recording what just happened. In `#64` the effect
+  that was supposed to note which style document the renderer had been handed was
+  exactly that: it returned at the guard, and by its next run the value it meant to
+  record had been replaced. Record a fact where the fact occurs, not in a later
+  effect that you assume runs next.
+
 ## Styling
 
 Web and mobile share **token values**, not styling code. There is no cross-platform
