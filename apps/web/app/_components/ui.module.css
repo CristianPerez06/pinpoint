@@ -364,6 +364,31 @@
 }
 
 /*
+ * The tool spelling of a control: a glyph, and beneath it one line of words.
+ *
+ * Here rather than in `trip-workspace.module.css`, where these lived, because
+ * that file already said they belonged here — *the shape a tool takes is stated
+ * in `ui.module.css`, keyed on this bar's `role`, because that is where the
+ * button vocabulary lives*. That was true of the fill, the direction, the
+ * padding and the caret, and false only of the glyph and the label, which is how
+ * `Filter` came to be the one tool in the row lettered at `control` size while
+ * `Search` and `Drop` were lettered at `label` size. Three tools now read one
+ * definition.
+ *
+ * Both spellings are in the markup at every width and the cascade picks one. A
+ * word and a glyph carry no state, so drawing both costs a few bytes — the
+ * argument `trip-workspace.module.css` makes about why a second search *field*
+ * would not be affordable.
+ *
+ * Reached from another component through `toolGlyphClass` and `toolLabelClass`
+ * in `ui.tsx`, the way `iconOnlyLabelClass` already is.
+ */
+.toolGlyph,
+.toolLabel {
+  display: none;
+}
+
+/*
  * The phone shape. 700px, and the same literal as `trip-workspace.module.css`
  * — which is where it is explained, and which is the file to change first if it
  * ever moves. Custom properties do not resolve inside a media query, so a
@@ -534,6 +559,38 @@
   }
 
   /*
+   * The two halves of a tool, drawn at the one width where a tool exists.
+   *
+   * The column above is what stacks them. What that column requires — and what
+   * `workspace-chrome`'s *a tool in the bottom bar is a glyph above one line of
+   * words* now states — is that **nothing else** takes a line in it. A label
+   * written as a run of inline pieces becomes a run of rows here, which is the
+   * defect this pair was pulled together to fix: the filter's trigger was a
+   * glyph, a word, a count and a state dot, and the bar drew it as four lines.
+   */
+  .toolGlyph,
+  .toolLabel {
+    display: block;
+  }
+
+  .toolGlyph {
+    width: 22px;
+    height: 22px;
+  }
+
+  /*
+   * One size for the three words in the bar, because the three tools are
+   * equals — each fires an action and none navigates. `Filter` inherited
+   * `control` size here until this moved, which read as a hierarchy that does
+   * not exist.
+   */
+  .toolLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pp-ink);
+  }
+
+  /*
    * No fill on a tool, and that is the point rather than an omission.
    *
    * `Drop` arrives here as the primary control and would draw a full-width
@@ -550,21 +607,70 @@
   }
 
   /*
-   * The one exception, and it is not decoration.
+   * A tool that is declaring a narrowing recolours, and does not fill.
    *
-   * A tool that is declaring a narrowing keeps its wash and its lettering,
-   * because a state carried only by a dot is one signal and this system asks
-   * for two. It is the wash and never the accent: on the dark ground `accent`
-   * and `accent-ink` are the same value, so filling with the accent would paint
-   * the word out.
+   * It used to keep the accent wash, on the argument that a state carried only
+   * by a dot is one signal where this system asks for two. That argument was
+   * true of the control it was written about — a trigger whose only other
+   * signal was a 5px dot beside a word, which is now not drawn here at all.
+   *
+   * What replaces it is the phone's scheme, which is where this shape came from
+   * and which has always managed two signals without a fill: the glyph *and* the
+   * words go to the accent ink, and a ringed pip sits on the glyph. A recolour
+   * and a shape, and the shape is the one that survives greyscale — which is
+   * the property the requirement actually asks for, and which a fill of any
+   * colour does not have.
+   *
+   * The third signal is not visual and is the one that was missing. `Menu`'s
+   * `hint` puts the narrowing in the trigger's accessible name, so this state
+   * no longer depends on being looked at.
+   *
+   * `accent-ink` and never `accent`: on the dark ground the two are the same
+   * value, so lettering in `accent` on any amber ground paints the word out.
    */
   [role='toolbar'] .live {
-    background: var(--pp-accent-wash);
+    background: none;
     color: var(--pp-accent-ink);
   }
 
-  [role='toolbar'] .button:hover:not(.live) {
+  /*
+   * `.live:hover` fills with the wash and draws an accent border, which is
+   * correct for a pill in the bar and wrong twice over for a tool: the fill is
+   * the one this rule just removed, and the border lands on a control whose
+   * `border-radius` is `0`, so a narrowed tool grew a square amber outline
+   * under the pointer.
+   */
+  [role='toolbar'] .live:hover {
+    border-color: transparent;
+  }
+
+  /*
+   * `:not(.live)` is dropped, deliberately.
+   *
+   * It was there because a filled control does not need a hover fill. With the
+   * fill gone, that exclusion would leave the narrowed tool as the only one of
+   * the three that does not respond to a pointer — so it hovers like its
+   * neighbours, and the rule above gives `.live` the same value rather than
+   * letting the exclusion decide.
+   */
+  [role='toolbar'] .button:hover {
     background: var(--pp-surface-muted);
+  }
+
+  /*
+   * The words follow the recolour, which they do not do on their own.
+   *
+   * `.toolLabel` sets `color: var(--pp-ink)` explicitly, and an explicit colour
+   * beats an inherited one — so a narrowed tool came out as an amber glyph above
+   * a plain-ink word, which is a declaration applied to half a control.
+   *
+   * Only under `.live`. `.toolLabel` keeps its own colour at rest, where the web
+   * draws a muted glyph under an ink label on all three tools; the phone draws
+   * both in one colour, and changing that here would be a decision about three
+   * controls rather than about this one's state.
+   */
+  [role='toolbar'] .live .toolLabel {
+    color: inherit;
   }
 
   /*
@@ -577,6 +683,25 @@
    * and by the bar it is standing in.
    */
   [role='toolbar'] .caret {
+    display: none;
+  }
+
+  /*
+   * A tool gives up `Menu`'s dot as well, and for the same reason.
+   *
+   * The dot is drawn beside the label, which is the right place for it in a row
+   * and becomes a *line of its own* in a column — a 5px accent circle under the
+   * words, which reads as a second, smaller caret. The filter's trigger drew
+   * four lines this way once a filter was applied: glyph, word, count, dot.
+   *
+   * The state it carries is not given up with it. `filter-bar.tsx` draws a pip
+   * on the tool's glyph instead, the way the phone's `Tool` does, and that pip
+   * is hidden above this breakpoint by the wrapper that holds it. So exactly one
+   * of the two is drawn at any width, and the pair of rules that guarantee it
+   * are this one and `filter-bar.module.css`'s `.mark`. **If a dot ever appears
+   * twice, those two rules have stopped agreeing about 700px.**
+   */
+  [role='toolbar'] .liveDot {
     display: none;
   }
 }

@@ -153,15 +153,39 @@ a filter rearranges the interface that applied it. It also makes the way out of 
 narrowed view discoverable only once you are already in one. A control that is always
 there, and becomes live, says the same thing without either cost.
 
-The indication SHALL NOT be carried by colour alone. Rationale: this repeats a decision
-already in force elsewhere — a visited marker is drawn as visited without changing its
-colour — because a signal that survives only in hue does not survive a greyscale
-display, a colour-blind reader, or a screen reader.
+The indication SHALL NOT be carried by colour alone, and SHALL be carried by at least two
+signals of which at least one is not a hue.
 
-**The declaration MAY report how many of the filter's criteria are active.** Where it
-does, that count SHALL be derived from the same shared definition of what a filter means
-that decides what is drawn, so that no two interfaces can report different numbers for
-one filter.
+Rationale: this repeats a decision already in force elsewhere — a visited marker is drawn
+as visited without changing its colour — because a signal that survives only in hue does
+not survive a greyscale display or a colour-blind reader.
+
+**The declaration SHALL also be conveyed to somebody who is not looking at the screen.**
+The control that carries it SHALL state the narrowing in words, in its own name, in every
+rendering — including any rendering where the narrowing is drawn rather than written.
+
+Rationale: this is the hole the sentence above leaves, and it is a hole a real
+implementation fell through. "Not colour alone" is satisfied by a fill plus a shape, and
+a shape conveys nothing to a screen reader — so a control could satisfy this requirement
+to the letter and still announce only its own name, which is what an unfiltered control
+announces. The declaration then does not exist for that reader at all. Words are the
+only signal that reaches every way of reading a screen, so the requirement is that the
+words are always there, not that they are always drawn.
+
+Rationale, on why this is not the count's job: a count is a number, its unit is carried by
+the word beside it, and a rendering is permitted below to leave it out. A requirement met
+only by an optional element is not met.
+
+**The declaration MAY report how many of the filter's criteria are active, and MAY report
+it in some renderings of a control and not others.** Where it does, that count SHALL be
+derived from the same shared definition of what a filter means that decides what is
+drawn, so that no two interfaces can report different numbers for one filter.
+
+Rationale for the per-rendering allowance: one control is drawn at more than one size, and
+the narrow one is a glyph above a single line of words with nowhere for a third element to
+go. Requiring the count everywhere would either break that shape or forbid the count
+outright, and the count is worth having where there is room for it. What SHALL NOT vary
+by rendering is the declaration itself.
 
 The count SHALL be of **criteria, not of the choices within them**: naming any number of
 members is one criterion, and the count SHALL NOT change as members are added to or
@@ -234,12 +258,28 @@ in a way the first is not.
 - **THEN** the interface indicates that the view is narrowed
 - **AND** clearing the filter is reachable from there
 
+#### Scenario: The declaration reaches somebody who cannot see it
+
+- **WHEN** a filter is applied
+- **AND** the control that declares it is examined by its name rather than its appearance
+- **THEN** that name says that the view is narrowed
+- **AND** it says so in every rendering of that control
+- **AND** clearing the filter returns the name to one that does not
+
 #### Scenario: The declaration reports how many criteria are active
 
 - **WHEN** one criterion is applied
 - **AND** the declaration reports a count
 - **THEN** the count reads as one
 - **AND** applying a second criterion makes it read as two
+
+#### Scenario: A rendering with no room for the count still declares the narrowing
+
+- **WHEN** a filter is applied
+- **AND** the control that declares it is rendered at a size that does not show the count
+- **THEN** the view is still declared as narrowed
+- **AND** the declaration is carried by at least two signals, one of them not a hue
+- **AND** the control's name still says the view is narrowed
 
 #### Scenario: The count does not follow how many members are named
 

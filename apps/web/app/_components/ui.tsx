@@ -36,6 +36,27 @@ export const overlayPanelClass = styles.panel
 export const iconOnlyLabelClass = styles.iconOnly
 
 /**
+ * The two halves of a control standing in the bar at the bottom as a tool: a
+ * glyph, and beneath it one line of words.
+ *
+ * Exported for the same reason `iconOnlyLabelClass` is — the rules that shape a
+ * tool are in this file, keyed on the bar's `role`, and CSS Modules scope class
+ * names per file, so a call site cannot reach them without being handed the
+ * name. Three controls wear these: `Search` and `Drop` in `workspace-chrome`,
+ * and the filter's trigger, which had its own 22px glyph class and no label
+ * class at all until it was the only tool in the row lettered at `control`
+ * size.
+ *
+ * Named exports rather than letting a call site read another component's
+ * stylesheet object, and the difference is not tidiness: a class that has moved
+ * or been renamed comes back from `styles.whatever` as `undefined`, and a
+ * `className={undefined}` renders silently and correctly-looking. A missing
+ * export does not compile.
+ */
+export const toolGlyphClass = styles.toolGlyph
+export const toolLabelClass = styles.toolLabel
+
+/**
  * Where a name goes, before anybody knows what it is.
  *
  * Drawn rather than written, and the reason is the contrast floor rather than
@@ -147,6 +168,7 @@ export function Menu({
   label,
   children,
   name,
+  hint,
   open,
   onOpen,
   align = 'start',
@@ -165,6 +187,34 @@ export function Menu({
    * and a reader is told only that a group appeared.
    */
   name: string
+  /**
+   * What the *trigger* is called, where its own contents do not say enough.
+   *
+   * The mechanism the `name` comment above anticipated, finally needed. A
+   * trigger's accessible name is otherwise computed from what is inside it —
+   * which is correct for a control whose label is a word, and silent for one
+   * whose state is drawn. The filter's trigger declares a narrowed trip with a
+   * recolour and a dot, both of which are `aria-hidden` because they are
+   * decoration, and the only child carrying the state in text was the count.
+   * Where the count is not shown — a tool has no line for it — the control
+   * announced exactly what an *unfiltered* control announces. The declaration
+   * did not exist for that reader.
+   *
+   * So this is not a convenience. `marker-filtering` requires the declaration to
+   * be conveyed to somebody who is not looking at the screen, in every rendering
+   * of the control, and this is where that is satisfied. The phone's `Tool` takes
+   * the same prop under the same name and carries the same two sentences.
+   *
+   * **It must contain the trigger's visible word.** `aria-label` replaces the
+   * computed name rather than adding to it, and WCAG 2.5.3 asks that a control's
+   * accessible name contain its visible label — otherwise somebody driving the
+   * page by voice cannot say what they can see. `Filter this trip` satisfies
+   * that; `Some places are hidden` would not.
+   *
+   * Omitted, the name is computed from the contents as before, which is what the
+   * trip, city and account menus want — their trigger *is* a word.
+   */
+  hint?: string
   children: ReactNode
   open: boolean
   onOpen: (open: boolean) => void
@@ -411,6 +461,7 @@ export function Menu({
           if (disabled) return
           onOpen(!open)
         }}
+        aria-label={hint}
         aria-disabled={disabled || undefined}
         aria-expanded={disabled ? undefined : open}
         /*
