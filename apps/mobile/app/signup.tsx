@@ -1,4 +1,4 @@
-import { signIn } from '@pinpoint/auth'
+import { signUp } from '@pinpoint/auth'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { Link, Redirect } from 'expo-router'
 import { useState } from 'react'
@@ -17,34 +17,41 @@ import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
 /**
- * Sign in, with the way to create an account beside it.
+ * Create an account, from the phone.
  *
- * This screen used to end by saying accounts were made on the web app, and the
- * specification used to agree with it. Both were written on the premise that
- * planning happens at a laptop before a trip — which said nothing about the
- * person who installs this app without an account, and left them here reading
- * an instruction to go and find a computer. `signup.tsx` is the answer and the
- * link at the foot is how it is reached.
+ * Deliberately the same card as `login.tsx`, copied rather than abstracted. The
+ * two screens are meant to be recognisably one pair, and the shared part is a
+ * card and three colours — extracting it would buy a component and cost the
+ * ability to change either screen without reading the other.
  *
- * Everything below the input handling is `@pinpoint/auth`: the same validation
- * and the same failure vocabulary the web app uses. A password rejected here is
- * rejected there, without either app owning the rule.
+ * The fields are written out here rather than taken from `components/ui.tsx`,
+ * which is not the same decision. `TextField` there takes no `secureTextEntry`
+ * and no `autoComplete`, so two of these three could not use it, and teaching it
+ * those props changes a component four other forms already render.
+ *
+ * Everything below the input handling is `@pinpoint/auth`: `signUp` validates
+ * against the schema web validates against, reports failures in the same
+ * vocabulary, and claims any membership already waiting for this address. None
+ * of that is restated here, which is what makes this a second caller rather than
+ * a second implementation.
  */
-export default function LoginScreen() {
+export default function SignupScreen() {
   const { session, loading } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const theme = useTheme()
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
-  // `!submitting` holds the redirect until `signIn` has fully resolved, claim
-  // included. The auth listener sets the session the moment the credentials are
-  // accepted, so without this the next screen mounts and queries trips while the
-  // claim is still in flight — and a first sign-in would land on "you are not on
-  // any trips yet".
+  // `!submitting` holds the redirect until `signUp` has fully resolved, claim
+  // included — the same hold, for the same reason, as on the sign-in screen. The
+  // auth listener sets the session the moment the account exists, so without this
+  // the next screen mounts and queries trips while the claim is still in flight,
+  // and somebody who was invited lands on "you are not on any trips yet" on the
+  // one screen that was supposed to prove the invitation worked.
   if (session && !submitting) return <Redirect href="/" />
 
   async function submit() {
@@ -52,7 +59,7 @@ export default function LoginScreen() {
     setFieldErrors({})
     setFormError(null)
 
-    const outcome = await signIn(supabase, { email, password })
+    const outcome = await signUp(supabase, { email, password, confirmPassword })
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') {
@@ -62,7 +69,8 @@ export default function LoginScreen() {
       }
     }
     // On success the auth state listener swaps the tree; no navigation here.
-    // `signIn` has already claimed any membership waiting for this address.
+    // An address that already has an account arrives as a form-level message
+    // rather than a field error, and needs no branch of its own.
 
     setSubmitting(false)
   }
@@ -85,7 +93,18 @@ export default function LoginScreen() {
           <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
         </View>
 
-        <Text style={[styles.title, { color: theme.colour.ink }]}>Sign in</Text>
+        <Text style={[styles.title, { color: theme.colour.ink }]}>
+          Create an account
+        </Text>
+
+        {/* Written for both people who reach this screen. Somebody invited has
+            to use the invited address or the trip will not be there; somebody
+            signing up cold reads the conditional and moves on rather than
+            hunting for an invitation they never got. */}
+        <Text style={[styles.subtitle, { color: theme.colour.inkMuted }]}>
+          If you were invited, use the address the invitation went to — it is what
+          links you to your trip.
+        </Text>
 
         {formError ? (
           <Text
@@ -128,13 +147,32 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            autoComplete="current-password"
+            autoComplete="new-password"
             placeholderTextColor={theme.colour.inkMuted}
             style={field}
           />
           {fieldErrors.password ? (
             <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
               {fieldErrors.password}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
+            Repeat password
+          </Text>
+          <TextInput
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoComplete="new-password"
+            placeholderTextColor={theme.colour.inkMuted}
+            style={field}
+          />
+          {fieldErrors.confirmPassword ? (
+            <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
+              {fieldErrors.confirmPassword}
             </Text>
           ) : null}
         </View>
@@ -151,17 +189,20 @@ export default function LoginScreen() {
           {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
               pair chosen against the accent on each ground. */}
           <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? 'Creating account…' : 'Create account'}
           </Text>
         </Pressable>
 
-        {/* The padding is the tap target, not decoration: a line of `note` text
-            is about 17pt tall on its own, and there is no hover on this platform
-            to reveal that the words are a control. The accent is what says so. */}
-        <Link href="/signup" style={styles.alternative}>
-          <Text style={{ color: theme.colour.inkMuted }}>No account yet? </Text>
+        {/* The only way back. `_layout.tsx` sets `headerShown: false`, so this
+            screen has no system back control and dropping this line would strand
+            anybody who reached it and changed their mind. The padding is the tap
+            target: a line of `note` text is about 17pt tall on its own. */}
+        <Link href="/login" style={styles.alternative}>
+          <Text style={{ color: theme.colour.inkMuted }}>
+            Already have an account?{' '}
+          </Text>
           <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
-            Create one
+            Sign in
           </Text>
         </Link>
       </View>
@@ -183,6 +224,9 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   brand: { ...role(TYPE.title), fontWeight: '800', letterSpacing: -0.6 },
   title: { ...role(TYPE.display), fontSize: 28, lineHeight: 32 },
+  // Left-aligned, unlike the link below it: this is an instruction being read,
+  // not a closing note being glanced at.
+  subtitle: { ...role(TYPE.body) },
   field: { gap: 5 },
   label: { ...role(TYPE.label) },
   input: {

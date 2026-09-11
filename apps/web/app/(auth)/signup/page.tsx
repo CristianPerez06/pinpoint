@@ -4,10 +4,18 @@ import styles from '../auth.module.css'
 import { SignupForm } from './signup-form'
 
 /**
- * Account creation lives on web only.
+ * One of the two places an account can be created.
  *
- * Planning happens at a laptop and the mobile app is for during the trip, so an
- * account is made once, here. The mobile app offers sign-in and nothing else.
+ * This used to be the only one, on the reasoning that planning happens at a
+ * laptop and the phone is for during the trip. That reasoning never covered the
+ * person who installs the phone app without an account, so `apps/mobile` now has
+ * this screen's counterpart.
+ *
+ * Neither of them owns anything. Both call `signUp` from `@pinpoint/auth`, which
+ * validates against the shared schema, reports failures in one vocabulary, and
+ * claims whatever membership was waiting for the address. What differs between
+ * the two files is markup, which is the only thing the styling spec permits them
+ * to differ in.
  */
 export default async function SignupPage() {
   await redirectIfAuthenticated()
@@ -20,8 +28,14 @@ export default async function SignupPage() {
           pinpoint
         </span>
         <h1 className={styles.title}>Create an account</h1>
+        {/* The same sentence the phone's sign-up screen shows, word for word.
+            It has to work for both people who reach it: somebody invited must
+            use the invited address or the trip will not be there, and somebody
+            signing up cold should not be left hunting for an invitation they
+            never got. */}
         <p className={styles.subtitle}>
-          Use the address you were invited at — it is what links you to your trip.
+          If you were invited, use the address the invitation went to — it is what
+          links you to your trip.
         </p>
         <SignupForm />
       </div>

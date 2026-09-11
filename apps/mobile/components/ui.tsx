@@ -19,6 +19,13 @@ import { fieldRole, role } from '@/lib/type'
  * typed into except the login screen, which carries its own fields because it
  * predates having anywhere to put shared ones.
  *
+ * The sign-up screen beside it carries its own too, for a second reason that is
+ * about this file rather than about history: `TextField` below takes no
+ * `secureTextEntry` and no `autoComplete`, so a password field cannot use it.
+ * Adding those props would change a component four other forms already render,
+ * to serve two fields on one screen. If a third screen ever wants a password,
+ * that is the moment to reconsider — not before.
+ *
  * Deliberately not shared with web's `ui.tsx`, and not for want of trying — the
  * `styling` spec forbids it. Web's `TextField` renders a `<label>` around an
  * `<input>` and carries a stylesheet; this one renders a `View` around a
