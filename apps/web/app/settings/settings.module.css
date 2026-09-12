@@ -1,0 +1,204 @@
+/*
+ * Settings.
+ *
+ * The first screen in this application that is neither the map nor a sign-in.
+ * It borrows the auth screens' shape — one centred sheet on the ground, nothing
+ * competing with it — rather than the workspace's, because like them it is a
+ * screen somebody is *reading* rather than a surface with a map underneath.
+ *
+ * Every colour is a token. Nothing here declares a literal, and nothing here
+ * overrides a value from the generated sheet.
+ */
+
+.screen {
+  display: grid;
+  place-items: start center;
+  min-height: 100dvh;
+  padding: var(--pp-space-lg);
+  /*
+   * The safe area, for the same reason the workspace bar takes it: the document
+   * draws to the edges of the glass (`viewportFit: 'cover'`), so a phone held in
+   * landscape puts the notch on the side of this screen too.
+   */
+  padding-left: max(var(--pp-space-lg), env(safe-area-inset-left));
+  padding-right: max(var(--pp-space-lg), env(safe-area-inset-right));
+  padding-bottom: max(var(--pp-space-lg), env(safe-area-inset-bottom));
+  background: var(--pp-ground);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  display: grid;
+  gap: var(--pp-space-lg);
+}
+
+.header {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--pp-type-display-size);
+  font-weight: var(--pp-type-display-weight);
+  letter-spacing: var(--pp-type-display-tracking);
+  line-height: var(--pp-type-display-leading);
+}
+
+/*
+ * The way back, styled as the quiet control it is.
+ *
+ * Above the title rather than beside it: it is the first thing in the reading
+ * order, which is where somebody who opened this by mistake will look for it.
+ */
+.back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-xs);
+  /* Vertical padding so the target clears a comfortable height without the
+     label appearing to float away from the title under it. */
+  padding: var(--pp-space-sm) var(--pp-space-sm);
+  margin-left: calc(var(--pp-space-sm) * -1);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink-muted);
+  font: inherit;
+  font-size: var(--pp-type-note-size);
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--pp-ink);
+  background: var(--pp-surface-muted);
+}
+
+.backGlyph {
+  width: 15px;
+  height: 15px;
+}
+
+.section {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  line-height: var(--pp-type-label-leading);
+  text-transform: uppercase;
+}
+
+/* A fact, not a control. Deliberately not shaped like the options below it. */
+.row {
+  display: grid;
+  gap: 2px;
+  padding: var(--pp-space-md);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+}
+
+.rowLabel {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+.rowValue {
+  font-size: var(--pp-type-body-size);
+  line-height: var(--pp-type-body-leading);
+  /* An address is not a word and will not wrap at one. */
+  overflow-wrap: anywhere;
+}
+
+.options {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: var(--pp-space-md);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+  color: var(--pp-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover:not([data-selected]) {
+  background: var(--pp-surface-muted);
+}
+
+/*
+ * Selected, carried by three channels.
+ *
+ * The wash finds it at a glance, the border holds it in greyscale, and the tick
+ * in the markup holds it for a reader who sees no colour at all. `DESIGN.md`
+ * asks for every state to survive both a greyscale display and a colour-blind
+ * reader, and hue alone survives neither.
+ *
+ * `accent-wash` with `accent-ink`, never the raw accent: the accent is reserved
+ * for the focus ring, the pin halo, and controls that commit an act.
+ */
+.option[data-selected] {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent-ring);
+  color: var(--pp-accent-ink);
+}
+
+.optionGlyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.optionText {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.optionLabel {
+  font-size: var(--pp-type-body-size);
+  font-weight: 600;
+  line-height: var(--pp-type-body-leading);
+}
+
+.optionNote {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+/*
+ * The note inside a selected option.
+ *
+ * `ink-muted` is chosen against `surface` and is not guaranteed against the
+ * accent wash, so the selected row letters its own secondary line rather than
+ * inheriting one picked for a different ground. The same rule that says text on
+ * an accent fill is `ink-on-accent` applies here one step down.
+ */
+.option[data-selected] .optionNote {
+  color: var(--pp-accent-ink);
+  opacity: 0.78;
+}
+
+.optionTick {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}

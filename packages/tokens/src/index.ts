@@ -38,7 +38,7 @@ export {
   MARKER_TYPE_COLOURS,
   MARKER_FOREGROUND,
 } from './colour'
-export type { MarkerTypeColourKey, Themed, ThemeMode } from './colour'
+export type { MarkerTypeColourKey, Themed, ThemeMode, ThemePreference } from './colour'
 
 export { ELEVATION } from './elevation'
 export type { Elevation, ElevationLevel } from './elevation'
@@ -57,5 +57,5 @@ export {
 export { FONT_FAMILY, TYPE } from './type'
 export type { TypeRole, TypeRoleName } from './type'
 
-export { pick, resolveTheme } from './theme'
+export { parseThemePreference, pick, resolveMode, resolveTheme } from './theme'
 export type { Theme, ThemeElevation } from './theme'

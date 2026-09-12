@@ -28,6 +28,24 @@
 
 export type ThemeMode = 'light' | 'dark'
 
+/**
+ * What a person asked for, which is not the same thing as a ground.
+ *
+ * `ThemeMode` has two values because a colour is drawn on one of two grounds.
+ * This has three, because "whichever the device says" is a real answer and the
+ * one almost everybody is giving — it is the state both applications are in
+ * today, and losing it would be a downgrade for everybody who is happy.
+ *
+ * The two types are deliberately not merged. A stored `'light'` and a device
+ * that merely happens to be light are different facts: the first survives the
+ * device changing its mind and the second is the device changing its mind. One
+ * type holding both cannot tell them apart, and every consumer that renders a
+ * colour would have to handle `'system'`, which is not a ground and has no
+ * value to render. `resolveMode` in `./theme` is the one place the three become
+ * two.
+ */
+export type ThemePreference = 'system' | ThemeMode
+
 /** One token, chosen against each ground. */
 export interface Themed {
   readonly light: string
