@@ -6,9 +6,27 @@
  * before it gets the chance.
  *
  * This is the web representation. A browser theme belongs in the cascade rather
- * than in JavaScript, so both grounds are declared here and the media query
- * chooses — components reference the properties and never import a colour, and
- * a theme change repaints without re-rendering a tree.
+ * than in JavaScript, so both grounds are declared here and the cascade chooses
+ * — components reference the properties and never import a colour, and a theme
+ * change repaints without re-rendering a tree.
+ *
+ * WHAT CHOOSES, AND IN WHAT ORDER
+ *
+ * The device asks through the media query. A person overrides it through
+ * `data-theme` on the root element, which carries what they *chose* rather than
+ * the ground that was resolved — and is absent when they have chosen nothing.
+ *
+ *   no attribute          the media query decides, exactly as it always has
+ *   data-theme="light"    the media query is excluded; the :root block stands
+ *   data-theme="dark"     the attribute block applies on any device
+ *
+ * The media query is scoped `:not([data-theme='light'])` for the middle case.
+ * Without it a dark device would outrank a plain `:root` block on specificity
+ * and somebody who explicitly asked for light would not get it.
+ *
+ * The absence of the attribute being the system case is the property worth
+ * having: with no cookie, on a first visit, or with JavaScript disabled, this
+ * sheet behaves exactly as it did before any of it was added.
  *
  * These custom properties are for web only. A value the host resolves is
  * exactly what native cannot render, which is why the native representation
@@ -116,7 +134,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     /* surfaces and ink */
     --pp-ground: #171614;
     --pp-surface: #201E1B;
@@ -161,4 +179,50 @@
     --pp-shadow-lg: 0 12px 32px #00000094;
     --pp-shadow-pin: 0 2px 5px #0000008C;
   }
+}
+
+:root[data-theme='dark'] {
+  /* surfaces and ink */
+  --pp-ground: #171614;
+  --pp-surface: #201E1B;
+  --pp-surface-muted: #2A2724;
+  --pp-surface-sunk: #1B1A17;
+  --pp-line: #34302B;
+  --pp-line-strong: #443F38;
+  --pp-ink: #F2F0EC;
+  --pp-ink-muted: #A09A91;
+  --pp-ink-faint: #7C766D;
+  --pp-accent: #F0AE4A;
+  --pp-accent-ink: #F0AE4A;
+  --pp-ink-on-accent: #171614;
+  --pp-accent-wash: #33291A;
+  --pp-accent-ring: #F0AE4A6B;
+  --pp-danger: #F2857C;
+  --pp-danger-surface: #33211F;
+
+  /* the basemap, patched to share this ground */
+  --pp-map-land: #1A1815;
+  --pp-map-block: #262218;
+  --pp-map-road: #3D372D;
+  --pp-map-road-casing: #2C271E;
+  --pp-map-water: #16242C;
+  --pp-map-park: #1F241F;
+  --pp-map-boundary: #2A251E;
+  --pp-map-label: #8A8378;
+
+  /* marker types — fixed by the product, not by the palette */
+  --pp-pin-place: #A8A197;
+  --pp-pin-culture: #98A3B0;
+  --pp-pin-nature: #6FB45C;
+  --pp-pin-food: #F0653A;
+  --pp-pin-shopping: #A97BFF;
+  --pp-pin-stay: #4A8FE8;
+  --pp-pin-transport: #16A99C;
+  --pp-marker-foreground: #171614;
+
+  /* elevation, composed — CSS wants one string */
+  --pp-shadow-sm: 0 1px 2px #00000066;
+  --pp-shadow-md: 0 4px 12px #00000075;
+  --pp-shadow-lg: 0 12px 32px #00000094;
+  --pp-shadow-pin: 0 2px 5px #0000008C;
 }

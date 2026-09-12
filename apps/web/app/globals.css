@@ -27,6 +27,28 @@ html {
   color-scheme: light dark;
 }
 
+/*
+ * The same tell, one step further on.
+ *
+ * `light dark` above says the document handles both and lets the browser pick
+ * between them — which it does by the *system* preference, the one thing an
+ * explicit choice is there to overrule. Left alone, forcing light on a dark
+ * machine gives correctly-lit content inside dark scrollbars and a dark select
+ * dropdown: a theme painted on rather than declared, in exactly the places
+ * nobody thinks to look.
+ *
+ * Driven by the attribute the root layout already sets, so this needs no
+ * JavaScript of its own and cannot drift from the colours. Absent attribute is
+ * the system case and keeps the declaration above.
+ */
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   background: var(--pp-ground);

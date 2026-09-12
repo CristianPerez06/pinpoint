@@ -217,6 +217,20 @@ function invariantProperties(): string {
   return lines.join('\n')
 }
 
+/**
+ * The dark values, written once and emitted twice.
+ *
+ * Two blocks below carry exactly these declarations — the media query and the
+ * attribute — and building the string twice is how the two come to disagree the
+ * first time a token is added to one call and not the other.
+ */
+const DARK_PROPERTIES = customProperties('dark')
+
+/** The same declarations, one level further in, for a block inside a media query. */
+const DARK_PROPERTIES_INDENTED = DARK_PROPERTIES.split('\n')
+  .map((line) => (line === '' ? '' : `  ${line}`))
+  .join('\n')
+
 const GENERATED_CSS = `/**
  * GENERATED FILE — DO NOT EDIT.
  *
@@ -225,9 +239,27 @@ const GENERATED_CSS = `/**
  * before it gets the chance.
  *
  * This is the web representation. A browser theme belongs in the cascade rather
- * than in JavaScript, so both grounds are declared here and the media query
- * chooses — components reference the properties and never import a colour, and
- * a theme change repaints without re-rendering a tree.
+ * than in JavaScript, so both grounds are declared here and the cascade chooses
+ * — components reference the properties and never import a colour, and a theme
+ * change repaints without re-rendering a tree.
+ *
+ * WHAT CHOOSES, AND IN WHAT ORDER
+ *
+ * The device asks through the media query. A person overrides it through
+ * \`data-theme\` on the root element, which carries what they *chose* rather than
+ * the ground that was resolved — and is absent when they have chosen nothing.
+ *
+ *   no attribute          the media query decides, exactly as it always has
+ *   data-theme="light"    the media query is excluded; the :root block stands
+ *   data-theme="dark"     the attribute block applies on any device
+ *
+ * The media query is scoped \`:not([data-theme='light'])\` for the middle case.
+ * Without it a dark device would outrank a plain \`:root\` block on specificity
+ * and somebody who explicitly asked for light would not get it.
+ *
+ * The absence of the attribute being the system case is the property worth
+ * having: with no cookie, on a first visit, or with JavaScript disabled, this
+ * sheet behaves exactly as it did before any of it was added.
  *
  * These custom properties are for web only. A value the host resolves is
  * exactly what native cannot render, which is why the native representation
@@ -241,12 +273,13 @@ ${customProperties('light')}
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-${customProperties('dark')
-  .split('\n')
-  .map((line) => (line === '' ? '' : `  ${line}`))
-  .join('\n')}
+  :root:not([data-theme='light']) {
+${DARK_PROPERTIES_INDENTED}
   }
+}
+
+:root[data-theme='dark'] {
+${DARK_PROPERTIES}
 }
 `
 

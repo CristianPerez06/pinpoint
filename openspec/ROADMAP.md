@@ -583,20 +583,35 @@ it does untidily.
 - [ ] **Self-service password recovery.** Resetting a password is a dashboard
       operation somebody with Supabase access has to perform. Fine at two users who
       know each other; not fine the moment a third person is added by invitation.
-- [ ] **The phone has nowhere to remember a preference, and two things now want
-      one.** The app opens on whichever trip comes first, and the city being
-      worked on is chosen fresh every launch — both held in memory, so both reset
-      on a cold launch. The laptop keeps its selected city in the address, where
-      a reload and a shared link both survive it; the phone has no equivalent, so
-      the two are honestly different rather than accidentally so.
-      Neither matters much on its own: picking a city is one tap at the top of a
-      session, and this product will have one trip for a long time. What has
-      changed is that it is one missing capability rather than two workarounds —
-      `expo-secure-store` holds the session token and neither a city id nor a trip
-      id is a secret, so closing it means choosing a store. Deliberately not
-      absorbed into the change that gave the phone its city picker: choosing where
-      a preference lives is a decision of its own, and taking it as a side effect
-      is how it would get made badly.
+- [ ] **The phone has a preference store now, and two of its three callers have
+      not moved into it.** The app still opens on whichever trip comes first, and
+      the city being worked on is still chosen fresh every launch — both held in
+      memory, so both reset on a cold launch. The laptop keeps its selected city
+      in the address, where a reload and a shared link both survive it; the phone
+      has no equivalent, so the two are honestly different rather than
+      accidentally so.
+
+      **The store part of this is closed.** `apps/mobile/lib/preferences.tsx`, over
+      `@react-native-async-storage/async-storage`, one key per preference under a
+      shared prefix, read inside the launch gate in `_layout.tsx` so nothing paints
+      before the values are known. The theme choice was its first caller.
+
+      `expo-secure-store` was the obvious shortcut and was rejected on one
+      property: on iOS it is the Keychain, and a Keychain item outlives the
+      application that wrote it — deleting the app and installing it again would
+      restore a preference from an application that is no longer there. Tolerable
+      for a ground, wrong for a trip id that may name a trip this account has since
+      been removed from. Recorded here so the next caller inherits the decision
+      instead of re-taking it.
+
+      What is left is the two ids, and neither is a matter of where to put them any
+      more. Each needs an answer to a question the theme did not raise: what a
+      stored trip id means once that trip is archived, or the membership revoked,
+      and what a stored city id means once that city is deleted. A store that hands
+      back a stale id and a screen that opens on nothing is worse than the reset it
+      replaced. Deliberately left out of the change that built the store, on the
+      same reasoning that kept the store out of the change that gave the phone its
+      city picker.
 - [ ] **A way to see the places you disagree about.** Ticking names asks for
       agreement, and there is no tick meaning "and not the other" — so "only one of
       you wants this", the negotiation pile, is the one thing the rejected filter

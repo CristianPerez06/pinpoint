@@ -342,6 +342,10 @@
   font-size: var(--pp-type-control-size);
   font-weight: var(--pp-type-control-weight);
   text-align: left;
+  /* One of these rows is now an anchor, which arrives underlined and in the
+     browser's link colour. The colour is already declared above; this is the
+     other half. */
+  text-decoration: none;
   cursor: pointer;
 }
 

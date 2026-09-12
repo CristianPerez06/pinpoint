@@ -1,6 +1,7 @@
 'use client'
 
-import { ArrowLeft, LogOut, MapPinPlus, Menu as Menu2, RefreshCw, Search } from 'lucide-react'
+import { ArrowLeft, LogOut, MapPinPlus, Menu as Menu2, RefreshCw, Search, Settings } from 'lucide-react'
+import Link from 'next/link'
 import type { ReactNode, RefObject } from 'react'
 
 import { signOutAction } from '@/app/_actions/auth'
@@ -502,6 +503,28 @@ export function WorkspaceChrome({
               <RefreshCw aria-hidden className={styles.menuRowGlyph} />
               Refresh
             </button>
+
+            {/*
+              The account's own screen, and the only row here that leaves.
+
+              Rare, and about the account rather than the trip, which is exactly
+              what this menu is for — the standing rule is that a rare action
+              lives behind the name of what it acts on, and the control this
+              hangs from is the name of the account.
+
+              Above `Sign out` and never below it. That order is a rule rather
+              than a layout preference: signing out stays at the end and away
+              from anything reached often, so that neither is hit while aiming
+              for the other.
+
+              A `Link` rather than a button, so it is openable in a new tab and
+              reads as the navigation it is. The phone's menu carries the same
+              row in the same position.
+            */}
+            <Link href="/settings" className={styles.menuRow}>
+              <Settings aria-hidden className={styles.menuRowGlyph} />
+              Settings
+            </Link>
 
             <form action={signOutAction}>
               <button type="submit" className={styles.signOut}>

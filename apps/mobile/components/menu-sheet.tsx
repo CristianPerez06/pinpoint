@@ -1,7 +1,9 @@
 import type { TripMember } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
+import { useRouter } from 'expo-router'
 import LogOut from 'lucide-react-native/icons/log-out'
 import RefreshCw from 'lucide-react-native/icons/refresh-cw'
+import SettingsIcon from 'lucide-react-native/icons/settings'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -62,6 +64,7 @@ export function MenuSheet({
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   /** This press's own pending state, like every other write on either platform. */
   const [refreshing, startRefresh] = usePending()
 
@@ -120,6 +123,31 @@ export function MenuSheet({
             <Text style={[styles.rowText, { color: theme.colour.ink }]}>
               {refreshing ? 'Refreshing…' : 'Refresh'}
             </Text>
+          </Pressable>
+
+          {/*
+            The account's own screen, and the only row here that leaves.
+
+            Between `Refresh` and `Sign out`, which is where web's menu carries
+            it too — the two menus hold the same items in the same order on
+            purpose, so somebody who has used one recognises the other. `Sign
+            out` stays last and out of a thumb's reach; that is a rule rather
+            than a layout preference.
+
+            The sheet is dismissed before navigating. A modal left standing over
+            a route change is still there when the person comes back, covering
+            the screen they returned to.
+          */}
+          <Pressable
+            onPress={() => {
+              onClose()
+              router.push('/settings')
+            }}
+            accessibilityRole="button"
+            style={[styles.row, { borderBottomColor: theme.colour.line }]}
+          >
+            <SettingsIcon size={18} color={theme.colour.inkMuted} strokeWidth={2} />
+            <Text style={[styles.rowText, { color: theme.colour.ink }]}>Settings</Text>
           </Pressable>
 
           <Pressable
