@@ -4,7 +4,6 @@ import { SPACE, TYPE } from '@pinpoint/tokens'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -39,7 +38,10 @@ export function TripSetup({ onCreated }: { onCreated: (tripId: string) => void }
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Padding on both platforms. `height` used to be the Android value here;
+      // `padding` is what the rest of the app now uses, measured rather than
+      // assumed — see the sheets.
+      behavior="padding"
       style={[styles.screen, { backgroundColor: theme.colour.ground }]}
     >
       <ScrollView
