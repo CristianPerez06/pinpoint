@@ -4,12 +4,15 @@ import { Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
@@ -38,6 +41,7 @@ export default function LoginScreen() {
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const theme = useTheme()
+  const insets = useSafeAreaInsets()
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
   // `!submitting` holds the redirect until `signIn` has fully resolved, claim
@@ -73,104 +77,143 @@ export default function LoginScreen() {
   ]
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colour.ground }]}>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
+    <KeyboardAvoidingView
+      // Padding on both platforms, which is not what the sheets do — they pass
+      // `undefined` on Android on the premise that `adjustResize` shrinks the
+      // window and a second correction in JavaScript would double it. Measured
+      // on an emulator, it does not: Expo enforces edge-to-edge from SDK 54, the
+      // window keeps its full height, and with `undefined` this screen sat
+      // centred in all 914dp of it with the submit button behind the keyboard.
+      // `padding` is what actually reserves the space.
+      behavior="padding"
+      // Nothing but `flex: 1`. With `behavior="padding"` this view overwrites
+      // any `paddingBottom` handed to it with 0 whenever the keyboard is down
+      // (`AGENTS.md`), so the screen's own padding lives on the scrolled
+      // content below and not here.
+      style={[styles.screen, { backgroundColor: theme.colour.ground }]}
+    >
+      <ScrollView
+        // `flexGrow: 1` with `justifyContent: 'center'` is what keeps the card
+        // centred while it fits and lets it scroll when it does not. The card
+        // is 380pt on sign-in and 530pt on sign-up; a keyboard leaves about
+        // 400pt on a short phone, so sign-up cannot fit above one at any size
+        // and centring alone would bury its submit button.
+        contentContainerStyle={[
+          styles.body,
+          { paddingBottom: SPACE.lg + insets.bottom },
         ]}
+        // Without this the first tap on the submit button only dismisses the
+        // keyboard and the second one presses it.
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.wordmark}>
-          <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-          <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
-        </View>
-
-        <Text style={[styles.title, { color: theme.colour.ink }]}>Sign in</Text>
-
-        {formError ? (
-          <Text
-            style={[
-              styles.formError,
-              {
-                backgroundColor: theme.colour.dangerSurface,
-                borderColor: theme.colour.danger,
-                color: theme.colour.danger,
-              },
-            ]}
-          >
-            {formError}
-          </Text>
-        ) : null}
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.colour.inkMuted }]}>Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholderTextColor={theme.colour.inkMuted}
-            style={field}
-          />
-          {fieldErrors.email ? (
-            <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-              {fieldErrors.email}
-            </Text>
-          ) : null}
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-            Password
-          </Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="current-password"
-            placeholderTextColor={theme.colour.inkMuted}
-            style={field}
-          />
-          {fieldErrors.password ? (
-            <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-              {fieldErrors.password}
-            </Text>
-          ) : null}
-        </View>
-
-        <Pressable
-          onPress={submit}
-          disabled={submitting}
-          accessibilityRole="button"
+        <View
           style={[
-            styles.submit,
-            { backgroundColor: theme.colour.accent, opacity: submitting ? 0.55 : 1 },
+            styles.card,
+            { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
           ]}
         >
-          {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
-              pair chosen against the accent on each ground. */}
-          <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </Text>
-        </Pressable>
+          <View style={styles.wordmark}>
+            <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
+            <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
+          </View>
 
-        {/* The padding is the tap target, not decoration: a line of `note` text
-            is about 17pt tall on its own, and there is no hover on this platform
-            to reveal that the words are a control. The accent is what says so. */}
-        <Link href="/signup" style={styles.alternative}>
-          <Text style={{ color: theme.colour.inkMuted }}>No account yet? </Text>
-          <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
-            Create one
-          </Text>
-        </Link>
-      </View>
-    </View>
+          <Text style={[styles.title, { color: theme.colour.ink }]}>Sign in</Text>
+
+          {formError ? (
+            <Text
+              style={[
+                styles.formError,
+                {
+                  backgroundColor: theme.colour.dangerSurface,
+                  borderColor: theme.colour.danger,
+                  color: theme.colour.danger,
+                },
+              ]}
+            >
+              {formError}
+            </Text>
+          ) : null}
+
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholderTextColor={theme.colour.inkMuted}
+              style={field}
+            />
+            {fieldErrors.email ? (
+              <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
+                {fieldErrors.email}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
+              Password
+            </Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="current-password"
+              placeholderTextColor={theme.colour.inkMuted}
+              style={field}
+            />
+            {fieldErrors.password ? (
+              <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
+                {fieldErrors.password}
+              </Text>
+            ) : null}
+          </View>
+
+          <Pressable
+            onPress={submit}
+            disabled={submitting}
+            accessibilityRole="button"
+            style={[
+              styles.submit,
+              { backgroundColor: theme.colour.accent, opacity: submitting ? 0.55 : 1 },
+            ]}
+          >
+            {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
+                pair chosen against the accent on each ground. */}
+            <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </Text>
+          </Pressable>
+
+          {/* The padding is the tap target, not decoration: a line of `note` text
+              is about 17pt tall on its own, and there is no hover on this platform
+              to reveal that the words are a control. The accent is what says so. */}
+          <Link href="/signup" style={styles.alternative}>
+            <Text style={{ color: theme.colour.inkMuted }}>No account yet? </Text>
+            <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
+              Create one
+            </Text>
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.lg },
+  screen: { flex: 1 },
+  // The centring moved here from `screen` when the keyboard handling went in.
+  // It has to sit on the scrolled content: a `ScrollView` centres what it holds
+  // through its content container, and `flexGrow` is what makes that container
+  // fill the screen when the card is short enough to be centred in it.
+  body: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACE.lg,
+  },
   card: {
     width: '100%',
     maxWidth: 380,

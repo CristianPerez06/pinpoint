@@ -6,7 +6,6 @@ import {
   Animated,
   KeyboardAvoidingView,
   PanResponder,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -325,7 +324,10 @@ export function MarkerFormSheet({
     <KeyboardAvoidingView
       // Height on Android, padding on iOS: the two platforms report the keyboard
       // differently and the wrong one leaves the save action under it.
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Padding on both platforms. `height` used to be the Android value here;
+      // `padding` is what the rest of the app now uses, measured rather than
+      // assumed — see the sheets.
+      behavior="padding"
       /*
         Fills the map and passes touches through everywhere it is not the sheet.
 

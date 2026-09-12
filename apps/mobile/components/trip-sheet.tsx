@@ -9,7 +9,6 @@ import { useState } from 'react'
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -153,7 +152,15 @@ export function TripSheet({
           every other sheet's. The ones that kept their padding are the ones
           whose surface is a plain `View` — this is now one of them.
         */}
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/*
+          Padding on both platforms. Android used to get `undefined` here, on
+          the premise that `adjustResize` shrinks the window and a second
+          correction in JavaScript would double it. Measured on an emulator it
+          does not: Expo enforces edge-to-edge from SDK 54, the window keeps its
+          full height, and the sheet did not move at all — the keyboard covered
+          the fields and the save button. `padding` is what reserves the space.
+        */}
+        <KeyboardAvoidingView behavior="padding">
           <View
             // The sheet swallows presses so that touching a row does not dismiss
             // through the backdrop underneath it.
