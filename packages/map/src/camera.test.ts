@@ -9,6 +9,7 @@ import {
   liftOffset,
   normalizeLongitude,
   offsetCenter,
+  withinBounds,
   zoomStep,
 } from './camera'
 import {
@@ -515,5 +516,80 @@ describe('frameAround', () => {
     const phone = frameAround(spreadOut, PHONE, 120)
 
     expect(web).toEqual(phone)
+  })
+})
+
+describe('withinBounds', () => {
+  /** A plain box well away from either pole or the antimeridian. */
+  const box = { west: -10, south: -5, east: 10, north: 5 }
+
+  it('holds a position inside it', () => {
+    expect(withinBounds(box, { lng: 0, lat: 0 })).toBe(true)
+    expect(withinBounds(box, { lng: -9.9, lat: 4.9 })).toBe(true)
+  })
+
+  it('excludes a position past each of the four sides', () => {
+    expect(withinBounds(box, { lng: -11, lat: 0 })).toBe(false)
+    expect(withinBounds(box, { lng: 11, lat: 0 })).toBe(false)
+    expect(withinBounds(box, { lng: 0, lat: -6 })).toBe(false)
+    expect(withinBounds(box, { lng: 0, lat: 6 })).toBe(false)
+  })
+
+  it('counts every edge as inside', () => {
+    // A pin drawn on the boundary is drawn. Calling it absent would report an
+    // empty map with a marker sitting on the edge of it.
+    expect(withinBounds(box, { lng: -10, lat: 0 })).toBe(true)
+    expect(withinBounds(box, { lng: 10, lat: 0 })).toBe(true)
+    expect(withinBounds(box, { lng: 0, lat: -5 })).toBe(true)
+    expect(withinBounds(box, { lng: 0, lat: 5 })).toBe(true)
+  })
+
+  it('reads a box crossing the antimeridian as the two arcs, not the gap between them', () => {
+    // `west > east` is how the crossing arrives, and a naive `west <= lng <=
+    // east` answers every one of these backwards.
+    const crossing = { west: 170, south: -5, east: -170, north: 5 }
+
+    expect(withinBounds(crossing, { lng: 175, lat: 0 })).toBe(true)
+    expect(withinBounds(crossing, { lng: -175, lat: 0 })).toBe(true)
+    expect(withinBounds(crossing, { lng: 180, lat: 0 })).toBe(true)
+    expect(withinBounds(crossing, { lng: -180, lat: 0 })).toBe(true)
+    expect(withinBounds(crossing, { lng: 0, lat: 0 })).toBe(false)
+    expect(withinBounds(crossing, { lng: 160, lat: 0 })).toBe(false)
+  })
+
+  it('holds everything when the box is the whole world', () => {
+    // The case that forbids normalising the edges before measuring: 180 wraps to
+    // -180, which would collapse this to a box of zero width holding nothing.
+    const world = { west: -180, south: -85, east: 180, north: 85 }
+
+    expect(withinBounds(world, { lng: 0, lat: 0 })).toBe(true)
+    expect(withinBounds(world, { lng: 179.9, lat: 84 })).toBe(true)
+    expect(withinBounds(world, { lng: -179.9, lat: -84 })).toBe(true)
+  })
+
+  it('holds only its own line when the box has no width', () => {
+    const line = { west: 5, south: 0, east: 5, north: 10 }
+
+    expect(withinBounds(line, { lng: 5, lat: 5 })).toBe(true)
+    expect(withinBounds(line, { lng: 5.0001, lat: 5 })).toBe(false)
+  })
+
+  it('treats -0 as 0', () => {
+    expect(withinBounds({ west: -0, south: -0, east: 10, north: 10 }, { lng: 0, lat: 0 })).toBe(
+      true,
+    )
+    expect(withinBounds({ west: 0, south: 0, east: 10, north: 10 }, { lng: -0, lat: -0 })).toBe(
+      true,
+    )
+  })
+
+  it('accepts a box wider than a full turn without wrapping round to exclude anything', () => {
+    // Zoomed far enough out, a renderer can report more than 360 degrees of
+    // longitude. Everything is inside that.
+    const wide = { west: -200, south: -85, east: 200, north: 85 }
+
+    expect(withinBounds(wide, { lng: 0, lat: 0 })).toBe(true)
+    expect(withinBounds(wide, { lng: 179, lat: 0 })).toBe(true)
+    expect(withinBounds(wide, { lng: -179, lat: 0 })).toBe(true)
   })
 })

@@ -264,6 +264,20 @@ placeholders.
   record had been replaced. Record a fact where the fact occurs, not in a later
   effect that you assume runs next.
 
+- **An absolutely positioned view inside an unstyled wrapper positions against the
+  wrapper, and the wrapper has collapsed to nothing.** React Native offsets an
+  absolute child from its *parent*, always. Wrapping `MarkersOverlayNote` — which is
+  `position: absolute, top: SPACE.md` — in a bare `<Pressable>` to make it tappable
+  left the Pressable with no in-flow children, so it had no size and was laid out
+  after the map had filled the column: at the bottom edge. `top: 16` then meant
+  sixteen points below the screen. "No places match this filter" shipped like that
+  and was never visible on the phone. **Learn the shape of this one**: the condition
+  is true, the component renders, a log inside it prints, and nothing is on screen —
+  so it reads as a state that never fires. The untappable note beside it was a
+  direct child of the body and always worked, which is what made the two look
+  interchangeable. Put the position on the thing that is pressed; the note now takes
+  `onPress` itself.
+
 ## Styling
 
 Web and mobile share **token values**, not styling code. There is no cross-platform

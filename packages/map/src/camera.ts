@@ -249,6 +249,48 @@ export function boundsWidth(bounds: Bounds): number {
 }
 
 /**
+ * Whether a position lies inside a box.
+ *
+ * Shared rather than written per application, and that is the whole point of it
+ * being here. The web's renderer answers this — `LngLatBounds.contains` — and
+ * the phone's does not, so the phone would write a comparison of its own, and
+ * two comparisons written separately can disagree. `map-rendering` requires
+ * both applications to give the same answer for the same position and the same
+ * view; framing identically while disagreeing about what is framed is not one
+ * map.
+ *
+ * Longitude is the only hard part. A box crossing the antimeridian arrives with
+ * `west > east` — the type says so — and the range is then the two arcs either
+ * side of ±180 rather than the empty span between them, so `west <= lng <= east`
+ * is wrong in exactly the case a traveller would hit. Measuring how far east the
+ * position sits from the western edge, wrapped into a full turn, is the same
+ * thing `boundsWidth` does and answers both shapes with one comparison.
+ *
+ * Deliberately reads the raw edges rather than normalising them first. A view of
+ * the whole world arrives as `west: -180, east: 180`, and `normalizeLongitude`
+ * wraps 180 to -180 — which would collapse it to a box of zero width containing
+ * nothing. `boundsWidth` on the raw pair gives 360, and everything is inside it.
+ *
+ * Latitude is a plain comparison with no wrap, because there is none to do: the
+ * projection stops at the poles and nothing continues past them. Do not add
+ * symmetry here that the sphere does not have.
+ *
+ * Edges count as inside. A marker exactly on the boundary is drawn, and a test
+ * that called it absent would say the map is empty while a pin sits on the edge
+ * of it.
+ */
+export function withinBounds(bounds: Bounds, point: LngLat): boolean {
+  if (point.lat < bounds.south || point.lat > bounds.north) return false
+
+  const span = boundsWidth(bounds)
+  const east =
+    (((normalizeLongitude(point.lng) - normalizeLongitude(bounds.west)) % 360) + 360) %
+    360
+
+  return east <= span
+}
+
+/**
  * Camera that frames every marker.
  *
  * Pure: no renderer, no DOM, no platform API. Web hands the result to

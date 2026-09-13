@@ -7,6 +7,7 @@ import {
   frameAround,
   liftOffset,
   offsetCenter,
+  withinBounds,
   DEFAULT_VIEWPORT,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -643,10 +644,20 @@ export function TripMap({
     if (!map) return
 
     const report = () => {
+      // The renderer's own `contains` would do this, and deliberately does not
+      // any more. The phone has nothing equivalent to borrow, so the test lives
+      // in the shared package and both applications call it — `map-rendering`
+      // requires the same answer from both for the same position and the same
+      // view, and two comparisons written separately can disagree about a view
+      // crossing the antimeridian.
       const bounds = map.getBounds()
-      onMarkersInView(
-        groups.some((group) => bounds.contains([group.lng, group.lat])),
-      )
+      const box = {
+        west: bounds.getWest(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        north: bounds.getNorth(),
+      }
+      onMarkersInView(groups.some((group) => withinBounds(box, group)))
     }
 
     report()
