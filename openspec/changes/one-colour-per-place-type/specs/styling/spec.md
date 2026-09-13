@@ -1,6 +1,14 @@
-## MODIFIED Requirements
+## REMOVED Requirements
 
 ### Requirement: A theme pair preserves the relationships the palette encodes, not only its contrast
+
+**Reason**: Marker families are gone, so the scenarios that named them are renamed. OpenSpec cannot rename a scenario inside a MODIFIED requirement, so the requirement is replaced instead.
+
+**Migration**: Replaced by "A theme pair preserves the relationships the palette encodes, beyond contrast alone" under ADDED below.
+
+## ADDED Requirements
+
+### Requirement: A theme pair preserves the relationships the palette encodes, beyond contrast alone
 
 Where a set of token values carries meaning by how they relate to one another, the
 second theme SHALL preserve those relationships. Producing a legible value is not

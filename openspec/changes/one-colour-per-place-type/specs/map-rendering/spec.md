@@ -1,6 +1,14 @@
-## MODIFIED Requirements
+## REMOVED Requirements
 
 ### Requirement: A marker's appearance is derived from its type by shared code
+
+**Reason**: Marker families are gone, so the scenarios that named them are renamed. OpenSpec cannot rename a scenario inside a MODIFIED requirement, so the requirement is replaced instead.
+
+**Migration**: Replaced by "A marker's colour and icon are derived from its type by shared code" under ADDED below.
+
+## ADDED Requirements
+
+### Requirement: A marker's colour and icon are derived from its type by shared code
 
 The shared map package SHALL expose a function turning a marker into a platform-neutral
 visual description — its position, its icon, its colour, and its label.
