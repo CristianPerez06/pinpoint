@@ -80,3 +80,7 @@ apps/web/public/maplibre/
 # Generated design mocks. The builder is committed; its ~290 KB output, which
 # embeds the bundled font, is not — it regenerates in under a second.
 openspec/changes/**/mock/*.html
+
+# Things an agent noticed while working on a change, held until the change is
+# archived and then either taken up or dropped. See AGENTS.md.
+openspec/changes/**/findings.md

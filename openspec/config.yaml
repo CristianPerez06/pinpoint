@@ -9,71 +9,44 @@ context: |
   are travelling with. The first trip is Japan, but nothing in the product is
   Japan-specific — do not propose Japan-only features or data sources.
 
-  Hard constraint: $0 to build and run, at every scale this app will realistically
-  reach. Every dependency must be free with no signup, no API key, and no usage
-  billing. This rules out Google Maps, Mapbox, and any managed geocoding or tile
-  service with a paid tier that a free tier can silently overflow into. The only
-  accepted paid item is the Apple Developer Program ($99/yr), and only if the iOS
-  app ever ships via TestFlight or the App Store. Treat any proposal that
-  introduces a metered service as rejected by default.
+  Hard constraint: $0 to build and run. Every dependency must be free with no
+  signup, no API key and no usage billing — no Google Maps, Mapbox, or any service
+  with a paid tier a free tier can overflow into. The only accepted cost is the
+  Apple Developer Program ($99/yr), if the iOS app ever ships.
 
-  Stack, as built:
-  - pnpm 11 workspaces, hoisted node linker. Two apps over seven shared packages.
-  - apps/web — Next.js 16 App Router, React 19, maplibre-gl 6, @supabase/ssr.
-    Built first, and still the only place anything can be written.
-  - apps/mobile — Expo 57 with expo-router on a development build (not Expo Go),
-    React Native 0.86, @maplibre/maplibre-react-native 11. Read-only today.
-  - OpenFreeMap for vector tiles (free, unlimited, no signup); Supabase free tier
-    for Postgres and auth; Photon for place search.
-  - packages/ — tokens (no third-party deps), map (depends only on tokens),
-    core, supabase, auth, data, geocode. Apps depend on packages; packages never
-    depend on apps, and `pnpm check:cycles` enforces both.
+  Stack: pnpm workspaces. apps/web (Next.js 16, maplibre-gl) and apps/mobile (Expo
+  57 development build, @maplibre/maplibre-react-native) over shared packages in
+  packages/. OpenFreeMap for tiles, Supabase free tier for Postgres and auth,
+  Photon for place search.
 
-  The portability boundary is the load-bearing constraint: @pinpoint/map carries
-  no renderer, no DOM API, and no native module, because web renders with
-  maplibre-gl and native with @maplibre/maplibre-react-native. Map behaviour is
-  therefore expressed as data and pure functions — style references, camera
-  derivation, marker geometry — and each app binds that to its own renderer. Code
-  that needs a renderer dependency belongs in an app. Flag any web-specific choice
-  that would not port.
+  @pinpoint/map has no renderer dependency, because web and mobile draw the map
+  with different libraries. Map behaviour lives there as data and pure functions,
+  and each app connects it to its own renderer.
 
-  Undecided, not yet committed — propose only when a change actually needs it, and
-  say so explicitly:
-  - Protomaps .pmtiles to extract a country into one file for offline maps
-    (useful underground or on unreliable data)
-
-  Status: the app can replace the spreadsheet it was built to replace. Auth,
-  schema with row-level security on every table, map rendering on both platforms,
-  and the full write path (search, drop, edit, remove, cities as the grouping) are
-  all in place. Read `openspec/ROADMAP.md` for what is next and why in that order,
-  `openspec/specs/` for the rules in force, and `AGENTS.md` for the gotchas that
-  have already cost real time. Do not assume a capability is missing without
-  checking — but do check, because several things that look present are not, and
-  the roadmap's loose ends list is where they are recorded.
-
-  A standing lesson from every change so far: budget for looking, not just for
-  building. Each of the last two changes shipped three defects that type-checked,
-  rendered, and were wrong — visible only by opening the apps. Tasks that mean
-  looking at the running product belong in the task list.
+  Where things are: `openspec/ROADMAP.md` for what is next, `openspec/specs/` for
+  the rules in force, `AGENTS.md` for gotchas and for how to talk to the user.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Write for someone who doesn't write code. Say what changes for the person using the app and why.
+    - Keep it short. Name what is not being done rather than designing for it.
+  design:
+    - Only create design.md when there is a real technical choice to make.
+    - One recommendation per decision. List alternatives only if the user asked to compare them.
+  tasks:
+    - Only what this change needs. Anything noticed along the way goes to findings.md, not the task list.
+    - Include tasks for looking at the running apps — defects that type-check and render can still be wrong.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Don't raise bugs or improvements found along the way; add them to findings.md in the change folder. Stop only for a blocker — can't continue, would break or lose data, would cost money.
+      - When the tasks are done, archive on the same branch unless the user says otherwise.
+  archive:
+    guidance:
+      - After archiving, present findings.md in a sentence or two per finding. Drop what the user doesn't take up, then delete the file.
