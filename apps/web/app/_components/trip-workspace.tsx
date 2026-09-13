@@ -1515,12 +1515,23 @@ export function TripWorkspace({
           notice's own condition was always "nothing on the map to look at", and
           until a place could be drawn outside the filtered set, `!anyInView`
           said exactly that. It no longer does, so the missing half is stated.
+
+          A position being placed is the same reasoning reaching a second state
+          rather than a second rule. An armed sight and an unsaved pin are both
+          drawn outside the filtered set, both are on screen, and both are being
+          attended to — so `anyInView` says "nothing to look at" about a map
+          somebody is looking at, and the offer leads away by name from the spot
+          they are aiming at. This half was missing from the day the notice was
+          written, and went unnoticed because only one application made the
+          offer at all; `map-rendering` now states it for both.
         */}
         {refusal === null &&
         isFiltered(filter) &&
         visibleMarkers.length > 0 &&
         !anyInView &&
-        revealed === null ? (
+        revealed === null &&
+        !dropping &&
+        draft === null ? (
           <MapOverlayNote tone="muted">
             {visibleMarkers.length}{' '}
             {visibleMarkers.length === 1 ? 'place matches' : 'places match'}, none

@@ -1225,6 +1225,15 @@ export function TripWorkspace({
           onWithdrawInterest={(marker) => void unanswer(marker)}
           onSetVisited={(marker, visited) => void markVisited(marker, visited)}
           onClearFilter={() => setFilter(NO_FILTER)}
+          narrowed={narrowed}
+          /*
+            The second of the two motions allowed to move this camera, and the
+            only new one in this change. Told nothing about what covers the
+            bottom edge, exactly as the city framing above it is: the toolbar was
+            already standing there and the map has already measured it. The
+            filter is not touched — the offer moves the camera and nothing else.
+          */
+          onShowMatches={() => mapRef.current?.frameOn(visible)}
           /*
             Handed to the map rather than rendered beside it, because the bottom
             of the map is already choreographed — the attribution is a licence
@@ -1483,6 +1492,8 @@ function Body({
   onWithdrawInterest,
   onSetVisited,
   onClearFilter,
+  narrowed,
+  onShowMatches,
   bottomRow,
 }: {
   mapRef: Ref<TripMapRef>
@@ -1515,9 +1526,33 @@ function Body({
   onWithdrawInterest: (marker: Marker) => void
   onSetVisited: (marker: Marker, visited: boolean) => void
   onClearFilter: () => void
+  /** Whether a filter is applied, which is half of what the third note answers. */
+  narrowed: boolean
+  /**
+   * Frame the filter's matches, because somebody accepted the offer to.
+   *
+   * A callback rather than reaching for the map's handle from in here: the
+   * handle is held by the component above, which already frames a city through
+   * it, and this is the second of the two motions `map-rendering` allows.
+   */
+  onShowMatches: () => void
   /** Handed on to the map, which owns the bottom edge. */
   bottomRow: ReactNode
 }) {
+  /**
+   * Whether the map has anything on it worth looking at, as the map reports it.
+   *
+   * Declared above the two early returns below because a hook has to be, and
+   * left deliberately at the top rather than tucked in beside the note that
+   * reads it.
+   *
+   * True until the map says otherwise. Nothing has been reported before the
+   * first settle, and a map nobody has moved opened framed on its markers — so
+   * the honest answer in the meantime is that there is something there, and no
+   * note appears.
+   */
+  const [somethingToLookAt, setSomethingToLookAt] = useState(true)
+
   if (failed !== null && total === 0) return <FailedState message={failed} />
   if (loading) return <LoadingState />
 
@@ -1525,6 +1560,7 @@ function Body({
     <>
       <TripMap
         ref={mapRef}
+        onSomethingToLookAt={setSomethingToLookAt}
         centreRef={centreRef}
         dropping={dropping}
         draft={draft}
@@ -1552,12 +1588,37 @@ function Body({
       ) : null}
 
       {total > 0 && visible.length === 0 ? (
-        <Pressable onPress={onClearFilter} accessibilityRole="button">
-          <MarkersOverlayNote>
-            No places match this filter. The trip still has {total}
-            {total === 1 ? ' place' : ' places'} — tap to clear.
-          </MarkersOverlayNote>
-        </Pressable>
+        <MarkersOverlayNote onPress={onClearFilter}>
+          No places match this filter. The trip still has {total}
+          {total === 1 ? ' place' : ' places'} — tap to clear.
+        </MarkersOverlayNote>
+      ) : null}
+
+      {/*
+        Matches, but all of them somewhere else.
+
+        A filter never moves the camera — panning somewhere deliberately is not
+        undone by narrowing what you are looking at. That rule produces one bad
+        state on its own: a map with nothing on it while the filter tool reports
+        matches, which is the same indistinguishable-empty problem the two notes
+        above exist for, arrived at from a third direction. So it is said, and
+        moving there is offered rather than taken.
+
+        The condition asks the map one question — is there anything here to look
+        at — rather than composing the answer out of pieces. Everything that
+        would have to be remembered otherwise is inside that boolean: a place
+        revealed by search, a sight being aimed, a pin awaiting its details.
+        `#83` is the argument for that shape and `trip-map.tsx` carries it.
+
+        Mutually exclusive with both notes above by construction: that one needs
+        `visible.length === 0` and this one needs the opposite, and the first
+        needs no places at all.
+      */}
+      {narrowed && visible.length > 0 && !somethingToLookAt ? (
+        <MarkersOverlayNote onPress={onShowMatches}>
+          {visible.length} {visible.length === 1 ? 'place matches' : 'places match'}, none
+          of them in view — tap to show {visible.length === 1 ? 'it' : 'them'}.
+        </MarkersOverlayNote>
       ) : null}
     </>
   )

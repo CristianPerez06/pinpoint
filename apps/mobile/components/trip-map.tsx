@@ -15,7 +15,9 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   offsetCenter,
+  withinBounds,
   zoomStep,
+  type Bounds,
   type LngLat,
   type MarkerGroup,
   type Viewport,
@@ -410,6 +412,7 @@ export function TripMap({
   formSheet,
   formHeight,
   centreRef,
+  onSomethingToLookAt,
 }: {
   ref?: Ref<TripMapRef>
   /**
@@ -514,6 +517,28 @@ export function TripMap({
    * at the moment of a press, by which point the map has settled.
    */
   centreRef: { current: LngLat | null }
+  /**
+   * Whether there is anything on this map to look at.
+   *
+   * One boolean and not three on purpose, and the name is the point. The
+   * laptop keeps `anyInView` and composes the rest at the notice that reads it,
+   * and `#83` is what that cost: the condition had always *meant* "there is
+   * nothing on the map to look at", `!anyInView` had always been the same thing
+   * as that, and the first pin drawn outside the filtered set made them
+   * different without touching either piece of code. Nothing was wrong with
+   * `anyInView` and nothing about it changed.
+   *
+   * So this answers the question rather than reporting the mechanism. True when
+   * a drawn marker is within the view, when a place somebody named is open on
+   * the map, or when a position is being placed. The next person to draw
+   * something outside the filtered set has one expression to add themselves to,
+   * and it is named after what they would have to break.
+   *
+   * Reported from here rather than composed by the workspace because two of the
+   * facts are only knowable here — the sheet's open state, and the camera. See
+   * `openMarkers` for why the first of those is not lifted out.
+   */
+  onSomethingToLookAt: (something: boolean) => void
 }) {
   /**
    * What is open, said in identities rather than in positions.
@@ -617,6 +642,26 @@ export function TripMap({
    * `currentZoom` below.
    */
   const [zoom, setZoom] = useState<number | null>(null)
+
+  /**
+   * What the map can see, from the same settle event as the centre and the zoom.
+   *
+   * State rather than a ref, unlike the centre beside it, and the difference is
+   * who reads it. The centre is read at the moment of a press; this is read
+   * during render, to work out whether anything drawn is on screen. A ref would
+   * hold the right value and never provoke the render that acts on it.
+   *
+   * It costs nothing extra: a settle already calls `setZoom`, so this rides the
+   * render that was happening anyway.
+   *
+   * Null until the first settle. A map nobody has moved never settles — the same
+   * gap the zoom buttons work around below — and there is no framing camera to
+   * fall back on here, so "nothing reported yet" is read as *there is something
+   * to look at* and no notice appears. That is safe rather than merely
+   * convenient: the map opened framed on the markers it was handed, and a filter
+   * only ever removes from that set, so a subset of a framed set is still framed.
+   */
+  const [bounds, setBounds] = useState<Bounds | null>(null)
 
   /**
    * Which draft the camera has already been lifted for.
@@ -786,6 +831,41 @@ export function TripMap({
     return groups.some((each) => each.key === key) ? null : selection.group
   }, [selection, groups])
 
+  /**
+   * Whether there is anything on this map to look at — see the prop that reports
+   * it for why this is one question and not three facts.
+   *
+   * Four ways to be true, and each of them is a pin somebody can see. A drawn
+   * marker within the view is the ordinary one. A revealed place is a pin drawn
+   * outside the filtered set because it was named, with its description open on
+   * it. An armed sight and an unsaved pin are the same thing again: drawn
+   * outside the set, on screen, and being positioned deliberately.
+   *
+   * Derived rather than reported by a listener, and that is the one place the
+   * phone has it easier than the laptop. Narrowing a filter moves no camera, so
+   * web's `moveend` never fires and its effect has to re-subscribe on the drawn
+   * set to notice. Here the drawn set is a prop: a filter change re-renders, and
+   * this is recomputed because it is an expression rather than a subscription.
+   */
+  const somethingToLookAt =
+    bounds === null ||
+    dropping ||
+    draft !== null ||
+    revealed !== null ||
+    groups.some((group) => withinBounds(bounds, group))
+
+  /*
+    Reported from an effect rather than during render, because setting a parent's
+    state while rendering a child is not allowed to be where this lives.
+
+    The workspace is therefore one render behind a settle. That is the same lag
+    the laptop carries and the same one `zoom` above already has, and it is one
+    frame of staleness in a sentence about where the camera is not.
+  */
+  useEffect(() => {
+    onSomethingToLookAt(somethingToLookAt)
+  }, [somethingToLookAt, onSomethingToLookAt])
+
   /*
    * How far the credit stands off the bottom edge.
    *
@@ -918,6 +998,17 @@ export function TripMap({
             // wrong distance.
             zoomRef.current = event.nativeEvent.zoom
             setZoom(event.nativeEvent.zoom)
+            // Checked rather than destructured, because the type is wrong about
+            // this one. Android builds `bounds` inside a `try/catch` and returns
+            // the view state early when the camera has no target
+            // (`MLRNMapView.kt`), so the key can be absent while TypeScript says
+            // it cannot be. A missing one is not an empty view — it is no answer
+            // — so the last one stands until the next settle.
+            const box: unknown = event.nativeEvent.bounds
+            if (Array.isArray(box) && box.length === 4 && box.every(Number.isFinite)) {
+              const [west, south, east, north] = box as [number, number, number, number]
+              setBounds({ west, south, east, north })
+            }
           }}
           //
           // Deliberately NO `onPress` here to dismiss the sheet. On iOS the

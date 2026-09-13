@@ -29,6 +29,7 @@ export {
   liftOffset,
   normalizeLongitude,
   offsetCenter,
+  withinBounds,
   zoomStep,
 } from './camera'
 export type { FitBoundsOptions } from './camera'
