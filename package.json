@@ -28,7 +28,7 @@
     "db:types": "supabase gen types typescript --linked > packages/supabase/src/database.types.ts"
   },
   "devDependencies": {
-    "@fission-ai/openspec": "^1.7.0",
+    "@fission-ai/openspec": "^1.13.0",
     "supabase": "^2.111.0"
   }
 }

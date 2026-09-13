@@ -103,10 +103,13 @@ new one.
   code* carries a scenario asserting that a temple and a castle share a colour and
   differ by icon. That is exactly what stops being true. The description's
   identifier-not-value rule is unaffected and is what makes the change cheap.
+  Replaced as *A marker's colour and icon are derived from its type by shared
+  code*, because OpenSpec cannot rename a scenario inside a modified requirement.
 - **`styling`** — *A theme pair preserves the relationships the palette encodes*
   names five family colours and the single most-recessive family. It becomes seven
   type colours, with the recessive role held by `place`, and the two new hues
-  need both grounds chosen rather than derived.
+  need both grounds chosen rather than derived. Replaced as *…beyond contrast
+  alone*, for the same reason.
 
 ## Impact
 
