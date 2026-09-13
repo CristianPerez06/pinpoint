@@ -365,3 +365,8 @@ was arrived at, which the pull request already preserves, and repeating them in
 
 Branch commits are for the branch. Write them for a reviewer reading the diff, and
 let the squash discard the ones that only mattered on the way.
+
+**Every commit message is title only** — `type(scope): subject`, no body and no
+trailers (no explanation paragraph, no `Co-Authored-By`, no `🤖 Generated with…`).
+If something needs more context, it goes in the pull request description. The title
+has to stand on its own.
