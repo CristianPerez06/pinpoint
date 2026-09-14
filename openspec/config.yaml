@@ -23,8 +23,9 @@ context: |
   with different libraries. Map behaviour lives there as data and pure functions,
   and each app connects it to its own renderer.
 
-  Where things are: `openspec/ROADMAP.md` for what is next, `openspec/specs/` for
-  the rules in force, `AGENTS.md` for gotchas and for how to talk to the user.
+  Where things are: `openspec/specs/` for the rules in force, `PRODUCT.md` for the
+  product decisions and what is deliberately undecided, `AGENTS.md` for gotchas and
+  for how to talk to the user. What is next lives on the GitHub board, not in a file.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

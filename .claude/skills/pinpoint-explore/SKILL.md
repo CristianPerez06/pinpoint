@@ -42,9 +42,10 @@ Never ask what you could have looked up.
    included: `openspec show "<id>" --type spec`. The rules in force live there, and a
    question is usually already half-answered by them.
 4. Read the code the question is actually about.
-5. `openspec/ROADMAP.md` — what is settled, what was decided against, and what is
-   already known to be missing or untidy. This is what stops a rejected idea being
-   proposed again.
+5. `PRODUCT.md` — what is settled, what was decided against, and what is deliberately
+   undecided. This is what stops a rejected idea being proposed again.
+6. `gh issue list --repo CristianPerez06/pinpoint` — what is already known to be
+   missing or untidy, so a defect already filed is not rediscovered as news.
 
 ## What to say back
 
