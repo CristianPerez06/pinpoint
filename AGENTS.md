@@ -382,6 +382,22 @@ done.
 user says otherwise. The change's findings are presented at the end of that work (see
 [Talking to the user](#talking-to-the-user)).
 
+### `pnpm verify`
+
+**Everything CI runs that can run locally, in one command.** Run it before opening a
+pull request. It exists because there was no way to run CI's set: `typecheck` is web
+only and `typecheck:mobile` is mobile only, the packages had no root script at all,
+and the duplicate-runtime check lived as shell inside the workflow — so a pull
+request could tick every box in the template honestly and still fail on a step no
+local script covered. That happened.
+
+**Any new CI step goes into `verify` as well as into the workflow**; its own
+`comment:verify` in `package.json` says so. The checks that answer in milliseconds
+run first, so a missing font or a returning `explore` fails in seconds rather than
+after a four-minute build. The one step `verify` leaves out is
+`pnpm install --frozen-lockfile`, on purpose — verifying should not prune your
+`node_modules`. Run it yourself when you touch dependencies.
+
 ## Merging to `main`
 
 **Squash and merge, one commit per pull request.** `main` keeps a linear history with

@@ -61,13 +61,12 @@ Change: `openspec/changes/<name>/`
       each one app, and the packages are a separate CI step)
 - [ ] Package tests pass (`pnpm test`)
 - [ ] Web production build passes (`pnpm build`)
-- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls` and
-      `pnpm check:specs` pass
+- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls`,
+      `pnpm check:icons`, `pnpm check:specs`, `pnpm check:duplicate-deps` and
+      `pnpm check:openspec-workflows` pass
 - [ ] If I touched dependencies: `pnpm-lock.yaml` is updated and committed
-- [ ] If I touched dependencies: `react` and `react-native` are not duplicated in the
-      workspace. **No local script covers this** — only the Workspace health job, so a
-      clean local run proves nothing. Check it yourself:
-      `pnpm why react-native --json | jq -r '[.. | objects | select(has("version") and .name? == "react-native") | .version] | unique'`
+      (`pnpm install --frozen-lockfile` passes). **This is the one CI step `verify`
+      does not cover**, deliberately: verifying should not prune your `node_modules`.
 
 #### Architecture and conventions
 

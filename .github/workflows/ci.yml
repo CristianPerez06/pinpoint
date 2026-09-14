@@ -149,32 +149,12 @@ jobs:
         run: pnpm check:rls
 
       # Two versions of a dually-bundled runtime crash the bundle in ways that
-      # look unrelated to dependencies — the classic symptom is
-      # "Cannot read property 'useRef' of null" from deep inside a navigation
-      # library. Both apps pin these exactly; this catches a transitive
-      # resolution that reintroduces a second copy.
-      #
-      # react and react-native only. react-dom is bundled into web alone;
-      # mobile can pull a different one transitively for Expo's web export
-      # without it ever reaching a native bundle, so that duplication is benign.
+      # look unrelated to dependencies. The rule, and why react-dom is excluded,
+      # now live in the script — it was shell here, which meant CI could check it
+      # and a person could not, and the pull request template had to tell people
+      # to paste a jq one-liner instead. `pnpm verify` runs it.
       - name: Detect duplicate runtime dependencies
-        run: |
-          set -euo pipefail
-          failed=0
-          for pkg in react react-native; do
-            versions=$(pnpm why "$pkg" --json 2>/dev/null \
-              | jq -r --arg name "$pkg" '[.. | objects | select(has("version") and (.name? == $name or .alias? == $name)) | .version] | unique | .[]' \
-              || true)
-            count=$(printf "%s" "$versions" | grep -c . || true)
-            echo "::group::$pkg (${count} version(s))"
-            printf "%s\n" "$versions"
-            echo "::endgroup::"
-            if [ "${count:-0}" -gt 1 ]; then
-              echo "::error::Multiple versions of '$pkg' in the workspace. This breaks bundle resolution at runtime. Align the version across apps/web and apps/mobile."
-              failed=1
-            fi
-          done
-          exit $failed
+        run: pnpm check:duplicate-deps
 
       # Reads manifests only, so it needs no install and runs even if the
       # dependency graph is what is broken.
