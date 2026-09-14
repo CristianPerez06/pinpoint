@@ -6,6 +6,7 @@
 #   web-build        next build with placeholder config
 #   packages-test    vitest for the shared packages
 #   workspace-health lockfile freshness + duplicate runtime deps + graph cycles
+#                    + the generated OpenSpec workflows stay at five
 #
 # Mobile is linted and typechecked but not built: a native build needs a dev
 # build toolchain, which this change deliberately defers. Metro resolution is
@@ -179,3 +180,11 @@ jobs:
       # dependency graph is what is broken.
       - name: Check dependency graph
         run: node .github/scripts/check-cycles.mjs
+
+      # Which workflows OpenSpec generates is a global, per-machine setting
+      # whose default profile includes `explore` — so `openspec update` puts
+      # back the agent instructions #117 and #130 deliberately removed, on any
+      # machine, and nothing in the resulting diff looks wrong. Deleting the
+      # files could not record the decision; this is what records it.
+      - name: Check the generated OpenSpec workflows
+        run: pnpm check:openspec-workflows

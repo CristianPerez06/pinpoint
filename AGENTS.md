@@ -16,7 +16,19 @@ follow this section instead.
 `/opsx:explore` is deleted for that reason, and `pinpoint-explore` replaces it. It
 returns whenever `openspec update` runs: the workflow list lives in a global,
 per-machine config rather than in this repo, and its `core` profile includes
-`explore`. Delete the file again, or drop `explore` via `openspec config profile`.
+`explore`. Deleting the file could not record that decision, so CI does:
+`pnpm check:openspec-workflows` fails unless the generated workflows are exactly the
+five this repo keeps — in `.claude/commands/opsx/`, in `.agents/skills/`, and in
+`.claude/skills/`, where the CLI used to write them. It reads the working tree rather
+than the index, so it fails the moment `openspec update` writes the file, including
+the copies under the ignored `.agents/`. `.gitignore` is not the fix on its own:
+ignoring a file hides it from CI without stopping an agent on that machine from
+reading it. Fix the machine, not just the files:
+
+```bash
+openspec config set profile custom
+openspec config set workflows '["propose","apply","update","sync","archive"]'
+```
 
 **Explain for someone who doesn't write code.** Most decisions here are product or
 design decisions: say what the person using the app will see or be able to do. When
