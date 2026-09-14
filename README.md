@@ -12,9 +12,11 @@ edited and removed, grouped into cities; each traveller records whether they wan
 somewhere; a place can be marked visited; and the map narrows to the places a chosen set
 of people all want.
 
-Web does all of it. Mobile reads everything web writes and records interest, visited and
-filters — it has no capture flow yet. That gap is closing rather than permanent: see
-`openspec/ROADMAP.md`.
+**Both applications do all of it.** The phone read and never wrote for the first four
+changes; it is now a full client — search, dropping a pin by hand, the whole marker form,
+editing, removing, cities, interest, visited and the filter. Either one is sufficient on
+its own, which is a standing rule rather than a milestone: nothing this product can do is
+reachable from only one of them.
 
 The founding risk was one zero-dependency package producing the same map through two
 bundlers and two renderers, and it holds. The original form of the claim does not:

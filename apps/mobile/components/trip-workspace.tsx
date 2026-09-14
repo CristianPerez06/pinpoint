@@ -341,8 +341,9 @@ export function TripWorkspace({
    * empty on a cold launch, which is exactly what `lastCityId` did. The laptop
    * keeps its selection in the address, so a reload and a shared link both
    * survive it and this does not — the two are honestly different rather than
-   * accidentally so, and closing the gap means choosing a store, which is a
-   * decision of its own recorded in `ROADMAP.md`.
+   * accidentally so. The store this would move into already exists
+   * (`apps/mobile/lib/preferences.tsx`); what is left is deciding what a stored
+   * city id means once that city has been deleted, which is issue `#128`.
    */
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
 

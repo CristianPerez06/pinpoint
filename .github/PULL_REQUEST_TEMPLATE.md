@@ -31,7 +31,6 @@ Change: `openspec/changes/<name>/`
 - [ ] Deltas applied to the master specs — no `## ADDED/MODIFIED/REMOVED/RENAMED Requirements` sections left
 - [ ] A real `Purpose` written for every new capability (no `TBD`)
 - [ ] `AGENTS.md` updated if this completes or adds a module or a package
-- [ ] `openspec/ROADMAP.md` updated — loose ends this change closed are **removed**, ones it opened are added
 
 ### 📸 Screenshots / videos
 

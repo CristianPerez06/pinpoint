@@ -186,8 +186,9 @@ Real, in the repository:
   This is why search results show how far away each result is: distance is the only fact
   distinguishing a right match from a confidently wrong one.
 - **A written record of what looking caught that building did not.**
-  `openspec/ROADMAP.md` documents defects that passed `typecheck`, `lint` and `build`
-  untouched across five consecutive changes.
+  `openspec/changes/archive/` documents defects that passed `typecheck`, `lint` and
+  `build` untouched across five consecutive changes — each one recorded in the change
+  that found it.
 - **Nine specifications** in `openspec/specs/` — the rules actually in force.
 - **The bundled typeface**, `apps/web/app/fonts/Figtree.ttf` and
   `apps/mobile/assets/fonts/Figtree.ttf`.

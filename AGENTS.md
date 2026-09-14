@@ -322,6 +322,20 @@ placeholders.
   interchangeable. Put the position on the thing that is pressed; the note now takes
   `onPress` itself.
 
+- **A preference kept in `expo-secure-store` outlives the app that wrote it.** On iOS
+  that store is the Keychain, and a Keychain item survives the application being
+  deleted — so uninstalling and reinstalling hands back a value written by a copy of
+  the app that no longer exists. Tolerable for a ground. Wrong for a trip id, which
+  may name a trip this account has since been removed from, so a fresh install would
+  open on something it cannot read and has no way to explain. The phone's preferences
+  are `@react-native-async-storage/async-storage`
+  (`apps/mobile/lib/preferences.tsx`) for that reason — one key per preference under a
+  shared prefix, read inside the launch gate in `_layout.tsx` so nothing paints before
+  the values are known. **The transferable part is that the name pointed at the wrong
+  axis**: nothing here needs confidentiality, and the property that actually decided it
+  was lifetime. A store chosen because its name sounds like the stronger option is a
+  store chosen against a question nobody asked.
+
 ## Styling
 
 Web and mobile share **token values**, not styling code. There is no cross-platform
