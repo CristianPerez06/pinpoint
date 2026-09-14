@@ -174,10 +174,6 @@ The name, the typeface and the palette are all binding.
 
 Real, in the repository:
 
-- **A seeded first trip** — Kyoto, sixteen markers, deliberately lopsided at fourteen
-  `see` against one each of `eat`, `buy`, `move` and `sleep`
-  (`supabase/migrations/20260808120000_seed_kyoto_markers.sql`). This is the shape a
-  real wishlist has, and it is the evidence the colour ranking was chosen against.
 - **A measured geocoder result.** Thirty-five real Osaka places through Photon:
   twenty-two resolved, six came back confidently wrong (270 km to 16,187 km away), and
   seven found nothing. The failures were not obscure places but the notes written beside

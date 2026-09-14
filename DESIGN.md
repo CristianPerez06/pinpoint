@@ -254,10 +254,9 @@ not a derivation.
 ### Secondary — The Place Types
 
 Seven types, one colour each, and their **relative prominence is a product decision
-rather than a palette choice**. A real wishlist is lopsided: the seeded Kyoto trip is
-ten `culture` against one each of the rest, and no `food` at all. If `culture` took a
-loud colour, ten loud pins would drown the ones carrying the information somebody is
-actually looking for. The minority is the signal.
+rather than a palette choice**. A real wishlist is lopsided, and most of it is
+`culture`. If `culture` took a loud colour, the majority of the pins would be loud and
+would drown the ones carrying the information somebody is actually looking for. The minority is the signal.
 
 Colour used to be carried by a closed set of five *families*, with the type deciding
 only the icon. Sixteen types arrived over those five colours, seven of them sharing
