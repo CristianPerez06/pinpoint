@@ -186,5 +186,11 @@ jobs:
       # back the agent instructions #117 and #130 deliberately removed, on any
       # machine, and nothing in the resulting diff looks wrong. Deleting the
       # files could not record the decision; this is what records it.
+      #
+      # `always()` because this one is independent of everything above it: a
+      # stale lockfile or a duplicated runtime has nothing to do with a file
+      # that came back, and the first red step must not hide it until the next
+      # push.
       - name: Check the generated OpenSpec workflows
+        if: always()
         run: pnpm check:openspec-workflows
