@@ -58,5 +58,11 @@ jobs:
       # --all covers every spec plus every active change. --strict additionally
       # rejects a requirement with no scenarios, which is the most common way a
       # spec turns into prose that looks specified and is not.
+      #
+      # `check:specs` also greps for TBD placeholders. It runs both and fails
+      # if either failed. It used to be `validate && if …; fi; …; echo OK`,
+      # whose exit code was the final echo's, so this step passed with invalid
+      # specs and changes (#136). Check a change to that one-liner by breaking
+      # a spec on purpose, not by reading it.
       - name: Validate specs and changes
         run: pnpm check:specs
