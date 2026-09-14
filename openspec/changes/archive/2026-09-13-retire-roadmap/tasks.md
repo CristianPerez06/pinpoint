@@ -86,7 +86,11 @@ each delta twice.
       edit is still an edit.
 - [ ] 6.5 Open both applications and confirm nothing changed on screen. This change alters one
       comment and no behaviour, so anything visible is a mistake rather than a feature.
-- [ ] 6.6 Open a pull request and confirm the template no longer asks for a roadmap update.
-- [ ] 6.7 Read the two modified specifications as a whole, not as diffs, and confirm each new
+- [x] 6.6 Open a pull request and confirm the template no longer asks for a roadmap update.
+      `#129`; the OpenSpec checklist no longer carries the roadmap line.
+- [x] 6.7 Read the two modified specifications as a whole, not as diffs, and confirm each new
       rule reads as a rule with its reason rather than a paragraph transplanted out of another
-      document.
+      document. Both do. Caught one defect in the reading: the revisit condition was cited as
+      "this change's design document", which is unresolvable once in force — now the archived
+      path. Also verified the `MODIFIED` requirement against `main`: additions only, nothing
+      dropped.
