@@ -61,40 +61,19 @@ apps/web/public/maplibre/
 # `.agents` — so add the path here when you install into a new one.
 .claude/skills/impeccable/
 .claude/agents/impeccable-*.md
+.agents/skills/impeccable/
 .codex/skills/impeccable/
 .codex/agents/impeccable-*.toml
 .github/skills/impeccable/
 .github/agents/impeccable-*.agent.md
 .github/hooks/impeccable.json
 
-# `.agents/skills/` is written by two installers, so nothing in it is ours unless
-# this file says so. The rule is inverted here: ignore every entry, then name the
-# ones the repository owns.
-#
-# `.agents/skills/.openspec-target` reads `codex`, and that is what makes this the
-# right home for a Codex-facing skill rather than `.codex/` — it is the directory
-# OpenSpec writes for its Codex, Zed and shared-agents targets, and the one those
-# runtimes read. `pinpoint-explore` lives here for that reason and is committed.
-#
-# Everything else here is a generated second copy. Impeccable's installer mirrors
-# its skill from `.claude/`, with its script paths rewritten to a directory that
-# does not exist. `openspec update` leaves `openspec-*` skills and
-# `source-command-opsx-*` — its own commands restated as skills, for a runtime with
-# no slash commands. Those are the ones to be wary of: they are regenerated at
-# whatever OpenSpec is on PATH, which is not necessarily the 1.13.0 this repository
-# pins, and a 1.7.0 copy still carries the "think deeply" / "brainstorm multiple
-# approaches" / "diagrams liberally" wording that AGENTS.md § Talking to the user
-# overrides and that #117 removed from `.claude/`.
-#
-# The whole of `.agents/` is ignored, not just `skills/` — the installers write
-# plugins, lock files and caches there too, and none of it is ours. Re-inclusion
-# has to step down one level at a time: git will not look inside an excluded
-# directory, so each ancestor of a kept path must be un-excluded before the next
-# `*` can be applied.
-.agents/*
-!.agents/skills/
-.agents/skills/*
-!.agents/skills/pinpoint-explore/
+# `.agents/` is not ignored. Like `.claude/`, it is versioned, the same as
+# in grana-v3: our own skills and OpenSpec's generated `openspec-*` ones alike. A
+# generated file that changes — a different OpenSpec version, or a workflow this
+# repository does not keep — then shows up in `git status` instead of sitting
+# unseen on one machine while Codex reads it. The only exception is Impeccable,
+# named above.
 
 # Generated design mocks. The builder is committed; its ~290 KB output, which
 # embeds the bundled font, is not — it regenerates in under a second.
