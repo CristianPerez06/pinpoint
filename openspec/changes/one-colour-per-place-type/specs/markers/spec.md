@@ -9,7 +9,7 @@ one. The rule worked exactly as written and the result was a map that could not
 distinguish a castle from a park by colour at all. Replaced by a single channel,
 below, in which a type is its own colour and the type set is what is bounded.
 
-**Migration**: Types collapse into seven, and no stored value is lost or
+**Migration**: Types collapse into eight, and no stored value is lost or
 rewritten: each retired identifier resolves to the type that replaced it, per
 *A retired type identifier resolves to the type that replaced it* below. The
 identifier-not-value rule this requirement carried for icons is retained
@@ -43,7 +43,8 @@ The icon SHALL reinforce what the colour already says and SHALL NOT be the only
 channel separating one type from another. A person SHALL be able to tell any two
 types apart without resolving a glyph.
 
-The types SHALL be: place, culture, nature, food, shopping, stay, and transport.
+The types SHALL be: place, temple, culture, nature, food, shopping, stay, and
+transport.
 
 Every marker SHALL have a type. A marker whose type cannot be determined SHALL
 take a defined fallback type rather than none, so that no marker is unrenderable.
@@ -56,7 +57,7 @@ carrying it is genuinely unclassified rather than merely unspecific.
 #### Scenario: A type is proposed for addition
 
 - **WHEN** a new type is proposed for the shared list
-- **THEN** it requires a colour distinguishable from all seven existing ones
+- **THEN** it requires a colour distinguishable from every existing one
 - **AND** it is not accepted merely because the type set is under its bound
 
 #### Scenario: Two types are compared
@@ -99,12 +100,17 @@ table before applying the fallback.
 
 A retired identifier SHALL NOT reach the fallback. Resolving a retired identifier
 through the fallback loses the meaning a person recorded, and does so silently: a
-saved temple would render as an unclassified place, which raises no error, fails
+saved castle would render as an unclassified place, which raises no error, fails
 no typecheck, and is visible only by recognising that a map looks wrong.
 
 The mapping SHALL be defined once in the shared package and SHALL be the only
 answer to what a stored identifier means, so that the two applications and the
 geocoder cannot disagree.
+
+An identifier that names a currently defined type SHALL NOT appear in the
+mapping. A live identifier resolves to itself, and an entry claiming otherwise
+would be a standing assertion that it means something else — which the
+completeness check above cannot detect, because such an entry satisfies it.
 
 Resolution SHALL happen on read. No stored value SHALL be rewritten, and the
 mapping SHALL be permanent rather than transitional — a row may carry a retired
@@ -115,7 +121,7 @@ and SHALL still render.
 
 #### Scenario: A marker saved by an earlier build
 
-- **WHEN** a marker whose stored type is `temple` is rendered
+- **WHEN** a marker whose stored type is `castle` is rendered
 - **THEN** it renders as `culture`
 - **AND** it does not render as the fallback type
 
@@ -130,6 +136,13 @@ and SHALL still render.
 - **WHEN** the set of identifiers the system has ever defined is enumerated
 - **THEN** every one of them resolves to a currently defined type
 - **AND** none of them reaches the fallback by omission
+
+#### Scenario: A retired identifier is defined again
+
+- **WHEN** an identifier that was previously retired names a type the system
+  offers again
+- **THEN** it resolves to that type rather than to the one it was retired into
+- **AND** it does not appear in the mapping of retired identifiers
 
 #### Scenario: Reading does not write
 

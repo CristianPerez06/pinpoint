@@ -45,8 +45,15 @@ and only a value never defined SHALL take the fallback type's appearance.
 
 #### Scenario: Two markers that were once the same family
 
-- **WHEN** a marker stored as a temple and a marker stored as a park are rendered
+- **WHEN** a marker stored as a castle and a marker stored as a park are rendered
 - **THEN** they show different colours, because they are now different types
+- **AND** neither requires its icon to be read to tell them apart
+
+#### Scenario: A temple and a museum
+
+- **WHEN** a marker stored as a temple and a marker stored as a museum are
+  rendered
+- **THEN** they show different colours
 - **AND** neither requires its icon to be read to tell them apart
 
 #### Scenario: An unrecognised type
