@@ -26,25 +26,47 @@ describe('markerView', () => {
 
   it('gives two markers that used to share a family two colours', () => {
     // Inverted from what this file asserted, and kept rather than deleted. It
-    // read: a temple and a castle share a colour and differ only by icon. That
+    // read: a castle and a park share a colour and differ only by icon. That
     // was the behaviour — seven types over one slate — and it is what this
-    // change removes. A temple and a park are now told apart without reading
-    // either glyph.
-    const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
+    // change removes. They are now told apart without reading either glyph.
+    const castle = markerView(at(135.78, 35.0, { type: 'castle' }))
     const park = markerView(at(135.75, 35.01, { type: 'park' }))
 
-    expect(temple.type).not.toBe(park.type)
-    expect(temple.icon).not.toBe(park.icon)
+    expect(castle.type).not.toBe(park.type)
+    expect(castle.icon).not.toBe(park.icon)
+  })
+
+  it('gives a temple and a museum two colours', () => {
+    // The distinction the eighth type bought, and the one this change spent its
+    // last colour on. It was false for exactly one change: `temple` folded into
+    // `culture`, so a trip that is mostly temples could not tell its temples
+    // from its museums — the same field of identical pins, one level down.
+    const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
+    const museum = markerView(at(135.75, 35.01, { type: 'museum' }))
+
+    expect(temple.type).toBe('temple')
+    expect(museum.type).toBe('culture')
+    expect(temple.icon).not.toBe(museum.icon)
   })
 
   it('resolves a retired stored type to the type that replaced it', () => {
-    // Not the fallback. A saved temple drawn as a generic `place` pin raises no
+    // Not the fallback. A saved castle drawn as a generic `place` pin raises no
     // error and fails no test that does not look for this.
+    const castle = markerView(at(135.78, 35.0, { type: 'castle' }))
+
+    expect(castle.type).toBe('culture')
+    expect(castle.typeId).toBe('culture')
+    expect(castle.typeId).not.toBe(FALLBACK_MARKER_TYPE)
+  })
+
+  it('resolves a stored temple to temple, not to the type it was briefly retired into', () => {
+    // The regression this extension exists to prevent, and it fails on the
+    // seven-type build. `temple` was retired to `culture` and came back; a row
+    // written before, during or after that must render as a temple.
     const temple = markerView(at(135.78, 35.0, { type: 'temple' }))
 
-    expect(temple.type).toBe('culture')
-    expect(temple.typeId).toBe('culture')
-    expect(temple.typeId).not.toBe(FALLBACK_MARKER_TYPE)
+    expect(temple.type).toBe('temple')
+    expect(temple.typeId).toBe('temple')
   })
 
   it('renders an unrecognised stored type as the fallback rather than omitting it', () => {

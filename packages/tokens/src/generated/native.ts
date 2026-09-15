@@ -21,7 +21,7 @@ export interface Theme {
   readonly mode: 'light' | 'dark'
   readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'inkOnAccent' | 'accentWash' | 'accentRing' | 'danger' | 'dangerSurface', string>>
   readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'boundary' | 'label', string>>
-  readonly markerType: Readonly<Record<'place' | 'culture' | 'nature' | 'food' | 'shopping' | 'stay' | 'transport', string>>
+  readonly markerType: Readonly<Record<'place' | 'temple' | 'culture' | 'nature' | 'food' | 'shopping' | 'stay' | 'transport', string>>
   readonly markerForeground: string
   readonly elevation: Readonly<Record<'sm' | 'md' | 'lg' | 'pin', ThemeElevation>>
 }
@@ -58,7 +58,8 @@ export const LIGHT: Theme = {
   },
   "markerType": {
     "place": "#8B857A",
-    "culture": "#7C8896",
+    "temple": "#7C8896",
+    "culture": "#B43F72",
     "nature": "#3F7A32",
     "food": "#D2451E",
     "shopping": "#8A3FFC",
@@ -122,7 +123,8 @@ export const DARK: Theme = {
   },
   "markerType": {
     "place": "#A8A197",
-    "culture": "#98A3B0",
+    "temple": "#98A3B0",
+    "culture": "#E57DA5",
     "nature": "#6FB45C",
     "food": "#F0653A",
     "shopping": "#A97BFF",

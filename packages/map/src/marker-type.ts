@@ -20,12 +20,23 @@
  * museum and a park became indistinguishable except by a 15px stroked glyph. The
  * cap was never reached; the bucket was.
  *
- * So the cap moved onto the type list itself. There are seven types and the
+ * So the cap moved onto the type list itself. There are eight types and the
  * budget is about eight, which means **a new type costs a colour**. That is the
  * point rather than a limitation: adding one is now a palette decision somebody
  * has to argue for, where before it was a free edit to a list — and sixteen free
- * edits are exactly how this got here. Do not add an eighth on the grounds that
- * there is room for one.
+ * edits are exactly how this got here. Do not add a ninth on the grounds that
+ * there is room for one: there is not. The wheel's last open span went to
+ * `culture`, and the budget is spent rather than nearly spent.
+ *
+ * THE EIGHTH, AND WHAT IT COST
+ *
+ * The collapse first went to seven and folded Temple into `culture`. That is the
+ * one merge that reproduced the problem one level down: a sightseeing trip is
+ * mostly temples, so a temple and a museum sharing a colour is the same field of
+ * identical pins, smaller. `temple` is the eighth type, it takes the slate
+ * because the recessive value follows the majority and the majority is temples,
+ * and `culture` — castles, museums, galleries — took the last hue on the wheel.
+ * That is the rule above being paid rather than waived.
  *
  * The icon is no longer load-bearing. It reinforces a colour that has already
  * said what the place is, which is why it may be small and quiet.
@@ -43,6 +54,7 @@ import { RETIRED_TYPES } from './marker-migrate'
 
 export const MARKER_TYPE_IDS_TUPLE = [
   'place',
+  'temple',
   'culture',
   'nature',
   'food',
@@ -73,11 +85,18 @@ export type MarkerType = (typeof MARKER_TYPE_IDS_TUPLE)[number]
  * slate pin argues with the type it belongs to, and at 15px on a coloured
  * teardrop the detail turns to mush.
  *
- * There is one per type and no more. Nine names were retired when sixteen types
- * became seven: `star`, `castle`, `picture`, `mountain`, `coffee`, `beer`,
- * `skewer`, `storefront` and `plane`. They are gone rather than kept for later —
- * an icon with no type to name is a glyph both applications must map and nothing
- * can draw.
+ * There is one per type and no more. Eight names were retired when sixteen types
+ * became eight: `star`, `picture`, `mountain`, `coffee`, `beer`, `skewer`,
+ * `storefront` and `plane`. They are gone rather than kept for later — an icon
+ * with no type to name is a glyph both applications must map and nothing can
+ * draw. `castle` was among them for exactly one change and came back when
+ * `culture` needed a glyph of its own.
+ *
+ * `landmark` is the columned facade, and it moved. It was `culture`'s while
+ * `culture` held the temples; it is `temple`'s now, because it is the one glyph
+ * in the set that actually draws a temple. `culture` took `castle`. Two names,
+ * two types, and the swap is the whole of it — do not read `landmark` as still
+ * meaning sightseeing-in-general.
  *
  * The names describe what is drawn, not which library draws it. Naming them
  * after a vendor's catalogue would make swapping the catalogue a change to the
@@ -86,6 +105,7 @@ export type MarkerType = (typeof MARKER_TYPE_IDS_TUPLE)[number]
 export const MARKER_ICONS = [
   'pin',
   'landmark',
+  'castle',
   'trees',
   'utensils',
   'shopping-bag',
@@ -120,14 +140,18 @@ export interface MarkerTypeDefinition {
 export const FALLBACK_MARKER_TYPE = 'place' satisfies MarkerType
 
 /**
- * The seven, in the order they are offered.
+ * The eight, in the order they are offered.
  *
  * `place` leads because it is the fallback and the safe answer, and the rest run
- * roughly from what a trip holds most of to what it holds least.
+ * roughly from what a trip holds most of to what it holds least. `temple` is
+ * second because it is the most: the seeded Kyoto trip carried eight of them
+ * against four of everything else sightseeing put together, which is the count
+ * the recessive slate follows.
  */
 export const MARKER_TYPES: readonly MarkerTypeDefinition[] = [
   { id: 'place', label: 'Place', icon: 'pin' },
-  { id: 'culture', label: 'Culture', icon: 'landmark' },
+  { id: 'temple', label: 'Temple', icon: 'landmark' },
+  { id: 'culture', label: 'Culture', icon: 'castle' },
   { id: 'nature', label: 'Nature', icon: 'trees' },
   { id: 'food', label: 'Food', icon: 'utensils' },
   { id: 'shopping', label: 'Shopping', icon: 'shopping-bag' },
@@ -136,7 +160,7 @@ export const MARKER_TYPES: readonly MarkerTypeDefinition[] = [
 ] as const
 
 /* Keyed by `string`, not by `MarkerType`. Every caller arrives with an
-   unconstrained value out of the database, and a map that only accepts the seven
+   unconstrained value out of the database, and a map that only accepts the eight
    would make each of them cast on the way in. */
 const BY_ID: ReadonlyMap<string, MarkerTypeDefinition> = new Map(
   MARKER_TYPES.map((type) => [type.id as string, type]),
@@ -157,7 +181,7 @@ export const MARKER_TYPE_IDS: readonly MarkerType[] = MARKER_TYPES.map((type) =>
  * The database column is unconstrained text, so a value written by an older
  * version of the app must still render — and must still mean what it meant.
  * Letting a retired identifier fall through to the fallback would turn every
- * saved temple into a generic `place` pin: no error, no failing test, no
+ * saved castle into a generic `place` pin: no error, no failing test, no
  * typecheck complaint, and a map that is quietly wrong. See `marker-migrate.ts`.
  */
 export function markerTypeOf(id: string | null | undefined): MarkerTypeDefinition {
@@ -166,13 +190,13 @@ export function markerTypeOf(id: string | null | undefined): MarkerTypeDefinitio
 }
 
 /**
- * Whether `id` is one of the seven types offered today. Answers the *write*
+ * Whether `id` is one of the eight types offered today. Answers the *write*
  * question: this is what `markerTypeSchema` refines on.
  *
  * Deliberately not a type predicate. Narrowing to `MarkerType` here would
  * propagate through zod's inference into `Marker.type`, and a `Marker` is also
  * what a *read* produces — where the value is unconstrained text and may well be
- * a retired identifier. A row holding `temple` is valid data, not a type error.
+ * a retired identifier. A row holding `castle` is valid data, not a type error.
  */
 export function isMarkerType(id: string): boolean {
   return BY_ID.has(id)
@@ -180,8 +204,8 @@ export function isMarkerType(id: string): boolean {
 
 /**
  * Whether `id` is a value this system has ever defined — a live type or a retired
- * one. Distinct from `isMarkerType`, which asks only about the seven: a stored
- * `temple` is not a type any more, but it is not unknown either.
+ * one. Distinct from `isMarkerType`, which asks only about the eight: a stored
+ * `castle` is not a type any more, but it is not unknown either.
  */
 export function isKnownMarkerType(id: string): boolean {
   return isMarkerType(id) || id in RETIRED_TYPES

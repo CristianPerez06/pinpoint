@@ -15,9 +15,17 @@ describe('markerTypeSchema', () => {
   })
 
   it('rejects a retired type on write, though a read accepts one', () => {
-    // The asymmetry is the point. Rows hold `temple` and must keep rendering as
-    // `culture`; nothing should be storing `temple` any more. `markerTypeOf`
+    // The asymmetry is the point. Rows hold `castle` and must keep rendering as
+    // `culture`; nothing should be storing `castle` any more. `markerTypeOf`
     // answers the read, this answers the write, and they disagree on purpose.
-    expect(markerTypeSchema.safeParse('temple').success).toBe(false)
+    expect(markerTypeSchema.safeParse('castle').success).toBe(false)
+  })
+
+  it('accepts `temple`, which was retired and is a type again', () => {
+    // The example this test used to be written against. `temple` spent one
+    // change as a retired identifier and is live now, so the write side has to
+    // accept it — and a schema still refusing it would block saving the very
+    // type the eighth colour was spent on.
+    expect(markerTypeSchema.safeParse('temple').success).toBe(true)
   })
 })
