@@ -69,53 +69,6 @@ addressable rather than being hidden until they are filed.
 - **THEN** those markers remain
 - **AND** they become unassigned rather than being removed with the city
 
-### Requirement: Marker type is a code-defined value with a bounded set of display families
-
-The system SHALL define the available marker types in shared code rather than as
-user-editable data, and SHALL expose them from a shared package consumed by both
-applications.
-
-Each type SHALL carry an icon identifier and SHALL belong to exactly one display
-family. Family SHALL determine colour; type SHALL determine icon. The set of families
-SHALL remain small enough that they stay distinguishable at a glance, and SHALL NOT
-grow when a type is added — a new type SHALL be assigned to an existing family.
-
-The icon identifier SHALL name an icon rather than being one. The shared package
-SHALL NOT hold a glyph, a character, or a drawable that either application renders
-directly; each application SHALL map the identifier to an icon from its own platform's
-icon set. Identifiers SHALL be stable, because they are the contract between the
-shared type list and two separate icon mappings.
-
-The initial families SHALL be: see, eat, buy, sleep, and move.
-
-Every marker SHALL have a type. A marker whose type cannot be determined SHALL take a
-defined fallback type rather than none, so that no marker is unrenderable.
-
-#### Scenario: A new type is added
-
-- **WHEN** a type is added to the shared list
-- **THEN** it is assigned to one of the existing families
-- **AND** no new colour is introduced
-- **AND** both applications pick it up without either being edited
-
-#### Scenario: A type cannot be determined
-
-- **WHEN** a marker is created without a determinable type
-- **THEN** it takes the fallback type
-- **AND** it renders with that type's family colour and icon
-
-#### Scenario: Types are not user data
-
-- **WHEN** a person uses either application
-- **THEN** there is no interface for creating, renaming, or deleting a type
-
-#### Scenario: A type's icon is inspected in the shared package
-
-- **WHEN** the shared type list is read
-- **THEN** each type carries a name identifying its icon
-- **AND** nothing in the shared package can be rendered as an icon without an
-  application resolving it first
-
 ### Requirement: Interest is recorded per member; visited is recorded for the trip
 
 The system SHALL record interest in a marker per member — each person on the trip
@@ -212,3 +165,136 @@ the person did not choose and give no sign of it.
 - **WHEN** such a marker is written directly to the store, without passing through the applications
 - **THEN** the store refuses it
 - **AND** the refusal does not depend on which client issued the write
+
+### Requirement: Marker type is a code-defined value, and each type carries its own colour
+
+The system SHALL define the available marker types in shared code rather than as
+user-editable data, and SHALL expose them from a shared package consumed by both
+applications.
+
+Each type SHALL carry exactly one colour and exactly one icon identifier. Colour
+SHALL be determined by the type itself, and no grouping SHALL sit between a type
+and its colour. Two distinct types SHALL NOT share a colour.
+
+The set of types SHALL remain small enough that every type stays distinguishable
+from every other by colour alone at normal map zoom. Adding a type therefore
+costs a colour, and SHALL be treated as a palette decision rather than as an
+addition to a list. A type SHALL NOT be added on the grounds that the list has
+room for one more.
+
+The icon identifier SHALL name an icon rather than being one. The shared package
+SHALL NOT hold a glyph, a character, or a drawable that either application renders
+directly; each application SHALL map the identifier to an icon from its own
+platform's icon set. Identifiers SHALL be stable, because they are the contract
+between the shared type list and two separate icon mappings.
+
+The icon SHALL reinforce what the colour already says and SHALL NOT be the only
+channel separating one type from another. A person SHALL be able to tell any two
+types apart without resolving a glyph.
+
+The types SHALL be: place, temple, culture, nature, food, shopping, stay, and
+transport.
+
+Every marker SHALL have a type. A marker whose type cannot be determined SHALL
+take a defined fallback type rather than none, so that no marker is unrenderable.
+
+The fallback SHALL be `place`, and `place` SHALL mean only that nothing more was
+determined. No type whose meaning a person or the geocoder actually established
+SHALL resolve to the fallback, so that the fallback stays rare and a marker
+carrying it is genuinely unclassified rather than merely unspecific.
+
+#### Scenario: A type is proposed for addition
+
+- **WHEN** a new type is proposed for the shared list
+- **THEN** it requires a colour distinguishable from every existing one
+- **AND** it is not accepted merely because the type set is under its bound
+
+#### Scenario: Two types are compared
+
+- **WHEN** any two markers of different types are rendered
+- **THEN** they show different colours
+- **AND** they are distinguishable without reading either icon
+
+#### Scenario: A type cannot be determined
+
+- **WHEN** a marker is created without a determinable type
+- **THEN** it takes the fallback type `place`
+- **AND** it renders with that type's colour and icon
+
+#### Scenario: A place established as worth seeing
+
+- **WHEN** a marker is classified as somewhere worth seeing without a more
+  specific kind being established
+- **THEN** it does not take the fallback type
+- **AND** it is distinguishable from a marker about which nothing was determined
+
+#### Scenario: Types are not user data
+
+- **WHEN** a person uses either application
+- **THEN** there is no interface for creating, renaming, or deleting a type
+
+#### Scenario: A type's icon is inspected in the shared package
+
+- **WHEN** the shared type list is read
+- **THEN** each type carries a name identifying its icon
+- **AND** nothing in the shared package can be rendered as an icon without an
+  application resolving it first
+
+### Requirement: A retired type identifier resolves to the type that replaced it
+
+The stored type is unconstrained text and rows exist that were written by earlier
+builds. The shared package SHALL hold a table mapping every identifier it has ever
+defined to a currently defined type, and SHALL resolve a stored value through that
+table before applying the fallback.
+
+A retired identifier SHALL NOT reach the fallback. Resolving a retired identifier
+through the fallback loses the meaning a person recorded, and does so silently: a
+saved castle would render as an unclassified place, which raises no error, fails
+no typecheck, and is visible only by recognising that a map looks wrong.
+
+The mapping SHALL be defined once in the shared package and SHALL be the only
+answer to what a stored identifier means, so that the two applications and the
+geocoder cannot disagree.
+
+An identifier that names a currently defined type SHALL NOT appear in the
+mapping. A live identifier resolves to itself, and an entry claiming otherwise
+would be a standing assertion that it means something else — which the
+completeness check above cannot detect, because such an entry satisfies it.
+
+Resolution SHALL happen on read. No stored value SHALL be rewritten, and the
+mapping SHALL be permanent rather than transitional — a row may carry a retired
+identifier indefinitely.
+
+A stored value that was never a defined identifier SHALL still take the fallback,
+and SHALL still render.
+
+#### Scenario: A marker saved by an earlier build
+
+- **WHEN** a marker whose stored type is `castle` is rendered
+- **THEN** it renders as `culture`
+- **AND** it does not render as the fallback type
+
+#### Scenario: An identifier that was never defined
+
+- **WHEN** a marker's stored type matches no identifier the system has ever defined
+- **THEN** it takes the fallback type
+- **AND** it is not omitted from the map
+
+#### Scenario: A retired identifier is checked against the table
+
+- **WHEN** the set of identifiers the system has ever defined is enumerated
+- **THEN** every one of them resolves to a currently defined type
+- **AND** none of them reaches the fallback by omission
+
+#### Scenario: A retired identifier is defined again
+
+- **WHEN** an identifier that was previously retired names a type the system
+  offers again
+- **THEN** it resolves to that type rather than to the one it was retired into
+- **AND** it does not appear in the mapping of retired identifiers
+
+#### Scenario: Reading does not write
+
+- **WHEN** a marker carrying a retired identifier is read and rendered
+- **THEN** the stored value is unchanged
+- **AND** an older build reading the same row still renders it

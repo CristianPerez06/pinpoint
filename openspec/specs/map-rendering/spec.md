@@ -7,7 +7,9 @@ and attribution, the camera that frames a trip's markers, how a marker's type be
 something visible, and what happens when two markers occupy the same point. Covers
 both applications, which use different rendering libraries and must produce the same
 map from the same data.
+
 ## Requirements
+
 ### Requirement: Both applications render the same map from the same shared logic
 
 Each application SHALL render an interactive map that can be panned and zoomed.
@@ -201,64 +203,6 @@ application moved on its own.
 - **WHEN** a marker is saved after the person has moved the view
 - **THEN** the view stays where they put it
 - **AND** the new marker is drawn wherever it falls, visible or not
-
-### Requirement: A marker's appearance is derived from its type by shared code
-
-The shared map package SHALL expose a function turning a marker into a platform-neutral
-visual description — its position, its icon, its colour family, and its label.
-Applications SHALL render that description and SHALL NOT inspect a marker's type to
-decide how it looks.
-
-Colour family SHALL be determined by the marker type's family, and icon by the type
-itself. The description SHALL carry these as identifiers rather than as values ready
-to draw: a family name rather than a colour, and an icon name rather than a glyph.
-
-Applications SHALL resolve a family identifier to a colour through the shared token
-package for the active theme, and SHALL resolve an icon identifier through their own
-platform's icon set. Neither SHALL contain a family's colour as a literal, and neither
-SHALL decide which icon a type gets.
-
-Rationale for identifiers rather than values: a colour now depends on the active
-theme, which the shared package has no business knowing, and an icon is a rendered
-component that a package declaring no dependencies cannot hold.
-
-An icon identifier that an application cannot resolve SHALL render as the fallback
-type's icon rather than as nothing, and the mismatch SHALL be caught by an automated
-check rather than by looking at the map.
-
-A marker whose stored type is not recognised SHALL still render, using the fallback
-type's appearance.
-
-#### Scenario: Two markers of different types
-
-- **WHEN** a temple and a restaurant are rendered
-- **THEN** they show different icons
-- **AND** they show the colours of their respective families
-
-#### Scenario: Two markers of the same family
-
-- **WHEN** a temple and a castle are rendered
-- **THEN** they share a colour, because they share a family
-- **AND** they show different icons
-
-#### Scenario: An unrecognised type
-
-- **WHEN** a marker's stored type is not in the shared list
-- **THEN** it renders with the fallback type's icon and colour
-- **AND** it is not omitted from the map
-
-#### Scenario: A colour is changed
-
-- **WHEN** a family's colour is changed in the shared tokens
-- **THEN** both applications render the new colour after rebuilding
-- **AND** neither application contains the literal value
-
-#### Scenario: A type has no icon on one platform
-
-- **WHEN** a type's icon identifier has no mapping in one application's icon set
-- **THEN** an automated check reports the unmapped identifier
-- **AND** if it reaches a rendered map, the marker draws the fallback icon rather than
-  an empty pin
 
 ### Requirement: Markers at identical coordinates remain reachable
 
@@ -938,3 +882,76 @@ tells a person that the thing they are waiting for is the map and not the applic
 - **THEN** it is distinguishable from that chrome
 - **AND** it does not read as a second band of chrome
 
+### Requirement: A marker's colour and icon are derived from its type by shared code
+
+The shared map package SHALL expose a function turning a marker into a platform-neutral
+visual description — its position, its icon, its colour, and its label.
+Applications SHALL render that description and SHALL NOT inspect a marker's type to
+decide how it looks.
+
+Colour and icon SHALL both be determined by the marker type. The description SHALL
+carry these as identifiers rather than as values ready to draw: a type name rather
+than a colour, and an icon name rather than a glyph. The description SHALL NOT carry
+any grouping between a type and its colour.
+
+Applications SHALL resolve a type identifier to a colour through the shared token
+package for the active theme, and SHALL resolve an icon identifier through their own
+platform's icon set. Neither SHALL contain a type's colour as a literal, and neither
+SHALL decide which icon a type gets.
+
+Rationale for identifiers rather than values: a colour now depends on the active
+theme, which the shared package has no business knowing, and an icon is a rendered
+component that a package declaring no dependencies cannot hold.
+
+An icon identifier that an application cannot resolve SHALL render as the fallback
+type's icon rather than as nothing, and the mismatch SHALL be caught by an automated
+check rather than by looking at the map.
+
+A marker whose stored type is not recognised SHALL still render. A stored type that
+a previous version of the system defined SHALL render as the type that replaced it,
+and only a value never defined SHALL take the fallback type's appearance.
+
+#### Scenario: Two markers of different types
+
+- **WHEN** a museum and a restaurant are rendered
+- **THEN** they show different icons
+- **AND** they show the colours of their respective types
+
+#### Scenario: Two markers that were once the same family
+
+- **WHEN** a marker stored as a castle and a marker stored as a park are rendered
+- **THEN** they show different colours, because they are now different types
+- **AND** neither requires its icon to be read to tell them apart
+
+#### Scenario: A temple and a museum
+
+- **WHEN** a marker stored as a temple and a marker stored as a museum are
+  rendered
+- **THEN** they show different colours
+- **AND** neither requires its icon to be read to tell them apart
+
+#### Scenario: An unrecognised type
+
+- **WHEN** a marker's stored type was never defined by any version of the system
+- **THEN** it renders with the fallback type's icon and colour
+- **AND** it is not omitted from the map
+
+#### Scenario: A retired type
+
+- **WHEN** a marker's stored type was defined by an earlier version and has since
+  been retired
+- **THEN** it renders as the type that replaced it
+- **AND** it does not render as the fallback
+
+#### Scenario: A colour is changed
+
+- **WHEN** a type's colour is changed in the shared tokens
+- **THEN** both applications render the new colour after rebuilding
+- **AND** neither application contains the literal value
+
+#### Scenario: A type has no icon on one platform
+
+- **WHEN** a type's icon identifier has no mapping in one application's icon set
+- **THEN** an automated check reports the unmapped identifier
+- **AND** if it reaches a rendered map, the marker draws the fallback icon rather than
+  an empty pin
