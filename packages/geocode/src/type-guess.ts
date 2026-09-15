@@ -24,6 +24,11 @@ import { FALLBACK_MARKER_TYPE, isMarkerType } from '@pinpoint/map'
  * what somewhere you go to look at living things is. A tag says more than a
  * stored identifier can — see `RETIRED_TYPES` in `@pinpoint/map`, which only ever
  * sees `attraction` and so must send a zoo saved earlier to `culture`.
+ *
+ * The same thing happens again, larger, with `temple`. Five of the values below
+ * — `church`, `cathedral`, `chapel`, `mosque`, `synagogue` — are new here: they
+ * matched no value and no key before, so a church arrived as the fallback. The
+ * tag always said what it was; there was no type to send it to.
  */
 const BY_VALUE: Readonly<Record<string, string>> = {
   restaurant: 'food',
@@ -42,10 +47,31 @@ const BY_VALUE: Readonly<Record<string, string>> = {
   attraction: 'culture',
   castle: 'culture',
   fort: 'culture',
-  temple: 'culture',
-  shrine: 'culture',
-  monastery: 'culture',
-  place_of_worship: 'culture',
+
+  /* Any place of worship, and the scope is the wide one deliberately.
+
+     Photon's tag for a religious building is very often just
+     `amenity=place_of_worship`, with nothing saying which religion — a great
+     many of Kyoto's temples come back exactly that way. A `temple` type taking
+     only the explicit `temple` and `shrine` values would leave most of the
+     places it exists for arriving as `culture`, to be corrected one at a time,
+     which is the type failing at the only job it was added to do.
+
+     The cost is the label: a cathedral saved through the search is called
+     *Temple*. Wrong as English, right as behaviour — it is a place of worship
+     you go and look at, it is grouped and coloured with the others, and the
+     place's own name says *Notre-Dame* directly underneath. Accepted; see
+     `design.md`. If it grates enough to change, the change is the label, not
+     the grouping. */
+  temple: 'temple',
+  shrine: 'temple',
+  monastery: 'temple',
+  place_of_worship: 'temple',
+  church: 'temple',
+  cathedral: 'temple',
+  chapel: 'temple',
+  mosque: 'temple',
+  synagogue: 'temple',
   /* Neither culture nor nature, and not worth an eighth colour. `culture` is
      where the rest of the built attractions are. */
   theme_park: 'culture',

@@ -38,6 +38,33 @@ describe('guessMarkerType', () => {
     expect(guessMarkerType('tourism', 'attraction')).toBe('culture')
   })
 
+  it('sends every place of worship to temple, whatever the religion', () => {
+    // The scope is the wide one deliberately. Photon's tag is very often just
+    // `place_of_worship` with nothing saying which religion, and a narrower
+    // reading would leave most of Kyoto arriving as `culture` — the type
+    // failing at the only job it was added to do.
+    //
+    // The cost is the label: a cathedral is called *Temple*. Wrong as English,
+    // right as behaviour, and accepted in `design.md`. Asserted here so it
+    // reads as a decision rather than as an oversight found later.
+    expect(guessMarkerType('amenity', 'place_of_worship')).toBe('temple')
+    expect(guessMarkerType('amenity', 'temple')).toBe('temple')
+    expect(guessMarkerType('amenity', 'shrine')).toBe('temple')
+    expect(guessMarkerType('amenity', 'monastery')).toBe('temple')
+    expect(guessMarkerType('amenity', 'church')).toBe('temple')
+    expect(guessMarkerType('amenity', 'cathedral')).toBe('temple')
+    expect(guessMarkerType('amenity', 'mosque')).toBe('temple')
+    expect(guessMarkerType('amenity', 'synagogue')).toBe('temple')
+  })
+
+  it('keeps the built attractions on culture', () => {
+    // The other half of the split. `temple` took the places of worship and
+    // nothing else; a museum, a castle and a gallery stay where they were.
+    expect(guessMarkerType('tourism', 'museum')).toBe('culture')
+    expect(guessMarkerType('historic', 'castle')).toBe('culture')
+    expect(guessMarkerType('tourism', 'gallery')).toBe('culture')
+  })
+
   it('groups leisure with nature, which is where park already sent it', () => {
     // Not a decision so much as the same grouping under a new name: `leisure`
     // resolved to `park`, and `park` is one of the two types `nature` absorbs.

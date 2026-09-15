@@ -33,7 +33,11 @@ describe('toCandidates', () => {
       name: 'Kiyomizu-dera',
       lng: 135.7681,
       lat: 35.0116,
-      typeGuess: 'culture',
+      // `place_of_worship` and nothing finer, which is how most of Kyoto comes
+      // back — and the reason `temple` takes that tag rather than only the
+      // explicit `temple` one. This candidate arrived as `culture` for exactly
+      // one change.
+      typeGuess: 'temple',
     })
     expect(candidate?.context).toContain('Kyoto')
   })
