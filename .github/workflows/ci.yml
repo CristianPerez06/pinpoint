@@ -104,7 +104,11 @@ jobs:
     name: Workspace health
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 because "Check the change was archived" diffs this branch
+      # against its base, and a shallow clone has no merge base to diff from.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -174,3 +178,20 @@ jobs:
       - name: Check the generated OpenSpec workflows
         if: always()
         run: pnpm check:openspec-workflows
+
+      # A change that reaches `main` unarchived leaves openspec/specs/
+      # describing the code it just replaced. That is not a lag — after #91 and
+      # #139 the markers specification stated the opposite of the implementation,
+      # on `main`, for two merges, and every check in this file was green for
+      # both. Nothing else can see it: check:specs asks whether a specification
+      # is well formed, never whether it is true.
+      #
+      # Reads the pull request body so a deliberate deferral can say so; see the
+      # script for the marker. `always()` for the same reason as the step above —
+      # it is independent of everything before it, and a red step earlier must
+      # not hide it until the next push.
+      - name: Check the change was archived
+        if: always()
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: pnpm check:unarchived
