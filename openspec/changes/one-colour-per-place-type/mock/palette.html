@@ -1,0 +1,621 @@
+<title>Pinpoint Palette Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --ground:#FBFAF8; --surface:#FFFFFF; --surface-muted:#F3F2EF; --surface-sunk:#EFEDE8;
+  --line:#E4E2DC; --line-strong:#D3D0C8;
+  --ink:#1A1917; --ink-muted:#6E6A63; --ink-faint:#9C978E;
+  --accent:#E39A2B; --accent-ink:#8A5A0B; --accent-wash:#FBF1DF; --accent-ring:#E39A2B61;
+  --danger:#B3261E; --danger-surface:#FCEDEC;
+  --ok:#1E7A4A; --warn:#9A6100;
+  --font:"Figtree", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#171614; --surface:#201E1B; --surface-muted:#2A2724; --surface-sunk:#1B1A17;
+    --line:#34302B; --line-strong:#443F38;
+    --ink:#F2F0EC; --ink-muted:#A09A91; --ink-faint:#7C766D;
+    --accent:#F0AE4A; --accent-ink:#F0AE4A; --accent-wash:#33291A; --accent-ring:#F0AE4A6B;
+    --danger:#F2857C; --danger-surface:#33211F;
+    --ok:#6FC08F; --warn:#E0AE5A;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#171614; --surface:#201E1B; --surface-muted:#2A2724; --surface-sunk:#1B1A17;
+  --line:#34302B; --line-strong:#443F38;
+  --ink:#F2F0EC; --ink-muted:#A09A91; --ink-faint:#7C766D;
+  --accent:#F0AE4A; --accent-ink:#F0AE4A; --accent-wash:#33291A; --accent-ring:#F0AE4A6B;
+  --danger:#F2857C; --danger-surface:#33211F;
+  --ok:#6FC08F; --warn:#E0AE5A;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 24px 96px}
+
+/* ── masthead ─────────────────────────────────────────────── */
+.masthead{padding:40px 0 28px; border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-muted); margin:0 0 10px;
+}
+h1{font-size:32px; font-weight:800; letter-spacing:-.033em; line-height:1.1; margin:0 0 10px; text-wrap:balance}
+.standfirst{margin:0; max-width:63ch; color:var(--ink-muted); font-size:14px; line-height:1.6}
+.standfirst strong{color:var(--ink); font-weight:600}
+
+/* ── the control rail ─────────────────────────────────────── */
+.rail{
+  position:sticky; top:0; z-index:20; margin:0 -24px 8px; padding:14px 24px;
+  background:var(--surface-sunk); border-bottom:1px solid var(--line);
+  display:flex; gap:26px; align-items:flex-end; flex-wrap:wrap;
+}
+.candidate{display:flex; flex-direction:column; gap:7px}
+.candidate > span{
+  font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-muted);
+}
+.swatches{display:flex; gap:6px}
+.sw{position:relative; display:flex; align-items:center; gap:6px;
+  background:var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding:4px 8px 4px 4px}
+.sw input[type=color]{
+  inline-size:26px; block-size:26px; padding:0; border:none; border-radius:5px;
+  background:none; cursor:pointer;
+}
+.sw input[type=color]::-webkit-color-swatch{border:1px solid rgba(0,0,0,.18); border-radius:5px}
+.sw input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.sw code{font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); letter-spacing:-.02em}
+.sw b{font-size:10px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em}
+.rail-actions{margin-inline-start:auto; display:flex; gap:8px; align-items:center}
+button{
+  font-family:inherit; font-size:13.5px; font-weight:500; color:var(--ink);
+  background:var(--surface); border:1px solid var(--line-strong); border-radius:8px;
+  padding:7px 12px; cursor:pointer;
+}
+button:hover{background:var(--surface-muted)}
+button.primary{background:var(--accent); border-color:transparent; color:#241703; font-weight:600}
+:root[data-theme="dark"] button.primary,
+:root:not([data-theme="light"]) button.primary{color:#171614}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) button.primary{color:#241703}}
+:focus-visible{outline:3px solid var(--accent-ring); outline-offset:2px; border-radius:6px}
+
+/* ── checks ───────────────────────────────────────────────── */
+.check{padding:34px 0; border-bottom:1px solid var(--line)}
+.check-head{display:flex; gap:14px; align-items:baseline; margin-bottom:6px}
+.tasknum{
+  font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--accent-ink);
+  background:var(--accent-wash); border-radius:5px; padding:2px 7px; letter-spacing:-.02em; flex:none;
+}
+h2{font-size:17px; font-weight:700; letter-spacing:-.022em; margin:0; line-height:1.22}
+.check > p{margin:0 0 18px; max-width:66ch; color:var(--ink-muted); font-size:13.5px; line-height:1.55}
+.check > p code, .check > p b{font-family:var(--mono); font-size:12.5px; color:var(--ink); font-weight:500}
+
+/* two grounds, always side by side */
+.grounds{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:760px){.grounds{grid-template-columns:1fr}}
+.ground{border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.ground-label{
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  padding:7px 12px; background:var(--surface-muted); color:var(--ink-muted);
+  border-bottom:1px solid var(--line); display:flex; justify-content:space-between;
+}
+.ground-label span{font-family:var(--mono); letter-spacing:-.02em; text-transform:none; font-weight:500; color:var(--ink-faint)}
+.stage{padding:22px 18px; display:flex; flex-wrap:wrap; gap:20px 26px; align-items:flex-end}
+.stage.tight{gap:12px 14px}
+
+/* a pin plus its name */
+.spec{display:flex; flex-direction:column; align-items:center; gap:7px; width:78px}
+.spec .name{font-size:11px; font-weight:600; letter-spacing:-.01em; text-align:center; line-height:1.25}
+.spec .measure{font-family:var(--mono); font-size:10px; line-height:1.3; text-align:center; opacity:.75}
+
+/* readouts */
+.readout{margin-top:14px; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+table{width:100%; border-collapse:collapse; font-size:12.5px}
+caption{
+  text-align:left; padding:9px 12px; background:var(--surface-muted);
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-muted);
+  border-bottom:1px solid var(--line);
+}
+th{
+  text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-faint); padding:8px 12px; border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; letter-spacing:-.02em}
+td.key{font-weight:600}
+.chip{display:inline-flex; align-items:center; gap:6px}
+.dot{inline-size:11px; block-size:11px; border-radius:3px; flex:none; border:1px solid rgba(128,128,128,.35)}
+.verdict{font-weight:700; font-size:11px; letter-spacing:.03em; text-transform:uppercase}
+.pass{color:var(--ok)} .fail{color:var(--danger)} .mid{color:var(--warn)}
+
+/* the trip */
+.tripwrap{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:760px){.tripwrap{grid-template-columns:1fr}}
+.tripmap{position:relative; aspect-ratio:4/3; overflow:hidden}
+.tripmap .pin-abs{position:absolute; transform:translate(-50%,-100%)}
+.badge{
+  position:absolute; top:-2px; right:-6px; min-inline-size:18px; block-size:18px; padding:0 4px;
+  display:grid; place-items:center; border-radius:999px; font-size:11px; font-weight:700;
+  font-variant-numeric:tabular-nums; line-height:1;
+}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; padding:10px 12px; border-top:1px solid var(--line);
+  font-size:11px; color:var(--ink-muted)}
+.legend b{font-weight:600; color:var(--ink)}
+
+/* emit */
+.emit{margin-top:18px}
+pre{
+  margin:0; padding:16px 18px; overflow-x:auto; border-radius:12px;
+  background:var(--surface-sunk); border:1px solid var(--line);
+  font-family:var(--mono); font-size:12px; line-height:1.6; color:var(--ink);
+}
+.note{
+  margin-top:26px; padding:14px 16px; border-inline-start:3px solid var(--accent);
+  background:var(--accent-wash); border-radius:0 10px 10px 0; font-size:13px; line-height:1.55;
+}
+.note b{font-weight:700}
+footer{padding:30px 0 0; color:var(--ink-faint); font-size:12px; line-height:1.6; max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">one-colour-per-place-type · tasks 1.1 and 1.8</p>
+  <h1>Palette Bench</h1>
+  <p class="standfirst">
+    Eight place types, eight colours. Five already exist. This page is where the other three get
+    decided — <strong>nature</strong>, <strong>place</strong> and <strong>culture</strong> —
+    against the real basemap values, the real teardrop, the real glyphs, and the fourteen markers
+    of the Kyoto trip this product was first built against. Change the three candidates in the
+    rail; every check below re-measures.
+    <strong>Contrast ratio is not the instrument</strong> at the dark end of the range, so each
+    check reports CIE L* separation as well.
+  </p>
+  <p class="standfirst" style="margin-top:10px">
+    <strong>Eight is <em>at</em> the cap, not under it.</strong> The first pass stopped at seven
+    and deliberately did not establish that eight was fine. Temple is the eighth: it takes the
+    slate, because the recessive value follows the majority and the majority is temples, and
+    <code>culture</code> — castles, museums, galleries — buys the last open span on the wheel.
+    Check 1.7 is what decides whether that holds.
+  </p>
+</header>
+
+<div class="rail" id="rail"></div>
+
+<main id="checks"></main>
+
+<footer>
+  Values are read from <code>packages/tokens/src/colour.ts</code> and
+  <code>BASEMAP_COLOUR</code> as committed. Pin geometry is the path in
+  <code>apps/web/app/_components/pin.tsx</code> at 32×42 with a 15px glyph at stroke 2.4;
+  glyph outlines are the same Lucide icons both applications resolve.
+  The trip ground is synthetic — no tiles are fetched — but every colour in it is the token
+  the app rewrites the upstream style with, so the adjacencies are real.
+</footer>
+
+</div>
+
+<script>
+/* ── the committed palette ──────────────────────────────────────────────── */
+const BASEMAP = {
+  land:  {light:'#EFEEE9', dark:'#1A1815'},
+  block: {light:'#E3E1D9', dark:'#262218'},
+  road:  {light:'#FFFFFF', dark:'#3D372D'},
+  water: {light:'#CBD6DA', dark:'#16242C'},
+  park:  {light:'#E1E5DC', dark:'#1F241F'},
+};
+const FOREGROUND = {light:'#FFFFFF', dark:'#171614'};
+const ACCENT = {light:'#E39A2B', dark:'#F0AE4A'};
+const DANGER = {light:'#B3261E', dark:'#F2857C'};
+
+const DEFAULTS = {natureL:'#3F7A32', natureD:'#6FB45C', placeL:'#8B857A', placeD:'#A8A197',
+  cultureL:'#B43F72', cultureD:'#E57DA5'};
+let C = {...DEFAULTS};
+try{ const s = JSON.parse(localStorage.getItem('pp-palette-bench')||'null'); if(s) C = {...C, ...s}; }catch(e){}
+
+const TYPES = () => [
+  {id:'place',     label:'Place',     icon:'map-pin',    light:C.placeL,  dark:C.placeD,  role:'fallback', isNew:true},
+  {id:'temple',    label:'Temple',    icon:'landmark',   light:'#7C8896', dark:'#98A3B0', role:'majority'},
+  {id:'culture',   label:'Culture',   icon:'castle',     light:C.cultureL,dark:C.cultureD,isNew:true},
+  {id:'nature',    label:'Nature',    icon:'trees',      light:C.natureL, dark:C.natureD, isNew:true},
+  {id:'food',      label:'Food',      icon:'utensils',   light:'#D2451E', dark:'#F0653A'},
+  {id:'shopping',  label:'Shopping',  icon:'shopping-bag',light:'#8A3FFC',dark:'#A97BFF'},
+  {id:'stay',      label:'Stay',      icon:'bed',        light:'#0B5FD0', dark:'#4A8FE8'},
+  {id:'transport', label:'Transport', icon:'train-front',light:'#00857A', dark:'#16A99C'},
+];
+
+/* ── real Lucide outlines, as both apps resolve them ────────────────────── */
+const GLYPH = {
+  'map-pin':[["path",{d:"M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"}],["circle",{cx:"12",cy:"10",r:"3"}]],
+  'landmark':[["path",{d:"M10 18v-7"}],["path",{d:"M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"}],["path",{d:"M14 18v-7"}],["path",{d:"M18 18v-7"}],["path",{d:"M3 22h18"}],["path",{d:"M6 18v-7"}]],
+  'castle':[["path",{d:"M10 5V3"}],["path",{d:"M14 5V3"}],["path",{d:"M15 21v-3a3 3 0 0 0-6 0v3"}],["path",{d:"M18 3v8"}],["path",{d:"M18 5H6"}],["path",{d:"M22 11H2"}],["path",{d:"M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9"}],["path",{d:"M6 3v8"}]],
+  'trees':[["path",{d:"M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"}],["path",{d:"M7 16v6"}],["path",{d:"M13 19v3"}],["path",{d:"M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"}]],
+  'utensils':[["path",{d:"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"}],["path",{d:"M7 2v20"}],["path",{d:"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"}]],
+  'shopping-bag':[["path",{d:"M16 10a4 4 0 0 1-8 0"}],["path",{d:"M3.103 6.034h17.794"}],["path",{d:"M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"}]],
+  'bed':[["path",{d:"M2 4v16"}],["path",{d:"M2 8h18a2 2 0 0 1 2 2v10"}],["path",{d:"M2 17h20"}],["path",{d:"M6 8v9"}]],
+  'train-front':[["path",{d:"M8 3.1V7a4 4 0 0 0 8 0V3.1"}],["path",{d:"m9 15-1-1"}],["path",{d:"m15 15 1-1"}],["path",{d:"M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"}],["path",{d:"m8 19-2 3"}],["path",{d:"m16 19 2 3"}]],
+};
+const PIN_PATH = 'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z';
+
+/* ── colour maths ───────────────────────────────────────────────────────── */
+const srgb = h => [1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+const lin  = c => c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+const lum  = h => {const[r,g,b]=srgb(h).map(lin); return 0.2126*r+0.7152*g+0.0722*b;};
+const ratio= (a,b)=>{const l1=lum(a),l2=lum(b); return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);};
+
+function lab(hex){
+  const [r,g,b]=srgb(hex).map(lin);
+  const X=(0.4124*r+0.3576*g+0.1805*b)/0.95047;
+  const Y=(0.2126*r+0.7152*g+0.0722*b)/1.00000;
+  const Z=(0.0193*r+0.1192*g+0.9505*b)/1.08883;
+  const f=t=>t>0.008856?Math.cbrt(t):(7.787*t+16/116);
+  const fx=f(X),fy=f(Y),fz=f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+const Lstar = h => lab(h)[0];
+function lch(hex){
+  const [L,a,b]=lab(hex);
+  let hh=Math.atan2(b,a)*180/Math.PI; if(hh<0) hh+=360;
+  return {L, C:Math.hypot(a,b), h:hh};
+}
+const hueGap = (a,b)=>{const d=Math.abs(lch(a).h-lch(b).h)%360; return d>180?360-d:d;};
+const blend = (fg,bg,alpha)=>{
+  const f=srgb(fg), b=srgb(bg);
+  return '#'+[0,1,2].map(i=>Math.round((alpha*f[i]+(1-alpha)*b[i])*255).toString(16).padStart(2,'0')).join('');
+};
+const f1 = n => n.toFixed(1);
+
+/* ── the pin, drawn exactly as the app draws it ─────────────────────────── */
+function pin(type, mode, {count=1, selected=false, opacity=1, scale=1}={}){
+  const fill = type[mode], fg = FOREGROUND[mode];
+  const glyph = (GLYPH[type.icon]||GLYPH['map-pin']).map(([tag,at])=>{
+    const attrs = Object.entries(at).map(([k,v])=>`${k}="${v}"`).join(' ');
+    return `<${tag} ${attrs}/>`;
+  }).join('');
+  const ring = selected ? `<circle cx="16" cy="15" r="17" fill="${mode==='light'?'#E39A2B61':'#F0AE4A6B'}"/>` : '';
+  const badge = count>1 ? `<span class="badge" style="background:${mode==='light'?'#1A1917':'#F2F0EC'};color:${mode==='light'?'#FBFAF8':'#171614'};border:2px solid ${BASEMAP.land[mode]}">${count}</span>` : '';
+  return `<span style="position:relative;display:inline-block;width:${32*scale}px;height:${42*scale}px;opacity:${opacity};filter:drop-shadow(0 2px 5px ${mode==='light'?'#1A19174d':'#0000008c'})">
+    <svg viewBox="0 0 32 42" width="${32*scale}" height="${42*scale}" style="overflow:visible;display:block" aria-hidden="true">
+      ${ring}<path d="${PIN_PATH}" fill="${fill}"/>
+      <g transform="translate(16 15) scale(${15/24}) translate(-12 -12)"
+         fill="none" stroke="${fg}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>
+    </svg>${badge}</span>`;
+}
+
+const MODES=[['light','Light ground'],['dark','Dark ground']];
+const groundBox = (mode, inner, tokenName='land') => `
+  <div class="ground">
+    <div class="ground-label">${mode==='light'?'Light ground':'Dark ground'}
+      <span>--pp-map-${tokenName} ${BASEMAP[tokenName][mode]}</span></div>
+    <div class="stage" style="background:${BASEMAP[tokenName][mode]};color:${mode==='light'?'#1A1917':'#F2F0EC'}">${inner}</div>
+  </div>`;
+
+const spec = (t, mode, measure='') => `
+  <div class="spec">${pin(t,mode)}
+    <div class="name">${t.label}</div>
+    ${measure?`<div class="measure">${measure}</div>`:''}</div>`;
+
+const verdict = (ok, mid=false) =>
+  `<span class="verdict ${ok?'pass':mid?'mid':'fail'}">${ok?'clears':mid?'thin':'fails'}</span>`;
+
+/* ── the seeded Kyoto trip, as the migration actually writes it ─────────── */
+const SEED = [
+  ['Nishiki Market','market',135.7649,35.0050],['Gion / Hanamikoji','attraction',135.7752,35.0036],
+  ['Kyoto Imperial Palace','attraction',135.7621,35.0254],['Nijo Castle','castle',135.7481,35.0142],
+  ['Sanjusangen-do','temple',135.7717,34.9879],['Kiyomizu-dera','temple',135.7850,34.9949],
+  ['To-ji','temple',135.7476,34.9812],['Kinkaku-ji','temple',135.7292,35.0394],
+  ['Ryoan-ji','temple',135.7182,35.0345],['Ginkaku-ji','temple',135.7982,35.0270],
+  ['Arashiyama Bamboo Grove','park',135.6716,35.0170],['Kyoto Station','station',135.7588,34.9858],
+  ['Kyoto Tower','attraction',135.7588,34.9858],['Hotel Granvia Kyoto','lodging',135.7588,34.9858],
+];
+/* `temple` is deliberately absent: it is a live type again, so it resolves to
+   itself. An entry here would be a standing claim that it means `culture`. */
+const REMAP = {castle:'culture',museum:'culture',attraction:'culture',
+  park:'nature',viewpoint:'nature',other:'place',restaurant:'food',cafe:'food',bar:'food',
+  'street-food':'food',shop:'shopping',market:'shopping',lodging:'stay',station:'transport',airport:'transport'};
+
+function tripMap(mode){
+  const types = Object.fromEntries(TYPES().map(t=>[t.id,t]));
+  const lngs=SEED.map(m=>m[2]), lats=SEED.map(m=>m[3]);
+  const [x0,x1,y0,y1]=[Math.min(...lngs),Math.max(...lngs),Math.min(...lats),Math.max(...lats)];
+  const stacks={};
+  SEED.forEach(m=>{const k=m[2]+','+m[3]; (stacks[k]=stacks[k]||[]).push(m);});
+  const pins = Object.values(stacks).map(group=>{
+    const [name,stored,lng,lat]=group[0];
+    /* A stored value resolves through the remap, or to itself when it is a live
+       identifier. `temple` is the live one — it is deliberately not in REMAP. */
+    const t = types[REMAP[stored] || stored] || types.place;
+    const px = 8 + ((lng-x0)/(x1-x0))*84, py = 90 - ((lat-y0)/(y1-y0))*80;
+    return `<div class="pin-abs" style="left:${px}%;top:${py}%" title="${name} — stored '${stored}' → ${t.id}">
+      ${pin(t,mode,{count:group.length})}</div>`;
+  }).join('');
+  const counts={};
+  SEED.forEach(m=>{const id=REMAP[m[1]] || m[1]; counts[id]=(counts[id]||0)+1;});
+  const legend = TYPES().filter(t=>counts[t.id]).map(t=>
+    `<span><span class="dot" style="background:${t[mode]}"></span> <b>${counts[t.id]}</b> ${t.label}</span>`).join('');
+  return `<div class="ground">
+    <div class="ground-label">${mode==='light'?'Light ground':'Dark ground'}<span>${SEED.length} markers · 3 stacked at Kyoto Station</span></div>
+    <div class="tripmap" style="background:${BASEMAP.land[mode]}">
+      <div style="position:absolute;inset:0"><svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M0 62 C 18 58 26 74 44 70 C 62 66 74 84 100 78 L100 100 L0 100 Z" fill="${BASEMAP.park[mode]}"/>
+        <path d="M60 0 C 57 22 63 40 58 62 C 55 78 60 90 57 100 L64 100 C 67 88 62 76 65 60 C 69 38 63 20 66 0 Z" fill="${BASEMAP.water[mode]}"/>
+        <path d="M0 44 L100 40" stroke="${BASEMAP.road[mode]}" stroke-width="1.6" fill="none"/>
+        <path d="M22 0 L26 100" stroke="${BASEMAP.road[mode]}" stroke-width="1.6" fill="none"/>
+      </svg></div>
+      ${pins}
+    </div>
+    <div class="legend">${legend}</div>
+  </div>`;
+}
+
+/* ── the checks ─────────────────────────────────────────────────────────── */
+function render(){
+  const T = TYPES();
+  const nature = T.find(t=>t.id==='nature'), place = T.find(t=>t.id==='place'),
+        culture = T.find(t=>t.id==='culture'), transport = T.find(t=>t.id==='transport'),
+        temple = T.find(t=>t.id==='temple'), shopping = T.find(t=>t.id==='shopping'),
+        food = T.find(t=>t.id==='food');
+
+  /* rail */
+  document.getElementById('rail').innerHTML = `
+    ${[['culture','Culture','cultureL','cultureD'],['nature','Nature','natureL','natureD'],['place','Place · fallback','placeL','placeD']].map(([id,label,kl,kd])=>`
+      <div class="candidate"><span>${label}</span><div class="swatches">
+        ${[[kl,'light'],[kd,'dark']].map(([k,m])=>`
+          <label class="sw"><input type="color" value="${C[k]}" data-k="${k}" aria-label="${label} ${m}">
+            <span><b>${m}</b><br><code>${C[k].toUpperCase()}</code></span></label>`).join('')}
+      </div></div>`).join('')}
+    <div class="rail-actions">
+      <button type="button" id="reset">Reset to candidates</button>
+      <button type="button" class="primary" id="copy">Copy colour.ts</button>
+    </div>`;
+
+  const sections = [];
+
+  /* ── 1.7 the cap ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.7</span><h2>Ten values on one screen</h2></div>
+    <p>The cap is about how many colours are <em>simultaneously</em> distinguishable, so the real
+    test includes the amber accent and <code>danger</code> — both of which can appear on or beside
+    the map. Eight types plus two is the actual count, and it has never been laid out before.
+    <strong>This is the check the change turns on.</strong> Eight types is at the cap rather than
+    under it; if these do not hold apart at pin size, the value to give up is <code>nature</code>,
+    not <code>temple</code> — a park and a temple are far apart by name, where a temple and a
+    museum are the pair somebody is choosing between in the street.</p>
+    <div class="grounds">${MODES.map(([m])=>groundBox(m, `
+      ${T.map(t=>spec(t,m)).join('')}
+      <div class="spec"><span class="dot" style="width:32px;height:32px;border-radius:8px;background:${ACCENT[m]}"></span>
+        <div class="name">Accent</div><div class="measure">not a type</div></div>
+      <div class="spec"><span class="dot" style="width:32px;height:32px;border-radius:8px;background:${DANGER[m]}"></span>
+        <div class="name">Danger</div><div class="measure">not a type</div></div>`)).join('')}</div>
+  </section>`);
+
+  /* ── the trip ── */
+  const counts = {};
+  SEED.forEach(([,stored])=>{ const id = REMAP[stored] || stored; counts[id]=(counts[id]||0)+1; });
+  const biggest = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  const templeN = counts.temple||0, cultureN = counts.culture||0;
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">5.2</span><h2>The trip that motivated this</h2></div>
+    <p>Every one of the ${SEED.length} markers is stored under an identifier written by an earlier
+    build, so this is the remap's real test as well as the palette's.
+    <b>${templeN} of the ${SEED.length}</b> (${Math.round(templeN/SEED.length*100)}%) are temples,
+    against ${cultureN} for the rest of sightseeing put together — which is why
+    <code>temple</code>, not <code>culture</code> and not <code>place</code>, holds the recessive
+    slate. That ratio is the whole argument: read it here rather than taking it on trust.
+    <b>No pin should read as Place</b>: nothing in this trip is stored as <code>other</code>, so a
+    neutral pin means the remap is falling through.</p>
+    <div class="note"><b>Currently the majority is:</b> ${biggest[0]} (${biggest[1]} of
+    ${SEED.length}). If that is not <code>temple</code>, the slate is on the wrong type and
+    check 1.6 below is measuring the wrong thing.</div>
+    <div class="tripwrap">${MODES.map(([m])=>tripMap(m)).join('')}</div>
+  </section>`);
+
+  /* ── 1.2 nature vs transport ── */
+  const gap = hueGap(nature.light, transport.light), gapD = hueGap(nature.dark, transport.dark);
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.2</span><h2>Nature against Transport</h2></div>
+    <p>Green and teal are the closest pair in the set. Push <code>nature</code> yellow rather than
+    blue to buy the distance — a gap under about 40° stops reading at 32px.</p>
+    <div class="grounds">${MODES.map(([m])=>groundBox(m,
+      [nature,transport].map(t=>spec(t,m,`${lch(t[m]).h.toFixed(0)}° · C ${lch(t[m]).C.toFixed(0)}`)).join('')
+    )).join('')}</div>
+    <div class="readout"><table><caption>Hue separation</caption>
+      <tr><th>Ground</th><th>Nature</th><th>Transport</th><th style="text-align:right">Δ hue</th><th style="text-align:right">Δ L*</th><th></th></tr>
+      ${MODES.map(([m])=>{const g=m==='light'?gap:gapD;
+        const dl=Math.abs(Lstar(nature[m])-Lstar(transport[m]));
+        return `<tr><td class="key">${m}</td>
+          <td><span class="chip"><span class="dot" style="background:${nature[m]}"></span><code>${nature[m].toUpperCase()}</code></span></td>
+          <td><span class="chip"><span class="dot" style="background:${transport[m]}"></span><code>${transport[m].toUpperCase()}</code></span></td>
+          <td class="num">${g.toFixed(0)}°</td><td class="num">${f1(dl)}</td>
+          <td>${verdict(g>=40||dl>=12, g>=28)}</td></tr>`}).join('')}
+    </table></div>
+  </section>`);
+
+  /* ── 1.3 nature on park ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.3</span><h2>Nature on the park fill</h2></div>
+    <p>A green pin on green land is the one placement where a pin loses its ground — and a viewpoint
+    in the middle of a park is where viewpoints are. <code>BASEMAP_COLOUR</code> records that park
+    was got wrong once already by judging a fill from a swatch. Floor is about 4.5 L*; more is
+    better for something this small.</p>
+    <div class="grounds">${MODES.map(([m])=>`
+      <div class="ground">
+        <div class="ground-label">${m==='light'?'Light':'Dark'} · park
+          <span>--pp-map-park ${BASEMAP.park[m]}</span></div>
+        <div class="stage" style="background:${BASEMAP.park[m]};color:${m==='light'?'#1A1917':'#F2F0EC'}">
+          ${spec(nature,m,`ΔL* ${f1(Math.abs(Lstar(nature[m])-Lstar(BASEMAP.park[m])))}`)}
+          ${spec(culture,m,'for reference')}
+        </div>
+      </div>`).join('')}</div>
+    <div class="readout"><table><caption>Nature against every basemap fill</caption>
+      <tr><th>Fill</th>${MODES.map(([m])=>`<th style="text-align:right">${m} ΔL*</th><th></th>`).join('')}</tr>
+      ${['land','park','block','water'].map(k=>`<tr><td class="key">${k}</td>
+        ${MODES.map(([m])=>{const d=Math.abs(Lstar(nature[m])-Lstar(BASEMAP[k][m]));
+          return `<td class="num">${f1(d)}</td><td>${verdict(d>=4.5, d>=3)}</td>`}).join('')}</tr>`).join('')}
+    </table></div>
+  </section>`);
+
+  /* ── 1.9 culture, the last colour on the wheel ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.9</span><h2>Culture against its two neighbours</h2></div>
+    <p><code>culture</code> takes the only open span left on the wheel — between
+    <code>shopping</code>'s violet at 310° and <code>food</code>'s burnt orange at 44°. That span
+    is 94° wide and its middle is about 356°, which is where this value sits. Everything here is
+    CIE LCh, the same instrument the rest of this page uses: a first draft picked the hue in OKLCH,
+    which disagrees with CIE about violet by some 15°, and came out 33° from <code>shopping</code>
+    — thin, and this check is what caught it. <code>culture</code> is a <em>minority</em> type now,
+    so it should read as prominent, not as a louder grey.</p>
+    <div class="grounds">${MODES.map(([m])=>groundBox(m,
+      [shopping,culture,food].map(t=>spec(t,m,`${lch(t[m]).h.toFixed(0)}° · C ${lch(t[m]).C.toFixed(0)}`)).join('')
+    )).join('')}</div>
+    <div class="readout"><table><caption>Hue separation from each neighbour</caption>
+      <tr><th>Ground</th><th style="text-align:right">Δ to Shopping</th><th style="text-align:right">Δ to Food</th><th style="text-align:right">Culture C</th><th></th></tr>
+      ${MODES.map(([m])=>{
+        const ds=hueGap(culture[m],shopping[m]), df=hueGap(culture[m],food[m]);
+        const cc=lch(culture[m]).C;
+        return `<tr><td class="key">${m}</td><td class="num">${ds.toFixed(0)}°</td><td class="num">${df.toFixed(0)}°</td>
+          <td class="num">${cc.toFixed(1)}</td>
+          <td>${verdict(ds>=40 && df>=40, ds>=30 && df>=30)}</td></tr>`}).join('')}
+    </table></div>
+    <div class="note"><b>Reads as:</b> 40°+ from both neighbours at pin size, and chroma clearly
+    above the slate's. Judge it on the 32px teardrops above, not on the table — <code>shopping</code>
+    is the highest-chroma value in the set, so the two also part on chroma, which the hue number
+    alone does not show.</div>
+  </section>`);
+
+  /* ── 1.10 place vs temple ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.10</span><h2>Place against Temple</h2></div>
+    <p>The one soft pair in the palette, and deliberately so: both mean somewhere to go and look at,
+    and <code>place</code> is the fallback alone, so it is rare. The pair used to be Place against
+    Culture; the eighth type moved the slate, not the shape of the pairing — it is still the
+    fallback against whichever type holds the majority. What <code>place</code> must <em>not</em> do
+    is read as a faded <code>temple</code>, because that is the visited channel's meaning. Separate
+    them by hue direction (warm against cool), not by lightness.</p>
+    <div class="grounds">${MODES.map(([m])=>groundBox(m,
+      [place,temple].map(t=>spec(t,m,`L* ${f1(lch(t[m]).L)} · C ${lch(t[m]).C.toFixed(1)}`)).join('') +
+      `<div class="spec">${pin(temple,m,{opacity:0.45})}<div class="name">Temple</div>
+        <div class="measure">visited 0.45</div></div>`
+    )).join('')}</div>
+    <div class="readout"><table><caption>Is Place a different colour, or a faded Temple?</caption>
+      <tr><th>Ground</th><th style="text-align:right">Δ L*</th><th style="text-align:right">Δ hue</th><th style="text-align:right">Place C</th><th style="text-align:right">Temple C</th><th></th></tr>
+      ${MODES.map(([m])=>{
+        const dl=Math.abs(lch(place[m]).L-lch(temple[m]).L), dh=hueGap(place[m],temple[m]);
+        const pc=lch(place[m]).C, tc=lch(temple[m]).C;
+        return `<tr><td class="key">${m}</td><td class="num">${f1(dl)}</td><td class="num">${dh.toFixed(0)}°</td>
+          <td class="num">${pc.toFixed(1)}</td><td class="num">${tc.toFixed(1)}</td>
+          <td>${verdict(dh>=45 && pc<tc, dh>=30)}</td></tr>`}).join('')}
+    </table></div>
+    <div class="note"><b>Reads as:</b> hue separation of 45°+ with Place the less saturated of the
+    two. If Place is merely lighter, it will be read as a visited Temple pin, which is the one
+    misreading this palette cannot afford.</div>
+  </section>`);
+
+  /* ── 1.11 the selected pin ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.11</span><h2>Culture inside the selection ring</h2></div>
+    <p>The amber ring is the widest hue pairing in the product once <code>culture</code> is a
+    magenta-rose. That is an argument it will look fine, not a measurement — so look at it.
+    <code>food</code> is beside it as the pin whose hue the ring sits closest to.</p>
+    <div class="grounds">${MODES.map(([m])=>groundBox(m,
+      [culture,food,place].map(t=>
+        `<div class="spec"><span style="display:inline-block;padding:4px;border-radius:999px;background:${ACCENT[m]}40;box-shadow:0 0 0 2px ${ACCENT[m]}">${pin(t,m)}</span>
+          <div class="name">${t.label}</div><div class="measure">selected</div></div>`).join('')
+    )).join('')}</div>
+    <div class="note"><b>Reads as:</b> the ring reads as a state, not as a ninth type. If any pin
+    inside it looks like a different type from the same pin outside it, the ring is competing.</div>
+  </section>`);
+
+  /* ── 1.5 glyph ── */
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.5</span><h2>The glyph on every fill</h2></div>
+    <p>White on light, near-black on dark — the one place the two themes differ in kind. The three
+    new values have to carry the glyph at or above the ratio the slate already does
+    (3.61:1 light, 7.06:1 dark).</p>
+    <div class="readout"><table><caption>Foreground against fill</caption>
+      <tr><th>Type</th>${MODES.map(([m])=>`<th style="text-align:right">${m}</th><th></th>`).join('')}</tr>
+      ${T.map(t=>`<tr><td class="key"><span class="chip"><span class="dot" style="background:${t.light}"></span>${t.label}${t.isNew?' <b style="color:var(--accent-ink);font-size:10px">NEW</b>':''}</span></td>
+        ${MODES.map(([m])=>{const r=ratio(FOREGROUND[m],t[m]);
+          return `<td class="num">${r.toFixed(2)}:1</td><td>${verdict(r>=3, r>=2.6)}</td>`}).join('')}</tr>`).join('')}
+    </table></div>
+  </section>`);
+
+  /* ── 1.6 ranking ── */
+  const rank = m => [...T].filter(t=>t.id!=='place')
+    .map(t=>({...t, C:lch(t[m]).C})).sort((a,b)=>a.C-b.C);
+  sections.push(`<section class="check">
+    <div class="check-head"><span class="tasknum">1.6</span><h2>The ranking, with the majority reassigned</h2></div>
+    <p>The rule that survives from the old palette: the type holding the majority is the most
+    recessive, so the minority carrying the information stands out. <code>temple</code> must be
+    least saturated of the seven coloured types in <em>both</em> themes. <code>place</code> is
+    exempt — it is the null, and makes no claim to rank. Note which way this runs: the slate
+    belongs to whichever type holds the majority, not to sightseeing and not to the type that
+    happens to be called <code>culture</code>. <code>culture</code> should now sit among the
+    prominent values, not near the bottom.</p>
+    <div class="grounds">${MODES.map(([m])=>`
+      <div class="ground">
+        <div class="ground-label">${m==='light'?'Light':'Dark'} · least saturated first<span>chroma</span></div>
+        <div class="stage tight" style="background:${BASEMAP.land[m]};flex-direction:column;align-items:stretch;gap:7px">
+          ${rank(m).map((t,i)=>`<div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:var(--mono);font-size:10px;width:14px;color:${m==='light'?'#6E6A63':'#A09A91'}">${i+1}</span>
+            <span class="dot" style="width:14px;height:14px;background:${t[m]}"></span>
+            <span style="font-size:11.5px;font-weight:${t.id==='temple'?700:500};color:${m==='light'?'#1A1917':'#F2F0EC'};width:70px">${t.label}</span>
+            <span style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg, ${t[m]} ${Math.min(100,t.C)}%, transparent ${Math.min(100,t.C)}%);box-shadow:inset 0 0 0 1px ${m==='light'?'#00000018':'#ffffff18'}"></span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:${m==='light'?'#6E6A63':'#A09A91'}">${t.C.toFixed(0)}</span>
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}</div>
+    <div class="readout"><table><caption>Does the ranking hold in both?</caption>
+      <tr><th>Ground</th><th>Least saturated coloured type</th><th></th></tr>
+      ${MODES.map(([m])=>{const first=rank(m)[0];
+        return `<tr><td class="key">${m}</td><td><span class="chip"><span class="dot" style="background:${first[m]}"></span>${first.label}</span></td>
+        <td>${verdict(first.id==='temple')}</td></tr>`}).join('')}
+    </table></div>
+  </section>`);
+
+  /* ── emit ── */
+  sections.push(`<section class="check" style="border-bottom:none">
+    <div class="check-head"><span class="tasknum">2.1</span><h2>What lands in colour.ts</h2></div>
+    <p>Keyed by type, not by family, and eight entries rather than seven. The three edited values
+    are the only ones that differ from what is committed today.</p>
+    <div class="emit"><pre id="emit">${emit(T)}</pre></div>
+  </section>`);
+
+  document.getElementById('checks').innerHTML = sections.join('');
+
+  document.querySelectorAll('input[type=color]').forEach(i=>{
+    i.addEventListener('input', e=>{
+      C[e.target.dataset.k]=e.target.value.toUpperCase();
+      try{ localStorage.setItem('pp-palette-bench', JSON.stringify(C)); }catch(err){}
+      render();
+    });
+  });
+  document.getElementById('reset').onclick = ()=>{ C={...DEFAULTS};
+    try{ localStorage.removeItem('pp-palette-bench'); }catch(e){} render(); };
+  document.getElementById('copy').onclick = async (e)=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('emit').textContent);
+      e.target.textContent='Copied'; setTimeout(()=>e.target.textContent='Copy colour.ts',1400);
+    }catch(err){ e.target.textContent='Select it manually'; }
+  };
+}
+
+function emit(T){
+  const note = {place:'The null. Deliberately the least coloured pin on the map.',
+    temple:'Muted slate. The quiet majority.',
+    culture:'Deep magenta-rose. The last open span on the wheel; a prominent minority.',
+    nature:'Leaf green, pushed yellow to clear transport’s teal.',
+    food:'Burnt orange.', shopping:'Violet.', stay:'Blue.', transport:'Teal.'};
+  return `export const MARKER_TYPE_COLOURS = {\n` + T.map(t=>
+`  /** ${note[t.id]} */\n  ${t.id}: { light: '${t.light.toUpperCase()}', dark: '${t.dark.toUpperCase()}' },`
+  ).join('\n') + `\n} as const satisfies Record<string, Themed>`;
+}
+
+render();
+</script>
