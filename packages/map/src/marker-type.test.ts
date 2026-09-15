@@ -32,7 +32,7 @@ describe('the type list', () => {
   })
 
   it('declares no icon it does not use', () => {
-    // Retired with the nine types that went. An icon nothing names is a glyph
+    // Retired with the eight types that went. An icon nothing names is a glyph
     // both applications must map and nothing can draw.
     const used = new Set(MARKER_TYPES.map((type) => type.icon))
 
@@ -76,7 +76,7 @@ describe('markerTypeOf', () => {
 describe('retired identifiers', () => {
   // This is the test that would have caught the silent version of this change.
   // Letting a retired identifier fall through to the fallback draws every saved
-  // temple as a generic `place` pin: no error, no failing test, nothing a
+  // castle as a generic `place` pin: no error, no failing test, nothing a
   // typecheck can see, and a map that is quietly wrong.
 
   it.each(Object.keys(RETIRED_TYPES))('resolves %s to a live type', (retired) => {
@@ -110,14 +110,34 @@ describe('retired identifiers', () => {
   })
 
   it('retires only identifiers that are no longer types', () => {
+    // The property is that the retired set and the live set are **disjoint**,
+    // stated as a property rather than as a list so it survives a type moving
+    // in either direction.
+    //
+    // This is the only check that can see a live identifier left behind in the
+    // table. `markerTypeOf` consults the live types first, so a stale entry
+    // changes no behaviour and breaks no rendering test; and the completeness
+    // check above *passes* on one, because a stale entry does resolve to a live
+    // type. It would simply be a standing claim that a live identifier means
+    // something it does not.
     for (const retired of Object.keys(RETIRED_TYPES)) {
       expect(MARKER_TYPE_IDS).not.toContain(retired)
     }
   })
 
+  it('does not retire `temple`, which is a live type again', () => {
+    // Named directly as well as covered by the property above, because this is
+    // the one identifier that has been on both sides. It was retired to
+    // `culture` for exactly one change. An entry here would pass every other
+    // test in this file.
+    expect(RETIRED_TYPES).not.toHaveProperty('temple')
+    expect(isMarkerType('temple')).toBe(true)
+    expect(markerTypeOf('temple').id).toBe('temple')
+  })
+
   it('knows a live type and a retired one, and nothing else', () => {
-    expect(isKnownMarkerType('culture')).toBe(true)
     expect(isKnownMarkerType('temple')).toBe(true)
+    expect(isKnownMarkerType('castle')).toBe(true)
     expect(isKnownMarkerType('onsen')).toBe(false)
   })
 })

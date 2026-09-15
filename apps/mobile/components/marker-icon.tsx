@@ -19,6 +19,7 @@ import type { MarkerIconName } from '@pinpoint/map'
  * a supported entry point rather than a reach into its internals.
  */
 import Bed from 'lucide-react-native/icons/bed'
+import Castle from 'lucide-react-native/icons/castle'
 import Landmark from 'lucide-react-native/icons/landmark'
 import MapPin from 'lucide-react-native/icons/map-pin'
 import ShoppingBag from 'lucide-react-native/icons/shopping-bag'
@@ -40,12 +41,17 @@ import { createElement } from 'react'
  * separate record, fails on web too. Both applications break, which is what
  * makes the omission impossible to ship rather than merely likely to be caught.
  *
- * There are seven, one per type. The colour now says what the place is, so the
+ * There are eight, one per type. The colour now says what the place is, so the
  * glyph only has to be recognisable at 15px rather than precise.
+ *
+ * `landmark` is the columned facade and belongs to `temple`, not to `culture`.
+ * It was `culture`'s while `culture` held the temples; the eighth type took both
+ * the temples and the glyph that draws one, and `culture` took the castle.
  */
 const GLYPHS: Record<MarkerIconName, LucideIcon> = {
   pin: MapPin,
   landmark: Landmark,
+  castle: Castle,
   trees: Trees,
   utensils: Utensils,
   'shopping-bag': ShoppingBag,

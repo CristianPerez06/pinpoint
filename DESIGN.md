@@ -19,7 +19,8 @@ colors:
   danger: "#B3261E"
   danger-surface: "#FCEDEC"
   pin-place: "#8B857A"
-  pin-culture: "#7C8896"
+  pin-temple: "#7C8896"
+  pin-culture: "#B43F72"
   pin-nature: "#3F7A32"
   pin-food: "#D2451E"
   pin-shopping: "#8A3FFC"
@@ -253,10 +254,16 @@ not a derivation.
 
 ### Secondary — The Place Types
 
-Seven types, one colour each, and their **relative prominence is a product decision
+Eight types, one colour each, and their **relative prominence is a product decision
 rather than a palette choice**. A real wishlist is lopsided, and most of it is
-`culture`. If `culture` took a loud colour, the majority of the pins would be loud and
+`temple`. If `temple` took a loud colour, the majority of the pins would be loud and
 would drown the ones carrying the information somebody is actually looking for. The minority is the signal.
+
+Note which way that runs: the quiet slate belongs to *whichever type holds the
+majority*, not to sightseeing and not to the type called `culture`. Splitting Temple
+back out moved the slate with the temples and left `culture` — castles, museums,
+galleries — a prominent minority. That is the Ranking Rule being applied to a count,
+not an exception to it.
 
 Colour used to be carried by a closed set of five *families*, with the type deciding
 only the icon. Sixteen types arrived over those five colours, seven of them sharing
@@ -267,8 +274,12 @@ glyph. The cap was never reached; the bucket was. Colour now names the type dire
   least coloured pin on the map. Not ranked against the rest — it makes no claim.
   Separated from Quiet Slate by hue direction, warm against cool, never by lightness:
   lightness already means visited.
-- **Quiet Slate** — `culture` (dark: `#98A3B0`): The deliberate majority, deliberately
+- **Quiet Slate** — `temple` (dark: `#98A3B0`): The deliberate majority, deliberately
   the most recessive *coloured* value in the system.
+- **Deep Rose** — `culture` (dark: `#E57DA5`): The last colour the wheel had room for,
+  at CIE LCh 356° — the middle of the 94° span between Violet and Burnt Orange, 46°
+  and 48° clear of them. Measured in CIE LCh because that is what the palette mock
+  measures in; the same value argued in OKLCH came out 33° from Violet and thin.
 - **Leaf Green** — `nature` (dark: `#6FB45C`): Pushed yellow rather than blue, to hold
   its distance from Teal and its ground on the basemap's park fill.
 - **Burnt Orange** — `food` (dark: `#F0653A`)
@@ -319,13 +330,15 @@ colour on screen.
 **The Eighth Type Rule.** There are exactly seven place types and one accent. Never
 introduce a new saturated hue into the interface: any colour a person could mistake for
 a place type breaks the map's vocabulary. And a new *type* now costs a colour — which
-is the whole bound on the list. Do not add an eighth on the grounds that the budget of
-roughly eight allows one; the accent and `danger` are already spending two.
+is the whole bound on the list. **The budget is now spent**: eight types, plus the
+accent and `danger`, is the roughly-eight cap reached rather than approached. Do not
+add a ninth on the grounds that there is room — there is not, and the wheel's last open
+span went to `culture`.
 
 This inverts the rule it replaces, which read *new types join an existing family and
 never bring a colour*. That rule is why sixteen types arrived over five colours.
 
-**The Ranking Rule.** `culture` is the most recessive coloured value in both themes and
+**The Ranking Rule.** `temple` is the most recessive coloured value in both themes and
 the rest are prominent in both. `place` is exempt: it is a near-neutral rather than a
 quiet colour, because it means *nothing was determined*. A dark value that is legible
 but wrongly ranked does not satisfy this system. Changing the ranking is a product

@@ -23,6 +23,10 @@ the ones that stand out. Which type holds the majority is a fact about how trips
 are actually filled in, and the recessive value SHALL follow it rather than being
 assigned once and left.
 
+Where a type is split into two, the recessive value SHALL follow whichever part
+holds the majority, and SHALL be re-established against a count rather than
+inherited by the part that kept the original name.
+
 The set SHALL also hold one value that is deliberately not a colour: the fallback
 type is a near-neutral, so that a marker meaning *this was never classified* reads
 as the least classified thing on the map. It is exempt from the prominence ranking
@@ -37,9 +41,15 @@ value SHALL be chosen against the ground it will be drawn on.
 
 #### Scenario: The type colours are compared across themes
 
-- **WHEN** the seven marker type colours are rendered in each theme
+- **WHEN** the eight marker type colours are rendered in each theme
 - **THEN** the same type is the most recessive coloured value in both
 - **AND** the remaining prominent types are prominent against their ground in both
+
+#### Scenario: A type is split and the majority moves
+
+- **WHEN** a type holding the recessive value is split into two types
+- **THEN** the recessive value goes to whichever of them holds the majority
+- **AND** the other becomes a prominent value like every other minority type
 
 #### Scenario: A theme value is legible but wrongly ranked
 
@@ -49,7 +59,7 @@ value SHALL be chosen against the ground it will be drawn on.
 
 #### Scenario: The fallback type is compared to the rest
 
-- **WHEN** the fallback type's colour is placed beside the six others
+- **WHEN** the fallback type's colour is placed beside the seven others
 - **THEN** it reads as the least saturated value in the set
 - **AND** it is not the value a prominent type is ranked against
 

@@ -79,6 +79,18 @@ apps/web/public/maplibre/
 # embeds the bundled font, is not — it regenerates in under a second.
 openspec/changes/**/mock/*.html
 
+# The rule above is about *generated* output, and `.gitignore` cannot tell the
+# difference. Every mock it was written for sits beside a `build-mock.py` that
+# produces it; `palette.html` has no builder, is hand-written, is 40 KB, and
+# pulls its font over the network — so for that one the HTML *is* the source,
+# and ignoring it ignored the source. It is the instrument that decides the
+# marker palette, and it caught a wrong colour that reasoning alone had passed.
+#
+# So: a mock with a builder stays ignored, a mock without one is committed. If a
+# third hand-written mock appears, add it here rather than dropping the rule —
+# dropping it would start committing four ~290 KB generated files in the archive.
+!openspec/changes/**/mock/palette.html
+
 # Things an agent noticed while working on a change, held until the change is
 # archived and then either taken up or dropped. See AGENTS.md.
 openspec/changes/**/findings.md

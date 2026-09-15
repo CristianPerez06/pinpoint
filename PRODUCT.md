@@ -95,9 +95,11 @@ cities as the coarse grouping; per-member interest; visited; and the people filt
 
 **Vocabulary that is load-bearing.** *Marker* — a saved place with a position.
 *City* — a name somebody chose for a cluster of pins, not a geographical fact; nothing
-resolves a city name to a position. *Member* vs *user*, as above. *Family* — one of
-five fixed colour groups (`see`, `eat`, `buy`, `sleep`, `move`). *Type* — one of a
-growable list of seventeen, each belonging to a family.
+resolves a city name to a position. *Member* vs *user*, as above. *Type* — one of
+eight (`place`, `temple`, `culture`, `nature`, `food`, `shopping`, `stay`,
+`transport`), each carrying its own colour and its own icon. *Family* is gone: it was a
+closed set of five colour groups over a growable type list, and it is what let sixteen
+types arrive over five colours.
 
 **Structural constraints that future work must not undo:**
 
@@ -160,11 +162,13 @@ The name, the typeface and the palette are all binding.
 - **Neutrals carry a warm bias** rather than being a pure grey ramp, and the basemap is
   warmed to match, so the map and the interface share one ground instead of looking
   stapled together.
-- **The five marker family colours and their prominence ranking are a product decision,
-  not a palette.** `see` is deliberately the most recessive value because it holds the
-  large majority of a trip's markers; the four minority families are deliberately
+- **The eight marker type colours and their prominence ranking are a product decision,
+  not a palette.** `temple` is deliberately the most recessive coloured value because it
+  holds the large majority of a trip's markers; the minority types are deliberately
   prominent because they carry the information somebody is actually looking for.
-  Preserved in both themes. Changing the ranking is a product change.
+  Preserved in both themes. Changing the ranking is a product change — and *which* type
+  holds the majority is a fact about how trips get filled in, so the recessive value
+  follows it rather than being assigned once and left.
 - **Every colour is defined twice**, once against each ground. A theme is never derived
   by inverting or lightening the other.
 - **Tone, as evidenced by the shipped copy and specs:** plain, specific, unhedged.
@@ -203,9 +207,10 @@ customers**; **no marketing copy**; **no analytics**. None of these may be inven
 3. **Chrome follows the screen shape, not the platform.** Frequent controls within a
    thumb's reach on a phone-shaped screen; a header and toolbar on a laptop-shaped one;
    the web application gets both by window width. Meaning is shared, controls are native.
-4. **Types are a design system, not user data.** Colour is carried by five fixed
-   families, icons by a growable type list. That is what lets the list expand without
-   the map degrading into confetti.
+4. **Types are a design system, not user data.** Each type carries its own colour, and
+   the type list is bounded by the palette rather than growable — a new type costs a
+   colour, which is what stops the map degrading into confetti. The budget is spent at
+   eight.
 5. **Budget for looking, not just for building.** Static checks have been green over
    real defects on five consecutive changes. Every visual claim in this product is
    verified by opening it, because the failures that matter here — a value the host

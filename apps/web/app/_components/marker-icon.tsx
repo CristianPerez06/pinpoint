@@ -1,6 +1,7 @@
 import type { MarkerIconName } from '@pinpoint/map'
 import {
   Bed,
+  Castle,
   Landmark,
   MapPin,
   ShoppingBag,
@@ -25,13 +26,18 @@ import { createElement } from 'react'
  * mobile application holds the same record against its own icon set, and fails
  * the same way.
  *
- * There are seven, one per type, where there were sixteen. The glyph is no longer
+ * There are eight, one per type, where there were sixteen. The glyph is no longer
  * what separates a castle from a museum — the colour is — so what it has to do is
  * be recognisable at 15px, not be precise.
+ *
+ * `landmark` is the columned facade and belongs to `temple`, not to `culture`.
+ * It was `culture`'s while `culture` held the temples; the eighth type took both
+ * the temples and the glyph that draws one, and `culture` took the castle.
  */
 const GLYPHS: Record<MarkerIconName, LucideIcon> = {
   pin: MapPin,
   landmark: Landmark,
+  castle: Castle,
   trees: Trees,
   utensils: Utensils,
   'shopping-bag': ShoppingBag,

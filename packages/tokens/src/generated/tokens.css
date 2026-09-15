@@ -118,7 +118,8 @@
 
   /* marker types — fixed by the product, not by the palette */
   --pp-pin-place: #8B857A;
-  --pp-pin-culture: #7C8896;
+  --pp-pin-temple: #7C8896;
+  --pp-pin-culture: #B43F72;
   --pp-pin-nature: #3F7A32;
   --pp-pin-food: #D2451E;
   --pp-pin-shopping: #8A3FFC;
@@ -165,7 +166,8 @@
 
     /* marker types — fixed by the product, not by the palette */
     --pp-pin-place: #A8A197;
-    --pp-pin-culture: #98A3B0;
+    --pp-pin-temple: #98A3B0;
+    --pp-pin-culture: #E57DA5;
     --pp-pin-nature: #6FB45C;
     --pp-pin-food: #F0653A;
     --pp-pin-shopping: #A97BFF;
@@ -212,7 +214,8 @@
 
   /* marker types — fixed by the product, not by the palette */
   --pp-pin-place: #A8A197;
-  --pp-pin-culture: #98A3B0;
+  --pp-pin-temple: #98A3B0;
+  --pp-pin-culture: #E57DA5;
   --pp-pin-nature: #6FB45C;
   --pp-pin-food: #F0653A;
   --pp-pin-shopping: #A97BFF;

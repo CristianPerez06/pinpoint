@@ -2,18 +2,31 @@
  * What a stored type identifier means now.
  *
  * The type column is unconstrained text and rows exist that were written by
- * earlier builds. Sixteen types became seven, so nine identifiers no longer name
+ * earlier builds. Sixteen types became eight, so eight identifiers no longer name
  * anything — and a row carrying one is not corrupt. It is a place somebody saved,
  * classified correctly at the time, and it has to keep meaning what it meant.
  *
  * WHY THIS IS A TABLE AND NOT THE FALLBACK
  *
  * `markerTypeOf` already resolves an unrecognised value to `FALLBACK_MARKER_TYPE`,
- * which is right for a string no build ever wrote and wrong for these nine.
- * Letting `temple` fall through would draw every saved temple as a generic
+ * which is right for a string no build ever wrote and wrong for these eight.
+ * Letting `castle` fall through would draw every saved castle as a generic
  * `place` pin: no exception, no failing test, nothing for a typecheck to catch,
  * and a map that is quietly wrong in a way only somebody who knows the trip would
  * notice. That is the exact failure this repository keeps re-learning to look for.
+ *
+ * WHAT MUST NOT BE IN HERE
+ *
+ * A live identifier. `temple` was in this table for exactly one change and is
+ * not any more: the type came back, so the identifier resolves to itself and an
+ * entry claiming it means `culture` would be a standing lie about live data.
+ *
+ * Nothing catches that on its own. `markerTypeOf` consults the live types first,
+ * so a stale entry changes no behaviour and no test that renders a marker would
+ * fail. The completeness test does not fail either — a stale entry *satisfies*
+ * "every retired identifier resolves to a live type". The property to assert is
+ * that the retired set and the live set are **disjoint**, which is what
+ * `marker-type.test.ts` checks, and it is the only thing that can see this.
  *
  * WHY IT IS RESOLVED ON READ AND NOT MIGRATED
  *
@@ -46,15 +59,17 @@ import type { MarkerType } from './marker-type'
  * Retired identifier -> the type that replaced it.
  *
  * Exhaustive over every identifier this system has ever defined and no longer
- * offers. `marker-type.test.ts` asserts that, and asserts that none of them
- * reaches the fallback by omission.
+ * offers. `marker-type.test.ts` asserts that, asserts that none of them reaches
+ * the fallback by omission, and asserts that no live identifier appears here.
  */
 export const RETIRED_TYPES: Readonly<Record<string, MarkerType>> = {
-  /* Sightseeing, which was one family of seven types and is now three types.
+  /* Sightseeing, which was one family of seven types and is now four types.
      `attraction` goes to `culture` rather than to the fallback: somebody who
      marked a place worth seeing said more than nothing, and `place` means
-     nothing was determined. */
-  temple: 'culture',
+     nothing was determined.
+
+     `temple` is deliberately absent — it is a live type again. See the comment
+     above; this is the one omission here that is load-bearing. */
   castle: 'culture',
   museum: 'culture',
   attraction: 'culture',

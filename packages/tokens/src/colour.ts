@@ -64,16 +64,29 @@ export interface Themed {
  *
  * WHY THEY ARE NOT EVEN
  *
- * A real wishlist is lopsided: the seeded Kyoto trip is ten `culture` against one
- * each of `nature`, `shopping`, `transport` and `stay`, and no `food` at all. If
- * `culture` took a loud colour, ten loud pins would drown the ones that carry
- * information — and the minority is the signal. Finding the one restaurant among
- * ten temples is exactly the question asked at lunchtime.
+ * A real wishlist is lopsided. The Kyoto trip this product was first built
+ * against held eighteen places, of which **eight were temples** and four were
+ * the rest of sightseeing put together — one each of `nature`, `shopping`,
+ * `transport` and `stay`, and no `food` at all. If `temple` took a loud colour,
+ * eight loud pins would drown the ones that carry information, and the minority
+ * is the signal. Finding the one restaurant among eight temples is exactly the
+ * question asked at lunchtime.
  *
- * So `culture` is deliberately the most recessive *coloured* value here, and the
+ * So `temple` is deliberately the most recessive *coloured* value here, and the
  * rest are deliberately prominent. It holds the majority for the same reason
- * `see` did before it. Changing that is a product decision, not a palette
- * refresh.
+ * `see` did before the families were removed, and `culture` did for the one
+ * change in between. Changing that is a product decision, not a palette refresh.
+ *
+ * Note which way that reasoning runs. The slate belongs to *whichever type holds
+ * the majority*, not to sightseeing and not to the type that happens to be
+ * called `culture`. When Temple was split back out, the slate went with the
+ * temples and `culture` — castles, museums, galleries, a minority — became a
+ * prominent value like every other minority. That is the rule being applied to a
+ * count, not an exception to it.
+ *
+ * (The trip those counts come from was a seed migration, deleted in #138. The
+ * numbers are read from its last revision in the history; nothing in the
+ * database holds them now.)
  *
  * `place` is exempt from that ranking because it is not making a claim. It is the
  * fallback — the type a marker takes when nothing was determined — so it is the
@@ -105,7 +118,28 @@ export const MARKER_TYPE_COLOURS = {
    */
   place: { light: '#8B857A', dark: '#A8A197' },
   /** Muted slate. The quiet majority. */
-  culture: { light: '#7C8896', dark: '#98A3B0' },
+  temple: { light: '#7C8896', dark: '#98A3B0' },
+  /**
+   * Deep rose, and the last colour the wheel had room for.
+   *
+   * It sits at CIE LCh hue 356°, the middle of the only open span left: the
+   * stretch between `shopping`'s violet at 310° and `food`'s burnt orange at
+   * 44° is 94° wide, and this clears 46° of `shopping` and 48° of `food`.
+   * `nature` against `transport` — the pair already judged acceptable — is 49°.
+   *
+   * **Measured in CIE LCh, which is the instrument.** An earlier draft put this
+   * at hue 345° on an OKLCH reading, where the same span looks 100° wide and
+   * centred differently. The two spaces disagree about violet by about 15°, and
+   * on the OKLCH figure the value came out 33° from `shopping` — thin, and the
+   * palette mock said so. `mock/palette.html` measures in CIE LCh throughout, as
+   * does every threshold this palette was already judged against, so a value
+   * argued in one space and checked in another is not comparable to anything.
+   *
+   * Prominent on purpose. `culture` is a minority type — castles, museums,
+   * galleries — so the ranking above wants it to stand out, and being more
+   * legible than the slate it replaced is correct rather than a mistake.
+   */
+  culture: { light: '#B43F72', dark: '#E57DA5' },
   /**
    * Leaf green, pushed yellow rather than blue. The distance it has to keep is
    * from `transport`'s teal, and it has to hold its ground on the basemap's own
@@ -127,10 +161,10 @@ export type MarkerTypeColourKey = keyof typeof MARKER_TYPE_COLOURS
 /**
  * The pin's glyph, drawn on top of a family colour.
  *
- * White on the light theme, against seven values chosen to carry it. On the dark
+ * White on the light theme, against eight values chosen to carry it. On the dark
  * theme the pins are the lighter element and the glyph inverts with them: white
- * on `culture`'s dark value clears about 2:1, which is thin at a 16px stroked
- * icon, where near-black clears comfortably against all seven.
+ * on `temple`'s dark value clears about 2:1, which is thin at a 16px stroked
+ * icon, where near-black clears comfortably against all eight.
  *
  * This is the one place the two themes differ in kind rather than in value, and
  * it follows from the types being lifted rather than darkened.
@@ -185,10 +219,11 @@ export const COLOUR = {
    * The accent, and why it is amber.
    *
    * It carries the primary action, the current selection, and the focus ring,
-   * so it must be distinguishable from all seven marker types at a glance — an
-   * accent that reads as an eighth type would make the map's own colour
+   * so it must be distinguishable from all eight marker types at a glance — an
+   * accent that reads as a ninth type would make the map's own colour
    * vocabulary ambiguous. Amber is nowhere near slate, taupe, green, orange-red,
-   * violet, blue, or teal, and it is warm against the cool greyscale basemap.
+   * magenta-rose, violet, blue, or teal, and it is warm against the cool
+   * greyscale basemap.
    *
    * Green is the closest of the seven and the one to watch: `nature` is a leaf
    * green at low lightness where the accent is a light warm amber, so they part
