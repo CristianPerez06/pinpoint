@@ -27,7 +27,9 @@ Ticket:
 Change: `openspec/changes/<name>/`
 
 - [ ] Every task in `tasks.md` is ticked, or the ones left are named below and say why
-- [ ] The change is **archived on the branch** (moved to `openspec/changes/archive/YYYY-MM-DD-<name>/`)
+- [ ] The change is **archived on the branch** (moved to `openspec/changes/archive/YYYY-MM-DD-<name>/`).
+      `pnpm check:unarchived` enforces this when the PR also changes code. To defer it
+      deliberately, put `Archive deferred: <reason>` on its own line in this body.
 - [ ] Deltas applied to the master specs — no `## ADDED/MODIFIED/REMOVED/RENAMED Requirements` sections left
 - [ ] A real `Purpose` written for every new capability (no `TBD`)
 - [ ] `AGENTS.md` updated if this completes or adds a module or a package
@@ -62,8 +64,8 @@ Change: `openspec/changes/<name>/`
 - [ ] Package tests pass (`pnpm test`)
 - [ ] Web production build passes (`pnpm build`)
 - [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls`,
-      `pnpm check:icons`, `pnpm check:specs`, `pnpm check:duplicate-deps` and
-      `pnpm check:openspec-workflows` pass
+      `pnpm check:icons`, `pnpm check:specs`, `pnpm check:duplicate-deps`,
+      `pnpm check:openspec-workflows` and `pnpm check:unarchived` pass
 - [ ] If I touched dependencies: `pnpm-lock.yaml` is updated and committed
       (`pnpm install --frozen-lockfile` passes). **This is the one CI step `verify`
       does not cover**, deliberately: verifying should not prune your `node_modules`.
