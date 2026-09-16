@@ -86,26 +86,26 @@
 
 ## 6. Looking at it running
 
-- [ ] 6.1 Open the calendar in a browser at 1024px, 1440px and 2560px and measure the
+- [x] 6.1 Open the calendar in a browser at 1024px, 1440px and 2560px and measure the
       computed width of a day column and of its container at each. `AGENTS.md` records two
       flex defaults that produce a layout which looks deliberate and is not — a `min-width`
       floor overflows instead of wrapping, and a `flex: 0 1 auto` container sizes to its
       content regardless of a child's `width: 100%`.
 - [x] 6.2 Scroll a day holding more places than fit, on a narrow window and a wide one, and
       confirm the day being read does not change and the stepping controls stay reachable.
-- [ ] 6.3 Set the device clock to a timezone west of UTC, then east of it, and confirm a
+- [x] 6.3 Set the device clock to a timezone west of UTC, then east of it, and confirm a
       place dated Thursday reads as Thursday in both and that the screen opens on the right
       day. This is the drift the `date` column exists to prevent and it is invisible to
       every static check.
 - [x] 6.4 Read the calendar in both themes and confirm no surface presents one theme's
       colours over the other's, including the date input and the undated group.
-- [ ] 6.5 Open a trip on the phone application after dating places on web and confirm
+- [x] 6.5 Open a trip on the phone application after dating places on web and confirm
       nothing is broken by a column it does not present, and that no partial version of the
       calendar is reachable there.
 
 ## 7. Closing out
 
-- [ ] 7.1 Run `pnpm verify` and confirm it passes.
+- [x] 7.1 Run `pnpm verify` and confirm it passes.
 - [x] 7.2 Run `openspec validate trip-calendar --strict` and confirm it passes.
 - [x] 7.3 Open a GitHub issue for bringing the calendar to the phone application, naming
       this change as what it completes and the requirement in `trip-calendar` that it
