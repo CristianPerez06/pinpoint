@@ -717,3 +717,23 @@
     display: none;
   }
 }
+
+/*
+ * A sentence under a field, not a second label.
+ *
+ * `hint` reused `.label` until it had a caller, and `.label` is uppercase with
+ * wide tracking — which is right for the two words above a control and wrong
+ * for a sentence, where it reads as shouting and takes two lines to say what
+ * one would. Nothing caught it because the prop existed unused: the first hint
+ * anybody passed was the first time it was drawn.
+ *
+ * `--pp-ink-muted` rather than `--pp-ink-faint`. This is text somebody is meant
+ * to read, which is the distinction `--pp-ink-faint` was described loosely
+ * enough to lose once already.
+ */
+.hint {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  font-weight: var(--pp-type-note-weight);
+  line-height: var(--pp-type-note-leading);
+}

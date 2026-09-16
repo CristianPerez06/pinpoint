@@ -133,8 +133,12 @@ export async function createTrip(
   const { data: tripId, error } = await client.rpc('create_trip', {
     trip_name: validated.data.name,
     member_name: validated.data.displayName,
-    trip_starts_on: validated.data.startsOn,
-    trip_ends_on: validated.data.endsOn,
+    // Absent rather than null, which is what the generated signature says the
+    // arguments are: `create_trip` declares them `date default null`, so an
+    // omitted argument and an explicit null reach the column as the same value.
+    // Sending `undefined` is what makes the two agree.
+    trip_starts_on: validated.data.startsOn ?? undefined,
+    trip_ends_on: validated.data.endsOn ?? undefined,
   })
 
   // Null rather than an error is what the function returns when there is no

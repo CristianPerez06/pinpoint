@@ -194,8 +194,8 @@ describe('createTrip', () => {
     expect(calls.rpc).toHaveBeenCalledWith('create_trip', {
       trip_name: 'Japan',
       member_name: 'Cristian',
-      trip_starts_on: null,
-      trip_ends_on: null,
+      trip_starts_on: undefined,
+      trip_ends_on: undefined,
     })
     // The whole design in one assertion: `trips` has no insert policy, so a
     // trip that arrived by insert would mean the function had been bypassed.

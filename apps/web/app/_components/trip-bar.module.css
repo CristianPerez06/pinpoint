@@ -271,3 +271,15 @@
     min-width: 0;
   }
 }
+
+/*
+ * The calendar row is a link and every row beside it is a button.
+ *
+ * It has to be a link — it leads to a screen, so middle-click and open-in-new-
+ * tab should do what they do everywhere else — but the browser's default
+ * underline made it the one row in the menu that looked like a different kind
+ * of thing. The behaviour is the link's; the appearance is the row's.
+ */
+a.row {
+  text-decoration: none;
+}

@@ -244,9 +244,9 @@ export type Database = {
       create_trip: {
         Args: {
           member_name: string
-          trip_ends_on?: string | null
+          trip_ends_on?: string
           trip_name: string
-          trip_starts_on?: string | null
+          trip_starts_on?: string
         }
         Returns: string
       }

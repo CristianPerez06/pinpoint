@@ -99,12 +99,18 @@
 .picker {
   display: flex;
   /*
-   * `min-width: 0` on a flex item that holds an input, for the reason recorded
-   * in AGENTS.md: an `<input>`'s content width is a browser default of about
-   * twenty characters, and a `flex: 0 1 auto` container sized to that content
-   * ignores any `width: 100%` on the field inside it.
+   * Sized to the date it holds, not to the room available.
+   *
+   * `flex: 1 1 auto` stretched it across the whole window, which put the two
+   * step buttons a screen apart and gave a ten-character date thirteen hundred
+   * pixels. Measured rather than guessed, which AGENTS.md asks for on exactly
+   * this control — the failure is a layout that looks deliberate.
+   *
+   * `min-width: 0` stays, for the other half of the same note: an `<input>`'s
+   * content width is a browser default of about twenty characters, and a flex
+   * item will not shrink below its content without this.
    */
-  flex: 1 1 auto;
+  flex: 0 1 15rem;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
@@ -146,6 +152,20 @@
   background: var(--pp-surface-muted);
   color: var(--pp-ink);
   font-size: var(--pp-type-body-size);
+}
+
+/*
+ * The open list is capped and scrolls inside itself.
+ *
+ * Ninety-one places is a real number from a real trip, and without a cap the
+ * open pile pushed every day column off the bottom of the screen — so the one
+ * thing you open it to do, put a place on a day, happened with the days no
+ * longer visible. The cap is a fraction of the window rather than a pixel
+ * count, so it holds at every size.
+ */
+.waitingList {
+  max-height: 38vh;
+  overflow-y: auto;
 }
 
 /*
@@ -354,6 +374,29 @@
   padding: var(--pp-space-md);
   overflow-y: auto;
   background: color-mix(in srgb, var(--pp-ground) 72%, transparent);
+}
+
+/*
+ * The shared panel anchors itself, and here it must not.
+ *
+ * `overlayPanelClass` is `position: absolute; left: 16px; bottom: 16px` —
+ * correct on the map, where the panel hangs in the corner over the thing it
+ * describes. Inside this centred wrapper those offsets still resolve, against
+ * the wrapper, so the card sat in the bottom-left corner of the window on top
+ * of the list it was opened from. Taking it out of positioned layout is what
+ * lets the wrapper place it, and changes nothing about the panel itself.
+ */
+/*
+ * `:first-child` is not decoration — it is what wins the cascade.
+ *
+ * `.panel > *` and the shared `.panel` are both a single class, so they tie on
+ * specificity and source order decides, which put the shared rule in front and
+ * left the card in the corner. The pseudo-class adds the weight that settles it
+ * deliberately rather than by import order.
+ */
+.panel > :first-child {
+  position: static;
+  max-height: min(70vh, 40rem);
 }
 
 .visuallyHidden {

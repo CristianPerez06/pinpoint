@@ -1,18 +1,18 @@
 ## 1. Database
 
-- [ ] 1.1 Add a migration creating `trips.starts_on date null`, `trips.ends_on date null`
+- [x] 1.1 Add a migration creating `trips.starts_on date null`, `trips.ends_on date null`
       and `markers.planned_on date null`, with a check constraint that `ends_on` does not
       precede `starts_on` when both are present. Verify with a rolled-back `do $$ … raise
       exception 'RESULT: %' … $$` probe that a valid pair is accepted, a reversed pair is
       refused, and one date without the other is accepted.
-- [ ] 1.2 In the same migration, replace `public.create_trip` with a version taking the
+- [x] 1.2 In the same migration, replace `public.create_trip` with a version taking the
       two dates, both defaulting to null. Not foreseen when the tasks were written and
       not optional: `trips` has no insert policy, so this function is the only route by
       which a trip row can be written, and a trip created with dates has to carry them
       through it. Drop before creating — a differing parameter list overloads rather than
       replaces — and restate the revoke/grant, which the drop removes. Verify with a probe
       that a trip is created with dates, without them, and that a reversed pair is refused.
-- [ ] 1.3 Confirm no policy changes are needed: verify with a probe that a member can read
+- [x] 1.3 Confirm no policy changes are needed: verify with a probe that a member can read
       and write the new columns on their own trip and that a non-member still reads no rows.
 - [ ] 1.4 Write `supabase/backfill-trip-dates.sql` — a disposable, hand-run script setting
       dates on the trips already in the database. Verify it runs and that re-running it
@@ -52,35 +52,35 @@
 - [ ] 4.1 Offer a start and end date while creating a trip, both skippable. Verify a trip
       is created with neither, with both, and that a reversed pair is refused naming the
       field.
-- [ ] 4.2 Offer changing and clearing a trip's dates from the trip's name menu in
+- [x] 4.2 Offer changing and clearing a trip's dates from the trip's name menu in
       `trip-bar.tsx`, where the other actions on a trip already live. Verify the edit
       leaves the trip's name, cities, markers and members unchanged, and changes no
       marker's date.
 
 ## 5. Web — the calendar screen
 
-- [ ] 5.1 Add the `/calendar` route reading `?trip=`, `?city=` and `?day=`, with a visible
+- [x] 5.1 Add the `/calendar` route reading `?trip=`, `?city=` and `?day=`, with a visible
       way back that returns to the workspace carrying the trip and the city it arrived
       with. Verify by leaving from a trip with a city selected and confirming the same city
       is selected on return.
-- [ ] 5.2 Reach the calendar from the trip's name menu. Verify it is among the actions that
+- [x] 5.2 Reach the calendar from the trip's name menu. Verify it is among the actions that
       act on the trip, and that no separate permanent control was added beside the name.
-- [ ] 5.3 Open on the right day — today when the trip's dates contain it, otherwise the
+- [x] 5.3 Open on the right day — today when the trip's dates contain it, otherwise the
       trip's start date, otherwise today. Verify all three, including a trip with no dates.
-- [ ] 5.4 Render the day being read with its places, an empty day stating it holds nothing,
+- [x] 5.4 Render the day being read with its places, an empty day stating it holds nothing,
       and each place opening the same details panel the map opens. Verify a place opened
       here offers the same fields and the same actions, and that changing its date moves it
       to the new day without the page being reloaded.
-- [ ] 5.5 Add the date picker and the previous/next day controls, fixed above the scrolling
+- [x] 5.5 Add the date picker and the previous/next day controls, fixed above the scrolling
       region, each naming the day it leads to in words. Verify with a screen reader that
       stepping is announced, and that stepping past the trip's start or end date still
       shows those days.
-- [ ] 5.6 Add the collapsed group of places with no date above the day, stating its count,
+- [x] 5.6 Add the collapsed group of places with no date above the day, stating its count,
       and present when the count is zero. Verify the count changes as a place is dated and
       cleared, and that the group does not disappear when it empties.
-- [ ] 5.7 Show the previous, current and next day together on a wide screen and the current
+- [x] 5.7 Show the previous, current and next day together on a wide screen and the current
       day alone on a narrow one, with the undated group shown once rather than per day.
-- [ ] 5.8 Verify the calendar ignores any filter applied on the workspace: narrow the map to
+- [x] 5.8 Verify the calendar ignores any filter applied on the workspace: narrow the map to
       one member, open the calendar, and confirm every place is on its day and that the
       undated count counts every undated place on the trip.
 
@@ -91,7 +91,7 @@
       flex defaults that produce a layout which looks deliberate and is not — a `min-width`
       floor overflows instead of wrapping, and a `flex: 0 1 auto` container sizes to its
       content regardless of a child's `width: 100%`.
-- [ ] 6.2 Scroll a day holding more places than fit, on a narrow window and a wide one, and
+- [x] 6.2 Scroll a day holding more places than fit, on a narrow window and a wide one, and
       confirm the day being read does not change and the stepping controls stay reachable.
 - [ ] 6.3 Set the device clock to a timezone west of UTC, then east of it, and confirm a
       place dated Thursday reads as Thursday in both and that the screen opens on the right

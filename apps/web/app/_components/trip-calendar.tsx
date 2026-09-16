@@ -453,7 +453,7 @@ function Waiting({
             : `${markers.length} places with no day yet`}
         </span>
       </summary>
-      <ul className={styles.list}>
+      <ul className={`${styles.list} ${styles.waitingList}`}>
         {markers.map((marker) => (
           <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
         ))}

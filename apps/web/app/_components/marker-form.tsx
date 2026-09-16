@@ -167,6 +167,27 @@ export function MarkerForm({
   return (
     <form
       className={`${overlayPanelClass} ${styles.form}`}
+      /*
+       * The browser does not get to refuse this form.
+       *
+       * Found by looking: clearing the day a segment at a time leaves the date
+       * control holding `dd/09/2026`, which is *incomplete* rather than empty.
+       * Native validation then blocked the submit entirely — so a person could
+       * not save the name they had just corrected either — and said so in a
+       * grey bubble reading "Please enter a valid value. The field is
+       * incomplete or has an invalid date."
+       *
+       * Two things are wrong with that. It is the browser's voice rather than
+       * the product's, which this repository has a standing position against;
+       * and it refuses the whole form over one optional field. An incomplete
+       * date reports its value as `''`, which this form already reads as "no
+       * day yet" — the honest answer for a date that is not a date.
+       *
+       * Everything native validation was doing here is done better by the
+       * schema: the link is `z.url()`, the price is a non-negative number, and
+       * both come back as a message under the field they belong to.
+       */
+      noValidate
       onSubmit={(event) => {
         event.preventDefault()
         submit()

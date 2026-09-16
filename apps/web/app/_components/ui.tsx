@@ -632,7 +632,7 @@ export function TextField({
           {error}
         </span>
       ) : hint ? (
-        <span className={styles.label}>{hint}</span>
+        <span className={styles.hint}>{hint}</span>
       ) : null}
     </label>
   )
