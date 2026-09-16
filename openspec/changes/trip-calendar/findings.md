@@ -24,3 +24,12 @@ with a message about a field their form does not have.
 `marker-details.tsx` shows the type, price, note, link, who wants to go and visited —
 and now the day — but not the city. A place opened from the map cannot be checked for
 whether it is filed where you meant, without opening the form.
+
+## A place with a long note pushes Edit and Remove below the fold
+
+Matching the details and edit cards to one height means a card whose content is
+taller now scrolls inside itself — and the actions are at the bottom of that scroll.
+Amerikamura's note is enough to do it. What a person would notice: opening a place
+with a real note and finding no way to edit or remove it without scrolling the card,
+where a shorter place shows both straight away. The fix is to pin the actions to the
+bottom of the card so they stay while the content moves.

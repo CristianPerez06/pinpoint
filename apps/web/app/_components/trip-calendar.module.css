@@ -137,12 +137,44 @@
   font-size: var(--pp-type-body-size);
 }
 
+/*
+ * A column, so the days can be told to take whatever the waiting card leaves.
+ *
+ * `min-height: 0` because a flex item's default minimum is its content, which
+ * would stop this scrolling at all once a day held more places than fit.
+ */
 .body {
+  display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  flex-direction: column;
   padding: var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-left))
     var(--pp-space-xl) max(var(--pp-space-md), env(safe-area-inset-right));
   overflow-y: auto;
+}
+
+/*
+ * The content stops widening; the header does not.
+ *
+ * Three day columns sharing a 2560px screen are 800px each, holding a list of
+ * place names — mostly empty space, and a row you have to travel across to read.
+ * Capped, a wide screen shows the same comfortable column a 1440px one does and
+ * puts the slack in the margins.
+ *
+ * Deliberately not on `.body`, which is the scrolling box: capping that would
+ * pull the scrollbar in off the edge of the window. Each block caps itself to
+ * the same width instead, so they stay aligned with each other.
+ *
+ * The header keeps the full width on purpose. The way back belongs at the edge
+ * of the screen where a back control is looked for, not floating in from it.
+ */
+.message,
+.waiting,
+.waitingEmpty,
+.days {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
 }
 
 .message {
@@ -228,11 +260,32 @@
  * `auto` — the item's own content width — so plain `1fr` columns refuse to
  * shrink under a long place name and push the row wider than the screen.
  */
+/*
+ * The days take the height the waiting card leaves, and no less.
+ *
+ * `flex: 1 0 auto` rather than a height: they grow into whatever is left, and
+ * a day holding more places than fit still grows past it and scrolls the body.
+ * A cap here would be the wrong way round — the screen has room, and a day that
+ * ran out of it would clip.
+ *
+ * `align-items: stretch` rather than `start`, which is what makes the columns
+ * reach the bottom instead of shrinking to the two lines an empty day holds.
+ * Most days on most trips are empty, and a row of stubs reads as the screen
+ * having failed to load rather than as a fortnight nobody has planned yet.
+ */
 .days {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: minmax(0, 1fr);
+  /*
+   * `minmax(min-content, 1fr)` is the whole of it: at least as tall as what the
+   * day holds, and otherwise the space that is left. A plain `1fr` would be a
+   * ceiling as well as a floor and clip a busy day; a plain `auto` would shrink
+   * an empty one back to the two lines it started as.
+   */
+  grid-auto-rows: minmax(min-content, 1fr);
   gap: var(--pp-space-md);
-  align-items: start;
+  align-items: stretch;
 }
 
 .day {
@@ -397,6 +450,18 @@
 .panel > :first-child {
   position: static;
   /*
+   * One height as well as one width, so pressing Edit changes what the card
+   * says and not how big it is.
+   *
+   * A stated height rather than a `max-height` both panels happen to sit under:
+   * the details card is usually short and the form is usually taller than the
+   * window, so left to their content they are never the same size and the thing
+   * under the cursor jumps. The cost is some empty space below a sparse details
+   * card, which is the trade asked for — a card that does not move is worth more
+   * than one sized exactly to its contents.
+   */
+  height: min(70vh, 32rem);
+  /*
    * Both panels stated at one width, rather than each taking whatever its own
    * content and scrollbar leave it.
    *
@@ -407,7 +472,6 @@
    * here settles it for both.
    */
   width: min(20.5rem, 100%);
-  max-height: min(70vh, 40rem);
 }
 
 .visuallyHidden {

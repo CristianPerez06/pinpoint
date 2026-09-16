@@ -219,15 +219,20 @@ export function TripCalendar({
     setEditingId(null)
 
     /*
-     * Follow the place to the day it was moved to.
+     * The day being read does not move.
      *
-     * Saving it and staying put would leave the person reading a day the place
-     * is no longer on, having just been told the save worked — which reads as
-     * the save having done nothing.
+     * This used to follow the place to whatever day it had just been given, on
+     * the reasoning that staying put would leave somebody on a day the place is
+     * no longer on with nothing to show the save had worked. That reasoning was
+     * wrong: saving returns to the details card, and the card states the new
+     * day. The save is already confirmed, in front of them.
+     *
+     * Moving them as well costs the thing they were doing. Working through the
+     * places with no day yet is a queue — assign one, get carried off to its
+     * day, navigate back — and the queue is reachable from every day, so there
+     * was never a reason to leave the one they were on. A place moved off the
+     * day being read simply leaves the column, which is the whole answer.
      */
-    if (outcome.data.plannedOn !== null && outcome.data.plannedOn !== day) {
-      goToDay(outcome.data.plannedOn)
-    }
   }
 
   async function remove(marker: Marker) {

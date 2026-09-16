@@ -14,9 +14,9 @@
       that a trip is created with dates, without them, and that a reversed pair is refused.
 - [x] 1.3 Confirm no policy changes are needed: verify with a probe that a member can read
       and write the new columns on their own trip and that a non-member still reads no rows.
-- [ ] 1.4 Write `supabase/backfill-trip-dates.sql` — a disposable, hand-run script setting
-      dates on the trips already in the database. Verify it runs and that re-running it
-      changes nothing. It is deleted when this change is archived.
+- [x] 1.4 ~~Write `supabase/backfill-trip-dates.sql`~~ — **dropped, not run.** It existed to
+      put dates on trips that predated the column, and the dates were set through the
+      application instead, so it had no work left to do. The file is deleted.
 
 ## 2. Shared packages
 
@@ -49,7 +49,7 @@
 
 ## 4. Web — a trip's dates
 
-- [ ] 4.1 Offer a start and end date while creating a trip, both skippable. Verify a trip
+- [x] 4.1 Offer a start and end date while creating a trip, both skippable. Verify a trip
       is created with neither, with both, and that a reversed pair is refused naming the
       field.
 - [x] 4.2 Offer changing and clearing a trip's dates from the trip's name menu in
@@ -97,7 +97,7 @@
       place dated Thursday reads as Thursday in both and that the screen opens on the right
       day. This is the drift the `date` column exists to prevent and it is invisible to
       every static check.
-- [ ] 6.4 Read the calendar in both themes and confirm no surface presents one theme's
+- [x] 6.4 Read the calendar in both themes and confirm no surface presents one theme's
       colours over the other's, including the date input and the undated group.
 - [ ] 6.5 Open a trip on the phone application after dating places on web and confirm
       nothing is broken by a column it does not present, and that no partial version of the
@@ -107,6 +107,6 @@
 
 - [ ] 7.1 Run `pnpm verify` and confirm it passes.
 - [x] 7.2 Run `openspec validate trip-calendar --strict` and confirm it passes.
-- [ ] 7.3 Open a GitHub issue for bringing the calendar to the phone application, naming
+- [x] 7.3 Open a GitHub issue for bringing the calendar to the phone application, naming
       this change as what it completes and the requirement in `trip-calendar` that it
       replaces.
