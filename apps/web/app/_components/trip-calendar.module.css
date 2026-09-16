@@ -161,19 +161,24 @@
  * Capped, a wide screen shows the same comfortable column a 1440px one does and
  * puts the slack in the margins.
  *
- * Deliberately not on `.body`, which is the scrolling box: capping that would
- * pull the scrollbar in off the edge of the window. Each block caps itself to
- * the same width instead, so they stay aligned with each other.
+ * A box rather than a cap on each block, because the blocks are not all the same
+ * width: the waiting card is narrower than the days. Capping each one against
+ * the window would measure them from different edges, and the narrow card would
+ * sit at the far left while the days floated in the middle.
+ *
+ * Deliberately inside `.body` rather than on it. `.body` is what scrolls, and
+ * capping that would pull the scrollbar in off the edge of the window.
  *
  * The header keeps the full width on purpose. The way back belongs at the edge
  * of the screen where a back control is looked for, not floating in from it.
  */
-.message,
-.waiting,
-.waitingEmpty,
-.days {
+.content {
+  display: flex;
+  flex: 1 0 auto;
   width: 100%;
   max-width: 90rem;
+  min-height: 0;
+  flex-direction: column;
   margin-inline: auto;
 }
 
@@ -315,6 +320,23 @@
   .dayNeighbour {
     display: block;
     background: var(--pp-surface-sunk);
+  }
+
+  /*
+   * The waiting card takes one day's width, because it holds the same thing a
+   * day does — a list of place names.
+   *
+   * Full width, it was a bar with one sentence in it and, opened, ninety names
+   * each trailing a metre of empty row. 28rem is about what a day column gets at
+   * the cap, so the two read as the same kind of list rather than as a banner
+   * over a grid.
+   *
+   * No margin: the box above is what centres, so a capped block inside it lines
+   * up with the first column on its own.
+   */
+  .waiting,
+  .waitingEmpty {
+    max-width: 28rem;
   }
 }
 
