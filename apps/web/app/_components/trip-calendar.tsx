@@ -364,37 +364,27 @@ export function TripCalendar({
       </header>
 
       <div className={styles.body}>
-        {/*
-          The box everything on this screen is measured against.
-          
-          It exists so the waiting card can be narrower than the days and still
-          line up with them. Capping each block on its own would measure them
-          from the window instead, and a narrow card would sit against the left
-          edge while the days floated in the middle of the screen.
-        */}
-        <div className={styles.content}>
-          {message ? (
-            <p role="alert" className={styles.message}>
-              {message}
-            </p>
-          ) : null}
+        {message ? (
+          <p role="alert" className={styles.message}>
+            {message}
+          </p>
+        ) : null}
 
-          <Waiting
-            markers={grouped.undated}
-            onOpen={(marker) => setOpenMarkerId(marker.id)}
-          />
+        <Waiting
+          markers={grouped.undated}
+          onOpen={(marker) => setOpenMarkerId(marker.id)}
+        />
 
-          <div className={styles.days}>
-            {days.map((each, index) => (
-              <DayColumn
-                key={each}
-                day={each}
-                current={index === NEIGHBOURS}
-                markers={markersOnDay(grouped, each)}
-                onOpen={(marker) => setOpenMarkerId(marker.id)}
-              />
-            ))}
-          </div>
+        <div className={styles.days}>
+          {days.map((each, index) => (
+            <DayColumn
+              key={each}
+              day={each}
+              current={index === NEIGHBOURS}
+              markers={markersOnDay(grouped, each)}
+              onOpen={(marker) => setOpenMarkerId(marker.id)}
+            />
+          ))}
         </div>
       </div>
 
