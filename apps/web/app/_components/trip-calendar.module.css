@@ -396,6 +396,17 @@
  */
 .panel > :first-child {
   position: static;
+  /*
+   * Both panels stated at one width, rather than each taking whatever its own
+   * content and scrollbar leave it.
+   *
+   * Details and the edit form are the same card at two moments — you press Edit
+   * and the thing under your cursor should not resize. The shared class already
+   * says 328px, but the form is tall enough to scroll and the details card
+   * usually is not, so the two ended up a scrollbar's width apart. Saying it
+   * here settles it for both.
+   */
+  width: min(20.5rem, 100%);
   max-height: min(70vh, 40rem);
 }
 

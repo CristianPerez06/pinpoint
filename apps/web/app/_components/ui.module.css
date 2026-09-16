@@ -737,3 +737,16 @@
   font-weight: var(--pp-type-note-weight);
   line-height: var(--pp-type-note-leading);
 }
+
+/*
+ * A day sits in the middle of its field.
+ *
+ * Every other control here is text somebody types left to right, and reads
+ * correctly ranged left. A date is not that: it is three fixed segments and an
+ * icon, and left-ranging it leaves a wide gap between the value and the picker
+ * button that reads as the field being half empty. Centred, the day is the
+ * thing the row is about, which is what it is.
+ */
+.control[type='date'] {
+  text-align: center;
+}

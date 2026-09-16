@@ -23,7 +23,7 @@ import {
 import { groupCoincident, markerView } from '@pinpoint/map'
 import { ChevronLeft, ChevronRight, MapIcon } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 
 import { MarkerDetails } from '@/app/_components/marker-details'
@@ -98,7 +98,6 @@ export function TripCalendar({
   workspaceHref: string
 }) {
   const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const [markers, setMarkers] = useState(initialMarkers)
@@ -117,18 +116,47 @@ export function TripCalendar({
    * than to a constant: today while the trip is happening, its start date
    * otherwise, and today for the many trips carrying no dates at all.
    */
-  const day: IsoDay = searchParams.get('day') ?? dayToOpenOn(trip)
+  /**
+   * The day being read is client state, and the address follows it.
+   *
+   * It used to be the other way round — read from `useSearchParams`, written
+   * with `router.replace` — and that was a real cost rather than a stylistic
+   * one. `/calendar` is a dynamic route, so changing a search parameter through
+   * the router re-runs the page's server component, which awaits five queries:
+   * the trips, and then this trip's markers, cities, interest and members.
+   * Stepping through a fortnight a day at a time asked the database seventy
+   * times for a list that was already in memory.
+   *
+   * Nothing about a day needs the server. The whole trip is fetched once and
+   * grouped by `groupMarkersByDay`; every day of it is already here.
+   *
+   * Seeded from the address so a reload or a shared link still opens where it
+   * says, and falls back to the day this trip makes most sense to open on.
+   */
+  const [day, setDay] = useState<IsoDay>(
+    () => searchParams.get('day') ?? dayToOpenOn(trip),
+  )
 
   const goToDay = useCallback(
     (next: IsoDay) => {
-      const params = new URLSearchParams(searchParams.toString())
+      setDay(next)
+
+      /*
+       * `history.replaceState`, not `router.replace`.
+       *
+       * The address has to stay honest — somebody who reloads, or sends the
+       * link to whoever they are travelling with, should land on the day they
+       * were reading. But that is all it is for, and going through the router
+       * would buy it at the price of the five queries above.
+       *
+       * Replaced rather than pushed, so stepping through a fortnight does not
+       * bury the page somebody arrived from under fourteen entries of Back.
+       */
+      const params = new URLSearchParams(window.location.search)
       params.set('day', next)
-      // Replaced rather than pushed: stepping through a fortnight a day at a
-      // time should not bury the page somebody arrived from under fourteen
-      // entries of Back.
-      router.replace(`/calendar?${params.toString()}`, { scroll: false })
+      window.history.replaceState(null, '', `/calendar?${params.toString()}`)
     },
-    [router, searchParams],
+    [],
   )
 
   const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
