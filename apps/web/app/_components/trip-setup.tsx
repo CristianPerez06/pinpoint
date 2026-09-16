@@ -77,6 +77,8 @@ export function CreateTripForm({
 
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [startsOn, setStartsOn] = useState('')
+  const [endsOn, setEndsOn] = useState('')
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -89,6 +91,10 @@ export function CreateTripForm({
     const outcome = await createTrip(supabase, {
       name: name.trim(),
       displayName: displayName.trim(),
+      // Blank is no date, not an empty one. Both are skippable and most trips
+      // are created before either is settled.
+      startsOn: startsOn === '' ? null : startsOn,
+      endsOn: endsOn === '' ? null : endsOn,
     })
 
     setBusy(false)
@@ -129,6 +135,30 @@ export function CreateTripForm({
         error={fieldErrors.displayName}
         placeholder="Your name, as the others would say it"
       />
+
+      {/*
+        Offered, never required. A trip is usually created before its dates are
+        known — the list of places is what accumulates first — so asking for
+        them and refusing to continue without them would make the product
+        decline the state most trips start in. They decide nothing except which
+        day the calendar opens on.
+      */}
+      <div className={styles.dates}>
+        <TextField
+          label="Start date (optional)"
+          type="date"
+          value={startsOn}
+          onChange={setStartsOn}
+          error={fieldErrors.startsOn}
+        />
+        <TextField
+          label="End date (optional)"
+          type="date"
+          value={endsOn}
+          onChange={setEndsOn}
+          error={fieldErrors.endsOn}
+        />
+      </div>
 
       {message ? <FormError message={message} /> : null}
 

@@ -1,9 +1,10 @@
 import {
   newTripSchema,
   type Trip,
+  type TripPatch,
   tripPatchSchema,
 } from '@pinpoint/core'
-import type { PinpointClient } from '@pinpoint/supabase'
+import type { Database, PinpointClient } from '@pinpoint/supabase'
 
 import {
   failed,
@@ -13,12 +14,16 @@ import {
 import { validate } from './validate'
 import { rejected, type WriteOutcome, wrote } from './write-outcome'
 
-const TRIP_COLUMNS = 'id, name, archived, created_at'
+const TRIP_COLUMNS = 'id, name, archived, starts_on, ends_on, created_at'
+
+type TripUpdate = Database['public']['Tables']['trips']['Update']
 
 interface TripRow {
   id: string
   name: string
   archived: boolean
+  starts_on: string | null
+  ends_on: string | null
   created_at: string
 }
 
@@ -27,8 +32,32 @@ function toTrip(row: TripRow): Trip {
     id: row.id,
     name: row.name,
     archived: row.archived,
+    startsOn: row.starts_on,
+    endsOn: row.ends_on,
     createdAt: row.created_at,
   }
+}
+
+/**
+ * A validated patch as the columns it writes.
+ *
+ * Every trip column until now was one word, so a camel-cased patch happened to
+ * be spelled the same as the row and could be handed to `.update()` untouched.
+ * `startsOn` is the first that is not, and a key the table has no column for is
+ * not a loud failure — it is the kind of thing that returns an error naming a
+ * column nobody wrote. Stated field by field so the two spellings meet in one
+ * place.
+ *
+ * A field absent from the patch stays absent here: a rename must not carry an
+ * implicit `starts_on: null` that clears dates nobody asked to clear.
+ */
+function toTripColumns(patch: TripPatch): TripUpdate {
+  const columns: TripUpdate = {}
+  if ('name' in patch) columns.name = patch.name
+  if ('archived' in patch) columns.archived = patch.archived
+  if ('startsOn' in patch) columns.starts_on = patch.startsOn
+  if ('endsOn' in patch) columns.ends_on = patch.endsOn
+  return columns
 }
 
 export const TRIPS_FAILED_MESSAGE = 'Could not load your trips.'
@@ -104,6 +133,8 @@ export async function createTrip(
   const { data: tripId, error } = await client.rpc('create_trip', {
     trip_name: validated.data.name,
     member_name: validated.data.displayName,
+    trip_starts_on: validated.data.startsOn,
+    trip_ends_on: validated.data.endsOn,
   })
 
   // Null rather than an error is what the function returns when there is no
@@ -152,7 +183,7 @@ export async function updateTrip(
 
   const { data, error } = await client
     .from('trips')
-    .update(validated.data)
+    .update(toTripColumns(validated.data))
     .eq('id', tripId)
     .select(TRIP_COLUMNS)
     .single()

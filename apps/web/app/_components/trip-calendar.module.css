@@ -1,0 +1,369 @@
+/*
+ * A trip's places, by day.
+ *
+ * The screen is a fixed head and a scrolling body, and the split is the point
+ * rather than a layout preference: scrolling has to mean "see the rest of this
+ * day" and nothing else. A day can hold more places than fit, so if scrolling
+ * also stepped to another day the two meanings would be indistinguishable
+ * before the gesture was made, and reaching the last place of a busy day would
+ * mean passing through the boundary that moves off it.
+ *
+ * The day therefore changes only from the controls in the head, and the head
+ * never scrolls away from whoever is at the bottom of a long day.
+ */
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  color: var(--pp-ink);
+  background: var(--pp-ground);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm) max(var(--pp-space-md), env(safe-area-inset-left))
+    var(--pp-space-sm) max(var(--pp-space-md), env(safe-area-inset-right));
+  border-bottom: 1px solid var(--pp-line);
+  background: var(--pp-surface);
+}
+
+.headRow {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-md);
+  min-width: 0;
+}
+
+/* The way back, drawn rather than assumed. A screen that can be reached and not
+   left is a screen that strands. */
+.back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--pp-space-xs);
+  padding: var(--pp-space-xs) var(--pp-space-sm);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover {
+  background: var(--pp-surface-muted);
+}
+
+.title {
+  /*
+   * `min-width: 0` because a flex item's default minimum is its content, so a
+   * long trip name would push the row wider than the screen instead of being
+   * cut. The same default that overflows a search field under a button.
+   */
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pp-space-sm);
+}
+
+.step {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  cursor: pointer;
+}
+
+.step:hover {
+  background: var(--pp-surface-muted);
+}
+
+.picker {
+  display: flex;
+  /*
+   * `min-width: 0` on a flex item that holds an input, for the reason recorded
+   * in AGENTS.md: an `<input>`'s content width is a browser default of about
+   * twenty characters, and a `flex: 0 1 auto` container sized to that content
+   * ignores any `width: 100%` on the field inside it.
+   */
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pickerLabel {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.pickerInput {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 var(--pp-space-sm);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-body-size);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-left))
+    var(--pp-space-xl) max(var(--pp-space-md), env(safe-area-inset-right));
+  overflow-y: auto;
+}
+
+.message {
+  margin: 0 0 var(--pp-space-md);
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-body-size);
+}
+
+/*
+ * The places still waiting for a day, above the days and shown once.
+ *
+ * Once rather than per column: three copies of one pile would be three controls
+ * that all do the same thing, and opening one would say nothing about the other
+ * two.
+ */
+.waiting,
+.waitingEmpty {
+  margin-bottom: var(--pp-space-md);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface);
+}
+
+.waitingEmpty {
+  padding: var(--pp-space-sm) var(--pp-space-md);
+}
+
+.waitingSummary {
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  cursor: pointer;
+  list-style: none;
+}
+
+.waitingSummary::-webkit-details-marker {
+  display: none;
+}
+
+.waitingSummary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: var(--pp-space-sm);
+  color: var(--pp-ink-muted);
+}
+
+.waiting[open] > .waitingSummary::before {
+  content: '▾';
+}
+
+/*
+ * `--pp-ink-muted`, never `--pp-ink-faint`.
+ *
+ * This line carries a count somebody is meant to act on, which is the opposite
+ * of text deliberately hard to notice — and `--pp-ink-faint` is the token whose
+ * description licensed exactly that misuse across both platforms.
+ */
+.waitingLabel {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+}
+
+/*
+ * Three days where there is room, one where there is not.
+ *
+ * `minmax(0, 1fr)` rather than `1fr`, because a grid track's default minimum is
+ * `auto` — the item's own content width — so plain `1fr` columns refuse to
+ * shrink under a long place name and push the row wider than the screen.
+ */
+.days {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pp-space-md);
+  align-items: start;
+}
+
+.day {
+  min-width: 0;
+  padding: var(--pp-space-md);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  background: var(--pp-surface);
+}
+
+/*
+ * The neighbouring days are not drawn at all below the breakpoint.
+ *
+ * `display: none` rather than visual hiding, so they leave the accessibility
+ * tree with the screen. A day that is read out but cannot be seen is worse than
+ * one that is absent from both.
+ */
+.dayNeighbour {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .days {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dayNeighbour {
+    display: block;
+    background: var(--pp-surface-sunk);
+  }
+}
+
+.dayCurrent {
+  border-color: var(--pp-line-strong);
+}
+
+.dayName {
+  margin: 0 0 var(--pp-space-sm);
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+}
+
+.dayNameShort {
+  display: none;
+}
+
+/* Under about 1200px three columns cannot hold "Wednesday 15 September". */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .dayNameLong {
+    display: none;
+  }
+
+  .dayNameShort {
+    display: inline;
+  }
+}
+
+.dayEmpty {
+  margin: 0;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-xs);
+  margin: 0;
+  padding: 0 var(--pp-space-sm) var(--pp-space-sm);
+  list-style: none;
+}
+
+.waiting > .list {
+  padding-top: var(--pp-space-xs);
+}
+
+.day > .list {
+  padding: 0;
+}
+
+.place {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: var(--pp-space-xs) var(--pp-space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  background: none;
+  color: var(--pp-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.place:hover {
+  border-color: var(--pp-line);
+  background: var(--pp-surface-muted);
+}
+
+.placeName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visited is said in words, not carried by a colour. */
+.placeVisited {
+  flex: 0 0 auto;
+  padding: 2px var(--pp-space-sm);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+}
+
+/*
+ * The details panel and the form, over the screen.
+ *
+ * Centred rather than beside a control: unlike the map, there is no pin for it
+ * to open next to, and a list row is not a place a panel can hang off without
+ * moving every row under it.
+ */
+.panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pp-space-md);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--pp-ground) 72%, transparent);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

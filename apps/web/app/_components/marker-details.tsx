@@ -13,6 +13,7 @@ import type { ReactNode } from 'react'
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
 import { Button, overlayPanelClass } from '@/app/_components/ui'
+import { formatDay } from '@/lib/day'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './marker-details.module.css'
@@ -154,6 +155,14 @@ function Details({
         <ControlField label="Visited">
           <VisitedToggle visited={marker.visited} onChange={onSetVisited} />
         </ControlField>
+
+        <Field label="Day">
+          {marker.plannedOn === null ? (
+            <span className={styles.absent}>No day yet</span>
+          ) : (
+            formatDay(marker.plannedOn)
+          )}
+        </Field>
 
         <Field label="Note">{marker.note ?? <Absent />}</Field>
         <Field label="Link">

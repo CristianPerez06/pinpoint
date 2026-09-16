@@ -1,6 +1,7 @@
 'use client'
 
-import type { Trip, TripMember } from '@pinpoint/core'
+import type { FieldErrors, Trip, TripMember } from '@pinpoint/core'
+import Link from 'next/link'
 import { useState } from 'react'
 
 import { CreateTripForm } from '@/app/_components/trip-setup'
@@ -42,7 +43,7 @@ import styles from './trip-bar.module.css'
  * afterwards. As a page the root is the same length however much is archived —
  * and it is the shape the three faces above it already use.
  */
-type View = 'root' | 'rename' | 'people' | 'create' | 'archived'
+type View = 'root' | 'rename' | 'dates' | 'people' | 'create' | 'archived'
 
 export type TripBarLiveProps = {
   trip: Trip
@@ -59,6 +60,24 @@ export type TripBarLiveProps = {
    * finished.
    */
   onRename: (name: string) => Promise<unknown>
+  /**
+   * Set or clear the dates the trip runs between.
+   *
+   * Resolves to the fields that were refused, empty when the write succeeded.
+   * Unlike a rename, this one can be turned down for a reason the person can
+   * act on — an end before a start — so the answer has to reach the field
+   * rather than only a message over the map.
+   */
+  onSetDates: (dates: {
+    startsOn: string | null
+    endsOn: string | null
+  }) => Promise<FieldErrors>
+  /**
+   * Where the calendar lives, built by whoever knows which trip and city are
+   * open. Carried as a whole href rather than assembled here: the city has to
+   * survive the round trip, and this component has never been told about one.
+   */
+  calendarHref: string
   /**
    * Archived trips, or null while nobody has asked for them.
    *
@@ -124,6 +143,8 @@ function TripBarLive({
   members,
   onSelect,
   onRename,
+  onSetDates,
+  calendarHref,
   archived,
   onRevealArchived,
   onArchive,
@@ -136,6 +157,9 @@ function TripBarLive({
 }: TripBarLiveProps) {
   const [view, setView] = useState<View>('root')
   const [name, setName] = useState(trip.name)
+  const [startsOn, setStartsOn] = useState(trip.startsOn ?? '')
+  const [endsOn, setEndsOn] = useState(trip.endsOn ?? '')
+  const [dateErrors, setDateErrors] = useState<FieldErrors>({})
   /**
    * Three waits, held apart, because they are three different presses.
    *
@@ -163,6 +187,14 @@ function TripBarLive({
     setView(next)
     if (next === 'people') onShowPeople()
     if (next === 'rename') setName(trip.name)
+    if (next === 'dates') {
+      // Filled from the trip each time it is opened rather than held from the
+      // last visit, so a value somebody abandoned is not offered back as the
+      // one that is stored.
+      setStartsOn(trip.startsOn ?? '')
+      setEndsOn(trip.endsOn ?? '')
+      setDateErrors({})
+    }
   }
 
   return (
@@ -211,6 +243,21 @@ function TripBarLive({
           <button type="button" onClick={() => show('rename')} className={styles.row}>
             Rename this trip
           </button>
+          <button type="button" onClick={() => show('dates')} className={styles.row}>
+            <span>Trip dates</span>
+            <span className={styles.rowNote}>
+              {trip.startsOn === null && trip.endsOn === null ? 'None' : 'Set'}
+            </span>
+          </button>
+          {/*
+            The calendar is a screen rather than a panel, so it is a link and
+            not a button — middle-clicking it, or opening it in a new tab, does
+            what those do everywhere else. It carries the city with it, which is
+            what lets the way back put somebody down where they were standing.
+          */}
+          <Link href={calendarHref} className={styles.row} onClick={() => setOpen(false)}>
+            Calendar
+          </Link>
           <button type="button" onClick={() => show('people')} className={styles.row}>
             <span>People</span>
             <span className={styles.rowNote}>{members.length}</span>
@@ -306,6 +353,62 @@ function TripBarLive({
               }
             >
               {saving ? 'Saving…' : 'Save'}
+            </Button>
+            <Button tone="quiet" onClick={() => setView('root')}>
+              Back
+            </Button>
+          </div>
+        </>
+      ) : null}
+
+      {view === 'dates' ? (
+        <>
+          <p className={styles.heading}>Trip dates</p>
+          <TextField
+            label="Start date"
+            type="date"
+            value={startsOn}
+            onChange={setStartsOn}
+            error={dateErrors.startsOn}
+            autoFocus
+          />
+          <TextField
+            label="End date"
+            type="date"
+            value={endsOn}
+            onChange={setEndsOn}
+            error={dateErrors.endsOn}
+            hint="Both are optional. They decide which day the calendar opens on and nothing else."
+          />
+          <div className={styles.actions}>
+            <Button
+              tone="primary"
+              disabled={saving}
+              onClick={() =>
+                startSave(async () => {
+                  const errors = await onSetDates({
+                    startsOn: startsOn === '' ? null : startsOn,
+                    endsOn: endsOn === '' ? null : endsOn,
+                  })
+                  setDateErrors(errors)
+                  // Stays open when it was refused, so the message sits beside
+                  // the field it is about and what was typed is still there.
+                  if (Object.keys(errors).length === 0) setView('root')
+                })
+              }
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+            <Button
+              tone="quiet"
+              disabled={saving || (startsOn === '' && endsOn === '')}
+              onClick={() => {
+                setStartsOn('')
+                setEndsOn('')
+                setDateErrors({})
+              }}
+            >
+              Clear
             </Button>
             <Button tone="quiet" onClick={() => setView('root')}>
               Back

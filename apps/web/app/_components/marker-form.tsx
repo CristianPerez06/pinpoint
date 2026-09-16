@@ -36,6 +36,8 @@ export interface MarkerFormValues {
   type: string
   link: string | null
   price: number | null
+  /** The day this place is planned for, `YYYY-MM-DD`, or null while undecided. */
+  plannedOn: string | null
 }
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
@@ -101,6 +103,7 @@ export function MarkerForm({
   const [price, setPrice] = useState(
     initial.price === null ? '' : String(initial.price),
   )
+  const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
@@ -133,6 +136,10 @@ export function MarkerForm({
       // A blank price is absent. A typed zero is a real answer — free entry is
       // worth recording — so it must not collapse into the same thing.
         price: price.trim() === '' ? null : Number(price),
+        // A date control empties to `''`, which is the field being cleared and
+        // therefore a place going back to having no day — not a day of no
+        // characters.
+        plannedOn: absentIfBlank(plannedOn),
       }),
     )
   }
@@ -254,6 +261,15 @@ export function MarkerForm({
           ...cities.map((city) => ({ value: city.id, label: city.name })),
           { value: NEW_CITY, label: '+ New city…' },
         ]}
+      />
+
+      <TextField
+        label="Day (optional)"
+        type="date"
+        value={plannedOn}
+        onChange={setPlannedOn}
+        error={fieldErrors.plannedOn}
+        hint="Which day of the trip you plan to go. Leave it blank to decide later."
       />
 
       {cityNotice ? (

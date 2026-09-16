@@ -6,6 +6,8 @@ const VALID = {
   id: '00000000-0000-4000-8000-000000000000',
   name: 'Japan 2026',
   archived: false,
+  startsOn: null,
+  endsOn: null,
   createdAt: '2026-08-02T12:00:00.000Z',
 }
 
@@ -26,6 +28,46 @@ describe('tripSchema', () => {
 
   it('rejects a non-uuid id', () => {
     expect(tripSchema.safeParse({ ...VALID, id: '123' }).success).toBe(false)
+  })
+
+  it('accepts a trip carrying both dates', () => {
+    const dated = { ...VALID, startsOn: '2026-04-01', endsOn: '2026-04-14' }
+    expect(tripSchema.parse(dated)).toEqual(dated)
+  })
+
+  it('accepts one date without the other', () => {
+    expect(
+      tripSchema.safeParse({ ...VALID, startsOn: '2026-04-01' }).success,
+    ).toBe(true)
+    expect(tripSchema.safeParse({ ...VALID, endsOn: '2026-04-14' }).success).toBe(
+      true,
+    )
+  })
+
+  it('rejects a date that is not a calendar date', () => {
+    expect(tripSchema.safeParse({ ...VALID, startsOn: '2026-13-01' }).success).toBe(
+      false,
+    )
+    expect(
+      tripSchema.safeParse({ ...VALID, startsOn: '2026-04-01T00:00:00Z' })
+        .success,
+    ).toBe(false)
+  })
+
+  /*
+   * A read resolves what it is given rather than refusing it, and the check
+   * constraint on `trips` is what guarantees the ordering for every writer.
+   * Refining the read shape would also break `.pick()`, which both schemas
+   * below are built with — zod 4 refuses it on an object carrying refinements.
+   */
+  it('does not judge the order of dates it is handed', () => {
+    expect(
+      tripSchema.safeParse({
+        ...VALID,
+        startsOn: '2026-04-14',
+        endsOn: '2026-04-01',
+      }).success,
+    ).toBe(true)
   })
 })
 
@@ -53,6 +95,73 @@ describe('newTripSchema', () => {
     expect(
       newTripSchema.safeParse({ name: '', displayName: 'Cristian' }).success,
     ).toBe(false)
+  })
+
+  it('accepts a trip created with both dates', () => {
+    expect(
+      newTripSchema.safeParse({
+        name: 'Japan 2026',
+        displayName: 'Cristian',
+        startsOn: '2026-04-01',
+        endsOn: '2026-04-14',
+      }).success,
+    ).toBe(true)
+  })
+
+  it('accepts a trip created with no dates', () => {
+    expect(
+      newTripSchema.safeParse({
+        name: 'Japan 2026',
+        displayName: 'Cristian',
+        startsOn: null,
+        endsOn: null,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('treats dates left out as no dates, rather than refusing them', () => {
+    const parsed = newTripSchema.safeParse({
+      name: 'Japan 2026',
+      displayName: 'Cristian',
+    })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.startsOn).toBe(null)
+    expect(parsed.success && parsed.data.endsOn).toBe(null)
+  })
+
+  it('accepts a trip created with one date and not the other', () => {
+    expect(
+      newTripSchema.safeParse({
+        name: 'Japan 2026',
+        displayName: 'Cristian',
+        startsOn: '2026-04-01',
+        endsOn: null,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('rejects an end date before the start date, naming the end date', () => {
+    const parsed = newTripSchema.safeParse({
+      name: 'Japan 2026',
+      displayName: 'Cristian',
+      startsOn: '2026-04-14',
+      endsOn: '2026-04-01',
+    })
+    expect(parsed.success).toBe(false)
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual([
+      'endsOn',
+    ])
+  })
+
+  it('accepts a trip that starts and ends on the same day', () => {
+    expect(
+      newTripSchema.safeParse({
+        name: 'A day out',
+        displayName: 'Cristian',
+        startsOn: '2026-04-01',
+        endsOn: '2026-04-01',
+      }).success,
+    ).toBe(true)
   })
 
   it('enforces the member name rules the member schema defines', () => {
@@ -109,5 +218,49 @@ describe('tripPatchSchema', () => {
 
   it('rejects a non-boolean archived', () => {
     expect(tripPatchSchema.safeParse({ archived: 'yes' }).success).toBe(false)
+  })
+
+  it('accepts setting both dates', () => {
+    expect(
+      tripPatchSchema.safeParse({
+        startsOn: '2026-04-01',
+        endsOn: '2026-04-14',
+      }).success,
+    ).toBe(true)
+  })
+
+  it('accepts clearing both dates', () => {
+    const parsed = tripPatchSchema.safeParse({ startsOn: null, endsOn: null })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.startsOn).toBe(null)
+  })
+
+  it('rejects an end date before the start date, naming the end date', () => {
+    const parsed = tripPatchSchema.safeParse({
+      startsOn: '2026-04-14',
+      endsOn: '2026-04-01',
+    })
+    expect(parsed.success).toBe(false)
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual([
+      'endsOn',
+    ])
+  })
+
+  /*
+   * A patch naming one date alone cannot be judged here — the other is in the
+   * database, not in the request. `trips_dates_ordered` is what covers it, and
+   * it covers it for every writer rather than only for this one.
+   */
+  it('accepts one date alone, leaving the ordering to the database', () => {
+    expect(tripPatchSchema.safeParse({ endsOn: '2026-04-01' }).success).toBe(true)
+    expect(tripPatchSchema.safeParse({ startsOn: '2026-04-14' }).success).toBe(
+      true,
+    )
+  })
+
+  it('leaves the dates out when the patch does not mention them', () => {
+    const parsed = tripPatchSchema.safeParse({ name: 'Japan 2027' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && 'startsOn' in parsed.data).toBe(false)
   })
 })
