@@ -117,6 +117,7 @@ export type Database = {
           lng: number
           name: string
           note: string | null
+          planned_on: string | null
           price: number | null
           trip_id: string
           type: string
@@ -132,6 +133,7 @@ export type Database = {
           lng: number
           name: string
           note?: string | null
+          planned_on?: string | null
           price?: number | null
           trip_id: string
           type?: string
@@ -147,6 +149,7 @@ export type Database = {
           lng?: number
           name?: string
           note?: string | null
+          planned_on?: string | null
           price?: number | null
           trip_id?: string
           type?: string
@@ -209,20 +212,26 @@ export type Database = {
         Row: {
           archived: boolean
           created_at: string
+          ends_on: string | null
           id: string
           name: string
+          starts_on: string | null
         }
         Insert: {
           archived?: boolean
           created_at?: string
+          ends_on?: string | null
           id?: string
           name: string
+          starts_on?: string | null
         }
         Update: {
           archived?: boolean
           created_at?: string
+          ends_on?: string | null
           id?: string
           name?: string
+          starts_on?: string | null
         }
         Relationships: []
       }
@@ -233,7 +242,12 @@ export type Database = {
     Functions: {
       claim_trip_memberships: { Args: never; Returns: number }
       create_trip: {
-        Args: { member_name: string; trip_name: string }
+        Args: {
+          member_name: string
+          trip_ends_on?: string
+          trip_name: string
+          trip_starts_on?: string
+        }
         Returns: string
       }
       is_member_of_marker_trip: {

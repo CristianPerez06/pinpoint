@@ -39,6 +39,8 @@ const ROW = {
   id: '22222222-2222-4222-8222-222222222222',
   name: 'Japan',
   archived: false,
+  starts_on: null,
+  ends_on: null,
   created_at: '2026-08-03T00:00:00.000Z',
 }
 
@@ -54,6 +56,8 @@ describe('fetchTrips', () => {
       id: ROW.id,
       name: 'Japan',
       archived: false,
+      startsOn: null,
+      endsOn: null,
       createdAt: ROW.created_at,
     })
   })
@@ -190,6 +194,8 @@ describe('createTrip', () => {
     expect(calls.rpc).toHaveBeenCalledWith('create_trip', {
       trip_name: 'Japan',
       member_name: 'Cristian',
+      trip_starts_on: undefined,
+      trip_ends_on: undefined,
     })
     // The whole design in one assertion: `trips` has no insert policy, so a
     // trip that arrived by insert would mean the function had been bypassed.
@@ -208,7 +214,52 @@ describe('createTrip', () => {
     // would make creating a trip as somebody else a matter of typing.
     const call = calls.rpc.mock.calls[0]
     expect(call).toBeDefined()
-    expect(Object.keys(call![1]).sort()).toEqual(['member_name', 'trip_name'])
+    expect(Object.keys(call![1]).sort()).toEqual([
+      'member_name',
+      'trip_ends_on',
+      'trip_name',
+      'trip_starts_on',
+    ])
+  })
+
+  it('carries the dates it was given through to the function', async () => {
+    const { client, calls } = stubWriteClient({
+      rpc: { data: ROW.id },
+      row: { data: { ...ROW, starts_on: '2026-04-01', ends_on: '2026-04-14' } },
+    })
+
+    const outcome = await createTrip(client, {
+      name: 'Japan',
+      displayName: 'Cristian',
+      startsOn: '2026-04-01',
+      endsOn: '2026-04-14',
+    })
+
+    expect(outcome.ok).toBe(true)
+    expect(calls.rpc).toHaveBeenCalledWith('create_trip', {
+      trip_name: 'Japan',
+      member_name: 'Cristian',
+      trip_starts_on: '2026-04-01',
+      trip_ends_on: '2026-04-14',
+    })
+    expect(outcome.ok && outcome.data.startsOn).toBe('2026-04-01')
+  })
+
+  it('rejects an end date before the start date without contacting the database', async () => {
+    const { client, calls } = stubWriteClient({
+      rpc: { data: ROW.id },
+      row: { data: ROW },
+    })
+
+    const outcome = await createTrip(client, {
+      name: 'Japan',
+      displayName: 'Cristian',
+      startsOn: '2026-04-14',
+      endsOn: '2026-04-01',
+    })
+
+    expect(outcome.ok).toBe(false)
+    expect(calls.rpc).not.toHaveBeenCalled()
   })
 
   it('rejects a trip with no name for the creator', async () => {
@@ -318,6 +369,36 @@ describe('updateTrip', () => {
     await updateTrip(client, ROW.id, { name: 'Japan 2027' })
 
     // A partial patch: renaming a trip must not quietly un-archive it.
+    expect(calls.update).toHaveBeenCalledWith({ name: 'Japan 2027' })
+  })
+
+  it('sets and clears the dates, in the column names the table uses', async () => {
+    const { client, calls } = stubWriteClient({
+      row: { data: { ...ROW, starts_on: '2026-04-01', ends_on: '2026-04-14' } },
+    })
+
+    await updateTrip(client, ROW.id, {
+      startsOn: '2026-04-01',
+      endsOn: '2026-04-14',
+    })
+
+    expect(calls.update).toHaveBeenCalledWith({
+      starts_on: '2026-04-01',
+      ends_on: '2026-04-14',
+    })
+  })
+
+  /*
+   * A rename must not carry an implicit `starts_on: null`. Every trip column
+   * before this one was a single word, so a camel-cased patch happened to be
+   * spelled like the row and could be passed through untouched — this is the
+   * first that is not, and the first that could clear something by omission.
+   */
+  it('leaves the dates alone when the patch does not mention them', async () => {
+    const { client, calls } = stubWriteClient({ row: { data: ROW } })
+
+    await updateTrip(client, ROW.id, { name: 'Japan 2027' })
+
     expect(calls.update).toHaveBeenCalledWith({ name: 'Japan 2027' })
   })
 

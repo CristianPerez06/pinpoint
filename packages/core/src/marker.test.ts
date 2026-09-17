@@ -13,6 +13,7 @@ const VALID = {
   type: 'culture',
   link: null,
   price: null,
+  plannedOn: null,
   visited: false,
   createdAt: '2026-08-02T12:00:00.000Z',
   updatedAt: '2026-08-02T12:00:00.000Z',
@@ -21,6 +22,51 @@ const VALID = {
 describe('markerSchema', () => {
   it('accepts a well-formed marker', () => {
     expect(markerSchema.parse(VALID)).toEqual(VALID)
+  })
+
+  it('accepts a day', () => {
+    expect(markerSchema.parse({ ...VALID, plannedOn: '2026-04-03' }).plannedOn).toBe(
+      '2026-04-03',
+    )
+  })
+
+  it('records an undecided day as absent rather than as empty text', () => {
+    expect(markerSchema.parse(VALID).plannedOn).toBe(null)
+    expect(markerSchema.safeParse({ ...VALID, plannedOn: '' }).success).toBe(false)
+  })
+
+  it('rejects a day that is not a calendar date', () => {
+    expect(markerSchema.safeParse({ ...VALID, plannedOn: '2026-13-01' }).success).toBe(
+      false,
+    )
+    expect(
+      markerSchema.safeParse({ ...VALID, plannedOn: '2026-04-03T09:00:00Z' })
+        .success,
+    ).toBe(false)
+  })
+
+  /*
+   * A trip's dates say roughly when it is; they are not a boundary. Refusing a
+   * day either side of them would mean shifting a trip silently invalidated
+   * decisions that were already made, so nothing here consults them.
+   */
+  it('accepts a day outside any trip window, because it does not know of one', () => {
+    expect(markerSchema.safeParse({ ...VALID, plannedOn: '2019-01-01' }).success).toBe(
+      true,
+    )
+    expect(markerSchema.safeParse({ ...VALID, plannedOn: '2099-12-31' }).success).toBe(
+      true,
+    )
+  })
+
+  /*
+   * A city and a day are two groupings standing beside each other. Neither
+   * derives the other, so a place filed under a city whose other places are on
+   * different days is not a contradiction.
+   */
+  it('does not tie the day to the city', () => {
+    const dated = { ...VALID, cityId: null, plannedOn: '2026-04-03' }
+    expect(markerSchema.parse(dated).plannedOn).toBe('2026-04-03')
   })
 
   it('accepts a note', () => {
@@ -78,6 +124,28 @@ describe('markerSchema', () => {
     expect(parsed.success).toBe(true)
     if (!parsed.success) throw new Error('unreachable')
     expect(parsed.data).not.toHaveProperty('updatedAt')
+  })
+
+  it('accepts moving a place to another day, and off every day', () => {
+    const moved = markerPatchSchema.safeParse({ plannedOn: '2026-04-05' })
+    expect(moved.success).toBe(true)
+    expect(moved.success && moved.data.plannedOn).toBe('2026-04-05')
+
+    const cleared = markerPatchSchema.safeParse({ plannedOn: null })
+    expect(cleared.success).toBe(true)
+    expect(cleared.success && cleared.data.plannedOn).toBe(null)
+  })
+
+  /*
+   * A default survives `.partial()`, so a patch schema derived from the
+   * creation schema would turn "this edit says nothing about the day" into
+   * "clear the day" — on every edit from the phone, which has no control for
+   * one. The two schemas want opposite things from the same absent key.
+   */
+  it('leaves the day out when the patch does not mention it', () => {
+    const parsed = markerPatchSchema.safeParse({ name: 'Somewhere' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && 'plannedOn' in parsed.data).toBe(false)
   })
 
   it('rejects a non-ISO createdAt', () => {
@@ -169,5 +237,22 @@ describe('newMarkerSchema', () => {
     expect(newMarkerSchema.safeParse({ ...NEW, type: 'onsen' }).success).toBe(
       false,
     )
+  })
+
+  /*
+   * The phone has no control for a day and sends no key for one. Requiring it
+   * broke every save from that application the moment the field was added, and
+   * the type system could not see it because `createMarker` takes `unknown`.
+   */
+  it('treats a day left out as no day, rather than refusing the place', () => {
+    const parsed = newMarkerSchema.safeParse(NEW)
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.plannedOn).toBe(null)
+  })
+
+  it('accepts a place saved straight onto a day', () => {
+    const parsed = newMarkerSchema.safeParse({ ...NEW, plannedOn: '2026-04-03' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.plannedOn).toBe('2026-04-03')
   })
 })

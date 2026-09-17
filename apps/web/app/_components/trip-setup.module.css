@@ -40,3 +40,17 @@
   line-height: var(--pp-type-note-leading);
   color: var(--pp-ink-muted);
 }
+
+/*
+ * The two dates share a row where there is room and stack where there is not.
+ *
+ * `minmax(0, 1fr)` rather than `1fr`: a grid track's default minimum is
+ * `auto`, which is the item's content width, and a date input's content width
+ * is a browser default of its own — so plain `1fr` columns refuse to shrink
+ * below it and overflow the panel on a narrow window instead of wrapping.
+ */
+.dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: var(--pp-space-sm);
+}

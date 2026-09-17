@@ -51,6 +51,8 @@ export type ChromeBindings = {
   archivedTrips: TripBarLiveProps['archived']
   onSelectTrip: TripBarLiveProps['onSelect']
   onRenameTrip: TripBarLiveProps['onRename']
+  onSetTripDates: TripBarLiveProps['onSetDates']
+  calendarHref: TripBarLiveProps['calendarHref']
   onRevealArchived: TripBarLiveProps['onRevealArchived']
   onArchiveTrip: TripBarLiveProps['onArchive']
   onRestoreTrip: TripBarLiveProps['onRestore']
@@ -176,6 +178,8 @@ export function WorkspaceChrome({
           members={live.members}
           onSelect={live.onSelectTrip}
           onRename={live.onRenameTrip}
+          onSetDates={live.onSetTripDates}
+          calendarHref={live.calendarHref}
           archived={live.archivedTrips}
           onRevealArchived={live.onRevealArchived}
           onArchive={live.onArchiveTrip}

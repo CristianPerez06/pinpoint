@@ -27,6 +27,25 @@ export const markerSchema = z.object({
   /** Where the place was found — the answer to "why did we save this?". */
   link: z.url().max(2000).nullable(),
   price: z.number().nonnegative().nullable(),
+  /**
+   * The day this place is planned for, or null while that is undecided.
+   *
+   * A calendar date and never an instant. A timestamp is a different day
+   * depending on where it is read, so a place put on Thursday at home would
+   * come back as Wednesday once somebody is standing in Kyōto — which is
+   * exactly when this has to be right. `createdAt` and `updatedAt` below are
+   * correctly instants; they record moments rather than days somebody chose.
+   *
+   * Independent of `cityId` in both directions. A city and a day are two
+   * groupings of one set of places, sitting beside each other rather than one
+   * inside the other, so neither derives, defaults or constrains the other —
+   * a day trip that crosses a city boundary is an ordinary thing to plan.
+   *
+   * Also independent of the trip's own dates, which may be absent and are not
+   * a boundary. A place dated a day either side of the trip is somebody's
+   * decision, not an error.
+   */
+  plannedOn: z.iso.date().nullable(),
   /** Shared by the whole trip: travelling companions visit a place together. */
   visited: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -50,7 +69,16 @@ export type Marker = z.infer<typeof markerSchema>
  * `visited` is absent: a marker is not visited when it is saved, and the
  * database owns that default.
  */
-export const newMarkerSchema = markerSchema.pick({
+/**
+ * The fields a client may write, before either schema puts its own gloss on
+ * them.
+ *
+ * Named once and derived from twice, so a field added to a marker is writable
+ * on creation and editable afterwards without anybody remembering to do both.
+ * What each of the two does with `plannedOn` differs, and that is the only
+ * reason this exists separately.
+ */
+const writableMarkerFields = markerSchema.pick({
   tripId: true,
   cityId: true,
   name: true,
@@ -60,6 +88,28 @@ export const newMarkerSchema = markerSchema.pick({
   type: true,
   link: true,
   price: true,
+  plannedOn: true,
+})
+
+/**
+ * Fields a client supplies when dropping a marker.
+ *
+ * `visited` is absent: a marker is not visited when it is saved, and the
+ * database owns that default.
+ *
+ * `plannedOn` is defaulted rather than merely nullable, unlike the three other
+ * optional fields. Those are absent-as-null because the form that writes them
+ * has a control for every one, so it always has something to send. This one has
+ * a control on the web and none on the phone, which does not offer days yet —
+ * and a client that cannot express a day is a client whose places have no day.
+ * That is the ordinary case rather than a caller being careless.
+ *
+ * Requiring the key made every save from the phone fail validation the moment
+ * this field was added, and the type system could not say so because
+ * `createMarker` takes `unknown`. A test is what said so instead.
+ */
+export const newMarkerSchema = writableMarkerFields.extend({
+  plannedOn: markerSchema.shape.plannedOn.default(null),
 })
 
 export type NewMarker = z.infer<typeof newMarkerSchema>
@@ -67,9 +117,16 @@ export type NewMarker = z.infer<typeof newMarkerSchema>
 /**
  * What may be changed about a marker after it exists.
  *
- * Derived from `newMarkerSchema` rather than written out again, so a field added
- * to one is editable in the other without anybody remembering to do it. The two
+ * Derived from the shared field list rather than written out again, so the two
  * cannot drift.
+ *
+ * Deliberately **not** derived from `newMarkerSchema`, which is where it used
+ * to come from. A default survives `.partial()`: an absent key in a patch means
+ * "leave this alone", so inheriting `plannedOn`'s default would have cleared
+ * the day of every place edited by anything that did not mention one — the
+ * phone's every edit, for a start. The two schemas want opposite things from
+ * the same absent key, which is the whole reason the field list above is
+ * separate from either.
  *
  * `tripId` is dropped: every access rule in the product resolves to the trip a
  * row belongs to, so an edit that could move a marker between trips would be an
@@ -77,6 +134,8 @@ export type NewMarker = z.infer<typeof newMarkerSchema>
  * it is absent from creation — it is recorded by marking a place visited, not by
  * editing a form.
  */
-export const markerPatchSchema = newMarkerSchema.omit({ tripId: true }).partial()
+export const markerPatchSchema = writableMarkerFields
+  .omit({ tripId: true })
+  .partial()
 
 export type MarkerPatch = z.infer<typeof markerPatchSchema>

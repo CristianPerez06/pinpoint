@@ -88,6 +88,7 @@ const MARKER_ROW = {
   type: 'shopping',
   link: null,
   price: null,
+  planned_on: null,
   visited: false,
   created_at: '2026-08-10T00:00:00.000Z',
   updated_at: '2026-08-10T00:00:00.000Z',
@@ -111,6 +112,7 @@ const VALID_MARKER = {
   type: 'shopping',
   link: null,
   price: null,
+  plannedOn: null,
 }
 
 describe('createMarker', () => {
@@ -137,6 +139,35 @@ describe('createMarker', () => {
     expect(calls.insert).toHaveBeenCalledWith(
       expect.objectContaining({ trip_id: TRIP_ID, city_id: CITY_ID }),
     )
+  })
+
+  it('carries the day a place was saved onto, under the column name', async () => {
+    const { client, calls } = stubClient({
+      data: { ...MARKER_ROW, planned_on: '2026-04-03' },
+    })
+
+    const outcome = await createMarker(client, {
+      ...VALID_MARKER,
+      plannedOn: '2026-04-03',
+    })
+
+    expect(calls.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ planned_on: '2026-04-03' }),
+    )
+    expect(outcome.ok && outcome.data.plannedOn).toBe('2026-04-03')
+  })
+
+  it('round-trips a day as the same calendar date it was given', async () => {
+    const { client } = stubClient({
+      data: { ...MARKER_ROW, planned_on: '2026-04-03' },
+    })
+
+    const outcome = await createMarker(client, {
+      ...VALID_MARKER,
+      plannedOn: '2026-04-03',
+    })
+
+    expect(outcome.ok && outcome.data.plannedOn).toBe('2026-04-03')
   })
 
   it('rejects bad input without contacting the database at all', async () => {
@@ -195,6 +226,24 @@ describe('updateMarker', () => {
     await updateMarker(client, MARKER_ID, { note: null }, VERSION)
 
     expect(calls.update).toHaveBeenCalledWith({ note: null })
+  })
+
+  it('moves a place to another day, and off every day', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    await updateMarker(client, MARKER_ID, { plannedOn: '2026-04-05' }, VERSION)
+    expect(calls.update).toHaveBeenCalledWith({ planned_on: '2026-04-05' })
+
+    await updateMarker(client, MARKER_ID, { plannedOn: null }, VERSION)
+    expect(calls.update).toHaveBeenCalledWith({ planned_on: null })
+  })
+
+  it('leaves the day alone when the patch does not mention it', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    await updateMarker(client, MARKER_ID, { name: 'Nishiki' }, VERSION)
+
+    expect(calls.update).toHaveBeenCalledWith({ name: 'Nishiki' })
   })
 
   it('refuses to move a marker to another trip', async () => {

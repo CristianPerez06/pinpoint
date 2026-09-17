@@ -589,7 +589,13 @@ export function TextField({
   onChange: (value: string) => void
   error?: string
   placeholder?: string
-  type?: 'text' | 'url' | 'number' | 'email'
+  /**
+   * `date` renders the browser's own date control, which anchors its picker to
+   * the field rather than raising a layer of ours over a form that is already
+   * raised over the map. Its value is a `YYYY-MM-DD` string in and out, which
+   * is the shape the day is stored and carried in everywhere.
+   */
+  type?: 'text' | 'url' | 'number' | 'email' | 'date'
   multiline?: boolean
   autoFocus?: boolean
   hint?: string
@@ -626,7 +632,7 @@ export function TextField({
           {error}
         </span>
       ) : hint ? (
-        <span className={styles.label}>{hint}</span>
+        <span className={styles.hint}>{hint}</span>
       ) : null}
     </label>
   )

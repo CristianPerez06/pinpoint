@@ -221,6 +221,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
     type: marker.type,
     link: marker.link,
     price: marker.price,
+    plannedOn: marker.plannedOn,
   }
 }
 
@@ -568,6 +569,21 @@ export function TripWorkspace({
   // The selection lives in the URL so it survives a reload and can be linked.
   const selectedCityId = searchParams.get('city')
 
+  /**
+   * Where the calendar is, carrying what has to survive the round trip.
+   *
+   * The city is in here because the way back has to restore it. A link that
+   * navigated to `/` and let the workspace choose again would put somebody down
+   * in a different city than the one they left, with nothing on screen saying
+   * so — which is the failure the chrome's rule about leaving and returning was
+   * written for.
+   */
+  const calendarHref = useMemo(() => {
+    const params = new URLSearchParams({ trip: trip.id })
+    if (selectedCityId) params.set('city', selectedCityId)
+    return `/calendar?${params.toString()}`
+  }, [trip.id, selectedCityId])
+
   const interestFor = useCallback(
     (marker: Marker) => interest.filter((record) => record.markerId === marker.id),
     [interest],
@@ -854,6 +870,46 @@ export function TripWorkspace({
   }
 
   /**
+   * Set or clear the dates a trip runs between.
+   *
+   * Optimistic like the rename above, and refused the same way — except that
+   * this write has a rejection somebody can act on. An end before a start is a
+   * field error, so it is handed back to the control that asked rather than
+   * turned into a message over the map, where it would sit a long way from the
+   * field it is about.
+   *
+   * Nothing else is touched. The dates decide which day the calendar opens on
+   * and no marker's own day follows them.
+   */
+  async function setTripDates(dates: {
+    startsOn: string | null
+    endsOn: string | null
+  }): Promise<FieldErrors> {
+    setMessage(null)
+
+    const previous = trips
+    setTrips((rows) =>
+      rows.map((each) => (each.id === trip.id ? { ...each, ...dates } : each)),
+    )
+
+    const outcome = await updateTrip(supabase, trip.id, dates)
+    if (!outcome.ok) {
+      setTrips(previous)
+      if (outcome.kind === 'invalid-input') return outcome.fieldErrors
+      setMessage(
+        outcome.kind === 'rejected'
+          ? outcome.message
+          : 'Could not save these dates.',
+      )
+      return {}
+    }
+
+    const saved = outcome.data
+    setTrips((rows) => rows.map((each) => (each.id === saved.id ? saved : each)))
+    return {}
+  }
+
+  /**
    * Archived trips, once somebody asks. Null until then.
    *
    * A read rather than a write, and treated like one anyway: the press has to be
@@ -1130,6 +1186,7 @@ export function TripWorkspace({
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
+        plannedOn: null,
         ...initial,
       },
       cityNotice: cityNoticeFor(claim, selectedCityId),
@@ -1346,6 +1403,8 @@ export function TripWorkspace({
         archivedTrips,
         onSelectTrip: selectTrip,
         onRenameTrip: renameTrip,
+        onSetTripDates: setTripDates,
+        calendarHref: calendarHref,
         onRevealArchived: revealArchived,
         onArchiveTrip: archiveAndLeave,
         onRestoreTrip: restoreTrip,
