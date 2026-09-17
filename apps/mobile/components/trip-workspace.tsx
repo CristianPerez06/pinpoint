@@ -243,8 +243,8 @@ export function TripWorkspace({
    * than by whatever asked, which is what stops the return trigger and a sheet
    * opening straight after it reading the same list twice.
    */
-  const rereadEverything = (options?: { force?: boolean }) =>
-    Promise.all([
+  const rereadEverything = async (options?: { force?: boolean }) => {
+    const outcomes = await Promise.all([
       tripQuery.refetch(options),
       markerQuery.refetch(options),
       cityQuery.refetch(options),
@@ -252,12 +252,45 @@ export function TripWorkspace({
       memberQuery.refetch(options),
     ])
 
+    return outcomes.every((outcome) => outcome !== 'failed')
+  }
+
   /*
     Coming back to the application is how somebody learns that the person they
     are planning with changed something. It is the only automatic trigger: no
     polling, no interval, and nothing holding a connection open.
   */
   useActiveAgain(() => void rereadEverything())
+
+  /**
+   * Reading everything again because somebody pressed the control for it.
+   *
+   * Forced, so the freshness floor is ignored — a control that quietly declines
+   * because a read happened eight seconds ago is a control that looks broken.
+   *
+   * This is the branch the automatic trigger above deliberately does not take.
+   * Coming back is nobody's press and reports nothing; this is a press, and
+   * `write-feedback` gives an act somebody is waiting on both halves of an
+   * answer — that it is happening, and what happened. Until this control
+   * existed there was nowhere to put the second half, because the only way to
+   * ask was a row in a menu that dismissed itself.
+   */
+  const [rereading, setRereading] = useState(false)
+
+  async function rereadByHand() {
+    if (rereading) return
+    setProblem(null)
+    setRereading(true)
+
+    const everythingArrived = await rereadEverything({ force: true })
+
+    setRereading(false)
+    if (!everythingArrived) {
+      // What was on screen is still on screen — the read leaves the rows alone
+      // when it fails, so this is news rather than a replacement for the trip.
+      setProblem('Could not read the trip again. Check your connection.')
+    }
+  }
 
   const [filter, setFilter] = useState<MarkerFilter>(NO_FILTER)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -1160,6 +1193,8 @@ export function TripWorkspace({
             was — which is what the specification asks of abandoning.
           */
           onAbandonCapture={cancelPanel}
+          onReread={() => void rereadByHand()}
+          rereading={rereading}
           confirmBar={
             <View style={styles.confirmRow}>
               {/*
@@ -1364,7 +1399,6 @@ export function TripWorkspace({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onSignOut={() => void signOut(supabase)}
-        onRefresh={() => rereadEverything({ force: true })}
         member={ownMemberOf(members, userId) ?? null}
       />
 
@@ -1480,6 +1514,8 @@ function Body({
   onDeleteMarker,
   removingId,
   onAbandonCapture,
+  onReread,
+  rereading,
   loading,
   failed,
   total,
@@ -1509,6 +1545,10 @@ function Body({
   /** The place whose removal is in flight, so its control can say so. */
   removingId: string | null
   onAbandonCapture: () => void
+  /** Read every list again, because somebody pressed the control for it. */
+  onReread: () => void
+  /** Whether that read is in flight, so the control can answer the press. */
+  rereading: boolean
   loading: boolean
   failed: string | null
   total: number
@@ -1572,6 +1612,8 @@ function Body({
         onDeleteMarker={onDeleteMarker}
         removingId={removingId}
         onAbandonCapture={onAbandonCapture}
+        onReread={onReread}
+        rereading={rereading}
         bottomRow={bottomRow}
         markers={visible}
         held={held}

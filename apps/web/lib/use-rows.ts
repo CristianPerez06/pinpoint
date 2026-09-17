@@ -1,6 +1,10 @@
 'use client'
 
-import { FRESH_FOR_MS, type SettledQueryState } from '@pinpoint/data'
+import {
+  FRESH_FOR_MS,
+  type ReadOutcome,
+  type SettledQueryState,
+} from '@pinpoint/data'
 import {
   type Dispatch,
   type SetStateAction,
@@ -38,7 +42,7 @@ export function useRows<T>(
   (
     run: () => Promise<SettledQueryState<readonly T[]>>,
     options?: { force?: boolean },
-  ) => Promise<void>,
+  ) => Promise<ReadOutcome>,
 ] {
   const [rows, setRows] = useState<readonly T[]>(initial)
 
@@ -68,7 +72,7 @@ export function useRows<T>(
   }, [])
 
   /** A read already on its way, so two triggers in one tick send one request. */
-  const inFlight = useRef<Promise<void> | null>(null)
+  const inFlight = useRef<Promise<ReadOutcome> | null>(null)
 
   const refresh = useCallback(
     (
@@ -77,23 +81,31 @@ export function useRows<T>(
     ) => {
       if (inFlight.current !== null) return inFlight.current
       if (options?.force !== true && Date.now() - readAt.current < FRESH_FOR_MS) {
-        return Promise.resolve()
+        return Promise.resolve<ReadOutcome>('declined')
       }
 
       const started = run()
-        .then((settled) => {
+        .then((settled): ReadOutcome => {
           /*
             A re-read that failed leaves what is on screen alone.
 
-            Nobody pressed anything, so there is no press to answer, and
-            replacing a working map with an error because a background read
+            Replacing a working map with an error because a background read
             failed trades the screen for the news. The first read is the
             server's, and it reports through the page.
+
+            What changed here is who decides to stay quiet. This used to
+            discard the failure, which made the quiet unavailable to opt out of
+            — and `data-freshness` exempts a read *a person asked for and is
+            waiting on* from the silence and hands it to `write-feedback`, so
+            the control that asks for one has always been owed this. The rows
+            are still left alone either way; the outcome is now told to whoever
+            asked, and a trigger nobody pressed goes on ignoring it.
           */
-          if (settled.status === 'failed') return
+          if (settled.status === 'failed') return 'failed'
 
           readAt.current = Date.now()
           setRows(settled.status === 'ready' ? settled.data : [])
+          return 'read'
         })
         .finally(() => {
           inFlight.current = null

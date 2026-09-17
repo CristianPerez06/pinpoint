@@ -107,7 +107,7 @@
 }
 
 /*
- * Zoom, as a control rather than as a gesture.
+ * The right edge, and the instruments standing on it.
  *
  * Bottom-right and above the attribution rather than on it: the attribution is
  * a licence condition of the tiles and crowding it is the same failure as
@@ -120,11 +120,135 @@
  *
  * The other corner is the marker panel (328px at `md`, `z-index: 3`), which is
  * why this sits at the far edge and not merely "out of the way".
+ *
+ * One container for both, so that measurement exists once. The re-read would
+ * otherwise need a `bottom` clearing the floor *and* the zoom group's height,
+ * which is a second expression computing one edge — and the comment on the
+ * component's `style` records what happened the last time this edge was
+ * computed twice. Laid out bottom-up, so if the zoom group is ever absent the
+ * re-read falls to the floor rather than floating above a gap.
  */
-.zoom {
+.edge {
   position: absolute;
   right: var(--pp-space-md);
   bottom: var(--pp-space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  /*
+   * The gap `workspace-chrome` asks for, and the reason it is `md` rather than
+   * a hairline: zoom is pressed constantly and the re-read almost never, so a
+   * thumb that misses in this column costs the trip a full round of reads while
+   * somebody was trying to look closer. Wide enough that neither is reached
+   * while aiming for the other, and wide enough that they read as two objects
+   * rather than one control with a seam in it.
+   */
+  gap: var(--pp-space-md);
+  z-index: 3;
+}
+
+/*
+ * The re-read, alone on the edge above zoom.
+ *
+ * Round rather than a pill, because it stands on its own. No fill — under *The
+ * accent is a fill only where an act is committed*, a re-read commits nothing
+ * and is chrome at rest.
+ */
+.reread {
+  /*
+   * Absent by default and drawn only where the chrome takes its phone shape.
+   *
+   * Stated this way round rather than as a `min-width` that hides it, because
+   * `max-width: 700px` is the boundary every other rule in this project is
+   * written against — and the pair `max-width: 700px` / `min-width: 701px`
+   * leaves a window 700.5px wide matching neither, which would draw this
+   * control beside the laptop bar that already has reload above it.
+   *
+   * `display: none` rather than visual hiding, so the control leaves the tab
+   * order and the accessibility tree with the screen. At a laptop width it does
+   * not exist, and a button announced to a screen reader that `data-freshness`
+   * forbids being there is worse than one that is merely invisible.
+   */
+  display: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-sm);
+  color: var(--pp-ink);
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.reread:hover:not([aria-disabled='true']) {
+  background: var(--pp-surface-muted);
+}
+
+.reread:active:not([aria-disabled='true']) {
+  transform: translateY(1px);
+}
+
+/*
+ * Working, and still reachable while it works.
+ *
+ * `aria-disabled` rather than `disabled`, for the same reason the spent zoom
+ * button uses it: the attribute drops the control out of the tab order, so
+ * somebody arriving by keyboard mid-read would find it simply gone. `aria-busy`
+ * is what says a press was heard; the glyph turning says it to everyone else.
+ */
+.reread[aria-disabled='true'] {
+  cursor: default;
+}
+
+.reread[aria-busy='true'] .rereadGlyph {
+  animation: rereadSpin 0.9s linear infinite;
+}
+
+@keyframes rereadSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A spin is the whole signal here, so somebody who has asked not to see motion
+   is told by the colour instead rather than told nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .reread[aria-busy='true'] .rereadGlyph {
+    animation: none;
+    color: var(--pp-ink-muted);
+  }
+}
+
+.rereadGlyph {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+/*
+ * Present only where reload is not at hand.
+ *
+ * 700px, and the same literal as `chrome-bar.module.css` — which is where it is
+ * decided and explained, and which is the file to change first if it ever
+ * moves. Below it the tools stand on the map's own floor and the browser's
+ * reload is behind a collapsed toolbar or a pull gesture the page can swallow;
+ * in a copy installed to a home screen there is no browser furniture at all.
+ * Above it reload is a pixel above where this would sit, and `data-freshness`
+ * forbids a second one.
+ */
+@media (max-width: 700px) {
+  .reread {
+    display: grid;
+  }
+}
+
+.zoom {
   display: grid;
   /* A stacked pair reads as one segmented pill, so the round shape is on the
      group and the buttons inside it square off against each other. */
@@ -135,7 +259,6 @@
   /* Clips the buttons' corners to the group's radius, so the fill on hover
      follows the pill rather than a rectangle poking out of it. */
   overflow: hidden;
-  z-index: 3;
 }
 
 .zoomButton {

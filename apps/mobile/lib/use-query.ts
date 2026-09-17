@@ -2,6 +2,7 @@ import {
   FRESH_FOR_MS,
   LOADING,
   type QueryState,
+  type ReadOutcome,
   readyOrEmpty,
   type SettledQueryState,
 } from '@pinpoint/data'
@@ -39,8 +40,12 @@ export interface Query<T> {
    * Declines inside `FRESH_FOR_MS` of the last read unless forced. Force it for
    * a read somebody asked for by hand and is waiting on; leave it alone for
    * every read that happens because the screen became current again.
+   *
+   * Resolves to what it did. A trigger nobody pressed ignores that; the control
+   * somebody pressed is the one that owes an answer, and deciding which at the
+   * call site is what lets one function serve both.
    */
-  readonly refetch: (options?: { force?: boolean }) => Promise<void>
+  readonly refetch: (options?: { force?: boolean }) => Promise<ReadOutcome>
 }
 
 /**
@@ -119,9 +124,9 @@ export function useQuery<T>(
    * own list. Handing back the read that is already travelling is cheaper than
    * a floor can be, because it needs no clock.
    */
-  const inFlight = useRef<Promise<void> | null>(null)
+  const inFlight = useRef<Promise<ReadOutcome> | null>(null)
 
-  const read = useCallback(async () => {
+  const read = useCallback(async (): Promise<ReadOutcome> => {
     const forDeps = depsRef.current
     const settled = await runRef.current()
 
@@ -129,16 +134,21 @@ export function useQuery<T>(
     // about something nobody is looking at any more. Compared by value: `deps`
     // is a fresh array on every render, so comparing the arrays themselves
     // would throw away every re-read that happened to span a render.
-    if (!sameDeps(depsRef.current, forDeps)) return
+    if (!sameDeps(depsRef.current, forDeps)) return 'declined'
 
     setEntry((current) => {
       /*
         A re-read that failed leaves what is on screen alone.
 
-        Nobody pressed anything, so there is no press to answer, and replacing a
-        working map with an error because a background read failed trades the
-        screen for the news. A *first* read that fails is a different thing and
-        still reports: there is nothing on screen to protect.
+        Replacing a working map with an error because a background read failed
+        trades the screen for the news. A *first* read that fails is a different
+        thing and still reports: there is nothing on screen to protect.
+
+        What changed here is who decides to stay quiet. This used to discard the
+        outcome, which made the quiet unavailable to opt out of — and
+        `data-freshness` exempts a read *a person asked for and is waiting on*
+        from the silence and hands it to `write-feedback`. The rows are still
+        left alone either way; what the read did is now told to whoever asked.
       */
       if (
         settled.status === 'failed' &&
@@ -151,6 +161,8 @@ export function useQuery<T>(
       readAt.current = Date.now()
       return { deps: forDeps, state: settled }
     })
+
+    return settled.status === 'failed' ? 'failed' : 'read'
   }, [])
 
   useEffect(() => {
@@ -165,13 +177,14 @@ export function useQuery<T>(
       shows is still arriving, sends a second request for what is already on
       its way.
     */
-    const started: Promise<void> = run()
-      .then((settled) => {
+    const started: Promise<ReadOutcome> = run()
+      .then((settled): ReadOutcome => {
         // The screen went away, or the dependencies changed and a newer run is
         // already in flight. Writing here would show the older answer.
-        if (!active) return
+        if (!active) return 'declined'
         readAt.current = Date.now()
         setEntry({ deps, state: settled })
+        return settled.status === 'failed' ? 'failed' : 'read'
       })
       .finally(() => {
         if (inFlight.current === started) inFlight.current = null
@@ -190,7 +203,7 @@ export function useQuery<T>(
     (options?: { force?: boolean }) => {
       if (inFlight.current !== null) return inFlight.current
       if (options?.force !== true && Date.now() - readAt.current < FRESH_FOR_MS) {
-        return Promise.resolve()
+        return Promise.resolve<ReadOutcome>('declined')
       }
 
       const started = read().finally(() => {

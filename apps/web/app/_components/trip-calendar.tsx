@@ -121,11 +121,15 @@ export function TripCalendar({
   /*
    * The lists this screen shows, each with a way to read it again.
    *
-   * `useRows` rather than `useState` because the account menu in the bar
-   * carries `Refresh`, and a refresh has to actually re-read. It cannot go
-   * through `router.refresh()`: this component is keyed by the trip, so it does
-   * not remount, and its state initialisers never run again — the props would
-   * change and nothing on screen would.
+   * `useRows` rather than `useState` because coming back to the tab has to
+   * actually re-read. It cannot go through `router.refresh()`: this component
+   * is keyed by the trip, so it does not remount, and its state initialisers
+   * never run again — the props would change and nothing on screen would.
+   *
+   * The reason used to be given as the account menu's `Refresh` row. That row
+   * is gone from both applications now, and this screen deliberately gains no
+   * control in its place: `data-freshness` puts the by-hand re-read on the map,
+   * and `Back to the map` is one press away and reads the same five lists.
    */
   const [trips, setTrips, refreshTrips] = useRows<Trip>(storedTrips)
   const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)

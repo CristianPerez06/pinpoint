@@ -2,17 +2,15 @@ import type { TripMember } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import { useRouter } from 'expo-router'
 import LogOut from 'lucide-react-native/icons/log-out'
-import RefreshCw from 'lucide-react-native/icons/refresh-cw'
 import SettingsIcon from 'lucide-react-native/icons/settings'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
-import { usePending } from '@/lib/use-pending'
 
 /**
- * The account, the way out, and the one manual way to ask for fresh data.
+ * The account, and the way out.
  *
  * It held six things before this — choosing between trips, renaming one,
  * making one, People, Cities and Sign out — and every one of them was here
@@ -29,31 +27,27 @@ import { usePending } from '@/lib/use-pending'
  * There is no first and last name to show. A member has one `displayName`, up
  * to sixty characters, that they chose or that whoever invited them typed.
  *
- * `Refresh` is here for one case and it is not the ordinary one. Everything
- * this application shows is read again when it comes back to the foreground and
- * when the sheet showing it opens, so in normal use nobody needs to ask. What
- * they need is a way back from a read that failed while they were offline —
- * on the laptop that is the browser's reload, and on a phone there is nothing,
- * so without this the only recovery is force-quitting the application.
+ * `Refresh` **used to be here, and its absence is now the point.** It was put
+ * up here because it is rare, and being rare is exactly what made it wrong: a
+ * control buried in the account menu reads as something you do to your account,
+ * and this one is about the screen being read. It is now a button on the map,
+ * where `workspace-chrome` puts it — beside the other instrument of looking and
+ * clear of it, rather than among the things that belong to the person.
  *
- * Being rare is exactly why it belongs up here beside Sign out rather than in
- * the bar under a thumb. It also ignores the freshness floor, because somebody
- * pressed it: a control that quietly declines because a read happened eight
- * seconds ago is a control that looks broken.
+ * Nothing about *why* it exists changed. It is still the way back from a read
+ * that failed while the device was offline, still the only such way on a phone,
+ * and still forced past the freshness floor because somebody pressed it.
  */
 
 export function MenuSheet({
   open,
   onClose,
   onSignOut,
-  onRefresh,
   member,
 }: {
   open: boolean
   onClose: () => void
   onSignOut: () => void
-  /** Read everything again, however recently it was last read. */
-  onRefresh: () => Promise<unknown>
   /**
    * Who this account is on this trip, or null before the membership is known.
    *
@@ -65,8 +59,6 @@ export function MenuSheet({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  /** This press's own pending state, like every other write on either platform. */
-  const [refreshing, startRefresh] = usePending()
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
@@ -113,26 +105,16 @@ export function MenuSheet({
             </View>
           </View>
 
-          <Pressable
-            onPress={() => startRefresh(onRefresh)}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: refreshing }}
-            style={[styles.row, { borderBottomColor: theme.colour.line }]}
-          >
-            <RefreshCw size={18} color={theme.colour.inkMuted} strokeWidth={2} />
-            <Text style={[styles.rowText, { color: theme.colour.ink }]}>
-              {refreshing ? 'Refreshing…' : 'Refresh'}
-            </Text>
-          </Pressable>
-
           {/*
             The account's own screen, and the only row here that leaves.
 
-            Between `Refresh` and `Sign out`, which is where web's menu carries
-            it too — the two menus hold the same items in the same order on
-            purpose, so somebody who has used one recognises the other. `Sign
-            out` stays last and out of a thumb's reach; that is a rule rather
-            than a layout preference.
+            First, now that `Refresh` has gone to the map — and still above
+            `Sign out`, which is where web's menu carries it too. The two menus
+            hold the same items in the same order on purpose, so somebody who
+            has used one recognises the other, and they match again: web's lost
+            its `Refresh` row in #153 and this one has just lost its. `Sign out`
+            stays last and out of a thumb's reach; that is a rule rather than a
+            layout preference.
 
             The sheet is dismissed before navigating. A modal left standing over
             a route change is still there when the person comes back, covering

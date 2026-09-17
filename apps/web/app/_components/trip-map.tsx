@@ -18,6 +18,7 @@ import {
   type MarkerGroup,
   type StyleDocument,
 } from '@pinpoint/map'
+import { RefreshCw } from 'lucide-react'
 // Named imports, not a default: maplibre-gl v6 has no default export, and the
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
 // advice. `Map` and `Marker` are both aliased — the first collides with the
@@ -192,6 +193,8 @@ export function TripMap({
   frameToken,
   centreRef,
   onMarkersInView,
+  onReread,
+  rereading,
   floor = 0,
   covered = null,
 }: {
@@ -229,6 +232,17 @@ export function TripMap({
    */
   frameTo: readonly LngLat[]
   frameToken: number
+  /**
+   * Read every list again, because somebody pressed the control for it.
+   *
+   * Handed in rather than done here: what a re-read *is* belongs to the
+   * workspace, which owns the five lists and the surface a failure is reported
+   * on. Where the control stands belongs here, beside the other instrument on
+   * that edge and the measurement they share.
+   */
+  onReread: () => void
+  /** Whether that read is in flight, so the control can answer the press. */
+  rereading: boolean
   /**
    * How much of the bottom of the map is covered by chrome standing right
    * across it.
@@ -935,14 +949,12 @@ export function TripMap({
       */}
       {map ? (
         <div
-          className={styles.zoom}
-          role="group"
-          aria-label="Zoom"
+          className={styles.edge}
           // Rises off the credit rather than clearing a height guessed at once.
           // The gap is a token; only the thing being cleared is a measurement.
           /*
            * Above everything standing on this edge, which the specification
-           * requires by name: the zoom control "overlaps neither it nor
+           * requires by name: the controls here overlap "neither it nor
            * anything else standing on that edge", at any window or device size.
            *
            * Three terms, and at most two are ever non-zero. `cornerHeight` is
@@ -958,29 +970,66 @@ export function TripMap({
            * document, at every laptop width, reachable by nothing. It is true
            * now because `floor` counts only chrome standing right across the
            * map, and at a laptop width nothing does.
+           *
+           * It is measured once for both controls rather than once each. A
+           * second expression for the re-read would have to clear the floor
+           * *and* the height of the zoom group, which is exactly the kind of
+           * sum the paragraph above records getting wrong.
            */
           style={{
             bottom: `calc(${cornerHeight + floor + creditHeight}px + var(--pp-space-md))`,
           }}
         >
-          <ZoomButton
-            direction={1}
-            // A step that arrives where it started is a control with nothing
-            // left to do. Asking the shared function rather than comparing
-            // against `MAX_ZOOM` here keeps one opinion about where the range
-            // ends, and sidesteps the float comparison entirely.
-            spent={zoom !== null && zoomStep(zoom, 1) === zoom}
-            onPress={() =>
-              map.zoomTo(zoomStep(map.getZoom(), 1), { duration: 200 })
-            }
-          />
-          <ZoomButton
-            direction={-1}
-            spent={zoom !== null && zoomStep(zoom, -1) === zoom}
-            onPress={() =>
-              map.zoomTo(zoomStep(map.getZoom(), -1), { duration: 200 })
-            }
-          />
+          {/*
+            Reading everything again, where reload is not at hand.
+
+            Drawn at every width and removed by the stylesheet above 700px,
+            which is the idiom the bar already holds — one element, relocated or
+            withdrawn by a media query, rather than a second one conjured once
+            JavaScript has measured the window. At a laptop width the browser's
+            own reload is a pixel above where this would sit, and
+            `data-freshness` forbids a second one there.
+
+            Separate from the zoom group and not a third button on it: see the
+            gap in `.edge`.
+          */}
+          <button
+            type="button"
+            className={styles.reread}
+            onClick={onReread}
+            aria-label="Read everything again"
+            aria-busy={rereading}
+            /*
+              `aria-disabled` rather than `disabled`, matching the spent zoom
+              button: the attribute would drop the control out of the tab order,
+              so somebody arriving by keyboard mid-read would find it gone. The
+              handler is the one that declines.
+            */
+            aria-disabled={rereading || undefined}
+          >
+            <RefreshCw aria-hidden className={styles.rereadGlyph} />
+          </button>
+
+          <div className={styles.zoom} role="group" aria-label="Zoom">
+            <ZoomButton
+              direction={1}
+              // A step that arrives where it started is a control with nothing
+              // left to do. Asking the shared function rather than comparing
+              // against `MAX_ZOOM` here keeps one opinion about where the range
+              // ends, and sidesteps the float comparison entirely.
+              spent={zoom !== null && zoomStep(zoom, 1) === zoom}
+              onPress={() =>
+                map.zoomTo(zoomStep(map.getZoom(), 1), { duration: 200 })
+              }
+            />
+            <ZoomButton
+              direction={-1}
+              spent={zoom !== null && zoomStep(zoom, -1) === zoom}
+              onPress={() =>
+                map.zoomTo(zoomStep(map.getZoom(), -1), { duration: 200 })
+              }
+            />
+          </div>
         </div>
       ) : null}
     </div>
