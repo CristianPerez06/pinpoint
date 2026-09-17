@@ -28,6 +28,11 @@ import styles from '../page.module.css'
  * The reads are the workspace's, unchanged, and deliberately unfiltered. What a
  * filter narrows is a property of the workspace; a calendar that inherited one
  * would show a day as emptier than it is.
+ *
+ * The whole list of trips goes down as well, because this screen wears the
+ * product's header and the trip's name in it is the switcher. Choosing another
+ * trip shows that trip's calendar rather than returning to the map, and one
+ * read here is what makes that possible without a second one on the client.
  */
 export default async function CalendarPage({
   searchParams,
@@ -85,8 +90,9 @@ export default async function CalendarPage({
       <TripCalendar
         key={trip.id}
         trip={trip}
+        trips={trips.data}
         initialMarkers={markers.status === 'ready' ? markers.data : []}
-        cities={cities.status === 'ready' ? cities.data : []}
+        initialCities={cities.status === 'ready' ? cities.data : []}
         members={memberList}
         initialInterest={interest.status === 'ready' ? interest.data : []}
         ownMemberId={ownMemberOf(memberList, userId)?.id ?? null}

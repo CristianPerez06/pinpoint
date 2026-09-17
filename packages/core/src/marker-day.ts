@@ -178,3 +178,27 @@ export function dayToOpenOn(
   if (dayWithin(today, trip.startsOn, trip.endsOn)) return today
   return trip.startsOn ?? today
 }
+
+/**
+ * The day a calendar shows: the one being asked for, or the one this trip opens
+ * on when nothing is.
+ *
+ * One rule rather than two, and that is the whole reason it is a function.
+ * Arriving fresh and changing trip are the same event — changing trip *is*
+ * arriving at that trip — so a second rule written for switching is a rule that
+ * can drift from the first. This is the one both go through, and `asked` is
+ * absent in exactly the cases where the trip has just changed.
+ *
+ * The failure it is written against looks like a working screen. Carrying a day
+ * from one trip to another lands outside the trip arrived at nearly every time,
+ * because two trips rarely cover the same dates — so the calendar opens on a day
+ * holding nothing and reads as a trip with nothing planned rather than as the
+ * wrong day. Nothing is on screen to say which.
+ */
+export function dayShown(
+  asked: string | null | undefined,
+  trip: { startsOn: IsoDay | null; endsOn: IsoDay | null },
+  now: Date = new Date(),
+): IsoDay {
+  return asked ?? dayToOpenOn(trip, now)
+}

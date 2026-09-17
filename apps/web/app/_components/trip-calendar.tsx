@@ -3,7 +3,7 @@
 import {
   addDays,
   type City,
-  dayToOpenOn,
+  dayShown,
   type FieldErrors,
   groupMarkersByDay,
   type IsoDay,
@@ -15,6 +15,11 @@ import {
 } from '@pinpoint/core'
 import {
   deleteMarker,
+  fetchTripCities,
+  fetchTripInterest,
+  fetchTripMarkers,
+  fetchTripMembers,
+  fetchTrips,
   recordInterest,
   setMarkerVisited,
   updateMarker,
@@ -26,11 +31,17 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 
+import { AccountMenu } from '@/app/_components/account-menu'
+import { ChromeBar } from '@/app/_components/chrome-bar'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm, type MarkerFormValues } from '@/app/_components/marker-form'
 import { TypeChip } from '@/app/_components/pin'
+import { TripBar } from '@/app/_components/trip-bar'
+import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
 import { formatDay, formatDayFull, formatDayShort } from '@/lib/day'
+import { useRows } from '@/lib/use-rows'
+import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-calendar.module.css'
 
@@ -73,17 +84,24 @@ function refusalMessage(
 }
 
 export function TripCalendar({
-  trip,
+  trip: initialTrip,
+  trips: storedTrips,
   initialMarkers,
-  cities,
-  members,
+  initialCities,
+  members: initialMembers,
   initialInterest,
   ownMemberId,
   workspaceHref,
 }: {
   trip: Trip
+  /**
+   * Every trip this account belongs to, so one can be chosen from here without
+   * another read. The trip's name opens the same menu it opens on the map, and
+   * that menu is the switcher.
+   */
+  trips: readonly Trip[]
   initialMarkers: readonly Marker[]
-  cities: readonly City[]
+  initialCities: readonly City[]
   members: readonly TripMember[]
   initialInterest: readonly MarkerInterest[]
   ownMemberId: string | null
@@ -100,13 +118,94 @@ export function TripCalendar({
   const supabase = useMemo(() => createClient(), [])
   const searchParams = useSearchParams()
 
-  const [markers, setMarkers] = useState(initialMarkers)
-  const [interest, setInterest] = useState(initialInterest)
+  /*
+   * The lists this screen shows, each with a way to read it again.
+   *
+   * `useRows` rather than `useState` because the account menu in the bar
+   * carries `Refresh`, and a refresh has to actually re-read. It cannot go
+   * through `router.refresh()`: this component is keyed by the trip, so it does
+   * not remount, and its state initialisers never run again — the props would
+   * change and nothing on screen would.
+   */
+  const [trips, setTrips, refreshTrips] = useRows<Trip>(storedTrips)
+  const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)
+  const [markers, setMarkers, refreshMarkers] = useRows<Marker>(initialMarkers)
+  const [interest, setInterest, refreshInterest] =
+    useRows<MarkerInterest>(initialInterest)
+  /*
+   * The cities, read again but never written here.
+   *
+   * No setter, because this screen cannot create, rename or remove one — that
+   * is the map's business, which is why the edit form's city chooser offers no
+   * way to add one. It still *shows* them, in that chooser and in the currency
+   * a price is written in, and `data-freshness` says no list a person can see
+   * may be left out of the re-read. Held as a prop and never refreshed, a city
+   * renamed on the map stayed stale in an open calendar until the page was
+   * reloaded.
+   */
+  const [cities, , refreshCities] = useRows<City>(initialCities)
+
+  /**
+   * The trip being read, out of the list that holds it.
+   *
+   * Derived rather than held beside the list, the same way the map does it: a
+   * rename writes to one place and everything on screen reads it. Falling back
+   * to what the server resolved covers the trip having left the list under a
+   * re-read — somebody else archived it — because going on showing the trip
+   * that is open beats emptying the screen out from under whoever is reading
+   * it.
+   */
+  const trip = trips.find((each) => each.id === initialTrip.id) ?? initialTrip
+
+  /**
+   * What to call the reader on the account control.
+   *
+   * Their member name when their account matches one, and `Account` when it does
+   * not — which is ordinary rather than broken, since a member row exists before
+   * the account does.
+   */
+  const youAre =
+    members.find((member) => member.id === ownMemberId)?.displayName ?? 'Account'
+
   const [message, setMessage] = useState<string | null>(null)
   const [conflict, setConflict] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [openMarkerId, setOpenMarkerId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  /**
+   * Which of the bar's menus is open, as one value.
+   *
+   * The same rule the map states and for the same reason: only one panel in the
+   * bar may be open at a time, and that is a fact about the whole bar — no
+   * control can enforce it about panels it cannot see.
+   */
+  const [detour, setDetour] = useState<'none' | 'trip' | 'account'>('none')
+
+  /**
+   * Everything the trip's own menu does, shared with the map.
+   *
+   * The two addresses are what differ. Choosing a trip stays on the calendar
+   * and goes to *that* trip's calendar — rather than returning to the map to
+   * get there — and it carries no `day`, so the opening-day rule decides
+   * afresh. A day from one trip means nothing in another: two trips rarely
+   * cover the same dates, so the day carried across lands outside the trip
+   * arrived at and the calendar opens on an empty day, which reads as a trip
+   * with nothing planned.
+   *
+   * Archiving leaves for the map, because the map is the screen that knows how
+   * to explain having no trips — it is where a first one is made. This screen
+   * can only say there is no trip here to show a calendar for.
+   */
+  const tripActions = useTripActions({
+    supabase,
+    trip,
+    trips,
+    setTrips,
+    setMembers,
+    report: setMessage,
+    addressOfTrip: (tripId) => `/calendar?trip=${tripId}`,
+    addressAfterArchive: '/',
+  })
 
   /**
    * The day being read lives in the address.
@@ -133,8 +232,8 @@ export function TripCalendar({
    * Seeded from the address so a reload or a shared link still opens where it
    * says, and falls back to the day this trip makes most sense to open on.
    */
-  const [day, setDay] = useState<IsoDay>(
-    () => searchParams.get('day') ?? dayToOpenOn(trip),
+  const [day, setDay] = useState<IsoDay>(() =>
+    dayShown(searchParams.get('day'), trip),
   )
 
   const goToDay = useCallback(
@@ -158,6 +257,44 @@ export function TripCalendar({
     },
     [],
   )
+
+  /**
+   * Every list this screen shows, read again.
+   *
+   * The reason these lists are `useRows` rather than plain state. Each declines
+   * if it was read inside `FRESH_FOR_MS`, so calling this twice in a second
+   * costs one round of requests — the floor is held by the list rather than by
+   * whatever asked for the read.
+   *
+   * Every list this screen shows is here, which is what the specification asks
+   * for: the cities are included even though this screen cannot change one,
+   * because it displays them and a list a person can see may not be left out.
+   */
+  function rereadEverything(options?: { force?: boolean }) {
+    return Promise.all([
+      refreshTrips(() => fetchTrips(supabase), options),
+      refreshMarkers(() => fetchTripMarkers(supabase, trip.id), options),
+      refreshCities(() => fetchTripCities(supabase, trip.id), options),
+      refreshInterest(() => fetchTripInterest(supabase, trip.id), options),
+      refreshMembers(() => fetchTripMembers(supabase, trip.id), options),
+    ])
+  }
+
+  /*
+   * Coming back to the tab is how somebody learns that the person they are
+   * planning with changed something. It is the only automatic trigger: no
+   * polling, no interval, and nothing holding a connection open.
+   *
+   * **This screen did not do it, and nothing said so.** `data-freshness`
+   * requires every screen in the application to re-read what it is showing when
+   * the document becomes visible again, and the map has always called this — but
+   * the calendar never did, so a place somebody else dated did not arrive until
+   * the page was reloaded. It was hidden by the web account menu's `Refresh`
+   * row, which this change removed: that row is forbidden on web by the same
+   * specification, and it was standing in for the trigger that should have been
+   * here.
+   */
+  useVisibleAgain(() => void rereadEverything())
 
   const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
 
@@ -307,21 +444,83 @@ export function TripCalendar({
   const days = [-NEIGHBOURS, 0, NEIGHBOURS].map((offset) => addDays(day, offset))
 
   return (
-    <div className={styles.screen}>
-      <header className={styles.head}>
-        <div className={styles.headRow}>
-          {/*
-            The way back, drawn rather than left to the browser's own. A screen
-            that can be reached and not left is a screen that strands, and the
-            control has to be here whether somebody arrived by link or by press.
-          */}
+    <ChromeBar
+      scope={
+        <TripBar
+          trip={trip}
+          trips={trips}
+          members={members}
+          onSelect={tripActions.onSelect}
+          onRename={tripActions.onRename}
+          onSetDates={tripActions.onSetDates}
+          /*
+            The map, because this is the calendar. The menu names the view
+            somebody is *not* in, so it never offers to take them where they
+            already are — and the address is the one that restores the city as
+            well as the trip.
+          */
+          otherView={{ name: 'Map', href: workspaceHref }}
+          archived={tripActions.archived}
+          onRevealArchived={tripActions.onRevealArchived}
+          onArchive={tripActions.onArchive}
+          onRestore={tripActions.onRestore}
+          onInvite={tripActions.onInvite}
+          onShowPeople={() =>
+            void refreshMembers(() => fetchTripMembers(supabase, trip.id))
+          }
+          onCreated={tripActions.onSelect}
+          open={detour === 'trip'}
+          onOpen={(open) => setDetour(open ? 'trip' : 'none')}
+        />
+      }
+      /*
+        No city. There is no camera to frame here and nowhere to bias a search
+        toward, so a city control would offer more than it can do — and leaving
+        the position empty is what collapses the phone-width bar to one row.
+      */
+      session={
+        /*
+          The way back, in the band the map spends on finding, dropping and
+          filtering.
+
+          That band is empty on this screen and going back is the only session
+          control it has, so this is where the chrome's placement rule puts it.
+          Deliberately *not* beside the account: signing out is reached from
+          there, and rare destructive controls are kept away from frequent ones
+          so that neither is reached while aiming for the other. This is the
+          most frequent control on the screen.
+
+          Visible without opening anything, which the row in the trip's menu is
+          not — a control that has to be revealed before it can be seen does not
+          satisfy the requirement on its own.
+        */
+        <span className={styles.session}>
           <Link href={workspaceHref} className={styles.back}>
             <MapIcon size={16} strokeWidth={2.2} aria-hidden />
             <span>Back to the map</span>
           </Link>
-          <h1 className={styles.title}>{trip.name}</h1>
-        </div>
+        </span>
+      }
+      account={
+        <AccountMenu
+          youAre={youAre}
+          open={detour === 'account'}
+          onOpen={(open) => setDetour(open ? 'account' : 'none')}
+        />
+      }
+    >
+    <main className={styles.screen}>
+      {/*
+        The day controls, and they belong to the screen rather than to the
+        product.
 
+        Below the header and not among its controls: the header says which trip
+        and who is reading it, and neither changes as the day does. Pinned
+        between the header and the scrolling body rather than inside that body,
+        because a screen whose navigation scrolls away strands whoever is at the
+        bottom of a long day.
+      */}
+      <div className={styles.dayBand}>
         <div className={styles.controls}>
           <button
             type="button"
@@ -361,7 +560,7 @@ export function TripCalendar({
             <ChevronRight size={18} strokeWidth={2.2} aria-hidden />
           </button>
         </div>
-      </header>
+      </div>
 
       <div className={styles.body}>
         {message ? (
@@ -444,7 +643,8 @@ export function TripCalendar({
           />
         </div>
       ) : null}
-    </div>
+    </main>
+    </ChromeBar>
   )
 }
 

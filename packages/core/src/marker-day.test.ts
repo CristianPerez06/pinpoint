@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addDays,
   dateOfDay,
+  dayShown,
   dayToOpenOn,
   dayWithin,
   groupMarkersByDay,
@@ -222,6 +223,53 @@ describe('dayToOpenOn', () => {
     expect(
       dayToOpenOn({ startsOn: '2027-04-01', endsOn: null }, noon('2026-09-15')),
     ).toBe('2027-04-01')
+  })
+})
+
+describe('dayShown', () => {
+  const noon = (day: string) => new Date(`${day}T12:00:00`)
+
+  it('shows the day being asked for', () => {
+    expect(
+      dayShown(
+        '2026-04-09',
+        { startsOn: '2026-04-01', endsOn: '2026-04-14' },
+        noon('2026-04-05'),
+      ),
+    ).toBe('2026-04-09')
+  })
+
+  /*
+   * The three below are the trip-change cases, and they are these cases: a
+   * change navigates without a day, so `asked` is absent and the opening rule
+   * decides afresh. Each states the day the calendar lands on rather than the
+   * day that was being read, which is what stops a day travelling between two
+   * trips that do not cover the same dates.
+   */
+  it('lands on the start date when the trip arrived at excludes today', () => {
+    expect(
+      dayShown(null, { startsOn: '2026-04-01', endsOn: '2026-04-14' }, noon('2026-09-15')),
+    ).toBe('2026-04-01')
+  })
+
+  it('lands on today when the trip arrived at carries no dates', () => {
+    expect(dayShown(null, { startsOn: null, endsOn: null }, noon('2026-09-15'))).toBe(
+      '2026-09-15',
+    )
+  })
+
+  it('lands on today when the trip arrived at is happening', () => {
+    expect(
+      dayShown(null, { startsOn: '2026-09-01', endsOn: '2026-09-30' }, noon('2026-09-15')),
+    ).toBe('2026-09-15')
+  })
+
+  /* `undefined` and `null` are one case: a search parameter that is not there. */
+  it('treats an absent day and a missing one alike', () => {
+    const trip = { startsOn: '2027-04-01', endsOn: null }
+    expect(dayShown(undefined, trip, noon('2026-09-15'))).toBe(
+      dayShown(null, trip, noon('2026-09-15')),
+    )
   })
 })
 

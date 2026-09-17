@@ -1,23 +1,16 @@
 'use client'
 
-import { ArrowLeft, LogOut, MapPinPlus, Menu as Menu2, RefreshCw, Search, Settings } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, MapPinPlus, Search } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 
-import { signOutAction } from '@/app/_actions/auth'
+import { AccountMenu, type AccountMenuLiveProps } from '@/app/_components/account-menu'
+import { ChromeBar } from '@/app/_components/chrome-bar'
 import { CityBar, type CityBarLiveProps } from '@/app/_components/city-bar'
 import { FilterBar, type FilterBarLiveProps } from '@/app/_components/filter-bar'
 import { PlaceSearch, type PlaceSearchLiveProps } from '@/app/_components/place-search'
 import { TripBar, type TripBarLiveProps } from '@/app/_components/trip-bar'
 import type { PlaceCandidate } from '@pinpoint/geocode'
-import {
-  Button,
-  iconOnlyLabelClass,
-  Menu,
-  NamePlaceholder,
-  toolGlyphClass,
-  toolLabelClass,
-} from '@/app/_components/ui'
+import { Button, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 
 import styles from './trip-workspace.module.css'
 
@@ -52,7 +45,7 @@ export type ChromeBindings = {
   onSelectTrip: TripBarLiveProps['onSelect']
   onRenameTrip: TripBarLiveProps['onRename']
   onSetTripDates: TripBarLiveProps['onSetDates']
-  calendarHref: TripBarLiveProps['calendarHref']
+  otherView: TripBarLiveProps['otherView']
   onRevealArchived: TripBarLiveProps['onRevealArchived']
   onArchiveTrip: TripBarLiveProps['onArchive']
   onRestoreTrip: TripBarLiveProps['onRestore']
@@ -98,15 +91,14 @@ export type ChromeBindings = {
   /** Something is open over the map, so the bar yields the bottom edge to it. */
   panelOpen: boolean
 
-  youAre: string
-  onReread: () => void
+  youAre: AccountMenuLiveProps['youAre']
 
   detour: DetourPanel
   onDetour: (panel: DetourPanel) => void
 }
 
 /**
- * The frame, which does not wait for anything.
+ * The map's bar, and the map's own stage below it.
  *
  * One definition drawing two states, rather than a shell component beside the
  * real bar. Two renderings that merely look alike disagree the moment either is
@@ -125,9 +117,15 @@ export type ChromeBindings = {
  * and dropping a pin arms a map that has not been drawn — so the rule is inert
  * until the act can *complete*, not until the data lands.
  *
- * `<main>` is the caller's, passed as children, and it must stay a sibling of
- * the `<header>` below rather than a parent of it: a `<header>` inside `<main>`
- * exposes no `banner` landmark at all, and nothing reports that.
+ * **The bar itself is `ChromeBar` now**, because the calendar wears it too.
+ * What is left in this file is what the map puts in each of its positions: the
+ * trip, the city, the session band of three tools, and the account. Read left
+ * to right that is scope, then the session, then the person — the arrangement
+ * the bar states and every screen keeps.
+ *
+ * `<main>` is the caller's, passed straight through as children, and the bar
+ * keeps it a sibling of the `<header>`: a `<header>` inside `<main>` exposes no
+ * `banner` landmark at all, and nothing reports that.
  */
 export function WorkspaceChrome({
   live,
@@ -139,101 +137,59 @@ export function WorkspaceChrome({
   const dropping = live?.dropping ?? false
 
   return (
-    <div className={styles.shell}>
-      {/*
-        One bar, and it is the header.
-
-        This was a header plus three stacked toolbar rows — 205px of chrome on a
-        929px viewport, holding 558px of controls, so between 78 and 86 per cent
-        of every row was empty. The arrangement was not decided: each band
-        arrived for its own good reason and none was ever weighed against the
-        others, which left the topmost and leftmost strip of the interface —
-        where a hand and an eye go first — holding `Rename`, `People` and
-        `New trip`, three things somebody does about once per trip in total.
-
-        Read left to right it is now scope, then the session, then the person.
-        The trip and the city say what is being looked at and open everything
-        rare that belongs to them. Search, drop and filter are what a session is
-        actually made of. The account is at the far end, where DESIGN.md wants
-        rare destructive things kept.
-      */}
-      <header className={styles.bar}>
-        <span className={styles.point} aria-hidden />
-
-        {/*
-          The scope's two names are wrapped rather than placed directly.
-
-          At a phone width the bar becomes a two-row grid and each name needs a
-          cell of its own to be put in. `TripBar` and `CityBar` both render a
-          `Menu`, whose root carries the same class as every other menu in the
-          chrome, so there is nothing here to address them by. Wrapping is the
-          smallest thing that gives each one a name — and it changes neither
-          component, which is what keeps the dismissal contract theirs.
-        */}
-        <span className={styles.scope}>
-        {live ? (
-        <TripBar
-          trip={live.trip}
-          trips={live.trips}
-          members={live.members}
-          onSelect={live.onSelectTrip}
-          onRename={live.onRenameTrip}
-          onSetDates={live.onSetTripDates}
-          calendarHref={live.calendarHref}
-          archived={live.archivedTrips}
-          onRevealArchived={live.onRevealArchived}
-          onArchive={live.onArchiveTrip}
-          onRestore={live.onRestoreTrip}
-          onInvite={live.onInvite}
-          onShowPeople={live.onShowPeople}
-          onCreated={live.onSelectTrip}
-          open={live.detour === 'trip'}
-          onOpen={(open) => live.onDetour(open ? 'trip' : 'none')}
-        />
+    <ChromeBar
+      scope={
+        live ? (
+          <TripBar
+            trip={live.trip}
+            trips={live.trips}
+            members={live.members}
+            onSelect={live.onSelectTrip}
+            onRename={live.onRenameTrip}
+            onSetDates={live.onSetTripDates}
+            otherView={live.otherView}
+            archived={live.archivedTrips}
+            onRevealArchived={live.onRevealArchived}
+            onArchive={live.onArchiveTrip}
+            onRestore={live.onRestoreTrip}
+            onInvite={live.onInvite}
+            onShowPeople={live.onShowPeople}
+            onCreated={live.onSelectTrip}
+            open={live.detour === 'trip'}
+            onOpen={(open) => live.onDetour(open ? 'trip' : 'none')}
+          />
         ) : (
           <TripBar waiting />
-        )}
-        </span>
-
-        {/* A path on a laptop, and nothing at all on a phone, where the two
-            names are on separate lines and the narrowing is said by the
-            indent instead. */}
-        <span className={styles.scopeSep} aria-hidden>
-          /
-        </span>
-
-        {/*
-          The city is a narrowing of the trip, so it reads as one — which is
-          also true of what it does: it frames the camera on that city's places
-          and biases search toward them. It still does not filter the map.
-        */}
-        <span className={styles.city}>
-        {live ? (
-        <CityBar
-          cities={live.cities}
-          markers={live.markers}
-          selectedCityId={live.selectedCityId}
-          onSelect={live.onSelectCity}
-          onSave={live.onSaveCity}
-          onDelete={live.onDeleteCity}
-          onShowCities={live.onShowCities}
-          open={live.detour === 'city'}
-          onOpen={(open) => live.onDetour(open ? 'city' : 'none')}
-        />
+        )
+      }
+      city={
+        live ? (
+          <CityBar
+            cities={live.cities}
+            markers={live.markers}
+            selectedCityId={live.selectedCityId}
+            onSelect={live.onSelectCity}
+            onSave={live.onSaveCity}
+            onDelete={live.onDeleteCity}
+            onShowCities={live.onShowCities}
+            open={live.detour === 'city'}
+            onOpen={(open) => live.onDetour(open ? 'city' : 'none')}
+          />
         ) : (
           <CityBar waiting />
-        )}
-        </span>
-
-        {/*
+        )
+      }
+      session={
+        /*
           What a session is made of.
 
           On a laptop this sits in the bar between the scope and the person. At a
           phone width the same element is taken out of the flow and pinned to the
           bottom edge, over the map, within a thumb's reach — one set of
           controls in one place in the markup, drawn where the shape of the
-          screen wants them.
-        */}
+          screen wants them. That relocation is this stylesheet's, not the bar's:
+          the bar takes an element and leaves it to place itself.
+        */
         <span
           ref={live?.toolsRef}
           className={`${styles.tools} ${dropping ? styles.armed : ''} ${
@@ -286,13 +242,13 @@ export function WorkspaceChrome({
             </button>
 
             {live ? (
-            <PlaceSearch
-              biasRef={live.biasRef}
-              onChoose={(candidate: PlaceCandidate) => {
-                live.onSearchOpen(false)
-                live.onChooseCandidate(candidate)
-              }}
-            />
+              <PlaceSearch
+                biasRef={live.biasRef}
+                onChoose={(candidate: PlaceCandidate) => {
+                  live.onSearchOpen(false)
+                  live.onChooseCandidate(candidate)
+                }}
+              />
             ) : (
               <PlaceSearch waiting />
             )}
@@ -427,133 +383,20 @@ export function WorkspaceChrome({
             )}
           </span>
         </span>
-
-        {/*
-          The person, not the trip.
-
-          `Sign out` was a bare button one pixel from the corner with no menu
-          around it and nowhere for anything else to go. A profile route and a
-          settings route are both waiting on somewhere to hang, and this is it.
-        */}
-        <span className={styles.account}>
-          <Menu
-            name="Account"
-            disabled={live === null}
-            label={
-              <>
-                {live ? (
-                  <span className={styles.you}>{live.youAre}</span>
-                ) : (
-                  <NamePlaceholder className={styles.you} measure="13ch" />
-                )}
-                {/*
-                  The same menu, named by a glyph once the header has no room
-                  to spell it.
-
-                  Thirteen characters of address answer a question nobody asked,
-                  and on a 390px header they are a third of the row. The phone
-                  settled this already: a menu holding what is rare, at the far
-                  end, out of a thumb's reach.
-
-                  Drawn rather than typed, for the reason the caret beside it
-                  records — a typed `☰` takes the face's own weight and vertical
-                  centring, so it is whatever size the font decided. The caret
-                  itself goes at this width: a glyph that is only a glyph
-                  already reads as a control, which is the whole job the caret
-                  was doing.
-                */}
-                <Menu2 aria-hidden className={iconOnlyLabelClass} />
-              </>
-            }
-            align="end"
-            tone="quiet"
-            open={live?.detour === 'account'}
-            onOpen={(open) => live?.onDetour(open ? 'account' : 'none')}
-          >
-            {/*
-              Who is signed in, said in full.
-
-              The trigger shows a name at a laptop width and a glyph at a phone
-              one, so neither is a place to put an address — but a menu about
-              the person is exactly where "which account is this" belongs, and
-              it is the question somebody opens this to answer when two of them
-              share a laptop. The phone's menu already reads this way; this is
-              the same three items in the same order.
-            */}
-            <span className={styles.identity}>
-              <span className={styles.initials} aria-hidden>
-                {initialsOf(live?.youAre ?? '')}
-              </span>
-              <span className={styles.identityName}>{live?.youAre}</span>
-            </span>
-
-            <hr className={styles.identityRule} />
-
-            {/*
-              Re-reading, for the one case that is not the ordinary one.
-
-              Everything here re-reads when the tab is come back to, which is
-              how somebody learns that the person they are planning with changed
-              something. This is for when that is not enough — a tab left open
-              and never blurred, or a read that failed — and `force` is what
-              makes it mean something: without it the freshness floor would
-              decline the request and the press would do nothing visible.
-            */}
-            <button
-              type="button"
-              onClick={() => void live?.onReread()}
-              className={styles.menuRow}
-            >
-              <RefreshCw aria-hidden className={styles.menuRowGlyph} />
-              Refresh
-            </button>
-
-            {/*
-              The account's own screen, and the only row here that leaves.
-
-              Rare, and about the account rather than the trip, which is exactly
-              what this menu is for — the standing rule is that a rare action
-              lives behind the name of what it acts on, and the control this
-              hangs from is the name of the account.
-
-              Above `Sign out` and never below it. That order is a rule rather
-              than a layout preference: signing out stays at the end and away
-              from anything reached often, so that neither is hit while aiming
-              for the other.
-
-              A `Link` rather than a button, so it is openable in a new tab and
-              reads as the navigation it is. The phone's menu carries the same
-              row in the same position.
-            */}
-            <Link href="/settings" className={styles.menuRow}>
-              <Settings aria-hidden className={styles.menuRowGlyph} />
-              Settings
-            </Link>
-
-            <form action={signOutAction}>
-              <button type="submit" className={styles.signOut}>
-                <LogOut aria-hidden className={styles.menuRowGlyph} />
-                Sign out
-              </button>
-            </form>
-          </Menu>
-        </span>
-      </header>
-
+      }
+      account={
+        live ? (
+          <AccountMenu
+            youAre={live.youAre}
+            open={live.detour === 'account'}
+            onOpen={(open) => live.onDetour(open ? 'account' : 'none')}
+          />
+        ) : (
+          <AccountMenu waiting />
+        )
+      }
+    >
       {children}
-    </div>
+    </ChromeBar>
   )
-}
-
-/**
- * `CP` from `Cristian Perez`, `A` from `Account`.
- *
- * First and last rather than the first two letters, so a single word gives one
- * initial rather than reading itself as two.
- */
-function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return '?'
-  const first = words[0]![0]!
-  return (words.length > 1 ? first + words[words.length - 1]![0]! : first).toUpperCase()
 }
