@@ -6,7 +6,7 @@ export {
   ready,
   readyOrEmpty,
 } from './query-state'
-export type { QueryState, SettledQueryState } from './query-state'
+export type { QueryState, ReadOutcome, SettledQueryState } from './query-state'
 
 export {
   CITIES_FAILED_MESSAGE,

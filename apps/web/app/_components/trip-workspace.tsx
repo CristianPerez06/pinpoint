@@ -550,15 +550,23 @@ export function TripWorkspace({
    * in a second costs one round of requests — the floor is held by the list
    * rather than by whatever asked, which is what stops coming back to the tab
    * and opening a panel straight afterwards reading the same list twice.
+   *
+   * Resolves to whether all five arrived. Nothing is reported from in here:
+   * the automatic trigger below ignores this, and the control somebody presses
+   * is the one that owes an answer. Deciding that at the call site rather than
+   * inside the read is what lets one function serve both — `data-freshness`
+   * asks a trigger nobody pressed to stay silent and asks a press to speak.
    */
-  function rereadEverything(options?: { force?: boolean }) {
-    return Promise.all([
+  async function rereadEverything(options?: { force?: boolean }) {
+    const outcomes = await Promise.all([
       refreshTrips(() => fetchTrips(supabase), options),
       refreshMarkers(() => fetchTripMarkers(supabase, trip.id), options),
       refreshCities(() => fetchTripCities(supabase, trip.id), options),
       refreshInterest(() => fetchTripInterest(supabase, trip.id), options),
       refreshMembers(() => fetchTripMembers(supabase, trip.id), options),
     ])
+
+    return outcomes.every((outcome) => outcome !== 'failed')
   }
 
   /*
@@ -567,6 +575,34 @@ export function TripWorkspace({
     polling, no interval, and nothing holding a connection open.
   */
   useVisibleAgain(() => void rereadEverything())
+
+  /**
+   * Reading everything again because somebody pressed the control for it.
+   *
+   * Forced, so the freshness floor is ignored — a control that quietly declines
+   * because a read happened eight seconds ago is a control that looks broken.
+   *
+   * This is the branch the automatic trigger above deliberately does not take.
+   * Coming back to the tab is nobody's press and reports nothing; this is a
+   * press, and `write-feedback` gives an act somebody is waiting on both halves
+   * of an answer — that it is happening, and what happened.
+   */
+  const [rereading, setRereading] = useState(false)
+
+  async function rereadByHand() {
+    if (rereading) return
+    setMessage(null)
+    setRereading(true)
+
+    const everythingArrived = await rereadEverything({ force: true })
+
+    setRereading(false)
+    if (!everythingArrived) {
+      // The rows are untouched — a read that fails leaves them alone — so this
+      // is news beside a working map rather than a replacement for one.
+      setMessage('Could not read the trip again. Check your connection.')
+    }
+  }
 
   // The selection lives in the URL so it survives a reload and can be linked.
   const selectedCityId = searchParams.get('city')
@@ -1207,6 +1243,8 @@ export function TripWorkspace({
           frameTo={cameraTarget.points}
           frameToken={cameraTarget.token}
           centreRef={centreRef}
+          onReread={() => void rereadByHand()}
+          rereading={rereading}
           selectedKey={panel.kind === 'details' ? panel.groupKey : null}
           onMarkersInView={setAnyInView}
         />

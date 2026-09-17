@@ -160,6 +160,16 @@ jobs:
       - name: Detect duplicate runtime dependencies
         run: pnpm check:duplicate-deps
 
+      # Asking for a re-read belongs to the screen being read, and
+      # `data-freshness` puts it on the map. The account menu is where it keeps
+      # landing anyway, because a rare control looks like it belongs beside
+      # `Sign out` — and no check reads the rows of a menu. It was added in #74,
+      # eighteen pull requests after the requirement forbidding it landed in
+      # #56, and nothing caught it: it type-checked, it rendered, and it worked.
+      # Scoped to that one file, because the map legitimately has one now.
+      - name: Check the account menu carries no re-read row
+        run: pnpm check:account-menu
+
       # Reads manifests only, so it needs no install and runs even if the
       # dependency graph is what is broken.
       - name: Check dependency graph

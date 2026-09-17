@@ -194,29 +194,76 @@ is why it is preferred to a control that has to be found.
 - **THEN** that list is read again
 - **AND** what is already there stays on screen until the new answer arrives
 
-### Requirement: The native application offers a way to ask for a re-read
+### Requirement: A map shown on a phone-shaped screen offers a way to ask for a re-read
 
-The native application SHALL offer somewhere to ask for every list to be read again. It
-SHALL sit among the rare controls rather than the frequent ones.
+Where an application shows the map and the chrome takes its phone shape, it SHALL offer a
+control that reads every list on screen again. The control SHALL be visible without
+opening anything.
 
-The web application SHALL NOT add one. Reloading the page is a control the browser already
-provides, and a second one inside the page duplicates it.
+Where the chrome takes its laptop shape, an application SHALL NOT offer one. Reloading
+the page is a control the browser already provides at that size, and a second one inside
+the page duplicates it.
 
-Rationale: on web a failed refresh is recovered by reloading. On native there is no
-equivalent, so a person whose re-read failed while they were offline has no way back
-except force-quitting the application. This is the escape hatch for that, not a control
-anybody should need in ordinary use — which is why it belongs where Sign out is and not
-under a thumb.
+A screen that is not the map SHALL NOT offer one. Where such a screen provides a visible
+way to the map, that way plus the map's own control SHALL be considered to satisfy this
+requirement for it.
+
+The control SHALL read every list, however recently any of them was last read — the
+interval floor stated in *A list is not read again while what it holds is still fresh*
+does not apply to it. It SHALL report that it is working and SHALL report a failure, as
+`write-feedback` requires of any act a person asked for and is waiting on.
+
+Rationale: a failed re-read is recovered by reloading, and whether reload is at hand is a
+statement about the shape of the screen rather than about which application is running.
+At a laptop width it is one pixel above where a second button would go. At a phone width
+it is behind a collapsed toolbar or a pull gesture the page can swallow, and in an
+installed copy — which this product's manifest asks for — there is no browser furniture
+and so no reload at all. A person whose re-read failed while they were offline then has
+no way back except force-quitting.
+
+Rationale for the map and not every screen: this is an escape hatch, and one is enough
+per product as long as reaching it is visible and short. Every screen re-reads itself on
+becoming current again, so the only case this serves is a read that failed while the
+device was offline — and the lists are the trip's, not the screen's, so a re-read asked
+for from the map answers for whatever screen the person came from.
 
 #### Scenario: A re-read is asked for by hand
 
-- **WHEN** a person asks for a re-read from the native application
+- **WHEN** a person asks for a re-read from the control
 - **THEN** every list on screen is read again
 
 #### Scenario: Recovering from a failed re-read
 
 - **WHEN** a re-read failed because the device was offline, and the device is online again
 - **THEN** the person can ask for another without leaving or restarting the application
+
+#### Scenario: The chrome takes its phone shape
+
+- **WHEN** the map is shown and the chrome takes its phone shape, on either application
+- **THEN** the control is visible without opening a menu or any other surface
+
+#### Scenario: The chrome takes its laptop shape
+
+- **WHEN** the map is shown and the chrome takes its laptop shape
+- **THEN** no control asking for a re-read is offered anywhere on the screen, including
+  behind a menu
+
+#### Scenario: A screen that is not the map
+
+- **WHEN** a screen other than the map is shown at any width
+- **THEN** it offers no control asking for a re-read
+- **AND** where it offers a visible way to the map, that is the route to one
+
+#### Scenario: A re-read is asked for moments after an automatic one
+
+- **WHEN** a person uses the control within the freshness interval of the last read
+- **THEN** every list is read again regardless
+
+#### Scenario: A re-read asked for by hand fails
+
+- **WHEN** a re-read the person asked for by hand fails
+- **THEN** the failure is reported to them
+- **AND** the screen goes on showing what it was showing
 
 ### Requirement: Every list a trip is made of is covered, on both platforms
 

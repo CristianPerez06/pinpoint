@@ -28,6 +28,7 @@ import { ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
 // glyphs into the bundle.
 import Minus from 'lucide-react-native/icons/minus'
 import Plus from 'lucide-react-native/icons/plus'
+import RefreshCw from 'lucide-react-native/icons/refresh-cw'
 import {
   type ReactNode,
   type Ref,
@@ -37,7 +38,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AttributionSheet } from '@/components/attribution-sheet'
@@ -175,39 +176,78 @@ const styles = StyleSheet.create({
   },
   sightDot: { width: 7, height: 7, borderRadius: 4 },
   /*
-   * Zoom, and the argument above that it has to answer.
+   * The right edge, and the two instruments standing on it.
    *
    * `bottomRow` records why search and drop live in a bar rather than as pills
    * over open map: two pills over cartography read as debris. That verdict is
-   * about the trip's *actions*, and it stands. This is not one of them — zoom is
-   * an instrument of the map itself, and putting it in the bar would say it is
-   * one of the things you do here rather than one of the ways you look.
-   *
-   * What the verdict still binds is the shape. One stacked pair on one edge, so
-   * there is a single object to read rather than two loose lozenges: a surface
-   * with a hairline and an `sm` lift, the same vocabulary the sheets use, not
-   * two floating circles.
+   * about the trip's *actions*, and it stands. Neither of these is one of them —
+   * zoom is an instrument of the map and the re-read is an instrument of the
+   * screen, and putting either in the bar would say it is one of the things you
+   * do here rather than one of the ways you look.
    *
    * Right edge, because the left one already has the licence credit standing on
    * it and a credit that has to stay legible does not share a corner.
+   *
+   * One container, so `bottom` is measured once. What has to be cleared is the
+   * bar, or the form sheet, or nothing, and that expression already existed for
+   * zoom; a second copy of it for the re-read would have to clear the floor
+   * *and* the zoom group's height, which changes with whether the zoom group is
+   * drawn at all. Laid out from the bottom up, so when zoom is absent the
+   * re-read falls to where zoom would have been rather than floating above a
+   * gap.
    */
-  zoom: {
+  edge: {
     position: 'absolute',
     right: SPACE.md,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    gap: SPACE.md,
+  },
+  /*
+   * The lift both of them wear.
+   *
+   * Deliberately no `overflow: 'hidden'`. On iOS that sets `masksToBounds` on
+   * the layer, which clips the shadow along with everything else — the lift
+   * simply disappears, on a style that reads as correct. Nothing needs clipping
+   * here: the buttons draw no fill of their own, so nothing can escape the
+   * rounded corners.
+   *
+   * The shadow is the token's ingredients composed in this platform's idiom.
+   * `shadowOpacity: 1` because the alpha is already inside the colour, which is
+   * how the token stores it; `elevation` is Android's single knob and takes the
+   * offset, being the only number it has.
+   */
+  zoom: {
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    /*
-      Deliberately no `overflow: 'hidden'`. On iOS that sets `masksToBounds` on
-      the layer, which clips the shadow along with everything else — the lift
-      simply disappears, on a style that reads as correct. Nothing needs
-      clipping here: the buttons draw no fill of their own, so nothing can
-      escape the rounded corners.
-
-      The shadow is the token's ingredients composed in this platform's idiom.
-      `shadowOpacity: 1` because the alpha is already inside the colour, which
-      is how the token stores it; `elevation` is Android's single knob and takes
-      the offset, being the only number it has.
-    */
+    shadowOffset: { width: 0, height: ELEVATION.sm.offsetY },
+    shadowOpacity: 1,
+    shadowRadius: ELEVATION.sm.blur,
+    elevation: ELEVATION.sm.offsetY,
+  },
+  /*
+   * The re-read, and why it is a separate object rather than a third button on
+   * the zoom group.
+   *
+   * A stacked group is one target to the eye and several to a thumb. Zoom is
+   * pressed constantly and this is pressed almost never, so every mis-aimed
+   * press in that column would cost the trip a full round of reads while
+   * somebody was trying to look closer. `workspace-chrome` requires the gap for
+   * that reason, and requires it to be wide enough that neither is reached
+   * while aiming for the other — `md`, which is the inset this edge already
+   * uses, and not a hairline, which would draw the two as one control with a
+   * seam in it.
+   *
+   * Round rather than a pill, because it stands alone. No fill: under *The
+   * accent is a fill only where an act is committed* a re-read commits nothing.
+   */
+  reread: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
     shadowOffset: { width: 0, height: ELEVATION.sm.offsetY },
     shadowOpacity: 1,
     shadowRadius: ELEVATION.sm.blur,
@@ -405,6 +445,8 @@ export function TripMap({
   onDeleteMarker,
   removingId,
   onAbandonCapture,
+  onReread,
+  rereading,
   bottomRow,
   dropping,
   draft,
@@ -458,6 +500,17 @@ export function TripMap({
    * to do nothing is worse than a tap that does the obvious thing.
    */
   onAbandonCapture: () => void
+  /**
+   * Read every list again, because somebody asked.
+   *
+   * Handed in rather than done here for the same reason `bottomRow` is: what a
+   * re-read *is* belongs to the workspace, which owns the five lists and the
+   * surface a failure is reported on. Where the control stands belongs here,
+   * beside the other instrument on that edge and the measurement they share.
+   */
+  onReread: () => void
+  /** Whether that read is in flight, so the control can answer the press. */
+  rereading: boolean
   /**
    * The trip's controls, drawn over the bottom of the map when nothing is
    * selected.
@@ -1180,14 +1233,11 @@ export function TripMap({
         somebody needs to change scale without moving the map, which is precisely
         what zooming about the centre does.
       */}
-      {camera && currentZoom !== null && formSheet === null && selection === null ? (
+      {camera && formSheet === null && selection === null ? (
         <View
           style={[
-            styles.zoom,
+            styles.edge,
             {
-              backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
-              shadowColor: theme.elevation.sm.colour,
               // Rises off whatever holds the floor, exactly as the credit does
               // and off the same measurement — the bar, or the marker sheet, or
               // nothing. Both the bar and the form carry the device's bottom
@@ -1197,19 +1247,72 @@ export function TripMap({
             },
           ]}
         >
-          <ZoomButton
-            direction={1}
-            zoom={currentZoom}
-            zoomNow={() => zoomRef.current ?? currentZoom}
-            camera={cameraRef}
-          />
-          <ZoomButton
-            direction={-1}
-            zoom={currentZoom}
-            zoomNow={() => zoomRef.current ?? currentZoom}
-            camera={cameraRef}
-            divided
-          />
+          {/*
+            Above zoom, and the one control on this screen that is about the
+            screen rather than about the trip. `data-freshness` asks for it
+            wherever the chrome takes its phone shape, because a re-read that
+            failed while the device was offline has no browser reload to fall
+            back on here.
+          */}
+          <Pressable
+            onPress={onReread}
+            accessibilityRole="button"
+            accessibilityLabel="Read everything again"
+            accessibilityState={{ busy: rereading, disabled: rereading }}
+            disabled={rereading}
+            style={[
+              styles.reread,
+              {
+                backgroundColor: theme.colour.surface,
+                borderColor: theme.colour.line,
+                shadowColor: theme.elevation.sm.colour,
+              },
+            ]}
+          >
+            {/*
+              The press answers itself. `write-feedback` asks an act somebody
+              asked for and is waiting on to say it is happening, and a glyph
+              that does not move says nothing — which is what the row in the
+              menu used words for.
+            */}
+            {rereading ? (
+              <ActivityIndicator size="small" color={theme.colour.inkMuted} />
+            ) : (
+              <RefreshCw size={20} color={theme.colour.ink} strokeWidth={2} />
+            )}
+          </Pressable>
+
+          {/*
+            `currentZoom` stays on the zoom group alone. It is readiness to
+            *zoom*, not readiness to read — and the re-read has nothing to work
+            from but the trip, which is already here.
+          */}
+          {currentZoom !== null ? (
+            <View
+              style={[
+                styles.zoom,
+                {
+                  backgroundColor: theme.colour.surface,
+                  borderColor: theme.colour.line,
+                  shadowColor: theme.elevation.sm.colour,
+                },
+              ]}
+            >
+              <ZoomButton
+                direction={1}
+                zoom={currentZoom}
+                zoomNow={() => zoomRef.current ?? currentZoom}
+                camera={cameraRef}
+              />
+              <ZoomButton
+                direction={-1}
+                zoom={currentZoom}
+                zoomNow={() => zoomRef.current ?? currentZoom}
+                camera={cameraRef}
+                divided
+              />
+            </View>
+          ) : null}
         </View>
       ) : null}
 

@@ -31,6 +31,26 @@ export type QueryState<T> =
  */
 export type SettledQueryState<T> = Exclude<QueryState<T>, { status: 'loading' }>
 
+/**
+ * What a re-read did, reported to whoever asked for it.
+ *
+ * Three cases rather than a boolean, because "did not read" and "tried and
+ * failed" are different answers and only one of them is worth saying out loud.
+ * A trigger nobody pressed ignores all three; a control somebody pressed cares
+ * about exactly one.
+ *
+ * `declined` covers both ways a read can not happen: the floor below said it
+ * was too soon, and the answer arrived for a screen that had moved on. Neither
+ * is a failure and neither is worth reporting. It cannot come back from a
+ * forced read, which is the only kind a person asks for — so the control that
+ * reports a failure never has to explain a read that did not happen.
+ *
+ * Shared because both applications hold the same three answers behind different
+ * machinery: web reads a list per hook, the phone holds a query per list. What
+ * a re-read *did* is the same question on either.
+ */
+export type ReadOutcome = 'read' | 'declined' | 'failed'
+
 export const LOADING: QueryState<never> = { status: 'loading' }
 
 /** A non-empty result. Prefer `readyOrEmpty` for anything list-shaped. */
