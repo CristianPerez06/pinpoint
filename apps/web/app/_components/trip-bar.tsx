@@ -73,11 +73,21 @@ export type TripBarLiveProps = {
     endsOn: string | null
   }) => Promise<FieldErrors>
   /**
-   * Where the calendar lives, built by whoever knows which trip and city are
-   * open. Carried as a whole href rather than assembled here: the city has to
-   * survive the round trip, and this component has never been told about one.
+   * The view this screen is *not*, and where it lives.
+   *
+   * One prop naming the other view rather than the calendar's address plus a
+   * flag saying which screen this is. The bar then holds no opinion about where
+   * it is: whoever renders it knows, and says so once — the map offers
+   * `Calendar`, the calendar offers `Map`, and neither can offer the view
+   * somebody is already reading. A row that does nothing has to be pressed
+   * before anybody finds out it does nothing.
+   *
+   * Carried as a whole href rather than assembled here, because what has to
+   * survive the round trip differs by screen — the map sends the city along so
+   * the way back can restore it — and this component has never been told about
+   * a city.
    */
-  calendarHref: string
+  otherView: { name: string; href: string }
   /**
    * Archived trips, or null while nobody has asked for them.
    *
@@ -144,7 +154,7 @@ function TripBarLive({
   onSelect,
   onRename,
   onSetDates,
-  calendarHref,
+  otherView,
   archived,
   onRevealArchived,
   onArchive,
@@ -250,13 +260,15 @@ function TripBarLive({
             </span>
           </button>
           {/*
-            The calendar is a screen rather than a panel, so it is a link and
-            not a button — middle-clicking it, or opening it in a new tab, does
-            what those do everywhere else. It carries the city with it, which is
+            The other view, named by whoever rendered this bar.
+
+            A screen rather than a panel, so it is a link and not a button —
+            middle-clicking it, or opening it in a new tab, does what those do
+            everywhere else. The map's href carries the city with it, which is
             what lets the way back put somebody down where they were standing.
           */}
-          <Link href={calendarHref} className={styles.row} onClick={() => setOpen(false)}>
-            Calendar
+          <Link href={otherView.href} className={styles.row} onClick={() => setOpen(false)}>
+            {otherView.name}
           </Link>
           <button type="button" onClick={() => show('people')} className={styles.row}>
             <span>People</span>

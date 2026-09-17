@@ -1,0 +1,280 @@
+/*
+ * The bar every screen in the product wears, and the column it sits at the top
+ * of.
+ *
+ * Moved here whole from `trip-workspace.module.css` so that a second screen can
+ * wear it without a second bar being drawn. What stays behind in that file is
+ * everything belonging to the map's own session band — the tools, the search
+ * field, the drop slot, the filter's slot — because those are what the map puts
+ * *in* this bar rather than part of the bar itself.
+ *
+ * The breakpoints are here because the shape is: 1024px is where the bar wraps
+ * and 700px is where it becomes a grid, and both are statements about the bar.
+ * Whatever a screen hands to the session position places itself, which is why
+ * nothing here names it.
+ */
+
+/*
+ * The full-height column: the bar, then whatever the screen is.
+ *
+ * It lives with the bar rather than in a page, because the two have to be
+ * siblings — a `<header>` inside `<main>` exposes no `banner` landmark, and
+ * nothing reports that.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  color: var(--pp-ink);
+}
+
+/*
+ * One bar, and it is the header.
+ *
+ * This was a header plus three stacked rows. The row count was called a
+ * decision in the comment that used to be here, and it was — but it was a
+ * decision about how many rows the controls needed, never about whether the
+ * controls deserved the space. They did not: 205px of chrome on a 929px
+ * viewport, to hold 558px of controls in rows 2528px wide.
+ *
+ * Left to right: scope, the session, the person. Nothing wraps at a laptop
+ * width, and the trip's name is the only thing that yields.
+ */
+.bar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm) var(--pp-space-md);
+  /*
+   * The sides clear the hardware, at every width.
+   *
+   * Not a phone-layout rule. Chrome is chosen by width alone, so a phone held
+   * in landscape is about 900px wide and gets *this* bar — with the notch down
+   * one side of it. `max()` rather than an addition, so the padding is the
+   * inset where there is one and the design's own spacing where there is not,
+   * and never both stacked.
+   */
+  padding-left: max(var(--pp-space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--pp-space-md), env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--pp-line);
+  background: var(--pp-surface);
+}
+
+/*
+ * The point: a pin reduced to the point it names, in the one colour that is not
+ * a marker family.
+ *
+ * Called the point and not the mark. The mark is the teardrop tile the product
+ * hands a browser tab and a home screen — a drawing for hosts that have never
+ * run the application. This is a header ornament inside an application already
+ * open. They were both called the mark until the icons were settled, and that
+ * is how a change draws the wrong one.
+ *
+ * The wordmark's letters are gone. Inside the application they said nothing the
+ * reader did not know, and the trip's name is the thing that answers a real
+ * question — which is exactly the trade the phone header already made.
+ */
+.point {
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+  flex: none;
+}
+
+/*
+ * The two names of the scope, each in a wrapper of its own.
+ *
+ * They do nothing at a laptop width beyond what the controls inside them
+ * already did — `display: flex` and a floor of zero so truncation works. They
+ * exist because the phone shape needs somewhere to put each name, and the
+ * controls themselves are two `Menu`s wearing the same class as every other
+ * menu in the chrome.
+ */
+.scope,
+.city {
+  display: flex;
+  min-width: 0;
+  flex: none;
+}
+
+/* Scope reads as a path, because that is what it is: a city is a narrowing of
+   a trip. Drawn only where there is a city to narrow to. */
+.scopeSep {
+  color: var(--pp-ink-faint);
+  flex: none;
+}
+
+/*
+ * At the far edge, where DESIGN.md wants rare destructive things kept.
+ *
+ * No `margin-left: auto`: whatever stands in the session position takes the
+ * free space, so this is already against the right edge, and an auto margin
+ * would compete with it for the same space.
+ */
+.account {
+  flex: none;
+}
+
+/*
+ * Below a laptop, the session band takes a line of its own.
+ *
+ * Derived rather than picked. Everything in the map's bar that cannot shrink
+ * comes to about 764px — the scope's two fixed names, the drop slot, the
+ * filter, the account, the gaps and the padding — and a search field stops
+ * being one at roughly 240px. The single row therefore runs out at about
+ * 1004px, so this is the first round number above that, and it is the
+ * conventional laptop boundary as well.
+ *
+ * What it does *not* do is shrink the field further and hope. That was the
+ * failure this replaces: the field kept its place in the row and gave up its
+ * width instead, reaching 30px at 780px — present, focusable, and useless.
+ *
+ * Only the wrap and the account are stated here. Which element takes the
+ * second line, and how wide it is, is said by whoever put it there.
+ */
+@media (max-width: 1024px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  /* Scope and the account keep the first line. The account needs its auto
+     margin back here, because whatever was beside it is no longer there to
+     push it over. */
+  .account {
+    order: 0;
+    margin-left: auto;
+  }
+}
+
+/*
+ * The phone shape, and the one place the number is decided.
+ *
+ * 700px is a literal because custom properties do not resolve inside a media
+ * query — a breakpoint cannot be a token, on any project. It is therefore
+ * repeated in the stylesheets that change shape (`ui.module.css`,
+ * `place-search.module.css`, `trip-map.module.css`, `account-menu.module.css`
+ * and the two scope stylesheets), each of which points back here rather than
+ * explaining it again. This is the file to change first if the number ever
+ * moves.
+ *
+ * Chosen by width alone, which is what `DESIGN.md` asks for. A phone held in
+ * landscape is about 900px wide and therefore gets the laptop bar; that is a
+ * known consequence, accepted, and the reason the bar takes horizontal
+ * safe-area padding above.
+ *
+ * Left to right stops meaning anything here, so the reading becomes top to
+ * bottom: what is being looked at, then the screen, then whatever the session
+ * is made of.
+ */
+@media (max-width: 700px) {
+  /*
+   * Two rows, because the specification says so.
+   *
+   * `workspace-chrome` requires the trip's name and the city's to take separate
+   * lines wherever the chrome is phone-shaped, and the reason is measurable:
+   * two names that a person typed, sharing a 390px row, leave each other about
+   * eleven characters, so both are cut to stubs and the row answers neither
+   * "which trip is this" nor "which part of it am I in".
+   *
+   * A grid rather than wrapping. Wrapping puts things in a new row when they
+   * stop fitting, which is a statement about width; this is a statement about
+   * what belongs with what, and the grid says it directly.
+   */
+  .bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'mark trip account'
+      '.    city city';
+    align-items: center;
+    column-gap: var(--pp-space-xs);
+    row-gap: 0;
+    padding-top: 10px;
+    padding-bottom: 9px;
+  }
+
+  /*
+   * One row where there is no city, stated rather than left to collapse.
+   *
+   * A second row with nothing placed in it is zero pixels tall today, which is
+   * how this looked correct before it was measured — but the row is still in
+   * the template, so anything later given a cell without being asked lands in
+   * it. The calendar has no city and never will; saying so here means the
+   * template describes what is actually in the bar.
+   */
+  .bar.oneRow {
+    grid-template-areas: 'mark trip account';
+  }
+
+  /*
+   * Placed rather than auto-placed.
+   *
+   * This carried no area at all and landed in `mark` because auto-placement
+   * happens to start at the first empty cell — with a dead `.mark` rule beside
+   * it that nothing in the markup ever wore. Two things are now placed by name
+   * and whatever a screen puts in the session position is free to take the
+   * implicit row below them without fighting the point for a cell.
+   */
+  .point {
+    grid-area: mark;
+  }
+
+  .scope {
+    grid-area: trip;
+    display: flex;
+    min-width: 0;
+  }
+
+  /*
+   * The floor has to be put on every link of the chain, not just the top of it.
+   *
+   * A flex item's default `min-width` is `auto`, which means "never shrink below
+   * your content" — so a floor on this wrapper alone stops nothing: the menu
+   * anchor inside it still refuses, and the button inside that still refuses,
+   * and the name arrives at its `text-overflow` rule having never been given a
+   * width to overflow. The name then ran straight through the menu glyph and
+   * off the edge, which is the arrangement the specification has a scenario
+   * forbidding.
+   *
+   * **Learn the shape of this one**: every rule involved is present and correct
+   * — `overflow: hidden` is set, `text-overflow: ellipsis` is set, the grid
+   * column is `minmax(0, 1fr)` — and the text still does not truncate, so it
+   * reads as the ellipsis rule failing and never is. The missing thing is not a
+   * property on the text; it is permission, on every ancestor between the text
+   * and the thing that has a width.
+   */
+  .scope > *,
+  .city > * {
+    min-width: 0;
+  }
+
+  /* The narrowing is said by the indent, so the path separator has nothing
+     left to do. */
+  .scopeSep {
+    display: none;
+  }
+
+  /*
+   * Under the trip, and indented to it rather than to the bar.
+   *
+   * A city is a narrowing of the trip and reads as one only when it stands
+   * where the trip does. Left against the bar's own edge it reads as a second
+   * thing of equal rank; under the name it reads as part of it.
+   */
+  .city {
+    grid-area: city;
+    display: flex;
+    min-width: 0;
+    margin-top: 1px;
+  }
+
+  .account {
+    grid-area: account;
+    margin-left: 0;
+  }
+}

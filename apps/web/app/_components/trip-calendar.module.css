@@ -1,39 +1,101 @@
 /*
  * A trip's places, by day.
  *
- * The screen is a fixed head and a scrolling body, and the split is the point
- * rather than a layout preference: scrolling has to mean "see the rest of this
- * day" and nothing else. A day can hold more places than fit, so if scrolling
- * also stepped to another day the two meanings would be indistinguishable
- * before the gesture was made, and reaching the last place of a busy day would
- * mean passing through the boundary that moves off it.
+ * The screen is a fixed day band and a scrolling body, and the split is the
+ * point rather than a layout preference: scrolling has to mean "see the rest of
+ * this day" and nothing else. A day can hold more places than fit, so if
+ * scrolling also stepped to another day the two meanings would be
+ * indistinguishable before the gesture was made, and reaching the last place of
+ * a busy day would mean passing through the boundary that moves off it.
  *
- * The day therefore changes only from the controls in the head, and the head
- * never scrolls away from whoever is at the bottom of a long day.
+ * The day therefore changes only from the band's controls, and the band never
+ * scrolls away from whoever is at the bottom of a long day.
+ *
+ * The trip's name and the account are no longer here. They are in the bar every
+ * screen in the product wears — `chrome-bar.module.css` — which is also the
+ * column this screen is now the second row of, so the height comes from that
+ * column rather than from `100dvh` here.
  */
 .screen {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   flex-direction: column;
-  height: 100dvh;
   color: var(--pp-ink);
   background: var(--pp-ground);
 }
 
-.head {
+/*
+ * The day band: the third row of the screen, and not part of the scroll.
+ *
+ * Between the header and the scrolling body. The specification asks for these
+ * controls to be the first thing below the header, not among its own — the
+ * header says which trip and who is reading it, and neither changes as the day
+ * does — while still being reachable without scrolling. A row of its own
+ * satisfies both at once.
+ *
+ * **On the ground, not on a surface, and that is the whole point of the band.**
+ * It carried `--pp-surface` and a bottom border when it was the screen's own
+ * header, which is the bar's dress — so once the bar above it became the
+ * product's, the two read as one two-row bar and the controls looked like
+ * chrome. They are not: the day being read belongs to this screen, and the
+ * header says which trip and who is reading it. The ground is what says so,
+ * and it is the same ground the body below it stands on, so the band reads as
+ * the top of the screen rather than as the bottom of the bar.
+ *
+ * No border either. The header already draws the line that separates chrome
+ * from screen; a second hairline sixteen pixels under it would divide the
+ * screen from itself.
+ */
+.dayBand {
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: var(--pp-space-sm);
-  padding: var(--pp-space-sm) max(var(--pp-space-md), env(safe-area-inset-left))
+  padding: var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-left))
     var(--pp-space-sm) max(var(--pp-space-md), env(safe-area-inset-right));
-  border-bottom: 1px solid var(--pp-line);
-  background: var(--pp-surface);
+  background: var(--pp-ground);
 }
 
-.headRow {
+/*
+ * The way back, in the bar's session band.
+ *
+ * `flex: 1 1 auto` for the reason `.tools` on the map has it: whatever stands
+ * here takes the free space, which is what keeps the account against the right
+ * edge without an auto margin competing for it. The margin is what separates
+ * this group from the trip's name beside it — without it the bar is one
+ * undifferentiated run of controls and the reading left to right stops meaning
+ * anything.
+ */
+.session {
   display: flex;
-  align-items: center;
-  gap: var(--pp-space-md);
+  flex: 1 1 auto;
   min-width: 0;
+  align-items: center;
+  margin-left: var(--pp-space-md);
+}
+
+/*
+ * The phone shape. 700px, and the same literal as `chrome-bar.module.css`,
+ * which is where the number is decided and explained.
+ *
+ * Placed across the row rather than left to land somewhere. Without a city the
+ * bar's template is a single row, so this is auto-placed into an implicit
+ * second one — at column one, which is the nine pixels the point occupies, and
+ * a grid item does not wrap out of a track too narrow for it: it *overflows*.
+ * It looked right, because nothing sits beside it to be overflowed onto.
+ * Measured rather than trusted, which AGENTS.md asks for on exactly this kind
+ * of rule, and then said properly.
+ *
+ * The margin goes with it. Its job on a laptop is to separate this group from
+ * the trip's name beside it, and there is nothing beside it here — it was only
+ * indenting the row by sixteen pixels for no stated reason.
+ */
+@media (max-width: 700px) {
+  .session {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
 }
 
 /* The way back, drawn rather than assumed. A screen that can be reached and not
@@ -54,22 +116,6 @@
 
 .back:hover {
   background: var(--pp-surface-muted);
-}
-
-.title {
-  /*
-   * `min-width: 0` because a flex item's default minimum is its content, so a
-   * long trip name would push the row wider than the screen instead of being
-   * cut. The same default that overflows a search field under a button.
-   */
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  font-size: var(--pp-type-title-size);
-  font-weight: var(--pp-type-title-weight);
-  letter-spacing: var(--pp-type-title-tracking);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .controls {
@@ -165,8 +211,9 @@
  * pull the scrollbar in off the edge of the window. Each block caps itself to
  * the same width instead, so they stay aligned with each other.
  *
- * The header keeps the full width on purpose. The way back belongs at the edge
- * of the screen where a back control is looked for, not floating in from it.
+ * The day band keeps the full width on purpose, the same way the header above
+ * it does. Stepping and choosing a day belong at the edges of the screen, not
+ * floating in from them.
  */
 .message,
 .waiting,

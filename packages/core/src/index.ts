@@ -49,6 +49,7 @@ export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filte
 export {
   addDays,
   dateOfDay,
+  dayShown,
   dayToOpenOn,
   dayWithin,
   groupMarkersByDay,

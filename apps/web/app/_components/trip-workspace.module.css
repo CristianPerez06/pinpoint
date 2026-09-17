@@ -1,98 +1,19 @@
 /*
- * The full-height column: the bar, then the map.
+ * What the map puts *in* the bar, and the map's own stage beneath it.
  *
- * It lives here rather than in `page.tsx` because the bar does, and the two have
- * to be siblings — a `<header>` inside `<main>` exposes no `banner` landmark.
- * Nothing scrolls; the map takes whatever the bar leaves and panels scroll
- * inside themselves.
+ * The bar itself — the column it tops, the `<header>`, the point, the scope's
+ * two wrappers, the account's position and the two breakpoints that change the
+ * bar's shape — is `chrome-bar.module.css`, because a second screen wears it
+ * now. The account menu's own dress is `account-menu.module.css`, for the same
+ * reason. What stays here is everything that belongs to *this* screen: the
+ * session band and its three tools, search as a screen, the drop and filter
+ * slots, the banner and the stage.
+ *
+ * Both media queries below therefore continue rules the bar's own stylesheet
+ * opens. The 1024px one is where the session band takes a line of its own; the
+ * 700px one is where it leaves the bar for the bottom edge. The number is
+ * decided and explained in `chrome-bar.module.css`.
  */
-.shell {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  color: var(--pp-ink);
-}
-
-/*
- * One bar, and it is the header.
- *
- * This was a header plus three stacked rows. The row count was called a
- * decision in the comment that used to be here, and it was — but it was a
- * decision about how many rows the controls needed, never about whether the
- * controls deserved the space. They did not: 205px of chrome on a 929px
- * viewport, to hold 558px of controls in rows 2528px wide.
- *
- * Left to right: scope, the session, the person. Nothing wraps at a laptop
- * width, and the trip's name is the only thing that yields.
- */
-.bar {
-  position: relative;
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  gap: var(--pp-space-sm);
-  padding: var(--pp-space-sm) var(--pp-space-md);
-  /*
-   * The sides clear the hardware, at every width.
-   *
-   * Not a phone-layout rule. Chrome is chosen by width alone, so a phone held
-   * in landscape is about 900px wide and gets *this* bar — with the notch down
-   * one side of it. `max()` rather than an addition, so the padding is the
-   * inset where there is one and the design's own spacing where there is not,
-   * and never both stacked.
-   */
-  padding-left: max(var(--pp-space-md), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--pp-space-md), env(safe-area-inset-right, 0px));
-  border-bottom: 1px solid var(--pp-line);
-  background: var(--pp-surface);
-}
-
-/*
- * The point: a pin reduced to the point it names, in the one colour that is not
- * a marker family.
- *
- * Called the point and not the mark. The mark is the teardrop tile the product
- * hands a browser tab and a home screen — a drawing for hosts that have never
- * run the application. This is a header ornament inside an application already
- * open. They were both called the mark until the icons were settled, and that
- * is how a change draws the wrong one.
- *
- * The wordmark's letters are gone. Inside the application they said nothing the
- * reader did not know, and the trip's name is the thing that answers a real
- * question — which is exactly the trade the phone header already made.
- */
-.point {
-  width: 9px;
-  height: 9px;
-  margin-right: 5px;
-  border-radius: 50%;
-  background: var(--pp-accent);
-  box-shadow: 0 0 0 3px var(--pp-accent-ring);
-  flex: none;
-}
-
-/*
- * The two names of the scope, each in a wrapper of its own.
- *
- * They do nothing at a laptop width beyond what the controls inside them
- * already did — `display: flex` and a floor of zero so truncation works. They
- * exist because the phone shape needs somewhere to put each name, and the
- * controls themselves are two `Menu`s wearing the same class as every other
- * menu in the chrome.
- */
-.scope,
-.city {
-  display: flex;
-  min-width: 0;
-  flex: none;
-}
-
-/* Scope reads as a path, because that is what it is: a city is a narrowing of
-   a trip. */
-.scopeSep {
-  color: var(--pp-ink-faint);
-  flex: none;
-}
 
 /*
  * `.toolGlyph` and `.toolLabel` were declared here and are now `ui.module.css`,
@@ -263,163 +184,19 @@
 }
 
 /*
- * At the far edge, where DESIGN.md wants rare destructive things kept — and now
- * with a menu around it, which four open tickets were waiting for.
+ * Below a laptop, the tools take the line the bar has wrapped onto.
  *
- * No `margin-left: auto`: the tools take the free space now, so this is already
- * against the right edge, and an auto margin would compete with them for it.
- */
-.account {
-  flex: none;
-}
-
-/*
- * Fixed like the rest, though this one is anchored right and so moves nothing
- * but itself. It is here for the chevron: without a reserved width that glyph
- * sits at a different place on every account, and it is the one part of this
- * control anybody aims at.
- */
-.you {
-  display: block;
-  width: 13ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-}
-
-/* Who is signed in, at the top of the menu about them. */
-.identity {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 3px var(--pp-space-sm) var(--pp-space-xs);
-}
-
-.initials {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 50%;
-  /* The wash and its ink, never the accent itself — on the dark ground `accent`
-     and `accent-ink` are one value and the letters would vanish. */
-  background: var(--pp-accent-wash);
-  color: var(--pp-accent-ink);
-  font-size: var(--pp-type-row-name-size);
-  font-weight: 700;
-}
-
-.identityName {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--pp-type-row-name-size);
-  font-weight: var(--pp-type-row-name-weight);
-}
-
-.identityRule {
-  height: 1px;
-  margin: var(--pp-space-xs) 0;
-  border: 0;
-  background: var(--pp-line);
-}
-
-/* A row in a menu that is a list of actions rather than a form. */
-.menuRow {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 7px var(--pp-space-sm);
-  border: 0;
-  border-radius: var(--pp-radius-sm);
-  background: none;
-  color: var(--pp-ink);
-  font-family: inherit;
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  text-align: left;
-  /* One of these rows is now an anchor, which arrives underlined and in the
-     browser's link colour. The colour is already declared above; this is the
-     other half. */
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.menuRow:hover {
-  background: var(--pp-surface-muted);
-}
-
-.menuRowGlyph {
-  width: 18px;
-  height: 18px;
-  flex: none;
-  color: var(--pp-ink-muted);
-}
-
-/*
- * The sign-out submit, still a server action inside a form.
- *
- * Nothing about how signing out works changed when it moved into a menu; only
- * where it is reachable from did.
- */
-.signOut {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 7px var(--pp-space-sm);
-  border: 0;
-  border-radius: var(--pp-radius-sm);
-  background: none;
-  color: var(--pp-danger);
-  font-family: inherit;
-  font-size: var(--pp-type-control-size);
-  font-weight: var(--pp-type-control-weight);
-  text-align: left;
-  cursor: pointer;
-}
-
-.signOut:hover {
-  background: var(--pp-danger-surface);
-}
-
-/* The glyph goes with the lettering here. Muted grey beside danger-red text
-   reads as two controls sharing a row rather than as one. */
-.signOut .menuRowGlyph {
-  color: currentColor;
-}
-
-/*
- * Below a laptop, the tools take a line of their own.
- *
- * Derived rather than picked. Everything in the bar that cannot shrink comes to
- * about 764px — the scope's two fixed names, the drop slot, the filter, the
- * account, the gaps and the padding — and a search field stops being one at
- * roughly 240px. The single row therefore runs out at about 1004px, so this is
- * the first round number above that, and it is the conventional laptop boundary
- * as well.
+ * The wrap itself is `chrome-bar.module.css`, which is also where the width is
+ * derived: everything in this bar that cannot shrink comes to about 764px and a
+ * search field stops being one at roughly 240px, so the single row runs out at
+ * about 1004px. This is the half of it that belongs to the map — which element
+ * takes the second line, and how the field behaves once it has one.
  *
  * What it does *not* do is shrink the field further and hope. That was the
  * failure this replaces: the field kept its place in the row and gave up its
  * width instead, reaching 30px at 780px — present, focusable, and useless.
  */
 @media (max-width: 1024px) {
-  .bar {
-    flex-wrap: wrap;
-  }
-
-  /* Scope and the account keep the first line; the tools take the second. The
-     account needs its auto margin back here, because the tools are no longer
-     beside it to push it over. */
-  .account {
-    order: 0;
-    margin-left: auto;
-  }
-
   .tools {
     order: 1;
     width: 100%;
@@ -435,116 +212,17 @@
 }
 
 /*
- * The phone shape, and the one place the number is decided.
+ * The phone shape: what the map does once the bar has become a grid.
  *
- * This replaces the wrapping rule that used to sit here, which said of itself
- * that it was temporary and named this work as its replacement. It is deleted
- * rather than amended: a phone-width window is a different arrangement, not a
- * narrower version of the laptop's, and leaving both would be two rules
- * claiming the same widths.
- *
- * 700px is a literal because custom properties do not resolve inside a media
- * query — a breakpoint cannot be a token, on any project. It is therefore
- * repeated in the four stylesheets that change shape (`ui.module.css`,
- * `place-search.module.css`, `trip-map.module.css`, and the two scope
- * stylesheets), each of which points back here rather than explaining it again.
- * This is the file to change first if the number ever moves.
- *
- * Chosen by width alone, which is what `DESIGN.md` asks for. A phone held in
- * landscape is about 900px wide and therefore gets the laptop bar; that is a
- * known consequence, accepted, and the reason the bar takes horizontal
- * safe-area padding below.
- *
- * Left to right stops meaning anything here, so the reading becomes top to
- * bottom: what is being looked at, then the map, then what a session is made
- * of, on the edge where a thumb already is.
+ * The grid, and the 700px itself, are `chrome-bar.module.css` — which is the
+ * file to change if the number ever moves, and the one that explains why a
+ * breakpoint cannot be a token. This is everything the map contributes at that
+ * width, and the largest part of it is that the session band leaves the bar
+ * altogether: left to right stops meaning anything here, so the reading becomes
+ * top to bottom — what is being looked at, then the map, then what a session is
+ * made of, on the edge where a thumb already is.
  */
 @media (max-width: 700px) {
-  /*
-   * Two rows, because the specification says so.
-   *
-   * `workspace-chrome` requires the trip's name and the city's to take separate
-   * lines wherever the chrome is phone-shaped, and the reason is measurable:
-   * two names that a person typed, sharing a 390px row, leave each other about
-   * eleven characters, so both are cut to stubs and the row answers neither
-   * "which trip is this" nor "which part of it am I in".
-   *
-   * A grid rather than wrapping. Wrapping puts things in a new row when they
-   * stop fitting, which is a statement about width; this is a statement about
-   * what belongs with what, and the grid says it directly.
-   */
-  .bar {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'mark trip account'
-      '.    city city';
-    align-items: center;
-    column-gap: var(--pp-space-xs);
-    row-gap: 0;
-    padding-top: 10px;
-    padding-bottom: 9px;
-  }
-
-  .mark {
-    grid-area: mark;
-    margin-right: 5px;
-  }
-
-  .scope {
-    grid-area: trip;
-    display: flex;
-    min-width: 0;
-  }
-
-  /*
-   * The floor has to be put on every link of the chain, not just the top of it.
-   *
-   * A flex item's default `min-width` is `auto`, which means "never shrink below
-   * your content" — so a floor on this wrapper alone stops nothing: the menu
-   * anchor inside it still refuses, and the button inside that still refuses,
-   * and the name arrives at its `text-overflow` rule having never been given a
-   * width to overflow. The name then ran straight through the menu glyph and
-   * off the edge, which is the arrangement the specification has a scenario
-   * forbidding.
-   *
-   * **Learn the shape of this one**: every rule involved is present and correct
-   * — `overflow: hidden` is set, `text-overflow: ellipsis` is set, the grid
-   * column is `minmax(0, 1fr)` — and the text still does not truncate, so it
-   * reads as the ellipsis rule failing and never is. The missing thing is not a
-   * property on the text; it is permission, on every ancestor between the text
-   * and the thing that has a width.
-   */
-  .scope > *,
-  .city > * {
-    min-width: 0;
-  }
-
-  /* The narrowing is said by the indent, so the path separator has nothing
-     left to do. */
-  .scopeSep {
-    display: none;
-  }
-
-  /*
-   * Under the trip, and indented to it rather than to the bar.
-   *
-   * A city is a narrowing of the trip and reads as one only when it stands
-   * where the trip does. Left against the bar's own edge it reads as a second
-   * thing of equal rank; under the name it reads as part of it.
-   */
-  .city {
-    grid-area: city;
-    display: flex;
-    min-width: 0;
-    margin-top: 1px;
-  }
-
-  .account {
-    grid-area: account;
-    margin-left: 0;
-  }
-
   /*
    * The tools leave the bar for the bottom edge.
    *
@@ -739,15 +417,6 @@
     display: none;
   }
 
-  /*
-   * The address goes; the glyph stays.
-   *
-   * Both spellings are in the label and the width picks one, exactly as `Drop`'s
-   * two words do.
-   */
-  .you {
-    display: none;
-  }
 }
 
 .stage {

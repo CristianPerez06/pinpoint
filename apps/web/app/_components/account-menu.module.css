@@ -1,0 +1,144 @@
+/*
+ * The person, not the trip.
+ *
+ * Moved out of `trip-workspace.module.css` whole, because the control it dresses
+ * had to come out of `workspace-chrome.tsx` for the bar to be composable — the
+ * calendar needs this menu and cannot reach inside the map's file for it.
+ * Nothing here is new; the one rule that reads differently is the breakpoint at
+ * the bottom, which is a second copy of a number `trip-workspace.module.css`
+ * still owns.
+ */
+
+/*
+ * Fixed like the rest of the bar, though this one is anchored right and so
+ * moves nothing but itself. It is here for the chevron: without a reserved
+ * width that glyph sits at a different place on every account, and it is the
+ * one part of this control anybody aims at.
+ */
+.you {
+  display: block;
+  width: 13ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Who is signed in, at the top of the menu about them. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 3px var(--pp-space-sm) var(--pp-space-xs);
+}
+
+.initials {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  /* The wash and its ink, never the accent itself — on the dark ground `accent`
+     and `accent-ink` are one value and the letters would vanish. */
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-row-name-size);
+  font-weight: 700;
+}
+
+.identityName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+}
+
+.identityRule {
+  height: 1px;
+  margin: var(--pp-space-xs) 0;
+  border: 0;
+  background: var(--pp-line);
+}
+
+/* A row in a menu that is a list of actions rather than a form. */
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  /* One of these rows is an anchor, which arrives underlined and in the
+     browser's link colour. The colour is already declared above; this is the
+     other half. */
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menuRow:hover {
+  background: var(--pp-surface-muted);
+}
+
+.menuRowGlyph {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * The sign-out submit, still a server action inside a form.
+ *
+ * Nothing about how signing out works changed when it moved into a menu; only
+ * where it is reachable from did.
+ */
+.signOut {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-danger);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.signOut:hover {
+  background: var(--pp-danger-surface);
+}
+
+/* The glyph goes with the lettering here. Muted grey beside danger-red text
+   reads as two controls sharing a row rather than as one. */
+.signOut .menuRowGlyph {
+  color: currentColor;
+}
+
+/*
+ * The address goes; the glyph stays.
+ *
+ * Both spellings are in the label and the width picks one, exactly as `Drop`'s
+ * two words do. 700px is a literal because custom properties do not resolve
+ * inside a media query — `trip-workspace.module.css` is where the number is
+ * decided and explained, and this is one of the stylesheets that repeats it.
+ */
+@media (max-width: 700px) {
+  .you {
+    display: none;
+  }
+}
