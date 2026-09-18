@@ -41,11 +41,20 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
 }
 
 /** A field that holds nothing is shown as holding nothing, never as blank text. */
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  children,
+  valueClassName,
+}: {
+  label: string
+  children: ReactNode
+  /** Added to the value's own class, for the one field that needs more. */
+  valueClassName?: string
+}) {
   return (
     <div className={styles.field}>
       <span className={styles.fieldLabel}>{label}</span>
-      <p className={styles.fieldValue}>{children}</p>
+      <p className={`${styles.fieldValue} ${valueClassName ?? ''}`}>{children}</p>
     </div>
   )
 }
@@ -169,7 +178,9 @@ function Details({
           )}
         </Field>
 
-        <Field label="Note">{marker.note ?? <Absent />}</Field>
+        <Field label="Note" valueClassName={styles.noteValue}>
+          {marker.note ?? <Absent />}
+        </Field>
         <Field label="Link">
           {marker.link === null ? (
             <Absent />
