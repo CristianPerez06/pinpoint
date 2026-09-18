@@ -1,10 +1,7 @@
 import { signOut } from '@pinpoint/auth'
 import {
-  addDays,
   dayToOpenOn,
   type FieldErrors,
-  formatDay,
-  formatDayFull,
   groupMarkersByDay,
   groupUndatedByCity,
   type IsoDay,
@@ -12,7 +9,6 @@ import {
   type MarkerInterest,
   markersOnDay,
   type Trip,
-  type WaitingGroup,
 } from '@pinpoint/core'
 import {
   deleteMarker,
@@ -26,39 +22,18 @@ import {
   updateMarker,
   withdrawInterest,
 } from '@pinpoint/data'
-import { groupCoincident, markerView } from '@pinpoint/map'
-import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { groupCoincident } from '@pinpoint/map'
 import { useRouter } from 'expo-router'
-// Deep imports, not the package root — see marker-icon.tsx. One value import of
-// the barrel pulls all 1767 icons and crashes Hermes.
-import ChevronDown from 'lucide-react-native/icons/chevron-down'
-import ChevronLeft from 'lucide-react-native/icons/chevron-left'
-import ChevronRight from 'lucide-react-native/icons/chevron-right'
-import Map from 'lucide-react-native/icons/map'
 import { useMemo, useState } from 'react'
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Alert } from 'react-native'
 
-import {
-  MarkerDetails,
-  type Selection,
-  TypeChip,
-} from '@/components/marker-details'
+import { CalendarScreen } from '@/components/calendar-screen'
+import { MarkerDetails, type Selection } from '@/components/marker-details'
 import { MarkerFormSheet, type MarkerFormValues } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { TripSheet } from '@/components/trip-sheet'
-import { DayField, FormNote } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
-import { useTheme } from '@/lib/theme'
-import { role } from '@/lib/type'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
@@ -94,9 +69,6 @@ import { useTripActions } from '@/lib/use-trip-actions'
  * hemisphere.
  */
 
-/** The header's own breathing room, above and below its content. */
-const HEADER_PAD = SPACE.sm + 2
-
 export function TripCalendar({
   trip,
   trips,
@@ -111,8 +83,6 @@ export function TripCalendar({
   onCreated: (tripId: string) => void
   userId: string
 }) {
-  const theme = useTheme()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
 
   /*
@@ -144,16 +114,6 @@ export function TripCalendar({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [conflict, setConflict] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
-
-  /**
-   * Which of the two views is shown.
-   *
-   * Always starts on the day, and is kept nowhere else, so every arrival opens
-   * the same way. Changing trip remounts this screen (`key={trip.id}` on the
-   * route), which is arriving at that trip and resets it with nothing here
-   * having to.
-   */
-  const [view, setView] = useState<CalendarView>('days')
 
   /**
    * The day being read.
@@ -389,184 +349,38 @@ export function TripCalendar({
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colour.ground }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: theme.colour.surface,
-            borderColor: theme.colour.line,
-            paddingTop: HEADER_PAD + insets.top,
-          },
-        ]}
-      >
-        {/*
-          The same bar the map wears, in the same order: the point, the trip's
-          name as the way into the trip's actions, and the account at the far
-          end. No city control — there is no camera to frame here and nowhere to
-          bias a search toward, so one would offer more than it can do.
-        */}
-        <View style={styles.headerLine}>
-          <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-          <Pressable
-            onPress={() => showSheet(setTripsOpen, true, trips.refetch)}
-            accessibilityRole="button"
-            accessibilityLabel={`${trip.name}. Switch or manage trips`}
-            hitSlop={6}
-            style={styles.tripButton}
-          >
-            <Text
-              style={[styles.tripName, { color: theme.colour.ink }]}
-              numberOfLines={1}
-            >
-              {trip.name}
-            </Text>
-            <ChevronDown size={16} color={theme.colour.inkMuted} strokeWidth={2.4} />
-          </Pressable>
+    <CalendarScreen
+      live={{
+        tripName: trip.name,
+        onOpenTrips: () => showSheet(setTripsOpen, true, trips.refetch),
+        onOpenMenu: () => setMenuOpen(true),
+        onBack: backToTheMap,
+        day,
+        onGoToDay: setDay,
+        problem,
+        onDismissProblem: () => setProblem(null),
+      }}
+      /*
+        Drawn rows until the places and the cities have both been read once —
+        the cities too, because the places waiting are grouped under them.
+        Before this, the rows were the empty list a query holds while loading,
+        and every day said "Nothing planned" until its places arrived.
 
-          <Pressable
-            onPress={() => setMenuOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Menu"
-            hitSlop={8}
-            style={styles.menuButton}
-          >
-            <Text style={[styles.menuGlyph, { color: theme.colour.ink }]}>☰</Text>
-          </Pressable>
-        </View>
-
-        {/*
-          The way back, on its own line beneath the trip's name.
-
-          That is the line the map spends on the city, and this screen names no
-          city — so it is the space this screen frees in the header, which is
-          where the chrome puts the way out. It is also exactly where the laptop
-          puts the same control once its bar takes the phone shape, so the two
-          applications agree.
-
-          Deliberately not beside the account: signing out is reached from there,
-          and rare destructive controls are kept away from frequent ones. This is
-          the most frequent control on the screen.
-        */}
-        <View style={styles.backLine}>
-          <Pressable
-            onPress={backToTheMap}
-            accessibilityRole="button"
-            accessibilityLabel="Back to the map"
-            hitSlop={6}
-            style={[styles.back, { borderColor: theme.colour.lineStrong }]}
-          >
-            <Map size={15} color={theme.colour.ink} strokeWidth={2.2} />
-            <Text style={[styles.backText, { color: theme.colour.ink }]}>
-              Back to the map
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <ViewTabs
-        view={view}
-        onChange={setView}
-        waitingCount={grouped.undated.length}
-      />
-
-      {/*
-        The day band: pinned between the header and the part that scrolls.
-
-        Below the header rather than among its controls, because the header says
-        which trip and who is reading it and neither changes as the day does —
-        and outside the scrolling view, because navigation that scrolls away
-        strands whoever is at the bottom of a long day.
-      */}
-      {/* The day controls change nothing about the places waiting, so they
-          belong to the day's view alone. */}
-      {view === 'days' ? (
-        <View style={styles.dayBand}>
-          <Pressable
-            onPress={() => setDay(addDays(day, -1))}
-            accessibilityRole="button"
-            /*
-              Named in words, in every rendering. An arrow conveys nothing to a
-              screen reader, and "previous" alone conveys only that there is one —
-              the day it leads to is what the control has to say.
-            */
-            accessibilityLabel={`Previous day, ${formatDayFull(addDays(day, -1))}`}
-            style={[
-              styles.step,
-              { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
-            ]}
-          >
-            <ChevronLeft size={18} color={theme.colour.ink} strokeWidth={2.2} />
-          </Pressable>
-
-          <View style={styles.picker}>
-            <DayField
-              label="Day"
-              value={day}
-              // The day being read is always a day: there is no "no day" to be on,
-              // so this field cannot be cleared and an emptied value cannot arrive.
-              clearable={false}
-              standalone
-              onChange={(next) => {
-                if (next !== null) setDay(next)
-              }}
-            />
-          </View>
-
-          <Pressable
-            onPress={() => setDay(addDays(day, 1))}
-            accessibilityRole="button"
-            accessibilityLabel={`Next day, ${formatDayFull(addDays(day, 1))}`}
-            style={[
-              styles.step,
-              { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
-            ]}
-          >
-            <ChevronRight size={18} color={theme.colour.ink} strokeWidth={2.2} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      {problem !== null ? (
-        <Pressable
-          onPress={() => setProblem(null)}
-          accessibilityRole="button"
-          accessibilityHint="Dismisses this message"
-          style={styles.problem}
-        >
-          <FormNote tone="danger">{problem}</FormNote>
-        </Pressable>
-      ) : null}
-
-      {/*
-        The body does not scroll; the card inside it does.
-
-        The day's name stays put above its places, and the screen around it
-        never moves. The card takes `flex: 1` of a body that takes `flex: 1` of
-        the screen, so its height is definite — which is what lets the
-        `ScrollView` inside it scroll rather than collapse, the failure that
-        catches one inside a container sized to its children.
-      */}
-      {/*
-        The places waiting stand a gap below the tabs, as they do on the laptop.
-        The day's view needs none here: the day band above it carries its own.
-      */}
-      <View
-        style={[
-          styles.body,
-          {
-            paddingTop: view === 'waiting' ? SPACE.md : 0,
-            paddingBottom: SPACE.md + insets.bottom,
-          },
-        ]}
-      >
-        {view === 'days' ? (
-          <DayCard day={day} markers={onThisDay} onOpen={(marker) => setOpenMarkerId(marker.id)} />
-        ) : (
-          <Waiting groups={waiting} onOpen={(marker) => setOpenMarkerId(marker.id)} />
-        )}
-      </View>
-
+        A re-read never brings the rows back: `useQuery` keeps what it holds on
+        screen while it reads again, so its status is only ever `loading` before
+        the first answer.
+      */
+      lists={
+        markerQuery.state.status === 'loading' || cityQuery.state.status === 'loading'
+          ? null
+          : {
+              onThisDay,
+              waiting,
+              waitingCount: grouped.undated.length,
+              onOpen: (marker) => setOpenMarkerId(marker.id),
+            }
+      }
+    >
       {/*
         The place, in the same sheet the map opens, with the same actions.
 
@@ -690,389 +504,6 @@ export function TripCalendar({
         onSignOut={() => void signOut(supabase)}
         member={ownMemberOf(members, userId) ?? null}
       />
-    </View>
+    </CalendarScreen>
   )
 }
-
-type CalendarView = 'days' | 'waiting'
-
-/**
- * The switch between the day and the places waiting for one.
- *
- * Directly under the header and outside the scrolling view, like the day band
- * beneath it: it is how the screen is navigated, and it must not scroll away
- * from whoever is at the bottom of a long day.
- *
- * The count rides on the second tab so it is legible from either view — the
- * tab is the only thing about the waiting places that the day's view shows.
- */
-function ViewTabs({
-  view,
-  onChange,
-  waitingCount,
-}: {
-  view: CalendarView
-  onChange: (view: CalendarView) => void
-  waitingCount: number
-}) {
-  const theme = useTheme()
-
-  function tab(value: CalendarView, label: string, count?: number) {
-    const selected = view === value
-    return (
-      <Pressable
-        onPress={() => onChange(value)}
-        accessibilityRole="tab"
-        accessibilityState={{ selected }}
-        accessibilityLabel={
-          count === undefined
-            ? label
-            : `${label}, ${count === 1 ? '1 place' : `${count} places`}`
-        }
-        /*
-          Outlined as well as lifted: `surface` on `surfaceSunk` is a clear step
-          on the light ground and almost none on the dark one, where the brighter
-          label was the only sign of which tab was chosen.
-        */
-        style={[
-          styles.tab,
-          selected
-            ? {
-                backgroundColor: theme.colour.surface,
-                borderColor: theme.colour.lineStrong,
-              }
-            : null,
-        ]}
-      >
-        <Text
-          style={[
-            styles.tabText,
-            { color: selected ? theme.colour.ink : theme.colour.inkMuted },
-          ]}
-        >
-          {label}
-        </Text>
-        {count === undefined ? null : <WaitingCount count={count} />}
-      </Pressable>
-    )
-  }
-
-  return (
-    <View
-      accessibilityRole="tablist"
-      style={[
-        styles.tabs,
-        { backgroundColor: theme.colour.surfaceSunk, borderColor: theme.colour.line },
-      ]}
-    >
-      {tab('days', 'Days')}
-      {tab('waiting', 'No day yet', waitingCount)}
-    </View>
-  )
-}
-
-/**
- * How many places are waiting, as a badge.
- *
- * Washed in the accent while there is something to do and muted when there is
- * not. The lettering is `accentInk` on `accentWash`, the pair that stays apart
- * on both grounds — not `accentInk` on `accent`, which converges to one colour
- * on the dark ground.
- */
-function WaitingCount({ count }: { count: number }) {
-  const theme = useTheme()
-  const none = count === 0
-
-  return (
-    <Text
-      style={[
-        styles.count,
-        {
-          backgroundColor: none ? theme.colour.surfaceMuted : theme.colour.accentWash,
-          color: none ? theme.colour.inkMuted : theme.colour.accentInk,
-        },
-      ]}
-    >
-      {count}
-    </Text>
-  )
-}
-
-/**
- * The places still waiting for a day, one group per city.
- *
- * The second of the two views, one press away from the day, rather than a
- * region that opens over the day and pushes it down. Its list scrolls inside
- * the card, which takes the height the screen leaves.
- *
- * **Present when the count is zero**, saying so. A region that appears and
- * disappears is a screen that rearranges itself at the moment the last place is
- * dated — which is the moment somebody is most likely to still be reading it.
- *
- * Grouped by city because a day is commonly spent in one, and the order of the
- * groups comes from `@pinpoint/core` so the laptop lists them identically.
- */
-function Waiting({
-  groups,
-  onOpen,
-}: {
-  groups: readonly WaitingGroup[]
-  onOpen: (marker: Marker) => void
-}) {
-  const theme = useTheme()
-
-  return (
-    <View
-      style={[
-        styles.card,
-        styles.waitingCard,
-        { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
-      ]}
-    >
-      <ScrollView contentContainerStyle={styles.waitingContent}>
-        {groups.length === 0 ? (
-          /*
-            `inkMuted`, never `inkFaint`. This says nothing is left to do, which
-            somebody is meant to read.
-          */
-          <Text style={[styles.waitingEmpty, { color: theme.colour.inkMuted }]}>
-            Nothing waiting for a day.
-          </Text>
-        ) : (
-          groups.map((group) => (
-            <View key={group.city?.id ?? 'unassigned'} style={styles.cityGroup}>
-              {/* `Unassigned` is what the city control calls a place filed
-                  under no city, so the product has one name for them. */}
-              <Text
-                accessibilityRole="header"
-                style={[styles.cityName, { color: theme.colour.inkMuted }]}
-              >
-                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
-              </Text>
-              {group.markers.map((marker) => (
-                <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-              ))}
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </View>
-  )
-}
-
-/** One day, and what is on it. */
-function DayCard({
-  day,
-  markers,
-  onOpen,
-}: {
-  day: IsoDay
-  markers: readonly Marker[]
-  onOpen: (marker: Marker) => void
-}) {
-  const theme = useTheme()
-
-  return (
-    <View
-      style={[
-        styles.card,
-        styles.dayCard,
-        { backgroundColor: theme.colour.surface, borderColor: theme.colour.lineStrong },
-      ]}
-      accessibilityLabel={formatDayFull(day)}
-    >
-      {/* Outside the scroll, so the day's name stays put above its places. */}
-      <Text style={[styles.dayName, { color: theme.colour.ink }]}>
-        {formatDay(day)}
-      </Text>
-
-      <ScrollView contentContainerStyle={styles.dayContent}>
-        {markers.length === 0 ? (
-          // An empty day is the ordinary state of most days on most trips, and
-          // it is information. It is said, not left blank and not drawn as a
-          // fault.
-          <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
-            Nothing planned.
-          </Text>
-        ) : (
-          markers.map((marker) => (
-            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-          ))
-        )}
-      </ScrollView>
-    </View>
-  )
-}
-
-function PlaceRow({
-  marker,
-  onOpen,
-}: {
-  marker: Marker
-  onOpen: (marker: Marker) => void
-}) {
-  const theme = useTheme()
-  const view = markerView(marker)
-
-  return (
-    <Pressable
-      onPress={() => onOpen(marker)}
-      accessibilityRole="button"
-      accessibilityLabel={
-        marker.visited ? `${marker.name}, visited` : marker.name
-      }
-      style={styles.place}
-    >
-      <TypeChip view={view} size={26} />
-      <Text
-        style={[styles.placeName, { color: theme.colour.ink }]}
-        numberOfLines={1}
-      >
-        {marker.name}
-      </Text>
-      {/* Visited is said in words as well as drawn, because a signal carried
-          only by styling does not survive a screen reader. */}
-      {marker.visited ? (
-        <Text
-          style={[
-            styles.visited,
-            {
-              backgroundColor: theme.colour.surfaceSunk,
-              color: theme.colour.inkMuted,
-            },
-          ]}
-        >
-          VISITED
-        </Text>
-      ) : null}
-    </Pressable>
-  )
-}
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    paddingHorizontal: SPACE.md,
-    // `paddingTop` is applied inline instead, because it has to carry the
-    // device's top inset as well as this.
-    paddingBottom: HEADER_PAD,
-    borderBottomWidth: 1,
-  },
-  /** The point, the trip and the account. The map's own first line. */
-  headerLine: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  dot: { width: 9, height: 9, borderRadius: 5 },
-  tripButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.xs,
-    flexShrink: 1,
-  },
-  tripName: { ...role(TYPE.title), flexShrink: 1 },
-  menuButton: { marginLeft: 'auto' },
-  menuGlyph: { ...role(TYPE.title) },
-  /*
-   * Starting at the point's left edge, not indented to the trip's name — where
-   * the laptop's bar puts the same control once it takes the phone shape, so
-   * the two applications draw it in the same place.
-   */
-  backLine: { flexDirection: 'row', marginTop: SPACE.xs },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.xs,
-    borderWidth: 1,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 5,
-    paddingHorizontal: SPACE.sm,
-  },
-  backText: { ...role(TYPE.control), fontWeight: '700' },
-  /*
-   * On the ground rather than on a surface, and that is the point of the band.
-   *
-   * Dressed as the bar above it, the two would read as one two-row bar and these
-   * controls would look like chrome. They are not: the day being read belongs to
-   * this screen. Standing on the same ground as the body below says so.
-   */
-  dayBand: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    paddingTop: SPACE.md,
-    paddingBottom: SPACE.sm,
-  },
-  picker: { flex: 1, minWidth: 0 },
-  step: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-  },
-  problem: { paddingHorizontal: SPACE.md, paddingBottom: SPACE.sm },
-  body: { flex: 1, paddingHorizontal: SPACE.md },
-  card: { borderWidth: 1, borderRadius: RADIUS.lg },
-  dayCard: { flex: 1, padding: SPACE.md, gap: SPACE.xs },
-  dayContent: { gap: SPACE.xs },
-  tabs: {
-    flexDirection: 'row',
-    gap: SPACE.xs,
-    marginHorizontal: SPACE.md,
-    marginTop: SPACE.md,
-    padding: 3,
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.sm,
-    minHeight: 36,
-    paddingHorizontal: SPACE.sm,
-    // Transparent until chosen, so choosing does not shift the label.
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: RADIUS.sm,
-  },
-  tabText: { ...role(TYPE.control), fontWeight: '600' },
-  count: {
-    ...role(TYPE.numeric),
-    fontWeight: '700',
-    overflow: 'hidden',
-    minWidth: 22,
-    textAlign: 'center',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 1,
-    paddingHorizontal: SPACE.sm,
-  },
-  waitingCard: { flex: 1, overflow: 'hidden' },
-  waitingContent: { padding: SPACE.sm, gap: SPACE.sm },
-  waitingEmpty: { ...role(TYPE.note), padding: SPACE.sm },
-  cityGroup: { gap: 2 },
-  cityName: {
-    ...role(TYPE.label),
-    paddingHorizontal: SPACE.sm,
-    paddingTop: SPACE.sm,
-    paddingBottom: SPACE.xs,
-  },
-  place: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
-    paddingVertical: SPACE.xs + 2,
-    paddingHorizontal: SPACE.sm,
-  },
-  placeName: { ...role(TYPE.rowName), flex: 1, minWidth: 0 },
-  visited: {
-    ...role(TYPE.label),
-    overflow: 'hidden',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 2,
-    paddingHorizontal: SPACE.sm,
-  },
-  dayName: { ...role(TYPE.rowName) },
-  dayEmpty: { ...role(TYPE.note) },
-})

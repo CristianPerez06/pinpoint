@@ -620,6 +620,96 @@
 }
 
 /*
+ * A place not yet read.
+ *
+ * The row's own box with nothing to press: no hover, no pointer, because there
+ * is nothing behind it to open.
+ */
+.placeWaiting {
+  cursor: default;
+}
+
+.placeWaiting:hover {
+  border-color: transparent;
+  background: none;
+}
+
+/*
+ * The blocks themselves, after the search list's waiting rows: `surface-muted`
+ * at a small radius, and nothing else. No shimmer — a sweeping highlight is a
+ * gradient fill and a decorative animation, and `DESIGN.md` rules out both.
+ * Static also leaves nothing for `prefers-reduced-motion` to switch off.
+ */
+.block {
+  display: block;
+  flex: none;
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-surface-muted);
+}
+
+/* The chip's own size, as `PlaceRow` draws it. */
+.blockChip {
+  width: 26px;
+  height: 26px;
+}
+
+/* One line of the name's own type, so the row comes to the real row's height. */
+.blockName {
+  height: 1lh;
+}
+
+/*
+ * On the neighbouring days, which stand on `surface-sunk`, the block is `line`.
+ * `surface-muted` on `surface-sunk` measures 1.02:1 on the light ground — the
+ * block would not be there at all.
+ */
+.dayNeighbour .block {
+  background: var(--pp-line);
+}
+
+/*
+ * The day controls while there is no day to step from.
+ *
+ * The chrome's inert look (`ui.module.css`), so an inert control differs from
+ * its live state by more than colour: the outline goes and the fill sinks.
+ */
+.step[aria-disabled='true'],
+.pickerInput[aria-disabled='true'],
+.back[aria-disabled='true'] {
+  border-color: transparent;
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink-muted);
+  cursor: default;
+}
+
+.step[aria-disabled='true']:hover,
+.back[aria-disabled='true']:hover {
+  background: var(--pp-surface-sunk);
+}
+
+/*
+ * The box a drawn name bar stands in. `NamePlaceholder` sizes it by width,
+ * which an inline box ignores, so it is made a block — or an inline block,
+ * inside the count's pill, where it sits in a line of text.
+ */
+.nameHolder {
+  display: block;
+  max-width: 100%;
+}
+
+.nameHolderInline {
+  display: inline-block;
+  vertical-align: top;
+}
+
+/* The field's waiting form is a button holding a bar, laid out as the field. */
+button.pickerInput {
+  display: flex;
+  align-items: center;
+  text-align: start;
+}
+
+/*
  * The details panel and the form, over the screen.
  *
  * Centred rather than beside a control: unlike the map, there is no pin for it
