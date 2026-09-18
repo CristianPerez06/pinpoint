@@ -2,6 +2,9 @@ node_modules/
 dist/
 build/
 .next/
+# Written by `next dev`, `next build` and `next typegen`, and differently by dev and
+# build — so a committed copy flips in every diff. `typecheck` regenerates it first.
+apps/web/next-env.d.ts
 out/
 coverage/
 *.tsbuildinfo
