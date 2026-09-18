@@ -13,6 +13,7 @@ import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import X from 'lucide-react-native/icons/x'
 import { useState } from 'react'
 import {
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -125,6 +126,11 @@ const styles = StyleSheet.create({
   field: { gap: 2, paddingVertical: SPACE.xs },
   fieldLabel: { ...role(TYPE.label) },
   fieldValue: { ...role(TYPE.body) },
+  /*
+    The laptop's weight, and only as wide as its words — a column stretches its
+    children, which would make the empty row beside a short link tappable too.
+  */
+  link: { fontWeight: '600', alignSelf: 'flex-start' },
   absent: { ...role(TYPE.body), fontStyle: 'italic' },
   hint: { ...role(TYPE.note) },
   /*
@@ -203,11 +209,20 @@ function Field({
   label,
   value,
   absent,
+  isLink = false,
 }: {
   label: string
   value: string | null
   /** What an empty field says — from `EMPTY_FIELD_WORDING`, so the laptop says the same. */
   absent: string
+  /**
+   * The value is an address to open. It is drawn on one line, cut short with
+   * "…" at the end — a link copied from a map or a booking site runs to
+   * hundreds of characters of tracking parameters, and in full it took over the
+   * card (#173) — and a tap opens the whole of it in the browser, as a click
+   * does on the laptop.
+   */
+  isLink?: boolean
 }) {
   const theme = useTheme()
 
@@ -219,6 +234,22 @@ function Field({
       {value === null ? (
         <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
           {absent}
+        </Text>
+      ) : isLink ? (
+        <Text
+          style={[styles.fieldValue, styles.link, { color: theme.colour.accentInk }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          /*
+            A refusal is swallowed, as on the credits sheet: the address is on
+            screen, and a device that cannot open it is not a state this card
+            has anything useful to say about.
+          */
+          onPress={() => void Linking.openURL(value).catch(() => {})}
+          accessibilityRole="link"
+          accessibilityHint="Opens in your browser"
+        >
+          {value}
         </Text>
       ) : (
         <Text style={[styles.fieldValue, { color: theme.colour.ink }]}>{value}</Text>
@@ -478,7 +509,12 @@ export function MarkerDetails({
       />
 
       <Field label="Note" value={marker.note} absent={EMPTY_FIELD_WORDING.note} />
-      <Field label="Link" value={marker.link} absent={EMPTY_FIELD_WORDING.link} />
+      <Field
+        label="Link"
+        value={marker.link}
+        absent={EMPTY_FIELD_WORDING.link}
+        isLink
+      />
 
       {/*
         Editing and removing, at the bottom rather than in the header.
