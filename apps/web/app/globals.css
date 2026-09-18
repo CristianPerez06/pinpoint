@@ -49,6 +49,26 @@ html[data-theme='dark'] {
   color-scheme: dark;
 }
 
+/*
+ * Thin scrollbars, on every screen and at every width.
+ *
+ * A phone-width browser draws a thin overlay bar of its own; a laptop draws the
+ * classic gutter — wide, with a track — as soon as a mouse is attached or the
+ * system is set to always show them. Several columns scroll side by side on the
+ * calendar, so that gutter was drawn three and four times across one screen.
+ * `thin` asks for the phone's shape everywhere.
+ *
+ * `--pp-ink-muted` for the thumb rather than `--pp-ink-faint`: a scrollbar is a
+ * control, and the faint ink sits under the 3:1 a control needs against its
+ * ground (#124). The track is transparent, as on the phone.
+ *
+ * On `*` because neither property inherits — each scrolling box draws its own.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pp-ink-muted) transparent;
+}
+
 body {
   margin: 0;
   background: var(--pp-ground);

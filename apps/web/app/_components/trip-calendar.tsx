@@ -9,12 +9,14 @@ import {
   formatDayFull,
   formatDayShort,
   groupMarkersByDay,
+  groupUndatedByCity,
   type IsoDay,
   type Marker,
   type MarkerInterest,
   markersOnDay,
   type Trip,
   type TripMember,
+  type WaitingGroup,
 } from '@pinpoint/core'
 import {
   deleteMarker,
@@ -32,7 +34,7 @@ import { groupCoincident, markerView } from '@pinpoint/map'
 import { ChevronLeft, ChevronRight, MapIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { type KeyboardEvent, useCallback, useId, useMemo, useState } from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
 import { ChromeBar } from '@/app/_components/chrome-bar'
@@ -188,6 +190,22 @@ export function TripCalendar({
   const [detour, setDetour] = useState<'none' | 'trip' | 'account'>('none')
 
   /**
+   * Which of the two views the narrow shape shows.
+   *
+   * Always starts on the days, and is written nowhere — not the address, not
+   * storage — so every arrival opens the same way. Changing trip remounts this
+   * component (`key={trip.id}` on the page), which is arriving at that trip and
+   * resets it without anything here having to.
+   *
+   * It is only *read* by the stylesheet, and only below 900px. The wide shape
+   * shows the waiting places beside the days whatever this says, so the shape
+   * is decided by CSS alone and the server's first paint cannot disagree with
+   * the browser's first render about it.
+   */
+  const [view, setView] = useState<CalendarView>('days')
+  const viewIds = useId()
+
+  /**
    * Everything the trip's own menu does, shared with the map.
    *
    * The two addresses are what differ. Choosing a trip stays on the calendar
@@ -303,6 +321,10 @@ export function TripCalendar({
   useVisibleAgain(() => void rereadEverything())
 
   const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
+  const waiting = useMemo(
+    () => groupUndatedByCity(grouped.undated, cities),
+    [grouped, cities],
+  )
 
   const openMarker = useMemo(
     () => markers.find((each) => each.id === openMarkerId) ?? null,
@@ -515,7 +537,14 @@ export function TripCalendar({
         />
       }
     >
-    <main className={styles.screen}>
+    <main className={styles.screen} data-view={view}>
+      <ViewTabs
+        view={view}
+        onChange={setView}
+        waitingCount={grouped.undated.length}
+        ids={viewIds}
+      />
+
       {/*
         The day controls, and they belong to the screen rather than to the
         product.
@@ -575,21 +604,31 @@ export function TripCalendar({
           </p>
         ) : null}
 
-        <Waiting
-          markers={grouped.undated}
-          onOpen={(marker) => setOpenMarkerId(marker.id)}
-        />
+        <div className={styles.board}>
+          <Waiting
+            groups={waiting}
+            count={grouped.undated.length}
+            id={`${viewIds}-waiting`}
+            labelledBy={`${viewIds}-waiting-tab`}
+            onOpen={(marker) => setOpenMarkerId(marker.id)}
+          />
 
-        <div className={styles.days}>
-          {days.map((each, index) => (
-            <DayColumn
-              key={each}
-              day={each}
-              current={index === NEIGHBOURS}
-              markers={markersOnDay(grouped, each)}
-              onOpen={(marker) => setOpenMarkerId(marker.id)}
-            />
-          ))}
+          <div
+            className={styles.days}
+            id={`${viewIds}-days`}
+            role="tabpanel"
+            aria-labelledby={`${viewIds}-days-tab`}
+          >
+            {days.map((each, index) => (
+              <DayColumn
+                key={each}
+                day={each}
+                current={index === NEIGHBOURS}
+                markers={markersOnDay(grouped, each)}
+                onOpen={(marker) => setOpenMarkerId(marker.id)}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -654,50 +693,159 @@ export function TripCalendar({
   )
 }
 
+type CalendarView = 'days' | 'waiting'
+
 /**
- * The places still waiting for a day.
+ * The switch between the day and the places waiting for one, in the narrow
+ * shape.
  *
- * Above the days rather than behind a further act, because these are what
- * somebody came here to deal with — and on the map a place with no day looks
- * exactly like one that has a day, so without this, filling in a trip means
- * opening pins at random hoping to find undated ones.
+ * Drawn always and hidden by the stylesheet at 900px and up, where both are on
+ * screen at once and a switch would do nothing. `display: none` takes it out of
+ * the accessibility tree as well, so nobody is announced tabs that are inert.
  *
- * Collapsed by default and stating its count while collapsed, and **present
- * when the count is zero**. A region that appears and disappears moves
- * everything below it, so the screen would rearrange itself at the moment the
- * last place is dated — which is the moment somebody is most likely to still be
- * reading it. The same decision the filter's declaration already carries.
+ * The count rides on the second tab so it is legible from either view — the
+ * specification asks for it without anything being opened, and the tab is the
+ * only thing about the waiting places that the days view shows.
  */
-function Waiting({
-  markers,
-  onOpen,
+function ViewTabs({
+  view,
+  onChange,
+  waitingCount,
+  ids,
 }: {
-  markers: readonly Marker[]
-  onOpen: (marker: Marker) => void
+  view: CalendarView
+  onChange: (view: CalendarView) => void
+  waitingCount: number
+  ids: string
 }) {
-  if (markers.length === 0) {
-    return (
-      <div className={styles.waitingEmpty}>
-        <span className={styles.waitingLabel}>No places waiting for a day</span>
-      </div>
-    )
+  // Arrow keys move between the two, as a tab list is expected to.
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    const next: CalendarView = view === 'days' ? 'waiting' : 'days'
+    onChange(next)
+    document.getElementById(`${ids}-${next}-tab`)?.focus()
   }
 
   return (
-    <details className={styles.waiting}>
-      <summary className={styles.waitingSummary}>
-        <span className={styles.waitingLabel}>
-          {markers.length === 1
-            ? '1 place with no day yet'
-            : `${markers.length} places with no day yet`}
-        </span>
-      </summary>
-      <ul className={`${styles.list} ${styles.waitingList}`}>
-        {markers.map((marker) => (
-          <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-        ))}
-      </ul>
-    </details>
+    <div
+      className={styles.tabs}
+      role="tablist"
+      aria-label="Calendar"
+      onKeyDown={onKeyDown}
+    >
+      <button
+        type="button"
+        role="tab"
+        id={`${ids}-days-tab`}
+        aria-controls={`${ids}-days`}
+        aria-selected={view === 'days'}
+        tabIndex={view === 'days' ? 0 : -1}
+        onClick={() => onChange('days')}
+        className={styles.tab}
+      >
+        Days
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id={`${ids}-waiting-tab`}
+        aria-controls={`${ids}-waiting`}
+        aria-selected={view === 'waiting'}
+        tabIndex={view === 'waiting' ? 0 : -1}
+        onClick={() => onChange('waiting')}
+        className={styles.tab}
+      >
+        No day yet
+        <WaitingCount count={waitingCount} />
+      </button>
+    </div>
+  )
+}
+
+/**
+ * How many places are waiting, as a badge.
+ *
+ * Washed in the accent while there is something to do and muted when there is
+ * not. The lettering is `accent-ink` on `accent-wash`, which is the pair that
+ * stays apart on both grounds — not `accent-ink` on `accent`, which converges
+ * to one colour on the dark ground.
+ */
+function WaitingCount({ count }: { count: number }) {
+  return (
+    <span className={`${styles.count} ${count === 0 ? styles.countNone : ''}`}>
+      <span aria-hidden>{count}</span>
+      <span className={styles.visuallyHidden}>
+        {count === 1 ? ', 1 place' : `, ${count} places`}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * The places still waiting for a day, one group per city.
+ *
+ * Beside the days where there is room, open and scrolling by itself, because
+ * the work of this screen is taking a place from here and putting it on a day
+ * — with both in view, a person sees it leave one and arrive on the other. In
+ * the narrow shape it is the second of the two views instead, one press away.
+ *
+ * Never collapsed, and **present when the count is zero**. A region that
+ * appears and disappears moves everything beside it, so the screen would
+ * rearrange itself at the moment the last place is dated — which is the moment
+ * somebody is most likely to still be reading it.
+ *
+ * Grouped by city because a day is commonly spent in one, and the order of the
+ * groups comes from `@pinpoint/core` so the phone lists them identically.
+ */
+function Waiting({
+  groups,
+  count,
+  id,
+  labelledBy,
+  onOpen,
+}: {
+  groups: readonly WaitingGroup[]
+  count: number
+  id: string
+  labelledBy: string
+  onOpen: (marker: Marker) => void
+}) {
+  return (
+    <section
+      className={styles.waiting}
+      id={id}
+      role="tabpanel"
+      aria-labelledby={labelledBy}
+    >
+      {/* The narrow shape's tab already says this, so the stylesheet hides it
+          there. */}
+      <div className={styles.waitingHead}>
+        <h2 className={styles.waitingTitle}>No day yet</h2>
+        <WaitingCount count={count} />
+      </div>
+
+      <div className={styles.waitingList}>
+        {groups.length === 0 ? (
+          <p className={styles.waitingEmpty}>Nothing waiting for a day.</p>
+        ) : (
+          groups.map((group) => (
+            <div key={group.city?.id ?? 'unassigned'} className={styles.cityGroup}>
+              {/* `Unassigned` is what the city control calls a place filed
+                  under no city, so the product has one name for them. */}
+              <h3 className={styles.cityName}>
+                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
+              </h3>
+              <ul className={styles.list}>
+                {group.markers.map((marker) => (
+                  <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
   )
 }
 

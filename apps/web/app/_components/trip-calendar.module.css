@@ -184,10 +184,97 @@
 }
 
 /*
- * A column, so the days can be told to take whatever the waiting card leaves.
+ * The switch between the day and the places waiting for one.
+ *
+ * The narrow shape's alone: at 900px and up both are on screen together and a
+ * switch would do nothing, so it is not drawn. Pinned with the day band rather
+ * than inside the body, for the reason the band is — it is how the screen is
+ * navigated, and it must not scroll away from whoever is at the bottom of a
+ * long day.
+ */
+.tabs {
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pp-space-xs);
+  margin: var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-right)) 0
+    max(var(--pp-space-md), env(safe-area-inset-left));
+  padding: 3px;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-sunk);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-sm);
+  min-height: 34px;
+  padding: var(--pp-space-xs) var(--pp-space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink-muted);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/*
+ * The chosen tab is outlined as well as lifted.
+ *
+ * `--pp-surface` on `--pp-surface-sunk` is a clear step on the light ground and
+ * almost none on the dark one, where the two greys sit a few points apart and
+ * the brighter label was the only thing saying which tab was chosen. The edge
+ * says it on both. The unchosen tab carries the same border in `transparent`,
+ * so choosing one does not shift the labels by a pixel.
+ */
+.tab[aria-selected='true'] {
+  border-color: var(--pp-line-strong);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+/*
+ * How many places are waiting.
+ *
+ * `--pp-accent-ink` on `--pp-accent-wash` while there is something to do: the
+ * pair stays apart on both grounds, where `--pp-accent-ink` on `--pp-accent`
+ * converges on the dark one and the number would vanish. Muted when nothing
+ * is waiting, because then it is information rather than a call to act.
+ */
+.count {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 1px var(--pp-space-sm);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-numeric-size);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.countNone {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * Everything below the day controls, and it does not scroll.
+ *
+ * Each column inside it does instead — every day, and the places waiting —
+ * with its heading held still above its own list. Scrolling the screen as a
+ * whole would carry a day's name away from its places, and in the wide shape
+ * would move all three days while somebody reads to the bottom of one.
  *
  * `min-height: 0` because a flex item's default minimum is its content, which
- * would stop this scrolling at all once a day held more places than fit.
+ * would let a busy day stretch this past the window instead of scrolling
+ * inside itself.
  */
 .body {
   display: flex;
@@ -195,8 +282,8 @@
   min-height: 0;
   flex-direction: column;
   padding: var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-left))
-    var(--pp-space-xl) max(var(--pp-space-md), env(safe-area-inset-right));
-  overflow-y: auto;
+    var(--pp-space-md) max(var(--pp-space-md), env(safe-area-inset-right));
+  overflow: hidden;
 }
 
 /*
@@ -204,28 +291,30 @@
  *
  * Three day columns sharing a 2560px screen are 800px each, holding a list of
  * place names — mostly empty space, and a row you have to travel across to read.
- * Capped, a wide screen shows the same comfortable column a 1440px one does and
+ * Capped, a wide screen shows the same comfortable columns a 1440px one does and
  * puts the slack in the margins.
  *
- * Deliberately not on `.body`, which is the scrolling box: capping that would
- * pull the scrollbar in off the edge of the window. Each block caps itself to
- * the same width instead, so they stay aligned with each other.
+ * Deliberately not on `.body`, which is the scrolling box in the narrow shape:
+ * capping that would pull the scrollbar in off the edge of the window.
  *
  * The day band keeps the full width on purpose, the same way the header above
  * it does. Stepping and choosing a day belong at the edges of the screen, not
  * floating in from them.
  */
 .message,
-.waiting,
-.waitingEmpty,
-.days {
+.board {
   width: 100%;
   max-width: 90rem;
   margin-inline: auto;
 }
 
 .message {
-  margin: 0 0 var(--pp-space-md);
+  flex: none;
+}
+
+.message {
+  margin-top: 0;
+  margin-bottom: var(--pp-space-md);
   padding: var(--pp-space-sm) var(--pp-space-md);
   border-radius: var(--pp-radius-md);
   background: var(--pp-surface-muted);
@@ -234,70 +323,98 @@
 }
 
 /*
- * The open list is capped and scrolls inside itself.
- *
- * Ninety-one places is a real number from a real trip, and without a cap the
- * open pile pushed every day column off the bottom of the screen — so the one
- * thing you open it to do, put a place on a day, happened with the days no
- * longer visible. The cap is a fraction of the window rather than a pixel
- * count, so it holds at every size.
+ * The waiting places and the days, one after the other in the narrow shape —
+ * where only one of them is drawn at a time — and side by side in the wide one.
  */
-.waitingList {
-  max-height: 38vh;
-  overflow-y: auto;
+.board {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--pp-space-md);
 }
 
 /*
- * The places still waiting for a day, above the days and shown once.
+ * The places still waiting for a day, shown once.
  *
- * Once rather than per column: three copies of one pile would be three controls
- * that all do the same thing, and opening one would say nothing about the other
- * two.
+ * Once rather than per column: three copies of one list would be three regions
+ * that all say the same thing, and working through one would say nothing about
+ * the other two.
  */
-.waiting,
-.waitingEmpty {
-  margin-bottom: var(--pp-space-md);
+.waiting {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   border: 1px solid var(--pp-line);
-  border-radius: var(--pp-radius-md);
+  border-radius: var(--pp-radius-lg);
   background: var(--pp-surface);
 }
 
-.waitingEmpty {
-  padding: var(--pp-space-sm) var(--pp-space-md);
+.waitingHead {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-md) var(--pp-space-md) var(--pp-space-sm);
+  border-bottom: 1px solid var(--pp-line);
 }
 
-.waitingSummary {
-  padding: var(--pp-space-sm) var(--pp-space-md);
-  cursor: pointer;
-  list-style: none;
+.waitingTitle {
+  margin: 0;
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
 }
 
-.waitingSummary::-webkit-details-marker {
-  display: none;
-}
-
-.waitingSummary::before {
-  content: '▸';
-  display: inline-block;
-  margin-right: var(--pp-space-sm);
-  color: var(--pp-ink-muted);
-}
-
-.waiting[open] > .waitingSummary::before {
-  content: '▾';
+.waitingList {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm);
+  overflow-y: auto;
 }
 
 /*
  * `--pp-ink-muted`, never `--pp-ink-faint`.
  *
- * This line carries a count somebody is meant to act on, which is the opposite
- * of text deliberately hard to notice — and `--pp-ink-faint` is the token whose
- * description licensed exactly that misuse across both platforms.
+ * This line says nothing is left to do, which somebody is meant to read — the
+ * opposite of text deliberately hard to notice.
  */
-.waitingLabel {
+.waitingEmpty {
+  margin: 0;
+  padding: var(--pp-space-sm);
   color: var(--pp-ink-muted);
-  font-size: var(--pp-type-row-name-size);
-  font-weight: var(--pp-type-row-name-weight);
+  font-size: var(--pp-type-note-size);
+}
+
+.cityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-xs);
+}
+
+/*
+ * Sticky, so a long city's places still say which city they are in while its
+ * heading is scrolled past. The background is the card's, so the rows pass
+ * underneath rather than showing through.
+ */
+.cityName {
+  position: sticky;
+  top: calc(-1 * var(--pp-space-sm));
+  z-index: 1;
+  margin: 0;
+  padding: var(--pp-space-sm) var(--pp-space-sm) var(--pp-space-xs);
+  background: var(--pp-surface);
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
 }
 
 /*
@@ -306,14 +423,6 @@
  * `minmax(0, 1fr)` rather than `1fr`, because a grid track's default minimum is
  * `auto` — the item's own content width — so plain `1fr` columns refuse to
  * shrink under a long place name and push the row wider than the screen.
- */
-/*
- * The days take the height the waiting card leaves, and no less.
- *
- * `flex: 1 0 auto` rather than a height: they grow into whatever is left, and
- * a day holding more places than fit still grows past it and scrolls the body.
- * A cap here would be the wrong way round — the screen has room, and a day that
- * ran out of it would clip.
  *
  * `align-items: stretch` rather than `start`, which is what makes the columns
  * reach the bottom instead of shrinking to the two lines an empty day holds.
@@ -323,20 +432,68 @@
 .days {
   display: grid;
   flex: 1 1 auto;
+  min-height: 0;
   grid-template-columns: minmax(0, 1fr);
   /*
-   * `minmax(min-content, 1fr)` is the whole of it: at least as tall as what the
-   * day holds, and otherwise the space that is left. A plain `1fr` would be a
-   * ceiling as well as a floor and clip a busy day; a plain `auto` would shrink
-   * an empty one back to the two lines it started as.
+   * One row, exactly the height the screen leaves. `minmax(0, 1fr)` rather
+   * than `1fr`, whose minimum is the content's and would let a busy day grow
+   * the row past the window — the day's own list scrolls instead.
    */
-  grid-auto-rows: minmax(min-content, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--pp-space-md);
   align-items: stretch;
 }
 
+/*
+ * The narrow shape draws one of its two views.
+ *
+ * `display: none` rather than visual hiding, so the view not shown leaves the
+ * accessibility tree with the screen. 899px is the other side of the 900px the
+ * three days appear at, and the two numbers are one decision: the tabs exist
+ * exactly where there is room for only one day.
+ *
+ * The waiting list's own heading goes too, because the tab above it already
+ * says "No day yet" and the count.
+ */
+@media (max-width: 899px) {
+  .screen[data-view='days'] .waiting,
+  .screen[data-view='waiting'] .days,
+  .screen[data-view='waiting'] .dayBand {
+    display: none;
+  }
+
+  .waitingHead {
+    display: none;
+  }
+}
+
+/*
+ * The wide shape: the waiting places as a column of their own beside the days.
+ *
+ * Every column takes the height the screen leaves and scrolls by itself, which
+ * is what keeps ninety waiting places from pushing the days out of view — and a
+ * busy day from scrolling the waiting places away while somebody is picking
+ * from them.
+ */
+@media (min-width: 900px) {
+  .tabs {
+    display: none;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: 18.75rem minmax(0, 1fr);
+  }
+}
+
+/*
+ * A day's name stays put and its places scroll beneath it.
+ */
 .day {
+  display: flex;
   min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   padding: var(--pp-space-md);
   border: 1px solid var(--pp-line);
   border-radius: var(--pp-radius-lg);
@@ -360,7 +517,7 @@
   }
 
   .dayNeighbour {
-    display: block;
+    display: flex;
     background: var(--pp-surface-sunk);
   }
 }
@@ -406,12 +563,14 @@
   list-style: none;
 }
 
-.waiting > .list {
-  padding-top: var(--pp-space-xs);
+.day > .list,
+.cityGroup > .list {
+  padding: 0;
 }
 
 .day > .list {
-  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .place {

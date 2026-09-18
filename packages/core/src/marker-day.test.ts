@@ -7,9 +7,11 @@ import {
   dayToOpenOn,
   dayWithin,
   groupMarkersByDay,
+  groupUndatedByCity,
   markersOnDay,
   todayAsDay,
 } from './marker-day'
+import type { City } from './city'
 import type { Marker } from './marker'
 
 function marker(over: Partial<Marker> & { id: string }): Marker {
@@ -312,5 +314,78 @@ describe('dateOfDay', () => {
     for (const day of ['2026-01-01', '2026-06-15', '2026-12-31', '2028-02-29']) {
       expect(todayAsDay(dateOfDay(day))).toBe(day)
     }
+  })
+})
+
+describe('groupUndatedByCity', () => {
+  function city(id: string, name: string): City {
+    return {
+      id,
+      tripId: '00000000-0000-4000-8000-000000000001',
+      name,
+      currency: null,
+      createdAt: '2026-08-02T12:00:00.000Z',
+    }
+  }
+
+  const tokyo = city('c-tokyo', 'Tokyo')
+  const kyoto = city('c-kyoto', 'Kyoto')
+
+  it('groups by city, ordered by name, with unfiled places last', () => {
+    const groups = groupUndatedByCity(
+      [
+        marker({ id: 'a', name: 'Senso-ji', cityId: tokyo.id }),
+        marker({ id: 'b', name: 'Somewhere', cityId: null }),
+        marker({ id: 'c', name: 'Ginkaku-ji', cityId: kyoto.id }),
+        marker({ id: 'd', name: 'Kiyomizu-dera', cityId: kyoto.id }),
+      ],
+      [tokyo, kyoto],
+    )
+
+    expect(groups.map((group) => group.city?.name ?? null)).toEqual([
+      'Kyoto',
+      'Tokyo',
+      null,
+    ])
+    expect(groups[0]?.markers.map((each) => each.id)).toEqual(['c', 'd'])
+    expect(groups[2]?.markers.map((each) => each.id)).toEqual(['b'])
+  })
+
+  it('files a place whose city is no longer listed with the unfiled ones', () => {
+    const groups = groupUndatedByCity(
+      [marker({ id: 'a', cityId: 'c-removed' })],
+      [kyoto],
+    )
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0]?.city).toBeNull()
+  })
+
+  it('keeps the order the places arrived in, within a group', () => {
+    const { undated } = groupMarkersByDay([
+      marker({ id: 'z', name: 'Nanzen-ji', cityId: kyoto.id }),
+      marker({ id: 'y', name: 'Eikan-do', cityId: kyoto.id }),
+    ])
+
+    const groups = groupUndatedByCity(undated, [kyoto])
+    expect(groups[0]?.markers.map((each) => each.name)).toEqual([
+      'Eikan-do',
+      'Nanzen-ji',
+    ])
+  })
+
+  it('answers the same way each time it is asked', () => {
+    const undated = [
+      marker({ id: 'a', cityId: tokyo.id }),
+      marker({ id: 'b', cityId: kyoto.id }),
+      marker({ id: 'c' }),
+    ]
+    const first = groupUndatedByCity(undated, [tokyo, kyoto])
+    const second = groupUndatedByCity([...undated], [kyoto, tokyo])
+    expect(second).toEqual(first)
+  })
+
+  it('has no groups when nothing is waiting', () => {
+    expect(groupUndatedByCity([], [kyoto])).toEqual([])
   })
 })

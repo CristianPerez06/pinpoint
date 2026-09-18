@@ -6,11 +6,13 @@ import {
   formatDay,
   formatDayFull,
   groupMarkersByDay,
+  groupUndatedByCity,
   type IsoDay,
   type Marker,
   type MarkerInterest,
   markersOnDay,
   type Trip,
+  type WaitingGroup,
 } from '@pinpoint/core'
 import {
   deleteMarker,
@@ -40,7 +42,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -69,8 +70,9 @@ import { useTripActions } from '@/lib/use-trip-actions'
  *
  * The laptop draws three days side by side where there is room and one where
  * there is not. A phone is never the wide shape, so this is the narrow one:
- * one day at a time, the places waiting for a day above it, and the controls for
- * stepping pinned between the header and the part that scrolls.
+ * one day at a time, and the places waiting for a day in a view of their own
+ * beside it — switched between by the tabs under the header, with the controls
+ * for stepping pinned between those and the part that scrolls.
  *
  * **It applies no filter.** The map's filter is a property of the map, and a
  * calendar that inherited it would present a day as emptier than it is and count
@@ -92,18 +94,6 @@ import { useTripActions } from '@/lib/use-trip-actions'
  * hemisphere.
  */
 
-/**
- * How much of the window the opened waiting pile may take before it scrolls
- * inside itself.
- *
- * The laptop caps the same list at 38vh for a reason measured on a real trip:
- * ninety-one undated places pushed the day itself off the bottom of the screen,
- * so the one thing the pile is opened to do — put a place on a day — happened
- * with the day no longer visible. A fraction rather than a pixel count, so it
- * holds on every device.
- */
-const WAITING_CAP = 0.38
-
 /** The header's own breathing room, above and below its content. */
 const HEADER_PAD = SPACE.sm + 2
 
@@ -124,7 +114,6 @@ export function TripCalendar({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const windowHeight = useWindowDimensions().height
 
   /*
    * The four lists this screen shows, beside the trips it was handed.
@@ -155,6 +144,16 @@ export function TripCalendar({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [conflict, setConflict] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+
+  /**
+   * Which of the two views is shown.
+   *
+   * Always starts on the day, and is kept nowhere else, so every arrival opens
+   * the same way. Changing trip remounts this screen (`key={trip.id}` on the
+   * route), which is arriving at that trip and resets it with nothing here
+   * having to.
+   */
+  const [view, setView] = useState<CalendarView>('days')
 
   /**
    * The day being read.
@@ -210,6 +209,10 @@ export function TripCalendar({
 
   const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
   const onThisDay = markersOnDay(grouped, day)
+  const waiting = useMemo(
+    () => groupUndatedByCity(grouped.undated, cities),
+    [grouped, cities],
+  )
 
   const ownMemberId = ownMemberOf(members, userId)?.id ?? null
 
@@ -461,6 +464,12 @@ export function TripCalendar({
         </View>
       </View>
 
+      <ViewTabs
+        view={view}
+        onChange={setView}
+        waitingCount={grouped.undated.length}
+      />
+
       {/*
         The day band: pinned between the header and the part that scrolls.
 
@@ -469,49 +478,53 @@ export function TripCalendar({
         and outside the scrolling view, because navigation that scrolls away
         strands whoever is at the bottom of a long day.
       */}
-      <View style={styles.dayBand}>
-        <Pressable
-          onPress={() => setDay(addDays(day, -1))}
-          accessibilityRole="button"
-          /*
-            Named in words, in every rendering. An arrow conveys nothing to a
-            screen reader, and "previous" alone conveys only that there is one —
-            the day it leads to is what the control has to say.
-          */
-          accessibilityLabel={`Previous day, ${formatDayFull(addDays(day, -1))}`}
-          style={[
-            styles.step,
-            { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
-          ]}
-        >
-          <ChevronLeft size={18} color={theme.colour.ink} strokeWidth={2.2} />
-        </Pressable>
+      {/* The day controls change nothing about the places waiting, so they
+          belong to the day's view alone. */}
+      {view === 'days' ? (
+        <View style={styles.dayBand}>
+          <Pressable
+            onPress={() => setDay(addDays(day, -1))}
+            accessibilityRole="button"
+            /*
+              Named in words, in every rendering. An arrow conveys nothing to a
+              screen reader, and "previous" alone conveys only that there is one —
+              the day it leads to is what the control has to say.
+            */
+            accessibilityLabel={`Previous day, ${formatDayFull(addDays(day, -1))}`}
+            style={[
+              styles.step,
+              { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
+            ]}
+          >
+            <ChevronLeft size={18} color={theme.colour.ink} strokeWidth={2.2} />
+          </Pressable>
 
-        <View style={styles.picker}>
-          <DayField
-            label="Day"
-            value={day}
-            // The day being read is always a day: there is no "no day" to be on,
-            // so this field cannot be cleared and an emptied value cannot arrive.
-            clearable={false}
-            onChange={(next) => {
-              if (next !== null) setDay(next)
-            }}
-          />
+          <View style={styles.picker}>
+            <DayField
+              label="Day"
+              value={day}
+              // The day being read is always a day: there is no "no day" to be on,
+              // so this field cannot be cleared and an emptied value cannot arrive.
+              clearable={false}
+              onChange={(next) => {
+                if (next !== null) setDay(next)
+              }}
+            />
+          </View>
+
+          <Pressable
+            onPress={() => setDay(addDays(day, 1))}
+            accessibilityRole="button"
+            accessibilityLabel={`Next day, ${formatDayFull(addDays(day, 1))}`}
+            style={[
+              styles.step,
+              { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
+            ]}
+          >
+            <ChevronRight size={18} color={theme.colour.ink} strokeWidth={2.2} />
+          </Pressable>
         </View>
-
-        <Pressable
-          onPress={() => setDay(addDays(day, 1))}
-          accessibilityRole="button"
-          accessibilityLabel={`Next day, ${formatDayFull(addDays(day, 1))}`}
-          style={[
-            styles.step,
-            { borderColor: theme.colour.lineStrong, backgroundColor: theme.colour.surface },
-          ]}
-        >
-          <ChevronRight size={18} color={theme.colour.ink} strokeWidth={2.2} />
-        </Pressable>
-      </View>
+      ) : null}
 
       {problem !== null ? (
         <Pressable
@@ -525,25 +538,21 @@ export function TripCalendar({
       ) : null}
 
       {/*
-        The body scrolls, and it is a child of a `flex: 1` screen — which has a
-        definite height — so it does not meet the collapse that catches a
-        `ScrollView` inside a container sized to its children.
-      */}
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={[
-          styles.bodyContent,
-          { paddingBottom: SPACE.xl + insets.bottom },
-        ]}
-      >
-        <Waiting
-          markers={grouped.undated}
-          cap={Math.round(windowHeight * WAITING_CAP)}
-          onOpen={(marker) => setOpenMarkerId(marker.id)}
-        />
+        The body does not scroll; the card inside it does.
 
-        <DayCard day={day} markers={onThisDay} onOpen={(marker) => setOpenMarkerId(marker.id)} />
-      </ScrollView>
+        The day's name stays put above its places, and the screen around it
+        never moves. The card takes `flex: 1` of a body that takes `flex: 1` of
+        the screen, so its height is definite — which is what lets the
+        `ScrollView` inside it scroll rather than collapse, the failure that
+        catches one inside a container sized to its children.
+      */}
+      <View style={[styles.body, { paddingBottom: SPACE.md + insets.bottom }]}>
+        {view === 'days' ? (
+          <DayCard day={day} markers={onThisDay} onOpen={(marker) => setOpenMarkerId(marker.id)} />
+        ) : (
+          <Waiting groups={waiting} onOpen={(marker) => setOpenMarkerId(marker.id)} />
+        )}
+      </View>
 
       {/*
         The place, in the same sheet the map opens, with the same actions.
@@ -672,83 +681,168 @@ export function TripCalendar({
   )
 }
 
+type CalendarView = 'days' | 'waiting'
+
 /**
- * The places still waiting for a day.
+ * The switch between the day and the places waiting for one.
  *
- * Above the day rather than behind a further act, because these are what
- * somebody came here to deal with — and on the map a place with no day looks
- * exactly like one that has a day, so without this, filling in a trip means
- * opening pins at random hoping to find undated ones.
+ * Directly under the header and outside the scrolling view, like the day band
+ * beneath it: it is how the screen is navigated, and it must not scroll away
+ * from whoever is at the bottom of a long day.
  *
- * Collapsed by default, stating its count while collapsed, and **present when
- * the count is zero**. A region that appears and disappears moves everything
- * below it, so the screen would rearrange itself at the moment the last place is
+ * The count rides on the second tab so it is legible from either view — the
+ * tab is the only thing about the waiting places that the day's view shows.
+ */
+function ViewTabs({
+  view,
+  onChange,
+  waitingCount,
+}: {
+  view: CalendarView
+  onChange: (view: CalendarView) => void
+  waitingCount: number
+}) {
+  const theme = useTheme()
+
+  function tab(value: CalendarView, label: string, count?: number) {
+    const selected = view === value
+    return (
+      <Pressable
+        onPress={() => onChange(value)}
+        accessibilityRole="tab"
+        accessibilityState={{ selected }}
+        accessibilityLabel={
+          count === undefined
+            ? label
+            : `${label}, ${count === 1 ? '1 place' : `${count} places`}`
+        }
+        /*
+          Outlined as well as lifted: `surface` on `surfaceSunk` is a clear step
+          on the light ground and almost none on the dark one, where the brighter
+          label was the only sign of which tab was chosen.
+        */
+        style={[
+          styles.tab,
+          selected
+            ? {
+                backgroundColor: theme.colour.surface,
+                borderColor: theme.colour.lineStrong,
+              }
+            : null,
+        ]}
+      >
+        <Text
+          style={[
+            styles.tabText,
+            { color: selected ? theme.colour.ink : theme.colour.inkMuted },
+          ]}
+        >
+          {label}
+        </Text>
+        {count === undefined ? null : <WaitingCount count={count} />}
+      </Pressable>
+    )
+  }
+
+  return (
+    <View
+      accessibilityRole="tablist"
+      style={[
+        styles.tabs,
+        { backgroundColor: theme.colour.surfaceSunk, borderColor: theme.colour.line },
+      ]}
+    >
+      {tab('days', 'Days')}
+      {tab('waiting', 'No day yet', waitingCount)}
+    </View>
+  )
+}
+
+/**
+ * How many places are waiting, as a badge.
+ *
+ * Washed in the accent while there is something to do and muted when there is
+ * not. The lettering is `accentInk` on `accentWash`, the pair that stays apart
+ * on both grounds — not `accentInk` on `accent`, which converges to one colour
+ * on the dark ground.
+ */
+function WaitingCount({ count }: { count: number }) {
+  const theme = useTheme()
+  const none = count === 0
+
+  return (
+    <Text
+      style={[
+        styles.count,
+        {
+          backgroundColor: none ? theme.colour.surfaceMuted : theme.colour.accentWash,
+          color: none ? theme.colour.inkMuted : theme.colour.accentInk,
+        },
+      ]}
+    >
+      {count}
+    </Text>
+  )
+}
+
+/**
+ * The places still waiting for a day, one group per city.
+ *
+ * The second of the two views, one press away from the day, rather than a
+ * region that opens over the day and pushes it down. Its list scrolls inside
+ * the card, which takes the height the screen leaves.
+ *
+ * **Present when the count is zero**, saying so. A region that appears and
+ * disappears is a screen that rearranges itself at the moment the last place is
  * dated — which is the moment somebody is most likely to still be reading it.
+ *
+ * Grouped by city because a day is commonly spent in one, and the order of the
+ * groups comes from `@pinpoint/core` so the laptop lists them identically.
  */
 function Waiting({
-  markers,
-  cap,
+  groups,
   onOpen,
 }: {
-  markers: readonly Marker[]
-  /** A definite height for the opened list, so it can scroll inside itself. */
-  cap: number
+  groups: readonly WaitingGroup[]
   onOpen: (marker: Marker) => void
 }) {
   const theme = useTheme()
-  const [open, setOpen] = useState(false)
-
-  const label =
-    markers.length === 0
-      ? 'No places waiting for a day'
-      : markers.length === 1
-        ? '1 place with no day yet'
-        : `${markers.length} places with no day yet`
 
   return (
     <View
       style={[
         styles.card,
+        styles.waitingCard,
         { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
       ]}
     >
-      <Pressable
-        onPress={() => {
-          if (markers.length > 0) setOpen(!open)
-        }}
-        accessibilityRole={markers.length === 0 ? 'text' : 'button'}
-        accessibilityState={{ expanded: markers.length === 0 ? undefined : open }}
-        accessibilityLabel={label}
-        style={styles.waitingSummary}
-      >
-        {markers.length === 0 ? null : (
-          <Text style={[styles.waitingCaret, { color: theme.colour.inkMuted }]}>
-            {open ? '▾' : '▸'}
+      <ScrollView contentContainerStyle={styles.waitingContent}>
+        {groups.length === 0 ? (
+          /*
+            `inkMuted`, never `inkFaint`. This says nothing is left to do, which
+            somebody is meant to read.
+          */
+          <Text style={[styles.waitingEmpty, { color: theme.colour.inkMuted }]}>
+            Nothing waiting for a day.
           </Text>
+        ) : (
+          groups.map((group) => (
+            <View key={group.city?.id ?? 'unassigned'} style={styles.cityGroup}>
+              {/* `Unassigned` is what the city control calls a place filed
+                  under no city, so the product has one name for them. */}
+              <Text
+                accessibilityRole="header"
+                style={[styles.cityName, { color: theme.colour.inkMuted }]}
+              >
+                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
+              </Text>
+              {group.markers.map((marker) => (
+                <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
+              ))}
+            </View>
+          ))
         )}
-        {/*
-          `inkMuted`, never `inkFaint`. This line carries a count somebody is
-          meant to act on, which is the opposite of text deliberately hard to
-          notice.
-        */}
-        <Text style={[styles.waitingLabel, { color: theme.colour.inkMuted }]}>
-          {label}
-        </Text>
-      </Pressable>
-
-      {open && markers.length > 0 ? (
-        /*
-          A definite height, which is what lets this scroll at all: a
-          `ScrollView` has no intrinsic content height, so one inside a card that
-          sizes to its children is told it has almost no room and clips
-          everything past the first row.
-        */
-        <ScrollView style={{ maxHeight: cap }} nestedScrollEnabled>
-          {markers.map((marker) => (
-            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-          ))}
-        </ScrollView>
-      ) : null}
+      </ScrollView>
     </View>
   )
 }
@@ -774,21 +868,25 @@ function DayCard({
       ]}
       accessibilityLabel={formatDayFull(day)}
     >
+      {/* Outside the scroll, so the day's name stays put above its places. */}
       <Text style={[styles.dayName, { color: theme.colour.ink }]}>
         {formatDay(day)}
       </Text>
 
-      {markers.length === 0 ? (
-        // An empty day is the ordinary state of most days on most trips, and it
-        // is information. It is said, not left blank and not drawn as a fault.
-        <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
-          Nothing planned.
-        </Text>
-      ) : (
-        markers.map((marker) => (
-          <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-        ))
-      )}
+      <ScrollView contentContainerStyle={styles.dayContent}>
+        {markers.length === 0 ? (
+          // An empty day is the ordinary state of most days on most trips, and
+          // it is information. It is said, not left blank and not drawn as a
+          // fault.
+          <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
+            Nothing planned.
+          </Text>
+        ) : (
+          markers.map((marker) => (
+            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
+          ))
+        )}
+      </ScrollView>
     </View>
   )
 }
@@ -900,18 +998,53 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
   },
   problem: { paddingHorizontal: SPACE.md, paddingBottom: SPACE.sm },
-  body: { flex: 1 },
-  bodyContent: { paddingHorizontal: SPACE.md, gap: SPACE.md },
+  body: { flex: 1, paddingHorizontal: SPACE.md },
   card: { borderWidth: 1, borderRadius: RADIUS.lg },
-  dayCard: { padding: SPACE.md, gap: SPACE.xs },
-  waitingSummary: {
+  dayCard: { flex: 1, padding: SPACE.md, gap: SPACE.xs },
+  dayContent: { gap: SPACE.xs },
+  tabs: {
+    flexDirection: 'row',
+    gap: SPACE.xs,
+    marginHorizontal: SPACE.md,
+    marginTop: SPACE.md,
+    padding: 3,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+  },
+  tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACE.sm,
-    padding: SPACE.md,
+    minHeight: 36,
+    paddingHorizontal: SPACE.sm,
+    // Transparent until chosen, so choosing does not shift the label.
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: RADIUS.sm,
   },
-  waitingCaret: { ...role(TYPE.note) },
-  waitingLabel: { ...role(TYPE.rowName) },
+  tabText: { ...role(TYPE.control), fontWeight: '600' },
+  count: {
+    ...role(TYPE.numeric),
+    fontWeight: '700',
+    overflow: 'hidden',
+    minWidth: 22,
+    textAlign: 'center',
+    borderRadius: RADIUS.pill,
+    paddingVertical: 1,
+    paddingHorizontal: SPACE.sm,
+  },
+  waitingCard: { flex: 1, overflow: 'hidden' },
+  waitingContent: { padding: SPACE.sm, gap: SPACE.sm },
+  waitingEmpty: { ...role(TYPE.note), padding: SPACE.sm },
+  cityGroup: { gap: 2 },
+  cityName: {
+    ...role(TYPE.label),
+    paddingHorizontal: SPACE.sm,
+    paddingTop: SPACE.sm,
+    paddingBottom: SPACE.xs,
+  },
   place: {
     flexDirection: 'row',
     alignItems: 'center',
