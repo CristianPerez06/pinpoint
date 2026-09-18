@@ -773,6 +773,24 @@ button.pickerInput {
   width: min(20.5rem, 100%);
 }
 
+/*
+ * The same two widths as the map's corner card (`ui.module.css`), and a taller
+ * ceiling to go with them: centred over the calendar there is nothing beside
+ * the card for the extra height to cover.
+ */
+@media (min-width: 1200px) {
+  .panel > :first-child {
+    width: min(26rem, 100%);
+    height: min(75vh, 40rem);
+  }
+}
+
+@media (min-width: 1600px) {
+  .panel > :first-child {
+    width: min(30rem, 100%);
+  }
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;
