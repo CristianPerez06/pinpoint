@@ -267,6 +267,18 @@ Selection SHALL be dismissible, returning to the unobstructed map.
 The presentation MAY differ between platforms. Each application SHALL choose the form
 native to it rather than sharing rendered markup.
 
+A field that can be empty — the day, the note, the link — SHALL say in words which value
+is missing, in the shape `No day yet`, `No note yet`, `No link yet`. Every application
+SHALL use the same words, read from one shared definition, and SHALL NOT stand a symbol
+such as a dash in for them. A price that is absent SHALL be shown by leaving out the pill
+that would carry it.
+
+Rationale: the laptop drew a dash and the phone said `Not recorded`, two answers to one
+question that somebody using both notices. A dash says nothing to a screen reader, and a
+catch-all phrase under a heading repeats nothing the heading did not. `No day yet` was the
+one wording the two cards already shared, and it says what is missing and that it can
+still be filled in.
+
 A note SHALL be shown with the line breaks it was written with, blank lines included. A
 line longer than the room available SHALL wrap within the presentation rather than
 extend past it.
@@ -308,6 +320,13 @@ looks right.
   available
 - **THEN** that line wraps within the presentation
 - **AND** nothing extends past its edge
+
+#### Scenario: Empty fields read the same on both applications
+
+- **WHEN** a person selects a marker with no day, no note and no link, on the laptop and
+  on the phone
+- **THEN** both read `No day yet`, `No note yet` and `No link yet`
+- **AND** a screen reader announces those words rather than a symbol or nothing
 
 ### Requirement: The map distinguishes loading from empty
 
