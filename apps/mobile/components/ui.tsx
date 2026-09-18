@@ -1,9 +1,19 @@
-import { dateOfDay, dayOfDate, formatDay, type IsoDay, todayAsDay } from '@pinpoint/core'
+import {
+  dateOfDay,
+  dayOfDate,
+  formatDay,
+  formatDayNumeric,
+  type IsoDay,
+  todayAsDay,
+} from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker'
+import Calendar from 'lucide-react-native/icons/calendar'
+import { useState } from 'react'
 import {
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -151,6 +161,7 @@ export function DayField({
   onChange,
   error,
   clearable = true,
+  standalone = false,
 }: {
   label: string
   /** The day, or null for a place whose day has not been decided. */
@@ -165,6 +176,14 @@ export function DayField({
    * day" to be on, and a `Clear` there would be a control with nowhere to go.
    */
   clearable?: boolean
+  /**
+   * Drawn among buttons rather than among a form's fields.
+   *
+   * The calendar's day band stands it between two step buttons, and the laptop
+   * dresses that field as those buttons are — the surface and the stronger
+   * line. In a form it matches the text fields beside it instead.
+   */
+  standalone?: boolean
 }) {
   const theme = useTheme()
   const mode = useThemeMode()
@@ -175,6 +194,9 @@ export function DayField({
    * control opens on tomorrow.
    */
   const standingOn = value === null ? todayAsDay() : value
+
+  /** Whether the calendar is open. iOS only: Android's is the system's dialog. */
+  const [picking, setPicking] = useState(false)
 
   /*
    * `onValueChange` rather than `onChange`.
@@ -198,77 +220,67 @@ export function DayField({
     })
   }
 
+  /*
+   * Choosing a day is the whole of what the popup is for, so choosing one
+   * closes it. Paging between months changes nothing and leaves it open.
+   */
+  function chosenOnIos(event: unknown, date: Date) {
+    setPicking(false)
+    chosen(event, date)
+  }
+
   return (
     <View style={styles.field}>
       <FieldLabel>{label}</FieldLabel>
 
       <View style={styles.dayRow}>
         {/*
-          iOS draws its compact picker as its own small control, so there is
-          nothing for us to press — it is the field. Android has no such inline
-          form, so there the field is ours and it opens the system dialog.
+          Our own field on both platforms, drawn as the laptop's is: the date on
+          the left, a calendar on the right.
+
+          iOS's compact picker was the field there until now, and it could be
+          neither: it words the date in the device's locale rather than as the
+          laptop does, and it opens its calendar wherever iOS decides, beside
+          the control. Pressing this one opens the same calendar in a popup
+          centred on the screen. Android keeps its system dialog, which is
+          already centred.
         */}
-        {Platform.OS === 'ios' && value !== null ? (
-          <DateTimePicker
-            value={dateOfDay(value)}
-            mode="date"
-            display="compact"
-            themeVariant={mode}
-            onValueChange={chosen}
-            accessibilityLabel={label}
-            /*
-              An explicit size, and it is load-bearing rather than tidy.
-
-              The compact picker is a native view with **no intrinsic content
-              size**, so a flex parent asks how big it is, is told nothing, and
-              lays it out at zero by zero. **Learn the shape of this one**: the
-              field's label renders, the row renders, the component is mounted
-              and its props are right — and the control is simply not on screen,
-              which reads as the picker failing to load and never is. It is the
-              same failure as a `ScrollView` inside a container sized to its
-              children, arriving from the other direction.
-
-              Wide enough for a fully numeric date at the device's own locale
-              (`31/12/2026`), since the compact control words itself rather than
-              taking our pinned wording.
-            */
-            style={styles.dayPicker}
-          />
-        ) : (
-          <Pressable
-            onPress={() => {
-              if (Platform.OS === 'ios') {
-                // Hands over the platform's control, seeded on today. The press
-                // that follows is what changes the day.
-                onChange(standingOn)
-                return
-              }
-              openOnAndroid()
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              value === null ? `${label}, no day yet` : `${label}, ${formatDay(value)}`
-            }
+        <Pressable
+          onPress={() => {
+            if (Platform.OS === 'ios') setPicking(true)
+            else openOnAndroid()
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={
+            value === null ? `${label}, no day yet` : `${label}, ${formatDay(value)}`
+          }
+          style={[
+            styles.dayValue,
+            {
+              backgroundColor: standalone
+                ? theme.colour.surface
+                : theme.colour.surfaceMuted,
+              borderColor: error
+                ? theme.colour.danger
+                : standalone
+                  ? theme.colour.lineStrong
+                  : theme.colour.line,
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
             style={[
-              styles.dayValue,
+              styles.dayText,
               {
-                backgroundColor: theme.colour.surfaceMuted,
-                borderColor: error ? theme.colour.danger : theme.colour.line,
+                color: value === null ? theme.colour.inkMuted : theme.colour.ink,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.dayText,
-                {
-                  color: value === null ? theme.colour.inkMuted : theme.colour.ink,
-                },
-              ]}
-            >
-              {value === null ? 'No day yet' : formatDay(value)}
-            </Text>
-          </Pressable>
-        )}
+            {value === null ? 'No day yet' : formatDayNumeric(value)}
+          </Text>
+          <Calendar size={18} color={theme.colour.ink} strokeWidth={2} />
+        </Pressable>
 
         {/*
           Only where there is something to clear. A `Clear` standing beside an
@@ -297,6 +309,43 @@ export function DayField({
         >
           {error}
         </Text>
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={picking}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPicking(false)}
+        >
+          {/* Pressing beside the calendar closes it without choosing, as
+              pressing outside iOS's own popup did. */}
+          <Pressable
+            style={styles.dayBackdrop}
+            onPress={() => setPicking(false)}
+            accessibilityLabel="Close"
+          >
+            {/* Swallows presses, so a tap on the calendar's own chrome does not
+                dismiss through the backdrop underneath it. */}
+            <Pressable
+              onPress={(event) => event.stopPropagation()}
+              style={[
+                styles.dayPopup,
+                { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
+              ]}
+            >
+              <DateTimePicker
+                value={dateOfDay(standingOn)}
+                mode="date"
+                display="inline"
+                themeVariant={mode}
+                accentColor={theme.colour.accent}
+                onValueChange={chosenOnIos}
+                accessibilityLabel={label}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
       ) : null}
     </View>
   )
@@ -411,27 +460,38 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputMultiline: { minHeight: 74, textAlignVertical: 'top' },
-  /*
-   * The day and its `Clear`, on one line.
-   *
-   * `alignItems: 'center'` rather than `stretch`: iOS's compact picker sizes
-   * itself and stretching it makes it grow into a shape the system never draws.
-   */
+  /* The day and its `Clear`, on one line. */
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  /** The same metrics as `input`, so a day and a name read as one form. */
+  /*
+   * The same metrics as `input`, so a day and a name read as one form, with the
+   * calendar pushed to the far end as the laptop's date input draws it.
+   */
   dayValue: {
     flex: 1,
     minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACE.sm,
     borderWidth: 1,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.sm + 2,
     paddingVertical: 10,
   },
-  dayText: { ...role(TYPE.body) },
-  /* See the note where this is used: without a size the native picker is laid
-     out at zero and nothing is drawn. The height matches the field beside it so
-     the row does not change shape as a day is set or cleared. */
-  dayPicker: { width: 142, height: 42 },
+  dayText: { ...role(TYPE.body), flexShrink: 1 },
+  /* The whole screen, so the calendar stands in the middle of it rather than
+     beside the field that opened it. */
+  dayBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACE.md,
+  },
+  dayPopup: {
+    borderWidth: 1,
+    borderRadius: RADIUS.lg,
+    padding: SPACE.sm,
+  },
   dayClear: { paddingVertical: 10, paddingHorizontal: SPACE.xs },
   dayClearText: { ...role(TYPE.control) },
   error: { ...role(TYPE.note) },

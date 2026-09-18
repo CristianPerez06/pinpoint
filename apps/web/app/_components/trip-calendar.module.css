@@ -297,10 +297,13 @@
  * Deliberately not on `.body`, which is the scrolling box in the narrow shape:
  * capping that would pull the scrollbar in off the edge of the window.
  *
- * The day band keeps the full width on purpose, the same way the header above
- * it does. Stepping and choosing a day belong at the edges of the screen, not
- * floating in from them.
+ * The day controls take the same cap, so on a wide screen they start where the
+ * first column does rather than at the window's edge — at 2560px the edge is
+ * several hundred pixels from the days they choose between. The band itself
+ * still spans the window, as the header does; only what stands in it is capped.
+ * Its horizontal padding is the body's, so the two left edges agree exactly.
  */
+.controls,
 .message,
 .board {
   width: 100%;

@@ -19,7 +19,7 @@ export type {
   PlaceBeingFiled,
 } from './city-claim'
 
-export { formatDay, formatDayFull, formatDayShort } from './day-wording'
+export { formatDay, formatDayFull, formatDayNumeric, formatDayShort } from './day-wording'
 
 export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'

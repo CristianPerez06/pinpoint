@@ -506,6 +506,7 @@ export function TripCalendar({
               // The day being read is always a day: there is no "no day" to be on,
               // so this field cannot be cleared and an emptied value cannot arrive.
               clearable={false}
+              standalone
               onChange={(next) => {
                 if (next !== null) setDay(next)
               }}
@@ -546,7 +547,19 @@ export function TripCalendar({
         `ScrollView` inside it scroll rather than collapse, the failure that
         catches one inside a container sized to its children.
       */}
-      <View style={[styles.body, { paddingBottom: SPACE.md + insets.bottom }]}>
+      {/*
+        The places waiting stand a gap below the tabs, as they do on the laptop.
+        The day's view needs none here: the day band above it carries its own.
+      */}
+      <View
+        style={[
+          styles.body,
+          {
+            paddingTop: view === 'waiting' ? SPACE.md : 0,
+            paddingBottom: SPACE.md + insets.bottom,
+          },
+        ]}
+      >
         {view === 'days' ? (
           <DayCard day={day} markers={onThisDay} onOpen={(marker) => setOpenMarkerId(marker.id)} />
         ) : (
@@ -958,11 +971,11 @@ const styles = StyleSheet.create({
   menuButton: { marginLeft: 'auto' },
   menuGlyph: { ...role(TYPE.title) },
   /*
-   * Indented to clear the point, so the way back hangs off the trip's name
-   * rather than starting a second column — the line the map spends on the city,
-   * laid out the same way.
+   * Starting at the point's left edge, not indented to the trip's name — where
+   * the laptop's bar puts the same control once it takes the phone shape, so
+   * the two applications draw it in the same place.
    */
-  backLine: { flexDirection: 'row', paddingLeft: 9 + SPACE.sm, marginTop: SPACE.xs },
+  backLine: { flexDirection: 'row', marginTop: SPACE.xs },
   back: {
     flexDirection: 'row',
     alignItems: 'center',
