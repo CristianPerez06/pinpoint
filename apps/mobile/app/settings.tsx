@@ -8,6 +8,7 @@ import Sun from 'lucide-react-native/icons/sun'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { NamePlaceholder } from '@/components/ui'
 import { usePreferences } from '@/lib/preferences'
 import { useSession } from '@/lib/session'
 import { useTheme } from '@/lib/theme'
@@ -77,7 +78,16 @@ export default function SettingsScreen() {
         ]}
       >
         <Section title="Account">
+          {/*
+            While the session is still being read back, the row is one element to
+            assistive technology saying so, and the address is a drawn bar. It
+            used to fall through to "No address on this account", which is a
+            claim, and false for as long as the account has not been read.
+          */}
           <View
+            accessible={loading}
+            accessibilityLabel={loading ? 'Loading your account' : undefined}
+            accessibilityState={loading ? { busy: true } : undefined}
             style={[
               styles.card,
               { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
@@ -93,9 +103,16 @@ export default function SettingsScreen() {
               happened to be open when this was pressed. The menu shows a name
               because the menu is on a trip. This screen is not.
             */}
-            <Text style={[styles.rowValue, { color: theme.colour.ink }]}>
-              {session?.user.email ?? 'No address on this account'}
-            </Text>
+            {loading ? (
+              <NamePlaceholder
+                width={180}
+                lineHeight={TYPE.body.size * TYPE.body.lineHeight}
+              />
+            ) : (
+              <Text style={[styles.rowValue, { color: theme.colour.ink }]}>
+                {session?.user.email ?? 'No address on this account'}
+              </Text>
+            )}
           </View>
         </Section>
 

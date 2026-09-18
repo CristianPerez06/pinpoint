@@ -1,9 +1,10 @@
 import { fetchTrips } from '@pinpoint/data'
 import { Redirect } from 'expo-router'
 
-import { FailedState, LoadingState } from '@/components/states'
+import { FailedState } from '@/components/states'
 import { TripSetup } from '@/components/trip-setup'
 import { TripWorkspace } from '@/components/trip-workspace'
+import { WaitingMap, WorkspaceChrome } from '@/components/workspace-chrome'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTripChoice } from '@/lib/trip-choice'
@@ -46,14 +47,34 @@ export default function Index() {
    */
   const { chosenTripId, chooseTrip } = useTripChoice()
 
+  /*
+    The map screen with nothing read yet, rather than a loading screen.
+
+    While the session is read back and again while the trips are, which are the
+    two waits this route has before it knows which trip it is on. It is the same
+    chrome `TripWorkspace` draws, given nothing, so what arrives replaces bars
+    where they stand instead of arriving as a new screen — and it paints its own
+    ground, where the loading screen it replaces showed the navigator's light
+    one through a phone set to dark.
+
+    An account with no trips sees this and then the setup for a first trip. That
+    happens once, on its first launch, and every launch after it is somebody
+    with a trip, for whom nothing jumps.
+  */
+  const waiting = (
+    <WorkspaceChrome live={null}>
+      <WaitingMap />
+    </WorkspaceChrome>
+  )
+
   // Reading the session out of the keychain is asynchronous, so the first frame
   // after launch has no session even when one exists. Redirecting here would
   // bounce a signed-in person to the sign-in screen every time they opened the
   // app.
-  if (loading) return <LoadingState what="pinpoint" />
+  if (loading) return waiting
   if (!session) return <Redirect href="/login" />
 
-  if (trips.state.status === 'loading') return <LoadingState what="your trips" />
+  if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
     return <FailedState message={trips.state.message} />
   }

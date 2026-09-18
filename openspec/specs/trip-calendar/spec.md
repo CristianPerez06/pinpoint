@@ -658,7 +658,8 @@ Every application SHALL draw the calendar screen before the data it shows has be
 the header, the controls for stepping and choosing a day, the days, and the places
 waiting for a day, each where it will stand once the data arrives and in the shape the
 screen will take — three days beside the places waiting where the screen is wide, one day
-with the control switching views where it is not.
+with the control switching views where it is not. The calendar meets every requirement of
+`waiting-screens`; what follows is particular to it.
 
 A loading state SHALL NOT be shown in place of the calendar, and the calendar SHALL NOT
 be preceded by another screen's waiting state.
@@ -678,21 +679,14 @@ Text that is true before anything has been read — the names of the two views, 
 of the control for choosing a day, the heading of the places waiting, and the way back to
 the map — SHALL be written as it will be once the data arrives.
 
-The placeholders SHALL be still. They SHALL NOT shimmer, pulse, or otherwise move.
+When the data arrives, the header, the day controls, the days and the places waiting SHALL
+stand where they stood, and the drawn rows SHALL be replaced by the places.
 
-Every control on the screen SHALL be inert until the act it begins is able to complete,
-as `workspace-chrome` requires of the map's chrome: present in the tab order, reported as
-unavailable, and doing nothing when activated.
-
-The waiting screen SHALL tell assistive technology that the calendar is loading.
-
-Rationale: this is the rule `workspace-chrome` already applies to the map, carried to the
-other screen a trip is read on. The calendar's arrangement is known before any trip is
-read, so withholding it makes the first thing shown say nothing about the second. An
-empty day is worse than a blank screen, because it is a claim — that nothing is planned —
-and it is false for as long as the places are still being read. A fixed number of rows
-says only that places go here; a number that followed the trip would be a count, and a
-count is the thing not yet known.
+Rationale: this is the rule `waiting-screens` states for every screen, applied to the
+calendar's parts. An empty day is worse than a blank screen, because it is a claim — that
+nothing is planned — and it is false for as long as the places are still being read. A
+fixed number of rows says only that places go here; a number that followed the trip would
+be a count, and a count is the thing not yet known.
 
 #### Scenario: The calendar is opened on a wide screen
 
@@ -743,21 +737,6 @@ count is the thing not yet known.
 - **WHEN** the calendar is drawn before its data has arrived
 - **THEN** assistive technology is told that the calendar is loading
 - **AND** the drawn placeholders are not read out
-
-### Requirement: The waiting calendar and the loaded calendar are one definition
-
-The calendar drawn before its data and the calendar drawn after it SHALL be produced by a
-single definition within each application, which draws both states. A second rendering of
-the same screen SHALL NOT be maintained for the waiting state.
-
-Nothing on the screen SHALL change position or size when the data arrives. What changes
-is that the placeholders are replaced where they stand, the drawn rows are replaced by
-the places, and the controls cease to be inert.
-
-Rationale: two renderings that merely look alike disagree the moment either one is
-edited, and the moment they are exchanged is exactly the moment the transition was
-supposed to feel settled. This is the rule `workspace-chrome` states for the map's
-chrome, and it is stated here because the calendar's screen is not that chrome.
 
 #### Scenario: The data arrives
 

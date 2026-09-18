@@ -1,71 +1,41 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 
 import { requireUser } from '@/lib/auth/guards'
 
-import { Appearance } from './appearance'
-import { BackToMap } from './back'
-import styles from './settings.module.css'
+import { AccountRow, SettingsScreen } from './settings-screen'
 
 export const metadata: Metadata = { title: 'Settings · pinpoint' }
 
 /**
- * Settings: the account, and the ground everything is drawn on.
+ * Settings, drawn at once, with the address streamed in where it goes.
  *
- * WHAT THIS SCREEN DOES NOT READ
+ * The page does not wait for the account. Only the account's row does, behind
+ * its own boundary, and everything around it — the way back and the choice of
+ * appearance — is on the first paint and live from it.
  *
- * No trip, no markers, no cities, no membership. It is the first screen in this
- * application that is neither the map nor a sign-in, and the first whose
- * subject is the *account* rather than a trip — so it needs the session and
- * nothing else, and stays cheap because of it. If this file ever grows an
- * import from `@pinpoint/data`, something trip-scoped has been put on an
- * account-scoped screen.
+ * Deliberately not a `loading.tsx`. A route's loading file is a fallback for the
+ * whole page, and on a full load React does not attach behaviour to a fallback
+ * whose boundary is still waiting: its controls would be drawn, look usable, and
+ * do nothing, without saying so. A boundary around the one part that waits keeps
+ * the rest of the screen outside it, so the rest of the screen works.
  *
- * WHY THERE ARE SECTIONS WITH ONE THING IN THEM
- *
- * Account carries an address and no controls yet; the password form that
- * belongs in it is a separate change. The section exists now rather than later
- * because it is what makes this a settings screen instead of an appearance
- * screen with a heading — and because a section added under somebody else's
- * change is a section whose shape gets decided by whatever is being added to it.
+ * `requireUser` still turns a signed-out visitor away, from inside the row: they
+ * see this screen's frame for as long as the check takes, then the sign-in page.
  */
-export default async function SettingsPage() {
-  const user = await requireUser()
-
+export default function SettingsPage() {
   return (
-    <main className={styles.screen}>
-      <div className={styles.sheet}>
-        <header className={styles.header}>
-          <BackToMap />
-          <h1 className={styles.title}>Settings</h1>
-        </header>
-
-        <section className={styles.section} aria-labelledby="settings-account">
-          <h2 id="settings-account" className={styles.sectionTitle}>
-            Account
-          </h2>
-          <div className={styles.row}>
-            <span className={styles.rowLabel}>Signed in as</span>
-            {/*
-              The address, and deliberately no name.
-
-              `display_name` belongs to a trip membership, not to an account —
-              the same person can be `Cris` on one trip and `Cristian` on
-              another — so a name here would be whichever trip happened to be
-              open when Settings was pressed, changing for a reason this screen
-              never mentions. The menu shows a name because the menu is on a
-              trip; this is not.
-            */}
-            <span className={styles.rowValue}>{user.email ?? 'No address on this account'}</span>
-          </div>
-        </section>
-
-        <section className={styles.section} aria-labelledby="settings-appearance">
-          <h2 id="settings-appearance" className={styles.sectionTitle}>
-            Appearance
-          </h2>
-          <Appearance />
-        </section>
-      </div>
-    </main>
+    <SettingsScreen
+      accountRow={
+        <Suspense fallback={<AccountRow account={null} />}>
+          <SignedInAccountRow />
+        </Suspense>
+      }
+    />
   )
+}
+
+async function SignedInAccountRow() {
+  const user = await requireUser()
+  return <AccountRow account={{ email: user.email ?? null }} />
 }

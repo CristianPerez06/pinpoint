@@ -202,3 +202,25 @@
   height: 17px;
   flex: none;
 }
+
+/* Read by a screen reader, not drawn: the status a waiting row announces. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The address's placeholder, as a block. It sits in an inline span, where the
+ * width it is given would be ignored and the bar would run the whole row.
+ */
+.addressPlaceholder {
+  display: block;
+  max-width: 100%;
+}

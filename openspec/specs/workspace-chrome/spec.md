@@ -5,7 +5,9 @@ Define where a trip's controls live and what they owe the person using them: whi
 controls stay permanently reachable, which may sit behind a menu, and the guarantees
 anything that opens over the map has to meet. The map is the subject of this screen, so
 chrome is charged against it and has to earn what it takes.
+
 ## Requirements
+
 ### Requirement: Controls are placed by how often they are used
 
 The system SHALL give permanent, always-visible placement to the controls used
@@ -525,53 +527,78 @@ one came about.
 
 ### Requirement: The chrome is present before the data it names
 
-In the web application, the workspace's chrome SHALL be drawn on the first paint of the
-workspace route, before the trip and its places have been read. The mark, the control
-naming the trip, the control naming the city, the session's tools, and the account
-control SHALL all be present, in the placement each of them has once the data arrives,
-at both the laptop and the phone shape.
+In every application, the workspace's chrome SHALL be drawn on the first paint of the
+workspace, before the trip and its places have been read. The mark, the control naming
+the trip, the control naming the city, the session's tools, and the account control SHALL
+all be present, in the placement each of them has once the data arrives, at both the
+laptop and the phone shape. The chrome meets every requirement of `waiting-screens`; what
+follows is particular to it.
 
 A loading state SHALL NOT be shown *in place of* the chrome.
+
+In the phone application, until the map can be shown, the area it will occupy SHALL hold a
+single loading state, and that state SHALL be the same from the first paint until the map
+replaces it — the same whether the trips or the trip's places are what is still being
+read. The session's tools SHALL stand on the bottom edge from the first paint, inert until
+the map is shown.
+
+Nothing in the chrome SHALL change position, size, or appearance when the data arrives,
+other than the names filling in where their placeholders were and the controls ceasing to
+be inert.
 
 Rationale: the chrome's arrangement is the same for every trip and it is known before any
 of them is read. Withholding it until the data lands means the first thing shown says
 nothing about the second, and the application arrives in one jump from a band of text to
 an entire interface. What a person is waiting for is the map and the places on it; the
-frame around them was never waiting for anything.
+frame around them was never waiting for anything. This was first written for the web
+application alone, and the phone application went on showing a loading screen, then the
+header over a second loading message, then its tools — three arrivals for one wait. A
+loading state that changes its words partway through the wait is a fourth.
 
 #### Scenario: The workspace is opened
 
-- **WHEN** the workspace route is shown before the trip's data has arrived
+- **WHEN** the workspace is shown before the trip's data has arrived
 - **THEN** the chrome is drawn, with every control it has once the data arrives
 - **AND** it stands where it will stand once the data arrives
 - **AND** no loading state is drawn in place of it
 
 #### Scenario: The chrome is shown at a phone width
 
-- **WHEN** the workspace route is shown at a phone width before the data has arrived
+- **WHEN** the workspace is shown at a phone width before the data has arrived
 - **THEN** the chrome takes its phone shape
 - **AND** the tools stand on the bottom edge, as they do once the data arrives
+
+#### Scenario: The phone application opens on a cold start
+
+- **WHEN** the phone application opens before the session and the trips have been read
+- **THEN** the chrome is drawn in its phone shape, with drawn placeholders for the trip's
+  name and the city's name
+- **AND** the map's area holds a loading state
+- **AND** the tools stand on the bottom edge, inert
+
+#### Scenario: The trip is known and its places are not
+
+- **WHEN** the phone application has read the trip and has not yet read its places
+- **THEN** the trip's name and the city's name are shown where their placeholders stood
+- **AND** the map's area holds the same loading state it held before the trip was known
+- **AND** the tools still stand on the bottom edge, inert
+
+#### Scenario: The map is shown
+
+- **WHEN** the map replaces the loading state in the phone application's map area
+- **THEN** the tools become live
+- **AND** neither the header nor the tools move or change size
 
 ### Requirement: A control is inert until the act it starts can complete
 
 Where the chrome is drawn before its data, every control in it SHALL be inert until the
-act that control begins is able to complete. A control SHALL NOT be treated as usable
-merely because it needs no data in order to be drawn.
-
-An inert control SHALL remain in the tab order, SHALL report itself as unavailable to
-assistive technology, and SHALL do nothing when activated. It SHALL NOT be made
-unavailable by a means that removes it from the tab order or hides it from a screen
-reader.
-
-An inert control SHALL be distinguishable from its live state by more than colour.
+act that control begins is able to complete, as `waiting-screens` requires of every
+screen, and SHALL be drawn and announced as that capability requires of an inert control.
 
 Rationale: two of these tools need nothing fetched in order to be drawn and are still not
 usable — one opens a form that needs the trip, and the other arms a map that does not
 exist yet. Stating the rule as "inert until its data arrives" leaves both of them live and
-each fails at the moment it is pressed. Keeping an inert control in the tab order is what
-separates a control that is temporarily unavailable from one that is absent: a person
-navigating by keyboard or by screen reader is told the same thing a sighted person is
-told by looking, which is that it is there and not yet.
+each fails at the moment it is pressed.
 
 #### Scenario: A control whose data has not arrived
 
@@ -598,67 +625,6 @@ told by looking, which is that it is there and not yet.
 - **WHEN** an inert control is drawn beside the live version of the same control
 - **THEN** the two differ by more than hue
 - **AND** any text either one carries clears the text contrast floor
-
-### Requirement: A name that has not arrived is drawn, not written
-
-Where the chrome names something it has not yet read — the trip, the city, or the person
-signed in — it SHALL stand a drawn placeholder in that name's place. It SHALL NOT write
-text in place of the name, and SHALL NOT write the name in a recessive colour to say that
-it is provisional.
-
-Where a name is already replaced by something that does not depend on the data, no
-placeholder is required in its place.
-
-Rationale: text is read, and every text a person can read is a claim. "Loading…" beside a
-caret claims there is a menu that opens something, and a greyed name claims a name.
-Neither is true yet. A drawn block claims only that something will go there, which is the
-whole of what is known — and it is the only option the contrast floor leaves, since text
-that is present but inert has to clear the floor and therefore cannot be recessive enough
-to read as absent.
-
-#### Scenario: The trip and city have not been read
-
-- **WHEN** the chrome is drawn before the trip's data has arrived
-- **THEN** a drawn placeholder stands where each name will be
-- **AND** no text stands in place of either name
-
-#### Scenario: A name is already replaced at this width
-
-- **WHEN** the chrome is drawn at a width where a name is already replaced by something
-  that does not depend on the data
-- **THEN** no placeholder is required in that name's place
-
-### Requirement: The chrome before the data and the chrome after it are one definition
-
-The chrome drawn before the trip's data and the chrome drawn after it SHALL be produced
-by a single definition, which draws both states. A second rendering of the same chrome
-SHALL NOT be maintained for the waiting state.
-
-Nothing in the chrome SHALL change position, size, or appearance when the data arrives,
-other than the names filling in where their placeholders were and the controls ceasing to
-be inert.
-
-Rationale: two renderings that merely look alike disagree the moment either one is edited,
-and the moment they are exchanged is exactly the moment the transition was supposed to
-feel settled — so a single pixel of disagreement reads as a flinch. One definition removes
-the disagreement rather than policing it.
-
-Stated as what can be seen rather than as how it is built. Whether the element is
-literally retained is a fact about a framework and is not observable; whether the bar
-moves is observable, is the thing actually being promised, and is what a person notices
-when it is broken.
-
-#### Scenario: The data arrives
-
-- **WHEN** the trip's data arrives while the chrome is drawn
-- **THEN** the names fill in and the controls become live
-- **AND** no control changes position, size, or appearance on account of the arrival alone
-
-#### Scenario: The waiting chrome is edited
-
-- **WHEN** the chrome's arrangement is changed
-- **THEN** the waiting state and the loaded state change together
-- **AND** neither can be changed without the other
 
 ### Requirement: A state standing in place of the workspace occupies the screen
 
@@ -899,4 +865,3 @@ what the screen appears to promise, not only what the product can do somewhere.
   control is accepted
 - **AND** offering less is reason to change the control or leave it out, not to ship it
   looking the same
-

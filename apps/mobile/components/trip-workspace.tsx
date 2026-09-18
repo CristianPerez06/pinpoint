@@ -1,8 +1,3 @@
-import MapPinPlus from 'lucide-react-native/icons/map-pin-plus'
-import Search from 'lucide-react-native/icons/search'
-import ChevronDown from 'lucide-react-native/icons/chevron-down'
-import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
-import type { LucideIcon } from 'lucide-react-native'
 import { signOut } from '@pinpoint/auth'
 import type {
   CityNotice,
@@ -64,7 +59,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CitySheet } from '@/components/city-sheet'
 import { FilterSheet } from '@/components/filter-sheet'
@@ -79,8 +73,14 @@ import { PeopleSheet } from '@/components/people-sheet'
 import { openingHeight as detailsOpeningHeight } from '@/components/marker-details'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
-import { FailedState, LoadingState } from '@/components/states'
+import { FailedState } from '@/components/states'
 import { TripMap, type TripMapRef } from '@/components/trip-map'
+import {
+  BAR_HEIGHT,
+  SessionTools,
+  WaitingMap,
+  WorkspaceChrome,
+} from '@/components/workspace-chrome'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -210,9 +210,6 @@ export function TripWorkspace({
   userId: string
 }) {
   const theme = useTheme()
-  // The header is the top of the screen, so it owns the space the system draws
-  // into. Without this the wordmark sits under the clock and the Dynamic Island.
-  const insets = useSafeAreaInsets()
   const router = useRouter()
   const windowHeight = useWindowDimensions().height
 
@@ -964,447 +961,294 @@ export function TripWorkspace({
     ) : null
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colour.surface }]}>
-      <View
-        style={[
-          styles.header,
-          { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
-        ]}
-      >
-        <View style={styles.headerLine}>
-        {/*
-          What is rare, and one thing that is not a control.
+    <WorkspaceChrome
+      live={{
+        tripName: trip.name,
+        onOpenTrips: () => showSheet(setTripsOpen, true, tripQuery.refetch),
+        onOpenMenu: () => setMenuOpen(true),
+        cityName: selectionName,
+        wholeTrip: selectedCityId === null,
+        cityHint:
+          selectedCityId === null
+            ? 'All places. Choose a city to work on'
+            : `${selectionName}. Change which city you are working on`,
+        onOpenCities: () => showSheet(setCitiesOpen, true, cityQuery.refetch),
+      }}
+      overlays={
+        <>
+          <FilterSheet
+            open={filterOpen}
+            filter={filter}
+            onChange={setFilter}
+            onClose={() => setFilterOpen(false)}
+            members={members}
+            ownMemberId={ownMemberId}
+          />
 
-          The wordmark is gone: inside the pinpoint application it says nothing
-          the reader does not know, and the point beside it already stands for it —
-          a pin reduced to the point it names, in the one colour that is not a
-          marker family. The trip name says which trip, which becomes a real
-          question the moment more than one can exist.
+          <TripSheet
+            open={tripsOpen}
+            onClose={() => showSheet(setTripsOpen, false)}
+            trip={trip}
+            trips={trips}
+            archived={tripActions.archived}
+            onRevealArchived={tripActions.revealArchived}
+            onSelectTrip={onSelectTrip}
+            onRename={tripActions.renameTrip}
+            onSetDates={tripActions.setTripDates}
+            /*
+              The calendar, which is the view this screen is not. `push` rather than
+              `replace`, so this screen stays mounted underneath and coming back is
+              the map exactly as it was left — the same city, the same filter, the
+              same camera — which is what the chrome requires of a screen somebody
+              returns from.
+            */
+            otherView={{ name: 'Calendar', onPress: () => router.push('/calendar') }}
+            onCreated={onCreated}
+            onSetArchived={(tripId, value) => void tripActions.setTripArchived(tripId, value)}
+            onOpenPeople={() => {
+              showSheet(setTripsOpen, false)
+              showSheet(setPeopleOpen, true, memberQuery.refetch)
+            }}
+            // The same refusal the map shows, handed to the sheet covering it. One
+            // piece of state, rendered wherever the person actually is.
+            problem={problem}
+            onDismissProblem={() => setProblem(null)}
+          />
 
-          Being out of a thumb's reach up here is correct rather than wasteful.
-          Nobody wants Sign out under their thumb; the controls that are touched
-          while planning are in the row at the bottom.
-        */}
-        <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-        {/*
-          The name is the way into the trips, and the caret is what says so.
+          <MenuSheet
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            onSignOut={() => void signOut(supabase)}
+            member={ownMemberOf(members, userId) ?? null}
+          />
 
-          A label that opens something and looks like a label is a control
-          nobody finds. It is also the only element here that yields, so a long
-          name truncates rather than pushing the menu off the edge.
-        */}
-        <Pressable
-          onPress={() => showSheet(setTripsOpen, true, tripQuery.refetch)}
-          accessibilityRole="button"
-          accessibilityLabel={`${trip.name}. Switch or manage trips`}
-          hitSlop={6}
-          style={styles.tripButton}
-        >
-          <Text
-            style={[styles.tripName, { color: theme.colour.ink }]}
-            numberOfLines={1}
-          >
-            {trip.name}
-          </Text>
-          <ChevronDown size={16} color={theme.colour.inkMuted} strokeWidth={2.4} />
-        </Pressable>
+          <PeopleSheet
+            open={peopleOpen}
+            onClose={() => showSheet(setPeopleOpen, false)}
+            members={members}
+            ownMemberId={ownMemberId}
+            onInvite={tripActions.invite}
+          />
 
-        <Pressable
-          onPress={() => setMenuOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Menu"
-          hitSlop={8}
-          style={{ marginLeft: 'auto' }}
-        >
-          <Text style={[styles.menuGlyph, { color: theme.colour.ink }]}>☰</Text>
-        </Pressable>
-        </View>
+          <CitySheet
+            open={citiesOpen}
+            onClose={() => showSheet(setCitiesOpen, false)}
+            cities={cities}
+            markers={held}
+            selectedCityId={selectedCityId}
+            onSelect={selectCity}
+            onSave={patchCity}
+            onDelete={removeCity}
+            problem={problem}
+            onDismissProblem={() => setProblem(null)}
+          />
 
-        {/*
-          The city being worked in, on its own line under the trip it narrows.
+          <PlaceSearchScreen
+            open={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            biasRef={biasRef}
+            onChoose={(candidate: PlaceCandidate) => {
+              const position = { lng: candidate.lng, lat: candidate.lat }
 
-          Under rather than beside, and that is the whole finding of the mock in
-          this change's `mock/` folder. The laptop puts `Trip / City` on one row
-          and it cannot come here: at 320pt two names that both want the row
-          leave each other about eleven characters, so `Tokyo & Kyoto Honeymoon`
-          and `Hiroshima & Miyajima` both become stubs and neither answers its
-          question. Neither name has a length anybody promised — both are typed
-          by a person — so the arrangement fails exactly where it matters.
+              /*
+                Does the trip already hold this place?
 
-          Still in the header rather than in the bar at the bottom. A city is a
-          narrowing of the trip and reads as one only when it stands where the
-          trip does; the bar holds the controls that act on the map, and this
-          acts on what is being worked on.
-        */}
-        <View style={styles.cityLine}>
-          <Pressable
-            onPress={() => showSheet(setCitiesOpen, true, cityQuery.refetch)}
-            accessibilityRole="button"
-            accessibilityLabel={
-              selectedCityId === null
-                ? 'All places. Choose a city to work on'
-                : `${selectionName}. Change which city you are working on`
-            }
-            hitSlop={6}
-            style={styles.cityButton}
-          >
+                Asked against `held` and never `visible`. A filter decides what the
+                map draws; it has never decided what the trip contains, and matching
+                the drawn set would let a view setting produce the very duplicate
+                this is here to prevent — narrow to food, search a saved temple, get
+                a second temple.
+
+                The match is exact, and `markersAt` is where that is written down.
+                What it deliberately does not catch — a marker repositioned after
+                saving, one dropped by pointing — falls through to a capture and
+                behaves exactly as it did before.
+              */
+              const found = markersAt(position, held)
+              /*
+                Moved to, because a searched place is usually not on screen — that is
+                generally why somebody searched. Leaving the camera still would put
+                the place they just chose somewhere they cannot see, and then ask
+                them to save it.
+
+                A dropped pin is the opposite case and gets no movement: it is by
+                definition somewhere they were already looking.
+              */
+              // Told where the sheet will be, not where it is: the form opens in the
+              // same breath as this and does not exist yet to be measured. Without
+              // it the camera centres the place on the middle of the map view, which
+              // is the part the sheet is about to cover.
+              /*
+                Told what will cover the map, on both branches.
+
+                This was written to pass nothing here, reasoning that a details
+                sheet is not the form and does not cover as much. Looking at it
+                settled that: the sheet sat squarely on top of the pin. The form
+                opens at 52% of the window and this sheet is capped at 50% — at the
+                sizes that matter they are the same thing, and the difference the
+                argument rested on does not exist.
+
+                Each branch asks the sheet that is about to open, rather than one
+                borrowing the other's number. They are close today and nothing keeps
+                them that way.
+              */
+              if (found) {
+                mapRef.current?.flyTo(position, detailsOpeningHeight(windowHeight))
+                mapRef.current?.openMarkers(
+                  found.key,
+                  found.markers.map((marker) => marker.id),
+                )
+                return
+              }
+
+              mapRef.current?.flyTo(position, openingHeight(windowHeight))
+              beginCreate(
+                position,
+                { name: candidate.name, type: candidate.typeGuess },
+                candidate.city,
+              )
+            }}
+          />
+
+        </>
+      }
+    >
+      <Body
+        mapRef={mapRef}
+        centreRef={centreRef}
+        dropping={sight !== null}
+        draft={panel.kind === 'none' ? null : panel.position}
+        formSheet={formSheet}
+        formHeight={formHeight}
+        onEditMarker={(marker) => {
+          setFieldErrors({})
+          setFormMessage(null)
+          setConflict(null)
+          setPanel({
+            kind: 'edit',
+            marker,
+            position: { lng: marker.lng, lat: marker.lat },
+            initial: valuesOf(marker),
+          })
+        }}
+        onDeleteMarker={confirmRemove}
+        removingId={removingId}
+        /*
+          Tapping a saved place gives up on the one being added.
+
+          `cancelPanel` already puts everything back: the form closes, the sight
+          disarms, the draft position goes with the panel that held it, and the
+          field errors clear. Nothing was stored, so the trip is exactly as it
+          was — which is what the specification asks of abandoning.
+        */
+        onAbandonCapture={cancelPanel}
+        onReread={() => void rereadByHand()}
+        rereading={rereading}
+        confirmBar={
+          <View style={styles.confirmRow}>
+            {/*
+              What the sight is waiting for.
+
+              Standing where the trip's controls stand, rather than beside
+              them: the map is doing something other than what it usually does,
+              and replacing the row says so more clearly than any label added
+              to it would.
+            */}
+            <Pressable
+              onPress={cancelSight}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              hitSlop={6}
+              style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
+            >
+              <Text style={[styles.filterText, { color: theme.colour.ink }]}>
+                Cancel
+              </Text>
+            </Pressable>
+
             <Text
+              style={[styles.sightHint, { color: theme.colour.inkMuted }]}
+              numberOfLines={2}
+            >
+              Move the map to put the place under the ring.
+            </Text>
+
+            <Pressable
+              onPress={confirmSight}
+              accessibilityRole="button"
+              accessibilityLabel="Use this spot"
+              hitSlop={6}
               style={[
-                styles.cityName,
+                styles.pill,
                 {
-                  // Naming the whole trip rather than standing empty, and drawn
-                  // quieter than a city so the two states are told apart
-                  // without reading the word.
-                  color:
-                    selectedCityId === null ? theme.colour.inkMuted : theme.colour.ink,
+                  borderColor: theme.colour.accent,
+                  backgroundColor: theme.colour.accentWash,
                 },
               ]}
-              numberOfLines={1}
             >
-              {selectionName}
-            </Text>
-            <ChevronDown size={14} color={theme.colour.inkMuted} strokeWidth={2.4} />
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <Body
-          mapRef={mapRef}
-          centreRef={centreRef}
-          dropping={sight !== null}
-          draft={panel.kind === 'none' ? null : panel.position}
-          formSheet={formSheet}
-          formHeight={formHeight}
-          onEditMarker={(marker) => {
-            setFieldErrors({})
-            setFormMessage(null)
-            setConflict(null)
-            setPanel({
-              kind: 'edit',
-              marker,
-              position: { lng: marker.lng, lat: marker.lat },
-              initial: valuesOf(marker),
-            })
-          }}
-          onDeleteMarker={confirmRemove}
-          removingId={removingId}
-          /*
-            Tapping a saved place gives up on the one being added.
-
-            `cancelPanel` already puts everything back: the form closes, the sight
-            disarms, the draft position goes with the panel that held it, and the
-            field errors clear. Nothing was stored, so the trip is exactly as it
-            was — which is what the specification asks of abandoning.
-          */
-          onAbandonCapture={cancelPanel}
-          onReread={() => void rereadByHand()}
-          rereading={rereading}
-          confirmBar={
-            <View style={styles.confirmRow}>
-              {/*
-                What the sight is waiting for.
-
-                Standing where the trip's controls stand, rather than beside
-                them: the map is doing something other than what it usually does,
-                and replacing the row says so more clearly than any label added
-                to it would.
-              */}
-              <Pressable
-                onPress={cancelSight}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel"
-                hitSlop={6}
-                style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
-              >
-                <Text style={[styles.filterText, { color: theme.colour.ink }]}>
-                  Cancel
-                </Text>
-              </Pressable>
-
               <Text
-                style={[styles.sightHint, { color: theme.colour.inkMuted }]}
-                numberOfLines={2}
+                style={[styles.clearText, { color: theme.colour.accentInk }]}
+                numberOfLines={1}
               >
-                Move the map to put the place under the ring.
+                Use this spot
               </Text>
-
-              <Pressable
-                onPress={confirmSight}
-                accessibilityRole="button"
-                accessibilityLabel="Use this spot"
-                hitSlop={6}
-                style={[
-                  styles.pill,
-                  {
-                    borderColor: theme.colour.accent,
-                    backgroundColor: theme.colour.accentWash,
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.clearText, { color: theme.colour.accentInk }]}
-                  numberOfLines={1}
-                >
-                  Use this spot
-                </Text>
-              </Pressable>
-            </View>
-          }
-          loading={markerQuery.state.status === 'loading'}
-          failed={
-            markerQuery.state.status === 'failed' ? markerQuery.state.message : null
-          }
-          total={held.length}
-          visible={visible}
-          held={held}
-          currencyOf={currencyOf}
-          members={members}
-          interestFor={interestFor}
-          ownMemberId={ownMemberId}
-          onRecordInterest={(marker, interested) => void answer(marker, interested)}
-          onWithdrawInterest={(marker) => void unanswer(marker)}
-          onSetVisited={(marker, visited) => void markVisited(marker, visited)}
-          onClearFilter={() => setFilter(NO_FILTER)}
-          narrowed={narrowed}
-          /*
-            The second of the two motions allowed to move this camera, and the
-            only new one in this change. Told nothing about what covers the
-            bottom edge, exactly as the city framing above it is: the toolbar was
-            already standing there and the map has already measured it. The
-            filter is not touched — the offer moves the camera and nothing else.
-          */
-          onShowMatches={() => mapRef.current?.frameOn(visible)}
-          /*
-            Handed to the map rather than rendered beside it, because the bottom
-            of the map is already choreographed — the attribution is a licence
-            condition with its own offset, and the marker sheet rises from the
-            same edge. The map decides where this sits and when it yields; this
-            component only decides what is in it.
-          */
-          bottomRow={
-            <View style={styles.bottomRow}>
-              {/*
-                A toolbar, and deliberately not a tab bar.
-
-                A tab bar switches between sections of an application; every one
-                of these fires an action, and drawing them as tab items would
-                promise navigation that does not exist. What was here before was
-                four text pills of equal weight whose borders arrived only under
-                a finger — quiet taken as far as absent, which is why it read as
-                unfinished rather than as restrained.
-
-                Three, not four: `Clear` has moved into the filter sheet, and the
-                filter tool declares the narrowing in its place. Four targets
-                across a phone leaves each one narrow, and `Clear` was the least
-                earned of them — it does nothing at all most of the time.
-
-                All three weigh the same. An earlier pass drew `Drop` in the
-                accent, on the argument that dropping a pin is what somebody
-                opened the application to do while standing in a street. It was
-                rejected on sight, and the reason given at the time was local to
-                this row: it sits over a map whose pins are the only saturated
-                colour in the system, and a fourth amber thing at the bottom
-                competes with what it is meant to be serving.
-
-                That reason was true and too small. Being true only of a row
-                over a map is why the web's laptop bar — a surface strip above
-                the map, not over it — kept a filled amber control long after
-                this one lost its, without contradicting anything anybody had
-                written. The rule that replaces it is **The Chrome Fill Rule**
-                in DESIGN.md: the accent fills a control that *commits* an act
-                inside a form or a panel, and never fills a control standing in
-                the chrome at rest. `Drop` arms the map and waits; it commits
-                nothing.
-
-                So this row is no longer the exception that got it right. It is
-                the shape both applications now hold, and nothing here changed
-                to reach that — the web came to meet it.
-              */}
-              <Tool
-                label="Search"
-                hint="Search for a place"
-                icon={Search}
-                onPress={() => setSearchOpen(true)}
-              />
-              <Tool
-                label="Drop"
-                hint="Drop a pin on the map"
-                icon={MapPinPlus}
-                onPress={() => {
-                  cancelPanel()
-                  setSight({ kind: 'new' })
-                }}
-              />
-              {/*
-                Sliders rather than a funnel. A funnel says "narrow a list";
-                sliders says "options you can change", which is what this opens.
-
-                It carries the declaration `Clear` used to carry, by the accent
-                *and* a dot — two signals, because a state that survives only in
-                hue survives neither a greyscale screen nor a colour-blind
-                reader, which is the same rule that keeps a visited marker from
-                being recoloured.
-              */}
-              <Tool
-                label="Filter"
-                hint={
-                  narrowed
-                    ? 'Filter this trip. Some places are hidden'
-                    : 'Filter this trip'
-                }
-                icon={SlidersHorizontal}
-                marked={narrowed}
-                onPress={() => setFilterOpen(true)}
-              />
-            </View>
-          }
-        />
-
-        {/* A refused write, said out loud. Dismissible, because the state it
-            described has already been put back. */}
-        {problem !== null ? (
-          <Pressable onPress={() => setProblem(null)} accessibilityRole="button">
-            <MarkersOverlayNote tone="danger">{problem}</MarkersOverlayNote>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <FilterSheet
-        open={filterOpen}
-        filter={filter}
-        onChange={setFilter}
-        onClose={() => setFilterOpen(false)}
+            </Pressable>
+          </View>
+        }
+        loading={markerQuery.state.status === 'loading'}
+        failed={
+          markerQuery.state.status === 'failed' ? markerQuery.state.message : null
+        }
+        total={held.length}
+        visible={visible}
+        held={held}
+        currencyOf={currencyOf}
         members={members}
+        interestFor={interestFor}
         ownMemberId={ownMemberId}
-      />
-
-      <TripSheet
-        open={tripsOpen}
-        onClose={() => showSheet(setTripsOpen, false)}
-        trip={trip}
-        trips={trips}
-        archived={tripActions.archived}
-        onRevealArchived={tripActions.revealArchived}
-        onSelectTrip={onSelectTrip}
-        onRename={tripActions.renameTrip}
-        onSetDates={tripActions.setTripDates}
+        onRecordInterest={(marker, interested) => void answer(marker, interested)}
+        onWithdrawInterest={(marker) => void unanswer(marker)}
+        onSetVisited={(marker, visited) => void markVisited(marker, visited)}
+        onClearFilter={() => setFilter(NO_FILTER)}
+        narrowed={narrowed}
         /*
-          The calendar, which is the view this screen is not. `push` rather than
-          `replace`, so this screen stays mounted underneath and coming back is
-          the map exactly as it was left — the same city, the same filter, the
-          same camera — which is what the chrome requires of a screen somebody
-          returns from.
+          The second of the two motions allowed to move this camera, and the
+          only new one in this change. Told nothing about what covers the
+          bottom edge, exactly as the city framing above it is: the toolbar was
+          already standing there and the map has already measured it. The
+          filter is not touched — the offer moves the camera and nothing else.
         */
-        otherView={{ name: 'Calendar', onPress: () => router.push('/calendar') }}
-        onCreated={onCreated}
-        onSetArchived={(tripId, value) => void tripActions.setTripArchived(tripId, value)}
-        onOpenPeople={() => {
-          showSheet(setTripsOpen, false)
-          showSheet(setPeopleOpen, true, memberQuery.refetch)
-        }}
-        // The same refusal the map shows, handed to the sheet covering it. One
-        // piece of state, rendered wherever the person actually is.
-        problem={problem}
-        onDismissProblem={() => setProblem(null)}
+        onShowMatches={() => mapRef.current?.frameOn(visible)}
+        /*
+          Handed to the map rather than rendered beside it, because the bottom
+          of the map is already choreographed — the attribution is a licence
+          condition with its own offset, and the marker sheet rises from the
+          same edge. The map decides where this sits and when it yields; this
+          component only decides what is in it.
+        */
+        bottomRow={
+          <SessionTools
+            tools={{
+              onSearch: () => setSearchOpen(true),
+              onDrop: () => {
+                cancelPanel()
+                setSight({ kind: 'new' })
+              },
+              onFilter: () => setFilterOpen(true),
+              narrowed,
+            }}
+          />
+        }
       />
 
-      <MenuSheet
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        onSignOut={() => void signOut(supabase)}
-        member={ownMemberOf(members, userId) ?? null}
-      />
-
-      <PeopleSheet
-        open={peopleOpen}
-        onClose={() => showSheet(setPeopleOpen, false)}
-        members={members}
-        ownMemberId={ownMemberId}
-        onInvite={tripActions.invite}
-      />
-
-      <CitySheet
-        open={citiesOpen}
-        onClose={() => showSheet(setCitiesOpen, false)}
-        cities={cities}
-        markers={held}
-        selectedCityId={selectedCityId}
-        onSelect={selectCity}
-        onSave={patchCity}
-        onDelete={removeCity}
-        problem={problem}
-        onDismissProblem={() => setProblem(null)}
-      />
-
-      <PlaceSearchScreen
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        biasRef={biasRef}
-        onChoose={(candidate: PlaceCandidate) => {
-          const position = { lng: candidate.lng, lat: candidate.lat }
-
-          /*
-            Does the trip already hold this place?
-
-            Asked against `held` and never `visible`. A filter decides what the
-            map draws; it has never decided what the trip contains, and matching
-            the drawn set would let a view setting produce the very duplicate
-            this is here to prevent — narrow to food, search a saved temple, get
-            a second temple.
-
-            The match is exact, and `markersAt` is where that is written down.
-            What it deliberately does not catch — a marker repositioned after
-            saving, one dropped by pointing — falls through to a capture and
-            behaves exactly as it did before.
-          */
-          const found = markersAt(position, held)
-          /*
-            Moved to, because a searched place is usually not on screen — that is
-            generally why somebody searched. Leaving the camera still would put
-            the place they just chose somewhere they cannot see, and then ask
-            them to save it.
-
-            A dropped pin is the opposite case and gets no movement: it is by
-            definition somewhere they were already looking.
-          */
-          // Told where the sheet will be, not where it is: the form opens in the
-          // same breath as this and does not exist yet to be measured. Without
-          // it the camera centres the place on the middle of the map view, which
-          // is the part the sheet is about to cover.
-          /*
-            Told what will cover the map, on both branches.
-
-            This was written to pass nothing here, reasoning that a details
-            sheet is not the form and does not cover as much. Looking at it
-            settled that: the sheet sat squarely on top of the pin. The form
-            opens at 52% of the window and this sheet is capped at 50% — at the
-            sizes that matter they are the same thing, and the difference the
-            argument rested on does not exist.
-
-            Each branch asks the sheet that is about to open, rather than one
-            borrowing the other's number. They are close today and nothing keeps
-            them that way.
-          */
-          if (found) {
-            mapRef.current?.flyTo(position, detailsOpeningHeight(windowHeight))
-            mapRef.current?.openMarkers(
-              found.key,
-              found.markers.map((marker) => marker.id),
-            )
-            return
-          }
-
-          mapRef.current?.flyTo(position, openingHeight(windowHeight))
-          beginCreate(
-            position,
-            { name: candidate.name, type: candidate.typeGuess },
-            candidate.city,
-          )
-        }}
-      />
-
-    </View>
+      {/* A refused write, said out loud. Dismissible, because the state it
+          described has already been put back. */}
+      {problem !== null ? (
+        <Pressable onPress={() => setProblem(null)} accessibilityRole="button">
+          <MarkersOverlayNote tone="danger">{problem}</MarkersOverlayNote>
+        </Pressable>
+      ) : null}
+    </WorkspaceChrome>
   )
 }
 
@@ -1509,7 +1353,9 @@ function Body({
   const [somethingToLookAt, setSomethingToLookAt] = useState(true)
 
   if (failed !== null && total === 0) return <FailedState message={failed} />
-  if (loading) return <LoadingState />
+  // The same wait the route draws before the trip is known, so the area changes
+  // once — when the map replaces it — rather than once per read.
+  if (loading) return <WaitingMap />
 
   return (
     <>
@@ -1581,199 +1427,7 @@ function Body({
   )
 }
 
-/** The header's own breathing room, above and below its content. */
-const HEADER_PAD = 11
-
-/** A tool's glyph, and the room above and below the pair it makes with its label. */
-const TOOL_GLYPH = 24
-const TOOL_PAD_TOP = 9
-const TOOL_PAD_BOTTOM = 7
-
-/**
- * The height of whatever stands on the bottom edge.
- *
- * One number rather than two, because the toolbar and the sight's confirm row
- * swap places in the same slot: a shorter confirm row made the bar shrink under
- * the thumb at the moment the map was asking for a decision, which read as the
- * chrome flinching.
- *
- * Derived rather than chosen, because it has to be the height a tool already
- * comes to on its own. A tool is laid out from its parts, and a minimum below
- * their sum changes nothing — which is how a round 56 that read as
- * authoritative still left the confirm row two points short of the toolbar it
- * replaces. Both rows take this as a minimum, so a larger system text size
- * grows whichever one is standing there rather than clipping it.
- */
-const BAR_HEIGHT =
-  TOOL_PAD_TOP +
-  TOOL_GLYPH +
-  SPACE.xs +
-  TYPE.label.size * TYPE.label.lineHeight +
-  TOOL_PAD_BOTTOM
-
-/**
- * One button in the bottom toolbar.
- *
- * A glyph above its own label, filling a third of the row. The label is not
- * decoration: an icon alone is a guess, and `sliders` in particular is a
- * convention rather than a picture of the thing it opens.
- *
- * `hint` is what a screen reader is told and is allowed to say more than the
- * label shows — "Filter this trip. Some places are hidden" is the narrowed
- * state reaching somebody who cannot see the dot.
- */
-function Tool({
-  label,
-  hint,
-  icon: Glyph,
-  marked = false,
-  onPress,
-}: {
-  label: string
-  hint: string
-  icon: LucideIcon
-  /** Whether this tool is declaring a state — today, that a filter is applied. */
-  marked?: boolean
-  onPress: () => void
-}) {
-  const theme = useTheme()
-  const ink = marked ? theme.colour.accentInk : theme.colour.inkMuted
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={hint}
-      style={styles.tool}
-    >
-      <View>
-        <Glyph size={TOOL_GLYPH} color={ink} strokeWidth={2} />
-        {/*
-          The second signal. The accent alone would be a state carried by hue,
-          which this project forbids; a dot is a shape that survives greyscale.
-          Ringed in the bar's own surface so it reads as sitting on top of the
-          glyph rather than as part of it.
-        */}
-        {marked ? (
-          <View
-            style={[
-              styles.pip,
-              {
-                backgroundColor: theme.colour.accent,
-                borderColor: theme.colour.surface,
-              },
-            ]}
-          />
-        ) : null}
-      </View>
-      <Text style={[styles.toolLabel, { color: ink }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    paddingHorizontal: SPACE.md,
-    // `paddingTop` is applied inline instead, because it has to carry the
-    // device's top inset as well as this.
-    paddingBottom: HEADER_PAD,
-    borderBottomWidth: 1,
-  },
-  /** The trip, the point, and the way out. What used to be the whole header. */
-  headerLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
-  },
-  /*
-   * Indented to clear the point, so the city hangs off the trip's name rather
-   * than starting a second column. `flexDirection` so the control shrinks to
-   * its label instead of spanning the width, which would read as a field.
-   */
-  cityLine: { flexDirection: 'row', paddingLeft: 9 + SPACE.sm, marginTop: 1 },
-  /*
-   * The trip's name one step down, and deliberately not a pill.
-   *
-   * This was a filled, outlined pill and it was wrong twice over. It was an
-   * *off-spec* pill — `DESIGN.md` gives a selector pill a transparent border
-   * held in reserve for hover, 7×11 padding and `control` type, and this had a
-   * border drawn at rest, its own padding and `rowName` — so it read as a third
-   * thing nobody had designed. And a pill does not belong here at all: DESIGN.md
-   * scopes them to "the toolbar and the bottom bar", and this header's own idiom
-   * is already a name with a caret.
-   *
-   * There is also a miscue to avoid. An outlined chip is what a filter chip
-   * looks like everywhere else, and it would sit two inches above `Filter` while
-   * naming a control that deliberately hides nothing.
-   *
-   * So it mirrors `tripButton` exactly — same padding, no fill, no border — and
-   * the hierarchy is carried by size and weight alone: `rowName` under the
-   * title, which is the nearest role below it. The laptop reaches the same
-   * arrangement from the other direction: both its trip and city triggers are
-   * `tone="quiet"`, so this is the one shape where the two platforms agree about
-   * the *relationship* between the two controls rather than only about each.
-   */
-  cityButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.xs,
-    flexShrink: 1,
-    paddingVertical: SPACE.xs,
-    paddingRight: SPACE.xs,
-  },
-  cityName: { ...role(TYPE.rowName), flexShrink: 1 },
-  dot: { width: 9, height: 9, borderRadius: 5 },
-  // Carries the prominence the wordmark used to, and stays the only element
-  // that yields, so a long name truncates instead of pushing the menu off.
-  tripName: { ...role(TYPE.title), flexShrink: 1 },
-  tripButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    flexShrink: 1,
-    paddingVertical: SPACE.xs,
-    paddingRight: SPACE.xs,
-  },
-  menuGlyph: { fontSize: 19, lineHeight: 22 },
-
-  /*
-   * The contents of the row a thumb reaches. The bar behind it belongs to the
-   * map, which owns this edge; this is only what stands on it.
-   */
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-  },
-  /*
-   * A third of the row each, and `BAR_HEIGHT` tall — which is derived from
-   * exactly these parts, so the minimum is the height a tool reaches anyway and
-   * binds only on the row that replaces this one. Vertical padding rather than
-   * a height, so a larger system text size grows the button instead of clipping
-   * the word inside it — the same reason the text fields take padding.
-   */
-  tool: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.xs,
-    minHeight: BAR_HEIGHT,
-    paddingTop: TOOL_PAD_TOP,
-    paddingBottom: TOOL_PAD_BOTTOM,
-    paddingHorizontal: SPACE.xs,
-  },
-  toolLabel: { ...role(TYPE.label), textTransform: 'none', letterSpacing: 0.07 },
-  pip: {
-    position: 'absolute',
-    top: -1,
-    right: -5,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    borderWidth: 2,
-  },
   /*
    * The sight's confirm row, standing in the same slot as the toolbar.
    *
@@ -1814,5 +1468,4 @@ const styles = StyleSheet.create({
   // without changing colour.
   clearText: { ...role(TYPE.control), fontWeight: '700' },
   clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
-  body: { flex: 1 },
 })

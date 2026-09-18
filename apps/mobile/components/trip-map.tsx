@@ -39,11 +39,11 @@ import {
   useState,
 } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AttributionSheet } from '@/components/attribution-sheet'
 import { MarkerDetails, type Selection } from '@/components/marker-details'
 import { DraftPin, Pin } from '@/components/pin'
+import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
 import { useTheme, useThemeMode } from '@/lib/theme'
 
@@ -127,23 +127,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   attributionText: { fontSize: 10 },
-  /*
-   * A surface, not floating controls.
-   *
-   * Two pills over open map read as debris rather than as chrome — visible on
-   * a phone in a way no amount of reasoning about it predicted. A bar guarantees
-   * legibility over whatever the map happens to be drawing underneath, frames
-   * the map with the same edge the header gives it at the top, and is the
-   * surface search and a drop control land on rather than inventing a container
-   * for themselves.
-   */
-  bottomRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopWidth: 1,
-  },
   /*
    * The sight, and the reason it is a plain overlay rather than a marker.
    *
@@ -623,11 +606,6 @@ export function TripMap({
   } | null>(null)
   const theme = useTheme()
   const mode = useThemeMode()
-  // The map is full-bleed, so everything drawn over it has to hold itself clear
-  // of the home indicator. The licence credit is the one that matters most: a
-  // credit the system draws its handle through is not legible, and legibility
-  // is the condition being satisfied.
-  const insets = useSafeAreaInsets()
 
   /**
    * The style, fetched and repainted for the current ground.
@@ -1373,19 +1351,7 @@ export function TripMap({
       {formSheet}
 
       {formSheet === null && selection === null ? (
-        <View
-          onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}
-          style={[
-            styles.bottomRow,
-            {
-              backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
-              // Flush to the bottom of the screen, carrying the inset in its own
-              // padding so its contents clear the home indicator.
-              paddingBottom: insets.bottom,
-            },
-          ]}
-        >
+        <ToolBar onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}>
           {/*
             The trip's controls, or the confirmation the sight is waiting for.
 
@@ -1396,7 +1362,7 @@ export function TripMap({
             doing something other than what it usually does.
           */}
           {dropping ? confirmBar : bottomRow}
-        </View>
+        </ToolBar>
       ) : null}
 
       {formSheet === null && selection ? (
