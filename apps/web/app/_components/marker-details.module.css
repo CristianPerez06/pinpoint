@@ -80,6 +80,22 @@
   overflow-wrap: anywhere;
 }
 
+/*
+  A note keeps the lines it was written on.
+
+  Ordinary text folds every line break into a space, so a note typed as a list —
+  `Book ahead`, Enter, `Closed on Mondays` — read as one sentence that does not
+  parse (#172). `pre-wrap` keeps the breaks and blank lines and still wraps a long
+  line, which `overflow-wrap` above goes on breaking wherever it has to. The phone
+  needs nothing: React Native's `<Text>` draws a line break as one.
+
+  The note alone. The other fields are single-line values, and on them this rule
+  could only ever surface stray whitespace.
+*/
+.noteValue {
+  white-space: pre-wrap;
+}
+
 .absent {
   color: var(--pp-ink-muted);
   font-style: italic;
