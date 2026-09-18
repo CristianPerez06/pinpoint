@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-import { CURRENCY_CODE_PATTERN } from './price'
-
 /**
  * A coarse grouping of markers within a trip — the spreadsheet tab.
  *
@@ -21,14 +19,6 @@ export const citySchema = z.object({
   id: z.uuid(),
   tripId: z.uuid(),
   name: z.string().min(1).max(120),
-  /**
-   * What the prices of this city's markers are denominated in.
-   *
-   * Null means unknown, and unknown is shown as a bare amount rather than
-   * assumed. It sits on the city rather than the trip so one trip can cross a
-   * border, and on the city rather than each marker so it is said once.
-   */
-  currency: z.string().regex(CURRENCY_CODE_PATTERN).nullable(),
   createdAt: z.iso.datetime(),
 })
 
@@ -37,7 +27,6 @@ export type City = z.infer<typeof citySchema>
 export const newCitySchema = citySchema.pick({
   tripId: true,
   name: true,
-  currency: true,
 })
 
 export type NewCity = z.infer<typeof newCitySchema>
@@ -46,16 +35,15 @@ export type NewCity = z.infer<typeof newCitySchema>
  * What may be changed about a city after it exists.
  *
  * A city is usually created mid-flow while saving a place, with whatever was
- * known at that moment — frequently just a name. Without this, a name typed in a
- * hurry would be permanent and a currency skipped at creation could never be
- * chosen.
+ * known at that moment. Without this, a name typed in a hurry would be
+ * permanent.
  *
  * `tripId` is absent deliberately: moving a city between trips would strand
  * every marker filed under it on the wrong side of the boundary all access
  * resolves to.
  */
 export const cityPatchSchema = citySchema
-  .pick({ name: true, currency: true })
+  .pick({ name: true })
   .partial()
 
 export type CityPatch = z.infer<typeof cityPatchSchema>

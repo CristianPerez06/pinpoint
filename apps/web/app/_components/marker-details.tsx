@@ -89,7 +89,6 @@ function Details({
   marker,
   view,
   hidden,
-  currency,
   members,
   interest,
   ownMemberId,
@@ -106,8 +105,6 @@ function Details({
   view: MarkerView
   /** The current filter is not drawing this place. See `HiddenNote`. */
   hidden: boolean
-  /** Of the city this marker is filed under. Null is shown as a bare amount, never assumed. */
-  currency: string | null
   members: readonly TripMember[]
   /** This marker's records only. */
   interest: readonly MarkerInterest[]
@@ -150,7 +147,7 @@ function Details({
         </span>
         {marker.price === null ? null : (
           <span className={`${styles.tag} ${styles.tagPrice}`}>
-            {formatPrice(marker.price, currency)}
+            {formatPrice(marker.price)}
           </span>
         )}
       </div>
@@ -327,7 +324,6 @@ export interface Selection {
  */
 export function MarkerDetails({
   selection,
-  currencyOf,
   members,
   interestFor,
   ownMemberId,
@@ -342,8 +338,6 @@ export function MarkerDetails({
   onDelete,
 }: {
   selection: Selection
-  /** The currency of the city a marker is filed under, or null when there is none. */
-  currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
   /** One marker's records, so this component never sees the whole trip's. */
   interestFor: (marker: Marker) => readonly MarkerInterest[]
@@ -387,7 +381,6 @@ export function MarkerDetails({
       marker={marker}
       view={group.views[index]!}
       hidden={hidden}
-      currency={currencyOf(marker)}
       members={members}
       interest={interestFor(marker)}
       ownMemberId={ownMemberId}

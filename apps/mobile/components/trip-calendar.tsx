@@ -101,8 +101,8 @@ export function TripCalendar({
    * reached, left and come back to — and because `data-freshness` says every
    * list a person can see is re-read when the application returns. The cities
    * are among them although this screen cannot make one: it *shows* them, in the
-   * edit form's chooser and in the currency a price is written in, and a city
-   * renamed on the map would otherwise stay stale here.
+   * edit form's chooser, and a city renamed on the map would otherwise stay stale
+   * here.
    */
   const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
   const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
@@ -195,10 +195,6 @@ export function TripCalendar({
 
   const openMarker = markers.find((each) => each.id === openMarkerId) ?? null
   const editing = markers.find((each) => each.id === editingId) ?? null
-
-  function currencyOf(marker: Marker): string | null {
-    return cities.find((city) => city.id === marker.cityId)?.currency ?? null
-  }
 
   function interestFor(marker: Marker): readonly MarkerInterest[] {
     return interest.filter((record) => record.markerId === marker.id)
@@ -422,7 +418,6 @@ export function TripCalendar({
       {editing === null && selection ? (
         <MarkerDetails
           selection={selection}
-          currencyOf={currencyOf}
           members={members}
           interestFor={interestFor}
           ownMemberId={ownMemberId}

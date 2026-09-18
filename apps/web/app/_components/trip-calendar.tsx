@@ -136,9 +136,9 @@ export function TripCalendar({
    *
    * No setter, because this screen cannot create, rename or remove one — that
    * is the map's business, which is why the edit form's city chooser offers no
-   * way to add one. It still *shows* them, in that chooser and in the currency
-   * a price is written in, and `data-freshness` says no list a person can see
-   * may be left out of the re-read. Held as a prop and never refreshed, a city
+   * way to add one. It still *shows* them, in that chooser, and
+   * `data-freshness` says no list a person can see may be left out of the
+   * re-read. Held as a prop and never refreshed, a city
    * renamed on the map stayed stale in an open calendar until the page was
    * reloaded.
    */
@@ -350,12 +350,6 @@ export function TripCalendar({
     [markers, editingId],
   )
 
-  const currencyOf = useCallback(
-    (marker: Marker) =>
-      cities.find((city) => city.id === marker.cityId)?.currency ?? null,
-    [cities],
-  )
-
   const interestFor = useCallback(
     (marker: Marker) => interest.filter((record) => record.markerId === marker.id),
     [interest],
@@ -538,7 +532,6 @@ export function TripCalendar({
         <div className={styles.panel}>
           <MarkerDetails
             selection={selection}
-            currencyOf={currencyOf}
             members={members}
             interestFor={interestFor}
             ownMemberId={ownMemberId}

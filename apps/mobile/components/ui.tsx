@@ -124,6 +124,95 @@ export function TextField({
 }
 
 /**
+ * A price in US dollars, with a `Free` toggle beside it.
+ *
+ * The phone's copy of the laptop's `PriceField`. Free and a price are one value
+ * — a free place is a price of 0 — so only one is ever set. Turning Free on
+ * empties the box and greys it out; going into the box, or pressing Free again,
+ * turns it off. The box stays editable while greyed, because going into it is
+ * one of the two ways back to a price.
+ *
+ * The toggle is the interest choice pill (`interest.tsx`), and at least 44
+ * points tall, the smallest target a thumb reliably hits.
+ */
+export function PriceField({
+  value,
+  onChange,
+  free,
+  onFreeChange,
+  error,
+}: {
+  value: string
+  onChange: (value: string) => void
+  free: boolean
+  onFreeChange: (free: boolean) => void
+  error?: string
+}) {
+  const theme = useTheme()
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel>Price (USD)</FieldLabel>
+      <View style={styles.priceRow}>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          onFocus={() => {
+            if (free) onFreeChange(false)
+          }}
+          placeholder={free ? 'Free' : 'Leave blank if unknown'}
+          placeholderTextColor={theme.colour.inkMuted}
+          keyboardType="decimal-pad"
+          accessibilityLabel="Price in US dollars"
+          style={[
+            styles.input,
+            styles.priceInput,
+            {
+              color: theme.colour.ink,
+              backgroundColor: theme.colour.surfaceMuted,
+              borderColor: error ? theme.colour.danger : theme.colour.line,
+              opacity: free ? 0.5 : 1,
+            },
+          ]}
+        />
+        <Pressable
+          onPress={() => {
+            if (!free) onChange('')
+            onFreeChange(!free)
+          }}
+          accessibilityRole="button"
+          accessibilityState={{ selected: free }}
+          style={[
+            styles.freeToggle,
+            {
+              borderColor: free ? theme.colour.accent : theme.colour.lineStrong,
+              backgroundColor: free ? theme.colour.accentWash : 'transparent',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.freeToggleText,
+              { color: free ? theme.colour.accentInk : theme.colour.ink },
+            ]}
+          >
+            Free
+          </Text>
+        </Pressable>
+      </View>
+      {error ? (
+        <Text
+          accessibilityRole="alert"
+          style={[styles.error, { color: theme.colour.danger }]}
+        >
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
+/**
  * The drawn bar that stands in for a name not yet read.
  *
  * The phone's copy of the laptop's (`ui.module.css` `.namePlaceholderBar`), with
@@ -531,6 +620,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputMultiline: { minHeight: 74, textAlignVertical: 'top' },
+  /* The price and its `Free`, on one line. */
+  priceRow: { flexDirection: 'row', alignItems: 'stretch', gap: SPACE.sm },
+  priceInput: { flex: 1 },
+  freeToggle: {
+    minHeight: 44,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 18,
+  },
+  freeToggleText: { ...role(TYPE.control) },
   /* The day and its `Clear`, on one line. */
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   /*

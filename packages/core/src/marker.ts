@@ -26,6 +26,7 @@ export const markerSchema = z.object({
   type: markerTypeSchema,
   /** Where the place was found — the answer to "why did we save this?". */
   link: z.url().max(2000).nullable(),
+  /** In US dollars, always. Zero is a free place; null is a price nobody has entered. */
   price: z.number().nonnegative().nullable(),
   /**
    * The day this place is planned for, or null while that is undecided.

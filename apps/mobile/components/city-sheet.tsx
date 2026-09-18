@@ -53,9 +53,8 @@ import { role } from '@/lib/type'
  * else without first taking the view somewhere else.
  *
  * A city created while saving a place is created with whatever was known at that
- * moment, which is frequently just a name. Without this screen a city typed in a
- * hurry would be permanent on this platform, and a currency not chosen at
- * creation could never be chosen at all.
+ * moment. Without this screen a city name typed in a hurry would be permanent on
+ * this platform.
  */
 
 /** Fraction of the screen the sheet may grow to before it scrolls instead. */
@@ -88,18 +87,8 @@ export function CitySheet({
   selectedCityId: string | null
   /** Choosing one. Null is `All places`, which is a choice rather than a clear. */
   onSelect: (cityId: string | null) => void
-  /**
-   * One write for both fields, awaited.
-   *
-   * This used to be two callbacks fired from one press, which could store the
-   * name and have the currency refused — a half-applied edit with no way to
-   * report itself. `updateCity` takes a partial patch, so one call carries both
-   * and there is one outcome to report.
-   */
-  onSave: (
-    cityId: string,
-    patch: { name: string; currency: string | null },
-  ) => Promise<unknown>
+  /** Renaming a city, awaited so the editor can say it is saving. */
+  onSave: (cityId: string, patch: { name: string }) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /** A refusal from one of the writes reached from here, or null. */
   problem: string | null
@@ -247,7 +236,7 @@ export function CitySheet({
                 appears on demand moves everything beside it, and makes the way
                 to a place discoverable only once you already have one. There is
                 no pencil, because a group defined by the absence of a city has
-                no name and no currency to correct.
+                no name to correct.
               */}
               <PickRow
                 name="Unassigned"
@@ -274,8 +263,7 @@ function countLabel(count: number): string {
  * A row that only picks.
  *
  * `All places` is the one of these, and it is separate from `CityRow` rather
- * than a mode of it because there is nothing to edit: no name, no currency, and
- * no removal. Giving it an inert pencil to keep the shapes identical would draw
+ * than a mode of it because there is nothing to edit: no name and no removal. Giving it an inert pencil to keep the shapes identical would draw
  * a control that does nothing, which is worse than a row that is plainly a
  * different kind of thing.
  */
@@ -357,14 +345,13 @@ function CityRow({
   onPick: () => void
   editing: boolean
   onToggle: () => void
-  onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
+  onSave: (patch: { name: string }) => Promise<unknown>
   onDelete: () => Promise<unknown>
   /** Closes this row's editor, once whichever write it started has settled. */
   onDone: () => void
 }) {
   const theme = useTheme()
   const [name, setName] = useState(city.name)
-  const [currency, setCurrency] = useState(city.currency ?? '')
 
   /**
    * Two writes, two flags. Saving is optimistic — the list shows the new name
@@ -439,7 +426,6 @@ function CityRow({
             </Text>
             <Text style={[styles.meta, { color: theme.colour.inkMuted }]}>
               {countLabel(count)}
-              {city.currency ? ` · ${city.currency}` : ' · no currency'}
             </Text>
           </View>
         </Pressable>
@@ -471,20 +457,6 @@ function CityRow({
       {editing ? (
         <View style={styles.editor}>
           <TextField label="Name" value={name} onChange={setName} />
-          <TextField
-            label="Currency (optional)"
-            value={currency}
-            onChange={setCurrency}
-            placeholder="JPY"
-            autoCapitalize="characters"
-          />
-          {/* Says what a currency does and, more usefully, what it does not.
-              Changing it never converts a stored amount — the number was
-              transcribed off a menu, and converting it would invent a price
-              nobody was ever quoted. */}
-          <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-            Changes how prices here are read. No stored amount is changed.
-          </Text>
 
           <View style={styles.actions}>
             <View style={styles.grow}>
@@ -493,16 +465,14 @@ function CityRow({
                 tone="primary"
                 disabled={busy || name.trim() === ''}
                 onPress={() => {
-                  const next = currency.trim().toUpperCase()
-                  const value = next === '' ? null : next
                   // Nothing to write is not a write. Closing without sending is
                   // the correct answer to a Save that changed nothing.
-                  if (name.trim() === city.name && value === (city.currency ?? null)) {
+                  if (name.trim() === city.name) {
                     onDone()
                     return
                   }
                   startSave(async () => {
-                    await onSave({ name: name.trim(), currency: value })
+                    await onSave({ name: name.trim() })
                     onDone()
                   })
                 }}
@@ -590,7 +560,6 @@ const styles = StyleSheet.create({
   cityName: { ...role(TYPE.rowName) },
   meta: { ...role(TYPE.note) },
   editor: { gap: SPACE.sm, paddingBottom: SPACE.md },
-  hint: { ...role(TYPE.note) },
   actions: { flexDirection: 'row', gap: SPACE.sm },
   grow: { flex: 1 },
 })

@@ -29,7 +29,7 @@ export type { FieldErrors, ValidationIssue } from './field-errors'
 export { markerSchema, markerPatchSchema, newMarkerSchema } from './marker'
 export type { Marker, MarkerPatch, NewMarker } from './marker'
 
-export { CURRENCY_CODE_PATTERN, formatPrice } from './price'
+export { formatPrice } from './price'
 
 export {
   interestStateOf,

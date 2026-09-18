@@ -113,7 +113,7 @@ import { useTripActions } from '@/lib/use-trip-actions'
  * - **Optimistic** — one row, reversible, and the screen can draw the outcome
  *   before it is confirmed. Apply it at once, restore exactly what was there if
  *   the database refuses, and say that it was refused. Interest, visited,
- *   renaming a trip, archiving one, renaming a city or setting its currency.
+ *   renaming a trip, archiving one, renaming a city.
  * - **Pending** — everything else: the outcome cannot be drawn in advance, what
  *   happens next depends on the stored row, or the act cannot be undone. The
  *   control says what it is doing and is inert until it settles. Saving a
@@ -442,9 +442,6 @@ export function TripWorkspace({
     selectedCityId === UNASSIGNED_CITY
       ? 'Unassigned'
       : (selectedCity?.name ?? 'All places')
-
-  const currencyOf = (marker: Marker) =>
-    cities.find((city) => city.id === marker.cityId)?.currency ?? null
 
   /**
    * The markers, under whatever name the rest of this file knows them by.
@@ -907,10 +904,10 @@ export function TripWorkspace({
    * id to select. This was the one write on this platform that failed in
    * silence — it returned `null` and left the form to guess.
    */
-  async function addCity(name: string, currency: string | null) {
+  async function addCity(name: string) {
     setProblem(null)
 
-    const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
+    const outcome = await createCity(supabase, { tripId: trip.id, name })
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
@@ -922,19 +919,12 @@ export function TripWorkspace({
   }
 
   /**
-   * Renaming a city, or changing what its prices are read in.
+   * Renaming a city.
    *
    * Optimistic, by the same rule as renaming a trip: one row, reversible, and
    * the list can show the new name at once.
-   *
-   * One call carries both fields. Two calls from one press could store the name
-   * and have the currency refused, which is a half-applied edit that nothing on
-   * screen could describe.
    */
-  async function patchCity(
-    cityId: string,
-    patch: { name?: string; currency?: string | null },
-  ) {
+  async function patchCity(cityId: string, patch: { name?: string }) {
     setProblem(null)
 
     const previous = cities
@@ -1264,7 +1254,6 @@ export function TripWorkspace({
         total={held.length}
         visible={visible}
         held={held}
-        currencyOf={currencyOf}
         members={members}
         interestFor={interestFor}
         ownMemberId={ownMemberId}
@@ -1341,7 +1330,6 @@ function Body({
   total,
   visible,
   held,
-  currencyOf,
   members,
   interestFor,
   ownMemberId,
@@ -1379,7 +1367,6 @@ function Body({
    * drawn from.
    */
   held: readonly Marker[]
-  currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
   interestFor: (marker: Marker) => readonly MarkerInterest[]
   ownMemberId: string | null
@@ -1439,7 +1426,6 @@ function Body({
         bottomRow={bottomRow}
         markers={visible}
         held={held}
-        currencyOf={currencyOf}
         members={members}
         interestFor={interestFor}
         ownMemberId={ownMemberId}

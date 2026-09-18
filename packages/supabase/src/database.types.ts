@@ -42,21 +42,18 @@ export type Database = {
       cities: {
         Row: {
           created_at: string
-          currency: string | null
           id: string
           name: string
           trip_id: string
         }
         Insert: {
           created_at?: string
-          currency?: string | null
           id?: string
           name: string
           trip_id: string
         }
         Update: {
           created_at?: string
-          currency?: string | null
           id?: string
           name?: string
           trip_id?: string

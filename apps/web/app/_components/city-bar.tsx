@@ -52,18 +52,8 @@ export type CityBarLiveProps = {
   markers: readonly Marker[]
   selectedCityId: string | null
   onSelect: (cityId: string | null) => void
-  /**
-   * One write for both fields, awaited.
-   *
-   * This used to be two callbacks fired from one press, which could store the
-   * name and have the currency refused — a half-applied edit with no way to
-   * report itself. `updateCity` takes a partial patch, so one call carries
-   * both and there is one outcome to report.
-   */
-  onSave: (
-    cityId: string,
-    patch: { name: string; currency: string | null },
-  ) => Promise<unknown>
+  /** Renaming a city, awaited so the editor can say it is saving. */
+  onSave: (cityId: string, patch: { name: string }) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /**
    * This list has just been shown.
@@ -187,7 +177,6 @@ function CityBarLive({
                 <span className={styles.rowName}>{city.name}</span>
                 <span className={styles.rowNote}>
                   {countLabel(count)}
-                  {city.currency ? ` · ${city.currency}` : ' · no currency'}
                 </span>
               </button>
 
@@ -240,8 +229,8 @@ function CityBarLive({
           {countLabel(markers.filter((marker) => marker.cityId === null).length)}
         </span>
         {/* Holds the pencil column, as `All places` does. There is nothing to
-            edit here: a group defined by the absence of a city has no name and
-            no currency of its own. */}
+            edit here: a group defined by the absence of a city has no name of
+            its own. */}
         <span className={styles.penSlot} aria-hidden />
       </button>
     </Menu>
@@ -262,12 +251,11 @@ function CityEditor({
 }: {
   city: City
   markerCount: number
-  onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
+  onSave: (patch: { name: string }) => Promise<unknown>
   onDelete: () => Promise<unknown>
   onClose: () => void
 }) {
   const [name, setName] = useState(city.name)
-  const [currency, setCurrency] = useState(city.currency ?? '')
 
   /**
    * Two writes, two flags. Saving is optimistic — the picker shows the new name
@@ -282,27 +270,19 @@ function CityEditor({
   return (
     <div className={styles.editor}>
       <TextField label="Name" value={name} onChange={setName} autoFocus />
-      <TextField
-        label="Currency"
-        value={currency}
-        onChange={setCurrency}
-        placeholder="JPY — blank shows plain numbers"
-      />
 
       <div className={styles.actions}>
         <Button
           tone="primary"
           onClick={() => {
-            const next = currency.trim().toUpperCase()
-            const value = next === '' ? null : next
             // Nothing to write is not a write. Closing without sending is the
             // correct answer to a Save that changed nothing.
-            if (name.trim() === city.name && value === city.currency) {
+            if (name.trim() === city.name) {
               onClose()
               return
             }
             startSave(async () => {
-              await onSave({ name: name.trim(), currency: value })
+              await onSave({ name: name.trim() })
               onClose()
             })
           }}

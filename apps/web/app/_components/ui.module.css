@@ -232,6 +232,52 @@
   border-color: var(--pp-danger);
 }
 
+/*
+ * The price box and its `Free` toggle, on one row.
+ *
+ * The toggle is the interest choice pill: outlined when off, the accent wash
+ * and accent ink when on — a pair both grounds define, so dark needs no rule.
+ */
+.priceRow {
+  display: flex;
+  gap: var(--pp-space-sm);
+  align-items: stretch;
+}
+
+.priceInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Greyed rather than disabled: focusing it is one of the ways back to a price. */
+.priceInput[data-free='true'] {
+  opacity: 0.5;
+}
+
+.freeToggle {
+  flex: none;
+  padding: 0 14px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink-muted);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+}
+
+.freeToggle:hover {
+  border-color: var(--pp-ink-faint);
+  color: var(--pp-ink);
+}
+
+.freeToggle[aria-pressed='true'] {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent-ink);
+  color: var(--pp-accent-ink);
+}
+
 .textarea {
   resize: vertical;
   min-height: 68px;
