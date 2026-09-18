@@ -25,6 +25,32 @@
   z-index: 3;
 }
 
+/*
+ * Wider where the screen has room to spare.
+ *
+ * 328px is sized for the narrowest screen the corner card appears on, and on a
+ * laptop it left a long note wrapping every five words beside a map with room
+ * to give. The card stays in the corner, at the same height: a corner panel is
+ * what framing already allows for (see `map-rendering`, *Chrome covering one
+ * corner of the map*), and the lift that keeps a pin clear of it measures the
+ * card rather than assuming its width, so neither needs to know it grew.
+ *
+ * Details and the edit form share this class, so pressing Edit still does not
+ * change the card's width. The calendar states its own card width at these same
+ * two breakpoints — `trip-calendar.module.css` — and the two move together.
+ */
+@media (min-width: 1200px) {
+  .panel {
+    width: 26rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .panel {
+    width: 30rem;
+  }
+}
+
 /* ── buttons ─────────────────────────────────────────────────────────────── */
 
 .button {
