@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  EMPTY_FIELD_WORDING,
   formatDay,
   formatPrice,
   type Marker,
@@ -76,8 +77,9 @@ function ControlField({ label, children }: { label: string; children: ReactNode 
   )
 }
 
-function Absent() {
-  return <span className={styles.absent}>Not recorded</span>
+/** Says what is missing, in the words both cards share. */
+function Absent({ children }: { children: string }) {
+  return <span className={styles.absent}>{children}</span>
 }
 
 /** An action the card offers on behalf of the screen that opened it. */
@@ -172,18 +174,18 @@ function Details({
 
         <Field label="Day">
           {marker.plannedOn === null ? (
-            <span className={styles.absent}>No day yet</span>
+            <Absent>{EMPTY_FIELD_WORDING.day}</Absent>
           ) : (
             formatDay(marker.plannedOn)
           )}
         </Field>
 
         <Field label="Note" valueClassName={styles.noteValue}>
-          {marker.note ?? <Absent />}
+          {marker.note ?? <Absent>{EMPTY_FIELD_WORDING.note}</Absent>}
         </Field>
         <Field label="Link">
           {marker.link === null ? (
-            <Absent />
+            <Absent>{EMPTY_FIELD_WORDING.link}</Absent>
           ) : (
             <a
               className={styles.link}

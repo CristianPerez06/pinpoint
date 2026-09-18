@@ -1,4 +1,5 @@
 import {
+  EMPTY_FIELD_WORDING,
   formatDay,
   formatPrice,
   type Marker,
@@ -201,19 +202,12 @@ export function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number 
 function Field({
   label,
   value,
-  absent = 'Not recorded',
+  absent,
 }: {
   label: string
   value: string | null
-  /**
-   * What an empty field says.
-   *
-   * `Not recorded` is right for a note or a link — somebody could have written
-   * one and did not. It is wrong for the day, where having none is a state with
-   * its own name and its own pile on the calendar rather than a blank. The
-   * laptop's card already draws that distinction; this is the same words.
-   */
-  absent?: string
+  /** What an empty field says — from `EMPTY_FIELD_WORDING`, so the laptop says the same. */
+  absent: string
 }) {
   const theme = useTheme()
 
@@ -480,11 +474,11 @@ export function MarkerDetails({
       <Field
         label="Day"
         value={marker.plannedOn === null ? null : formatDay(marker.plannedOn)}
-        absent="No day yet"
+        absent={EMPTY_FIELD_WORDING.day}
       />
 
-      <Field label="Note" value={marker.note} />
-      <Field label="Link" value={marker.link} />
+      <Field label="Note" value={marker.note} absent={EMPTY_FIELD_WORDING.note} />
+      <Field label="Link" value={marker.link} absent={EMPTY_FIELD_WORDING.link} />
 
       {/*
         Editing and removing, at the bottom rather than in the header.
