@@ -74,6 +74,19 @@ export function formatDayFull(day: IsoDay): string {
 }
 
 /**
+ * `03/04/2026` — a day as a date field shows it.
+ *
+ * What the laptop's date input reads, so the phone's field reads the same. Built
+ * from the stored string rather than through `Intl`: the digits are already
+ * there, and a numeric date has nothing a locale could word differently except
+ * the order — which is the one thing this pins.
+ */
+export function formatDayNumeric(day: IsoDay): string {
+  const [year, month, date] = day.split('-')
+  return `${date}/${month}/${year}`
+}
+
+/**
  * One day, worded, or the day itself if this runtime cannot word it.
  *
  * `dateOfDay` rather than `new Date(day)`: that parses as UTC midnight and reads

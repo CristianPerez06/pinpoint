@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { formatDay, formatDayFull, formatDayShort } from './day-wording'
+import { formatDay, formatDayFull, formatDayNumeric, formatDayShort } from './day-wording'
 
 describe('day wording', () => {
   it('words a day as the laptop already worded it', () => {
@@ -12,6 +12,12 @@ describe('day wording', () => {
     // none. That is `en-GB`'s own answer rather than a choice made here, and it
     // is asserted because it is what the laptop has been announcing.
     expect(formatDayFull('2026-04-03')).toBe('Friday, 3 April 2026')
+  })
+
+  it('shows a day in a date field as the laptop does', () => {
+    // Day first, zero-padded — what the laptop's date input reads.
+    expect(formatDayNumeric('2026-04-03')).toBe('03/04/2026')
+    expect(formatDayNumeric('2026-12-31')).toBe('31/12/2026')
   })
 
   it('is the same wording whatever the runtime prefers', () => {
