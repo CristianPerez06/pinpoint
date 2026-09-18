@@ -7,6 +7,7 @@ import { View } from 'react-native'
 import { PreferencesProvider } from '@/lib/preferences'
 import { SessionProvider } from '@/lib/session'
 import { useTheme } from '@/lib/theme'
+import { TripChoiceProvider } from '@/lib/trip-choice'
 
 /**
  * Nothing renders until the typeface has loaded and the stored preferences have
@@ -48,7 +49,16 @@ export default function RootLayout() {
         <Blank />
       ) : (
         <SessionProvider>
-          <Stack screenOptions={{ headerShown: false }} />
+          {/*
+            Which trip is being read sits above the navigator, because two of its
+            screens show one — the map and the calendar — and a choice held in
+            either of them is invisible to the other. Inside `SessionProvider`
+            rather than outside it: signing out unmounts everything below, which
+            is also how the choice is forgotten when it stops meaning anything.
+          */}
+          <TripChoiceProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </TripChoiceProvider>
         </SessionProvider>
       )}
     </PreferencesProvider>

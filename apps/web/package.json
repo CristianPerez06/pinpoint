@@ -7,7 +7,8 @@
     "build": "node scripts/copy-maplibre-worker.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "comment:typecheck": "`next typegen` writes next-env.d.ts before tsc reads it. The file is not committed: `next dev` points it at .next/dev/types and `next build` at .next/types, so a committed copy showed up as changed after every run of either. Generating it here is what lets a fresh checkout — CI's included — typecheck without having built.",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@pinpoint/auth": "workspace:*",

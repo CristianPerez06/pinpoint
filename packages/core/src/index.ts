@@ -19,6 +19,8 @@ export type {
   PlaceBeingFiled,
 } from './city-claim'
 
+export { formatDay, formatDayFull, formatDayShort } from './day-wording'
+
 export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'
 
@@ -49,6 +51,7 @@ export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filte
 export {
   addDays,
   dateOfDay,
+  dayOfDate,
   dayShown,
   dayToOpenOn,
   dayWithin,

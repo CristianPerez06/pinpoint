@@ -171,6 +171,19 @@ placeholders.
   never compiles the file and never meets the bug. "It builds on the other laptop" is
   evidence about a cache, not about a toolchain. Anything that moves `RN_ROOT` — a
   second React Native, a worktree — re-exposes whatever the slice was hiding.
+- **Two development builds of this app on one simulator take each other's links.** The
+  bundle id changed once, from `com.pinpoint.app` to `ar.com.pinpoint.app`, and a
+  simulator still holding the old build has two apps claiming `pinpoint://` and
+  `exp+pinpoint://`. iOS gives the link to either — and the old one then loads today's
+  JavaScript from the same Metro on top of a native binary from before whatever native
+  module you just added. **Learn the shape of this one**: the new module draws as
+  "Unimplemented component" through incremental rebuilds, a build from an empty cache
+  and two versions of the library, because none of them touches the binary actually
+  running — and every static check of the one you built says it is fine. It cost most
+  of an evening and a wrong diagnosis that got as far as a version pin. The telltale is
+  the name in iOS's "Open in …?" prompt: `pinpoint` is the old build, `Pinpoint` the
+  current one. `xcrun simctl listapps booted | grep -i pinpoint` settles it, and the
+  stale one comes off with `xcrun simctl uninstall booted com.pinpoint.app`.
 - **A write that cannot resolve to an existing membership goes through a
   `SECURITY DEFINER` function, not a widened policy.** Creating a trip is the only
   such case: the membership an insert policy would resolve to is the one being

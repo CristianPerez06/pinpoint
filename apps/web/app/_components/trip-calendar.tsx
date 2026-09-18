@@ -5,6 +5,9 @@ import {
   type City,
   dayShown,
   type FieldErrors,
+  formatDay,
+  formatDayFull,
+  formatDayShort,
   groupMarkersByDay,
   type IsoDay,
   type Marker,
@@ -39,7 +42,6 @@ import { TypeChip } from '@/app/_components/pin'
 import { TripBar } from '@/app/_components/trip-bar'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
-import { formatDay, formatDayFull, formatDayShort } from '@/lib/day'
 import { useRows } from '@/lib/use-rows'
 import { useVisibleAgain } from '@/lib/use-visible-again'
 
@@ -60,9 +62,9 @@ import styles from './trip-calendar.module.css'
  *
  * Every day here is a `YYYY-MM-DD` string. Nothing in this file constructs a
  * `Date` from one — `dateOfDay` in `@pinpoint/core` is the only sanctioned way,
- * and `@/lib/day` is the only caller, because `new Date('2026-04-03')` parses
- * as UTC midnight and reads as the previous day across most of the western
- * hemisphere.
+ * and the day wordings beside it are the only callers, because
+ * `new Date('2026-04-03')` parses as UTC midnight and reads as the previous day
+ * across most of the western hemisphere.
  */
 
 /** How many days sit either side of the one being read, where there is room. */

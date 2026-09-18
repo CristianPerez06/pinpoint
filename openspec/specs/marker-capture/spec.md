@@ -143,10 +143,10 @@ position is placed wherever a finger or cursor landed.
 - **THEN** they can correct the position before saving
 - **AND** no separate correction step is needed afterwards
 
-### Requirement: Saving a place captures its name, note, city, type, link, and price
+### Requirement: Saving a place captures its name, note, city, type, link, price, and the day it is planned for
 
-One form SHALL capture a place's name, note, city, type, link, and price, and the
-same form SHALL be used when editing an existing marker.
+One form SHALL capture a place's name, note, city, type, link, price, and the day it
+is planned for, and the same form SHALL be used when editing an existing marker.
 
 A name and a position SHALL be required. Every other field SHALL be optional, and
 an optional field left blank SHALL be recorded as absent rather than as empty
@@ -167,7 +167,7 @@ person having to reload or navigate away.
 
 #### Scenario: Optional fields left blank
 
-- **WHEN** a person saves a place leaving the note, link, and price blank
+- **WHEN** a person saves a place leaving the note, link, price, and day blank
 - **THEN** those fields are recorded as absent
 - **AND** they are not recorded as empty text
 
@@ -609,4 +609,3 @@ a laptop-only capability.
 
 - **WHEN** a person uses only one of the applications for an entire trip
 - **THEN** no capability of this specification is unavailable to them
-
