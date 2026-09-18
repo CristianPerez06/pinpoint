@@ -1,5 +1,5 @@
 import { fetchTrips } from '@pinpoint/data'
-import { Redirect } from 'expo-router'
+import { Redirect, useLocalSearchParams } from 'expo-router'
 
 import { CalendarScreen } from '@/components/calendar-screen'
 import { FailedState } from '@/components/states'
@@ -31,6 +31,12 @@ export default function CalendarRoute() {
   const { chosenTripId, chooseTrip } = useTripChoice()
 
   const trips = useQuery(() => fetchTrips(supabase), [session])
+
+  /*
+   * Where to open, when the map sends somebody back after showing them a place.
+   * Absent on every other arrival, and the calendar opens as it always has.
+   */
+  const asked = useLocalSearchParams<{ trip?: string; day?: string; view?: string }>()
 
   /*
     The calendar with nothing read yet, rather than a loading screen.
@@ -83,6 +89,10 @@ export default function CalendarRoute() {
       */
       key={trip.id}
       trip={trip}
+      // Only for the trip the request was made on. Changing trip remounts this
+      // with the same parameters still in the route, and a day carried into
+      // another trip is the failure the key above exists to prevent.
+      asked={asked.trip === trip.id ? { day: asked.day, view: asked.view } : null}
       trips={trips}
       onSelectTrip={chooseTrip}
       onCreated={(tripId) => {

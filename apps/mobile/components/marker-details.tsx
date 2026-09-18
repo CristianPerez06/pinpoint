@@ -296,6 +296,9 @@ export interface Selection {
   hidden: boolean
 }
 
+/** An action the sheet offers on behalf of the screen that opened it. */
+export type ExtraAction = { label: string; onPress: () => void }
+
 /**
  * One marker resolves straight to its details; several insert a chooser in
  * front of the same view — the same two steps as web, because the mechanism is
@@ -312,6 +315,7 @@ export function MarkerDetails({
   onSetVisited,
   onChoose,
   onBack,
+  extraAction,
   onDismiss,
   onEdit,
   onDelete,
@@ -329,6 +333,16 @@ export function MarkerDetails({
   onSetVisited: (marker: Marker, visited: boolean) => void
   onChoose: (index: number) => void
   onBack: () => void
+  /**
+   * One more thing the sheet can do, named by whoever opened it.
+   *
+   * It stands where `← Others at this point` stands and takes that place when
+   * given: the calendar offers the map from here, and the map offers the way
+   * back to the calendar, and a sheet carrying a second way back beside the
+   * first would leave somebody guessing which one leads where they came from.
+   * The other places at the point are still one tap on the pin away.
+   */
+  extraAction?: ExtraAction
   onDismiss: () => void
   /**
    * Correcting or removing what this sheet is describing.
@@ -511,7 +525,17 @@ export function MarkerDetails({
         </Pressable>
       </View>
 
-      {group.count > 1 ? (
+      {extraAction ? (
+        <Pressable
+          onPress={extraAction.onPress}
+          style={[styles.back, { borderColor: theme.colour.lineStrong }]}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.backText, { color: theme.colour.ink }]}>
+            {extraAction.label}
+          </Text>
+        </Pressable>
+      ) : group.count > 1 ? (
         <Pressable
           onPress={onBack}
           style={[styles.back, { borderColor: theme.colour.lineStrong }]}

@@ -46,7 +46,7 @@ import {
   type MarkerGroup,
   type Rect,
 } from '@pinpoint/map'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { type ReadonlyURLSearchParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { MarkerDetails } from '@/app/_components/marker-details'
@@ -163,6 +163,15 @@ type Panel =
        * on the map, and the comment on `open` explains why.
        */
       reveal: boolean
+      /**
+       * This card was opened by the calendar, to look at where the place is.
+       *
+       * Held on the card rather than beside it, so that anything replacing the
+       * card — closing it, opening another place, editing this one — ends the
+       * detour without a second value to keep in step. While it is true the card
+       * offers the way back to the calendar and nothing else in that spot.
+       */
+      fromCalendar?: true
     }
   | {
       kind: 'create'
@@ -317,7 +326,42 @@ export function TripWorkspace({
    * written in four places, which is how it came to be false.
    */
   const [detour, setDetour] = useState<DetourPanel>('none')
-  const [panel, setPanel] = useState<Panel>({ kind: 'none' })
+  /**
+   * A place this screen was sent to open, read once from the address.
+   *
+   * The calendar sends one when somebody asks to see a place on the map. It is
+   * opened the way a searched place the trip already holds is opened — found in
+   * the trip rather than on the map, so the filter may be hiding it — and the
+   * camera starts on it rather than framing the trip. A place no longer on the
+   * trip opens nothing: the map is simply arrived at.
+   */
+  const [arrival] = useState(() => placeAskedFor(searchParams, initialMarkers))
+
+  const [panel, setPanel] = useState<Panel>(() =>
+    arrival
+      ? {
+          kind: 'details',
+          groupKey: arrival.groupKey,
+          markerId: arrival.marker.id,
+          reveal: true,
+          ...(arrival.fromCalendar ? { fromCalendar: true as const } : {}),
+        }
+      : { kind: 'none' },
+  )
+
+  /*
+   * The request is spent once read. Taking it out of the address makes a reload
+   * or a copied link an ordinary arrival, and means the way back to the
+   * calendar is only ever offered with the calendar actually behind it in
+   * history — which is what the browser's Back, its way back, reverses to.
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has('place') && !params.has('from')) return
+    params.delete('place')
+    params.delete('from')
+    window.history.replaceState(null, '', `/?${params.toString()}`)
+  }, [])
   const [dropping, setDropping] = useState(false)
   /**
    * Whether the search screen is up.
@@ -365,7 +409,10 @@ export function TripWorkspace({
   const [cameraTarget, setCameraTarget] = useState<{
     points: readonly LngLat[]
     token: number
-  }>({ points: initialMarkers, token: 0 })
+  }>(() => ({
+    points: arrival ? [{ lng: arrival.marker.lng, lat: arrival.marker.lat }] : initialMarkers,
+    token: 0,
+  }))
 
   /**
    * Everything the trip's own menu does.
@@ -1401,6 +1448,11 @@ export function TripWorkspace({
                 reveal: panel.kind === 'details' ? panel.reveal : false,
               })
             }
+            extraAction={
+              panel.kind === 'details' && panel.fromCalendar
+                ? { label: '← Back to Calendar', onClick: () => router.back() }
+                : undefined
+            }
             // Dismissal touches no map method, so the camera cannot move.
             onDismiss={cancel}
             onEdit={(marker) => {
@@ -1442,4 +1494,26 @@ function Banner({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   )
+}
+
+/**
+ * The place the address asks this screen to open, if the trip holds it.
+ *
+ * The group is looked up over every marker, filter or none, because the key is
+ * what the card resolves by and the filter is applied later, by the card.
+ */
+function placeAskedFor(
+  params: URLSearchParams | ReadonlyURLSearchParams,
+  markers: readonly Marker[],
+): { marker: Marker; groupKey: string; fromCalendar: boolean } | null {
+  const id = params.get('place')
+  if (id === null) return null
+
+  const group = groupCoincident([...markers]).find((each) =>
+    each.markers.some((marker) => marker.id === id),
+  )
+  const marker = group?.markers.find((each) => each.id === id)
+  if (!group || !marker) return null
+
+  return { marker, groupKey: group.key, fromCalendar: params.get('from') === 'calendar' }
 }

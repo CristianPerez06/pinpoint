@@ -37,6 +37,7 @@ import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
 import {
   FALLBACK_MARKER_TYPE,
   fitBounds,
+  groupCoincident,
   type LngLat,
   markersAt,
 } from '@pinpoint/map'
@@ -84,6 +85,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
+import { onPlaceRequest, type PlaceRequest, takePlaceRequest } from '@/lib/calendar-detour'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
@@ -789,8 +791,68 @@ export function TripWorkspace({
         ? rows.map((marker) => (marker.id === saved.id ? saved : marker))
         : [...rows, saved],
     )
+    // An edit ends with the map unobstructed, as it does on the laptop
+    // (`marker-capture`). The sheet it was started from would otherwise come
+    // back the moment the form closed.
+    if (panel.kind === 'edit') mapRef.current?.closeDetails()
     cancelPanel()
   }
+
+  /**
+   * A place the calendar asked to see, opened as a searched place is.
+   *
+   * Found in the whole trip rather than in what the filter draws, because the
+   * calendar shows every place whatever the map is narrowed to. The camera is
+   * told where the sheet will be, as for search, so the pin opens above it.
+   *
+   * The sheet carries the way back to the calendar, which closes it on the way
+   * out: the detour is over, and coming back to the map later should find the
+   * map, not a sheet still offering to leave.
+   */
+  function showRequested(request: PlaceRequest) {
+    if (request.tripId !== trip.id) return
+
+    const group = groupCoincident([...held]).find((each) =>
+      each.markers.some((marker) => marker.id === request.markerId),
+    )
+    const marker = group?.markers.find((each) => each.id === request.markerId)
+    if (!group || !marker) return
+
+    mapRef.current?.flyTo(
+      { lng: marker.lng, lat: marker.lat },
+      detailsOpeningHeight(windowHeight),
+    )
+    mapRef.current?.openMarkers(group.key, [marker.id], {
+      label: '← Back to Calendar',
+      onPress: () => {
+        mapRef.current?.closeDetails()
+        router.push({
+          pathname: '/calendar',
+          params: { trip: request.tripId, day: request.day, view: request.view },
+        })
+      },
+    })
+  }
+
+  // The latest `showRequested`, for a listener subscribed once.
+  const showRequestedRef = useRef(showRequested)
+  useEffect(() => {
+    showRequestedRef.current = showRequested
+  })
+
+  /*
+   * Listening for the calendar's note. Also checked once on mount, in case the
+   * note was left before this screen existed to be told — a map remounted by a
+   * trip change, say — so it is never left lying for a later arrival.
+   */
+  useEffect(() => {
+    const take = () => {
+      const request = takePlaceRequest()
+      if (request) showRequestedRef.current(request)
+    }
+    take()
+    return onPlaceRequest(take)
+  }, [])
 
   /**
    * Removing a place, confirmed and said plainly.

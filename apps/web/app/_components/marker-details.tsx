@@ -71,6 +71,9 @@ function Absent() {
   return <span className={styles.absent}>Not recorded</span>
 }
 
+/** An action the card offers on behalf of the screen that opened it. */
+export type ExtraAction = { label: string; onClick: () => void }
+
 function Details({
   marker,
   view,
@@ -83,6 +86,7 @@ function Details({
   onWithdrawInterest,
   onSetVisited,
   onBack,
+  extraAction,
   onDismiss,
   onEdit,
   onDelete,
@@ -101,6 +105,7 @@ function Details({
   onWithdrawInterest: () => void
   onSetVisited: (visited: boolean) => void
   onBack?: () => void
+  extraAction?: ExtraAction
   onDismiss: () => void
   onEdit: () => void
   /** Awaited, so `Remove` can say what it is doing until the row is actually gone. */
@@ -197,7 +202,13 @@ function Details({
           {removing ? 'Removing…' : 'Remove'}
         </Button>
 
-        {onBack ? (
+        {extraAction ? (
+          <span className={styles.spacer}>
+            <Button tone="quiet" onClick={extraAction.onClick}>
+              {extraAction.label}
+            </Button>
+          </span>
+        ) : onBack ? (
           <span className={styles.spacer}>
             <Button tone="quiet" onClick={onBack}>
               ← Others at this point
@@ -311,6 +322,7 @@ export function MarkerDetails({
   onSetVisited,
   onChoose,
   onBack,
+  extraAction,
   onDismiss,
   onEdit,
   onDelete,
@@ -327,6 +339,16 @@ export function MarkerDetails({
   onSetVisited: (marker: Marker, visited: boolean) => void
   onChoose: (index: number) => void
   onBack: () => void
+  /**
+   * One more thing the card can do, named by whoever opened it.
+   *
+   * It stands where `← Others at this point` stands and takes that place when
+   * given: the calendar offers the map from here, and the map offers the way
+   * back to the calendar, and a card carrying a second way back beside the
+   * first would leave somebody guessing which one leads where they came from.
+   * The other places at the point are still one press on the pin away.
+   */
+  extraAction?: ExtraAction
   onDismiss: () => void
   onEdit: (marker: Marker) => void
   onDelete: (marker: Marker) => Promise<unknown>
@@ -359,6 +381,7 @@ export function MarkerDetails({
       onWithdrawInterest={() => onWithdrawInterest(marker)}
       onSetVisited={(visited) => onSetVisited(marker, visited)}
       onBack={group.count > 1 ? onBack : undefined}
+      extraAction={extraAction}
       onDismiss={onDismiss}
       onEdit={() => onEdit(marker)}
       onDelete={() => onDelete(marker)}

@@ -41,7 +41,7 @@ import {
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { AttributionSheet } from '@/components/attribution-sheet'
-import { MarkerDetails, type Selection } from '@/components/marker-details'
+import { type ExtraAction, MarkerDetails, type Selection } from '@/components/marker-details'
 import { DraftPin, Pin } from '@/components/pin'
 import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
@@ -388,7 +388,19 @@ export interface TripMapRef {
    * The sheet opened this way may show a place the filter is hiding — see
    * `reveal` on the open state. Nothing else on this component can do that.
    */
-  openMarkers: (key: string, markerIds: readonly string[]) => void
+  openMarkers: (
+    key: string,
+    markerIds: readonly string[],
+    extraAction?: ExtraAction,
+  ) => void
+  /**
+   * Close the open sheet, as its own dismiss would.
+   *
+   * For the workspace to end a sheet it did not open: saving an edit made from
+   * the sheet closes it, as it does on the laptop (`marker-capture`), rather
+   * than bringing it back over the map.
+   */
+  closeDetails: () => void
   /**
    * Frame a group of positions, the way the map frames a trip when it opens.
    *
@@ -603,6 +615,15 @@ export function TripMap({
      * map — see the comment on `selection`.
      */
     reveal: boolean
+    /**
+     * What the workspace asked the sheet to offer besides its own actions —
+     * the way back to the calendar, for a place the calendar sent here.
+     *
+     * Held on the open state so that anything replacing it drops it: tapping
+     * another pin, dismissing, or stepping within a group all set a new value
+     * without one. That is the detour ending with the sheet.
+     */
+    extraAction?: ExtraAction
   } | null>(null)
   const theme = useTheme()
   const mode = useThemeMode()
@@ -782,7 +803,11 @@ export function TripMap({
           zoom: camera.zoom,
         })
       },
-      openMarkers: (key: string, markerIds: readonly string[]) => {
+      openMarkers: (
+        key: string,
+        markerIds: readonly string[],
+        extraAction?: ExtraAction,
+      ) => {
         setOpen({
           groupKey: key,
           // One place opens itself; several open the chooser, exactly as
@@ -790,8 +815,10 @@ export function TripMap({
           // somebody's behalf.
           markerId: markerIds.length === 1 ? markerIds[0]! : null,
           reveal: true,
+          ...(extraAction ? { extraAction } : {}),
         })
       },
+      closeDetails: () => setOpen(null),
     }),
     [viewport, barHeight, formSheet, formHeight],
   )
@@ -1397,6 +1424,7 @@ export function TripMap({
             })
           }
           // Nothing here touches the camera, so dismissing cannot move it.
+          extraAction={open?.extraAction}
           onDismiss={() => setOpen(null)}
         />
       ) : null}
