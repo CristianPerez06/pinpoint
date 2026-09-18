@@ -1,4 +1,4 @@
-import type { City, CityNotice, FieldErrors } from '@pinpoint/core'
+import type { City, CityNotice, FieldErrors, IsoDay } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
-import { Button, FieldLabel, FormNote, TextField } from '@/components/ui'
+import { Button, DayField, FieldLabel, FormNote, TextField } from '@/components/ui'
 import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -77,6 +77,14 @@ export interface MarkerFormValues {
   type: string
   link: string | null
   price: number | null
+  /**
+   * The day this place is planned for, or null for one still waiting.
+   *
+   * Beside the city rather than under it: `markers` states that a day and a city
+   * are two groupings of one set of places, neither inside the other, so this is
+   * a sibling of `cityId` here exactly as it is in the database.
+   */
+  plannedOn: IsoDay | null
 }
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
@@ -139,9 +147,24 @@ export function MarkerFormSheet({
    */
   onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
-  /** Hands the current values back so nothing is lost on the way to the sight. */
-  onAdjustPosition: (values: MarkerFormValues) => void
-  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
+  /**
+   * Hands the current values back so nothing is lost on the way to the sight.
+   *
+   * Absent where there is no map to go to. The calendar opens this same form to
+   * edit a place and has no sight to frame and nothing to drag, so it offers no
+   * route to one — the laptop's calendar leaves the same control out, for the
+   * same reason.
+   */
+  onAdjustPosition?: (values: MarkerFormValues) => void
+  /**
+   * Creating a city without leaving the place being saved.
+   *
+   * Absent on a screen that cannot show where a city is. The calendar lists the
+   * trip's cities so a place can be filed, but making one is the map's business
+   * there, so the offer is simply not drawn — again as the laptop's calendar
+   * already does.
+   */
+  onCreateCity?: (name: string, currency: string | null) => Promise<City | null>
   /** Absent when creating: there is nothing yet to remove. */
   onDelete?: () => void
   /**
@@ -162,7 +185,13 @@ export function MarkerFormSheet({
    * rest anyway. Dragging up briefly covers the credit and dragging down reveals
    * it; at every resting position it is clear.
    */
-  onHeight: (height: number) => void
+  /**
+   * How tall the sheet is standing, for whoever has a camera to offset.
+   *
+   * Absent on a screen with no map under the sheet: there is nothing to frame
+   * and nothing that could be hidden behind it.
+   */
+  onHeight?: (height: number) => void
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -170,6 +199,7 @@ export function MarkerFormSheet({
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
+  const [plannedOn, setPlannedOn] = useState<IsoDay | null>(initial.plannedOn)
   const [type, setType] = useState(initial.type)
   const [link, setLink] = useState(initial.link ?? '')
   const [price, setPrice] = useState(
@@ -233,13 +263,13 @@ export function MarkerFormSheet({
     change state.
   */
   useEffect(() => {
-    onHeight(openingHeight(windowHeight))
+    onHeight?.(openingHeight(windowHeight))
   }, [onHeight, windowHeight])
 
   const settle = useCallback(
     (index: number) => {
       setDetent(index)
-      onHeight(heights[index]!)
+      onHeight?.(heights[index]!)
       Animated.spring(height, {
         toValue: heights[index]!,
         // Height is a layout property, so this cannot run on the UI thread.
@@ -292,6 +322,7 @@ export function MarkerFormSheet({
       name: name.trim(),
       note: absentIfBlank(note),
       cityId,
+      plannedOn,
       type,
       link: absentIfBlank(link),
       // A blank price is absent. A typed zero is a real answer — free entry is
@@ -305,7 +336,7 @@ export function MarkerFormSheet({
     setCityError(null)
 
     startCreateCity(async () => {
-      const created = await onCreateCity(
+      const created = await onCreateCity?.(
         newCity.name.trim(),
         absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
       )
@@ -509,11 +540,16 @@ export function MarkerFormSheet({
                   onPress={() => setCityId(city.id)}
                 />
               ))}
-              <CityChip
-                label="+ New city"
-                chosen={false}
-                onPress={() => setNewCity({ name: '', currency: '' })}
-              />
+              {/* Only where a city can actually be made. On the calendar there
+                  is nowhere to show where one is, so the offer is absent rather
+                  than present and inert. */}
+              {onCreateCity ? (
+                <CityChip
+                  label="+ New city"
+                  chosen={false}
+                  onPress={() => setNewCity({ name: '', currency: '' })}
+                />
+              ) : null}
             </View>
             {cityNotice ? (
               <View
@@ -595,6 +631,21 @@ export function MarkerFormSheet({
             </View>
           ) : null}
 
+          {/*
+            The day, beside the city and not underneath it.
+
+            Two groupings of one set of places, neither inside the other — so it
+            sits next to the city in the form for the same reason it sits next to
+            it in the database. Left blank is the ordinary state of most places
+            on most trips, which is what `No day yet` says.
+          */}
+          <DayField
+            label="Day (optional)"
+            value={plannedOn}
+            onChange={setPlannedOn}
+            error={fieldErrors.plannedOn}
+          />
+
           <TextField
             label="Note"
             value={note}
@@ -629,16 +680,22 @@ export function MarkerFormSheet({
             The laptop never needs this — its form sits beside a pin that can be
             dragged at any moment. Here the map is behind a full screen, so a
             position arrived at by search can only be corrected through this.
+
+            Absent where the form was not opened over a map at all. The calendar
+            edits a place from a list, with no camera behind the sheet and
+            nowhere for this to lead.
           */}
-          <Pressable
-            onPress={() => onAdjustPosition(values())}
-            accessibilityRole="button"
-            style={[styles.adjust, { borderColor: theme.colour.lineStrong }]}
-          >
-            <Text style={[styles.adjustText, { color: theme.colour.accentInk }]}>
-              Adjust position on the map
-            </Text>
-          </Pressable>
+          {onAdjustPosition ? (
+            <Pressable
+              onPress={() => onAdjustPosition(values())}
+              accessibilityRole="button"
+              style={[styles.adjust, { borderColor: theme.colour.lineStrong }]}
+            >
+              <Text style={[styles.adjustText, { color: theme.colour.accentInk }]}>
+                Adjust position on the map
+              </Text>
+            </Pressable>
+          ) : null}
 
           {onDelete ? (
             <Button

@@ -1,4 +1,5 @@
 import {
+  formatDay,
   formatPrice,
   type Marker,
   type MarkerInterest,
@@ -166,8 +167,14 @@ const styles = StyleSheet.create({
   backText: { ...role(TYPE.control) },
 })
 
-/** A place's icon, without the teardrop — a point would mean nothing here. */
-function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number }) {
+/**
+ * A place's icon, without the teardrop — a point would mean nothing here.
+ *
+ * Exported for the calendar's lists, which name places away from any map and
+ * need the same mark beside each one. One definition rather than two, for the
+ * reason the pin itself is drawn from one path.
+ */
+export function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number }) {
   const theme = useTheme()
 
   return (
@@ -191,7 +198,23 @@ function TypeChip({ view, size = 34 }: { view: MarkerView; size?: number }) {
 }
 
 /** A field that holds nothing is shown as holding nothing, never as blank text. */
-function Field({ label, value }: { label: string; value: string | null }) {
+function Field({
+  label,
+  value,
+  absent = 'Not recorded',
+}: {
+  label: string
+  value: string | null
+  /**
+   * What an empty field says.
+   *
+   * `Not recorded` is right for a note or a link — somebody could have written
+   * one and did not. It is wrong for the day, where having none is a state with
+   * its own name and its own pile on the calendar rather than a blank. The
+   * laptop's card already draws that distinction; this is the same words.
+   */
+  absent?: string
+}) {
   const theme = useTheme()
 
   return (
@@ -201,7 +224,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
       </Text>
       {value === null ? (
         <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
-          Not recorded
+          {absent}
         </Text>
       ) : (
         <Text style={[styles.fieldValue, { color: theme.colour.ink }]}>{value}</Text>
@@ -437,6 +460,14 @@ export function MarkerDetails({
           onChange={(visited) => onSetVisited(marker, visited)}
         />
       </View>
+
+      {/* The day, where the laptop's card carries it: after what was decided
+          about the place and before what was written about it. */}
+      <Field
+        label="Day"
+        value={marker.plannedOn === null ? null : formatDay(marker.plannedOn)}
+        absent="No day yet"
+      />
 
       <Field label="Note" value={marker.note} />
       <Field label="Link" value={marker.link} />

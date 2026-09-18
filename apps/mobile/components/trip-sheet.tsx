@@ -1,4 +1,4 @@
-import type { Trip } from '@pinpoint/core'
+import type { FieldErrors, IsoDay, Trip } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import Archive from 'lucide-react-native/icons/archive'
 import ArchiveRestore from 'lucide-react-native/icons/archive-restore'
@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateTripForm } from '@/components/trip-setup'
-import { Button, FormNote, TextField } from '@/components/ui'
+import { Button, DayField, FormNote, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -65,7 +65,9 @@ export function TripSheet({
   onRevealArchived,
   onSelectTrip,
   onRename,
+  onSetDates,
   onCreated,
+  otherView,
   onSetArchived,
   onOpenPeople,
   problem,
@@ -96,7 +98,25 @@ export function TripSheet({
    * it still being on screen when the answer arrives.
    */
   onRename: (name: string) => Promise<unknown>
+  /**
+   * Both dates in one write, because the rule that an end may not fall before a
+   * start is about the pair. Returns the offending field so the message lands
+   * against it rather than in the sheet's general refusal.
+   */
+  onSetDates: (dates: {
+    startsOn: IsoDay | null
+    endsOn: IsoDay | null
+  }) => Promise<FieldErrors>
   onCreated: (tripId: string) => void
+  /**
+   * The other way of looking at this trip, named by whoever rendered this sheet.
+   *
+   * It names the view the person is **not** in — the calendar from the map, the
+   * map from the calendar — so it never offers to take somebody where they
+   * already are. A row that does nothing is a row you have to press to find out
+   * that it does nothing.
+   */
+  otherView: { name: string; onPress: () => void }
   /** Archive, or put back. One call with a flag, like the write underneath it. */
   onSetArchived: (tripId: string, value: boolean) => void
   onOpenPeople: () => void
@@ -109,6 +129,10 @@ export function TripSheet({
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
   const [renaming, setRenaming] = useState(false)
+  const [dating, setDating] = useState(false)
+  const [startsOn, setStartsOn] = useState<IsoDay | null>(trip.startsOn)
+  const [endsOn, setEndsOn] = useState<IsoDay | null>(trip.endsOn)
+  const [dateErrors, setDateErrors] = useState<FieldErrors>({})
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState(trip.name)
 
@@ -123,8 +147,9 @@ export function TripSheet({
   const [revealing, startReveal] = usePending()
 
   /** Only one detour open at a time; two forms in one sheet is a mess. */
-  function openDetour(which: 'rename' | 'create' | null) {
+  function openDetour(which: 'rename' | 'dates' | 'create' | null) {
     setRenaming(which === 'rename')
+    setDating(which === 'dates')
     setCreating(which === 'create')
   }
 
@@ -309,6 +334,97 @@ export function TripSheet({
               ) : null}
 
               <Pressable
+                onPress={() => {
+                  /*
+                    Filled from the trip each time it is opened rather than held
+                    from the last visit, so a value somebody abandoned is not
+                    offered back as the one that is stored.
+                  */
+                  setStartsOn(trip.startsOn)
+                  setEndsOn(trip.endsOn)
+                  setDateErrors({})
+                  openDetour(dating ? null : 'dates')
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: dating }}
+                style={styles.row}
+              >
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>
+                  Trip dates
+                </Text>
+                {/* What the laptop's row says, in the same words: whether there
+                    are any, without opening it. */}
+                <Text style={[styles.rowNote, { color: theme.colour.inkMuted }]}>
+                  {trip.startsOn === null && trip.endsOn === null ? 'None' : 'Set'}
+                </Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              {dating ? (
+                <View style={styles.editor}>
+                  <DayField
+                    label="Start date"
+                    value={startsOn}
+                    onChange={setStartsOn}
+                    error={dateErrors.startsOn}
+                  />
+                  <DayField
+                    label="End date"
+                    value={endsOn}
+                    onChange={setEndsOn}
+                    error={dateErrors.endsOn}
+                  />
+                  <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+                    Both are optional. They decide which day the calendar opens on
+                    and nothing else.
+                  </Text>
+                  <View style={styles.buttons}>
+                    <View style={styles.grow}>
+                      <Button
+                        label={saving ? 'Saving…' : 'Save'}
+                        tone="primary"
+                        disabled={saving}
+                        onPress={() =>
+                          startSave(async () => {
+                            const errors = await onSetDates({ startsOn, endsOn })
+                            setDateErrors(errors)
+                            /*
+                              Stays open when it was refused, so the message sits
+                              beside the field it is about and what was chosen is
+                              still there.
+                            */
+                            if (Object.keys(errors).length === 0) openDetour(null)
+                          })
+                        }
+                      />
+                    </View>
+                    <View style={styles.grow}>
+                      <Button label="Cancel" onPress={() => openDetour(null)} />
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
+              {/*
+                The other view. The sheet is dismissed before it is reached: a
+                modal left standing over a route change is still there when the
+                person comes back, covering the screen they returned to.
+              */}
+              <Pressable
+                onPress={() => {
+                  close()
+                  otherView.onPress()
+                }}
+                accessibilityRole="button"
+                style={styles.row}
+              >
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>
+                  {otherView.name}
+                </Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              <Pressable
                 onPress={onOpenPeople}
                 accessibilityRole="button"
                 style={styles.row}
@@ -477,6 +593,14 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   rowName: { ...role(TYPE.rowName), flex: 1 },
+  /*
+   * What a row says about itself, beside its name.
+   *
+   * `inkMuted`, never `inkFaint`: this carries whether the trip has dates, which
+   * is a state somebody is here to act on — the opposite of text deliberately
+   * hard to notice.
+   */
+  rowNote: { ...role(TYPE.note) },
   tick: { width: 20, alignItems: 'center' },
   restore: { paddingVertical: SPACE.xs, paddingHorizontal: SPACE.sm },
   restoreText: { ...role(TYPE.control), fontWeight: '700' },

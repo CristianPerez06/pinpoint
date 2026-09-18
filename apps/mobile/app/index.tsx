@@ -1,12 +1,12 @@
 import { fetchTrips } from '@pinpoint/data'
 import { Redirect } from 'expo-router'
-import { useState } from 'react'
 
 import { FailedState, LoadingState } from '@/components/states'
 import { TripSetup } from '@/components/trip-setup'
 import { TripWorkspace } from '@/components/trip-workspace'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
+import { useTripChoice } from '@/lib/trip-choice'
 import { useQuery } from '@/lib/use-query'
 
 /**
@@ -17,12 +17,10 @@ import { useQuery } from '@/lib/use-query'
  * establishes only the two things a route decides: that somebody is signed in,
  * and which trip they are looking at.
  *
- * Which trip is held for the session and starts at the first. It is deliberately
- * not persisted: there is nowhere to put it. `expo-secure-store` holds the
- * session token and a trip id is not a secret, and adding a preference store for
- * this alone would be the second thing to want one — the capture form's
- * last-used city was the first. Both are recorded as one gap in the roadmap
- * rather than answered twice, badly.
+ * Which trip is held for the session and starts at the first. It no longer lives
+ * here: the calendar shows one trip too, and a choice held inside this screen is
+ * invisible to it — see `lib/trip-choice.tsx`, which also records why it is still
+ * not remembered between launches.
  */
 export default function Index() {
   const { session, loading } = useSession()
@@ -41,13 +39,12 @@ export default function Index() {
   /**
    * Which trip is being looked at, or null for "whichever is first".
    *
-   * Null rather than seeding from the query, which is the pattern the React
-   * linter rejected in the interest change and would reject again: copying a
-   * query result into state means a later read can replace a choice somebody
-   * just made. Resolving it on every render against what the query returned
-   * costs nothing and cannot go stale.
+   * Held above the navigator so the calendar reads the same answer. Null rather
+   * than seeded from the query, for the reason recorded where it now lives:
+   * copying a query result into state means a later read can replace a choice
+   * somebody just made.
    */
-  const [chosenTripId, setChosenTripId] = useState<string | null>(null)
+  const { chosenTripId, chooseTrip } = useTripChoice()
 
   // Reading the session out of the keychain is asynchronous, so the first frame
   // after launch has no session even when one exists. Redirecting here would
@@ -67,7 +64,7 @@ export default function Index() {
     return (
       <TripSetup
         onCreated={(tripId) => {
-          setChosenTripId(tripId)
+          chooseTrip(tripId)
           void trips.refetch({ force: true })
         }}
       />
@@ -95,9 +92,9 @@ export default function Index() {
       key={trip.id}
       trip={trip}
       trips={trips}
-      onSelectTrip={setChosenTripId}
+      onSelectTrip={chooseTrip}
       onCreated={(tripId) => {
-        setChosenTripId(tripId)
+        chooseTrip(tripId)
         void trips.refetch({ force: true })
       }}
       userId={session.user.id}

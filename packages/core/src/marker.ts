@@ -99,14 +99,16 @@ const writableMarkerFields = markerSchema.pick({
  *
  * `plannedOn` is defaulted rather than merely nullable, unlike the three other
  * optional fields. Those are absent-as-null because the form that writes them
- * has a control for every one, so it always has something to send. This one has
- * a control on the web and none on the phone, which does not offer days yet —
- * and a client that cannot express a day is a client whose places have no day.
- * That is the ordinary case rather than a caller being careless.
+ * has a control for every one, so it always has something to send.
  *
- * Requiring the key made every save from the phone fail validation the moment
- * this field was added, and the type system could not say so because
- * `createMarker` takes `unknown`. A test is what said so instead.
+ * Both applications offer a day now, so neither relies on this default any
+ * longer — and it stays anyway. A client that cannot express a day is a client
+ * whose places have no day, which is the ordinary case rather than a caller
+ * being careless, and the failure it prevents is not hypothetical: requiring the
+ * key made every save from the phone fail validation the moment this field was
+ * added, in the window before the phone had a control. The type system could not
+ * say so, because `createMarker` takes `unknown`. A test is what said so instead,
+ * and it is still the only thing that would.
  */
 export const newMarkerSchema = writableMarkerFields.extend({
   plannedOn: markerSchema.shape.plannedOn.default(null),

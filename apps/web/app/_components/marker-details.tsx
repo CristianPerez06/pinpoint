@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  formatDay,
   formatPrice,
   type Marker,
   type MarkerInterest,
@@ -13,7 +14,6 @@ import type { ReactNode } from 'react'
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
 import { Button, overlayPanelClass } from '@/app/_components/ui'
-import { formatDay } from '@/lib/day'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './marker-details.module.css'

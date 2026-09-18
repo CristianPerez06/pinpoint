@@ -99,7 +99,7 @@ export function markersOnDay(
  * Takes a clock so it can be tested without moving the machine's.
  */
 export function todayAsDay(now: Date = new Date()): IsoDay {
-  return dayOfLocalDate(now)
+  return dayOfDate(now)
 }
 
 /**
@@ -108,8 +108,13 @@ export function todayAsDay(now: Date = new Date()): IsoDay {
  * `toISOString().slice(0, 10)` is the obvious version of this and is wrong: it
  * converts to UTC first, so it returns tomorrow for anyone east of Greenwich in
  * the evening and yesterday for anyone west of it in the morning.
+ *
+ * Exported because a date control hands back a `Date` and the day it means is
+ * the local one. Doing that conversion at the call site is how the drift this
+ * module exists to prevent gets reintroduced at the one point where a person
+ * has just said which day they meant.
  */
-function dayOfLocalDate(date: Date): IsoDay {
+export function dayOfDate(date: Date): IsoDay {
   const year = String(date.getFullYear()).padStart(4, '0')
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -128,7 +133,7 @@ function dayOfLocalDate(date: Date): IsoDay {
  */
 export function addDays(day: IsoDay, delta: number): IsoDay {
   const [year, month, date] = day.split('-').map(Number)
-  return dayOfLocalDate(new Date(year, month - 1, date + delta))
+  return dayOfDate(new Date(year, month - 1, date + delta))
 }
 
 /**

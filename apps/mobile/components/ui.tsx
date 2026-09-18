@@ -1,5 +1,10 @@
+import { dateOfDay, dayOfDate, formatDay, type IsoDay, todayAsDay } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from '@react-native-community/datetimepicker'
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -9,7 +14,7 @@ import {
   type TextInputProps,
 } from 'react-native'
 
-import { useTheme } from '@/lib/theme'
+import { useTheme, useThemeMode } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
 /**
@@ -96,6 +101,195 @@ export function TextField({
           },
         ]}
       />
+      {error ? (
+        <Text
+          accessibilityRole="alert"
+          style={[styles.error, { color: theme.colour.danger }]}
+        >
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
+/**
+ * A day, chosen with the platform's own date control.
+ *
+ * WHY THE PLATFORM'S CONTROL AND NOT ONE OF OURS
+ *
+ * `trip-calendar` says the date control is a field within the form and raises no
+ * panel **of the product's own** over it, because the form is already raised over
+ * whatever the person was reading and a second layer of ours would bury it under
+ * two. The system's picker is not one of ours — which is the same reasoning that
+ * lets the laptop use the browser's `<input type="date">`, and it is why this does
+ * not wait on the question of replacing that one (#145).
+ *
+ * WHY THE EMPTY STATE IS OURS
+ *
+ * **A date picker cannot say "no day".** It always has a date under it, on both
+ * platforms. So this field owns the two things the picker cannot express: it says
+ * `No day yet` when the place has none, and it carries its own `Clear`, which is
+ * what satisfies the requirement that clearing returns a place to having no day
+ * rather than to a particular one.
+ *
+ * The first press on an empty field hands over the platform's control seeded on
+ * today. That is a real choice rather than an oversight: the alternative is a
+ * control that opens on a date it then refuses to show, and nothing is written
+ * until the form is saved — with `Clear` beside it the whole time.
+ *
+ * WHY THE THEME IS PASSED IN
+ *
+ * The picker draws in the *device's* appearance unless told otherwise, so
+ * somebody running this app dark on a light phone would open a light calendar out
+ * of a dark sheet. iOS takes `themeVariant`; it is given the ground the app has
+ * actually resolved, not the one the system prefers.
+ */
+export function DayField({
+  label,
+  value,
+  onChange,
+  error,
+  clearable = true,
+}: {
+  label: string
+  /** The day, or null for a place whose day has not been decided. */
+  value: IsoDay | null
+  onChange: (day: IsoDay | null) => void
+  error?: string
+  /**
+   * Whether having no day is a state this field can reach.
+   *
+   * True for a place, whose day may not have been decided, and false for the
+   * calendar's own band: the day being read is always a day, there is no "no
+   * day" to be on, and a `Clear` there would be a control with nowhere to go.
+   */
+  clearable?: boolean
+}) {
+  const theme = useTheme()
+  const mode = useThemeMode()
+
+  /*
+   * What the picker stands on while there is no day. Today, and deliberately not
+   * a stored "last used" anything: a date nobody chose should not be the one a
+   * control opens on tomorrow.
+   */
+  const standingOn = value === null ? todayAsDay() : value
+
+  /*
+   * `onValueChange` rather than `onChange`.
+   *
+   * The library deprecated the single callback that told choosing and
+   * dismissing apart by an event type, and says so at runtime. This is the one
+   * that replaced it, and it is the better shape: dismissing Android's dialog is
+   * simply not a day being chosen, so nothing here has to remember to check for
+   * it — and forgetting was how a cancelled dialog would have written a day
+   * somebody had just declined to choose.
+   */
+  function chosen(_event: unknown, date: Date) {
+    onChange(dayOfDate(date))
+  }
+
+  function openOnAndroid() {
+    DateTimePickerAndroid.open({
+      value: dateOfDay(standingOn),
+      mode: 'date',
+      onValueChange: chosen,
+    })
+  }
+
+  return (
+    <View style={styles.field}>
+      <FieldLabel>{label}</FieldLabel>
+
+      <View style={styles.dayRow}>
+        {/*
+          iOS draws its compact picker as its own small control, so there is
+          nothing for us to press — it is the field. Android has no such inline
+          form, so there the field is ours and it opens the system dialog.
+        */}
+        {Platform.OS === 'ios' && value !== null ? (
+          <DateTimePicker
+            value={dateOfDay(value)}
+            mode="date"
+            display="compact"
+            themeVariant={mode}
+            onValueChange={chosen}
+            accessibilityLabel={label}
+            /*
+              An explicit size, and it is load-bearing rather than tidy.
+
+              The compact picker is a native view with **no intrinsic content
+              size**, so a flex parent asks how big it is, is told nothing, and
+              lays it out at zero by zero. **Learn the shape of this one**: the
+              field's label renders, the row renders, the component is mounted
+              and its props are right — and the control is simply not on screen,
+              which reads as the picker failing to load and never is. It is the
+              same failure as a `ScrollView` inside a container sized to its
+              children, arriving from the other direction.
+
+              Wide enough for a fully numeric date at the device's own locale
+              (`31/12/2026`), since the compact control words itself rather than
+              taking our pinned wording.
+            */
+            style={styles.dayPicker}
+          />
+        ) : (
+          <Pressable
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                // Hands over the platform's control, seeded on today. The press
+                // that follows is what changes the day.
+                onChange(standingOn)
+                return
+              }
+              openOnAndroid()
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              value === null ? `${label}, no day yet` : `${label}, ${formatDay(value)}`
+            }
+            style={[
+              styles.dayValue,
+              {
+                backgroundColor: theme.colour.surfaceMuted,
+                borderColor: error ? theme.colour.danger : theme.colour.line,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dayText,
+                {
+                  color: value === null ? theme.colour.inkMuted : theme.colour.ink,
+                },
+              ]}
+            >
+              {value === null ? 'No day yet' : formatDay(value)}
+            </Text>
+          </Pressable>
+        )}
+
+        {/*
+          Only where there is something to clear. A `Clear` standing beside an
+          empty field is a control that cannot do anything, which the chrome
+          forbids for the same reason everywhere else.
+        */}
+        {value !== null && clearable ? (
+          <Pressable
+            onPress={() => onChange(null)}
+            accessibilityRole="button"
+            accessibilityLabel={`Clear ${label.toLowerCase()}`}
+            hitSlop={8}
+            style={styles.dayClear}
+          >
+            <Text style={[styles.dayClearText, { color: theme.colour.inkMuted }]}>
+              Clear
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+
       {error ? (
         <Text
           accessibilityRole="alert"
@@ -217,6 +411,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputMultiline: { minHeight: 74, textAlignVertical: 'top' },
+  /*
+   * The day and its `Clear`, on one line.
+   *
+   * `alignItems: 'center'` rather than `stretch`: iOS's compact picker sizes
+   * itself and stretching it makes it grow into a shape the system never draws.
+   */
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  /** The same metrics as `input`, so a day and a name read as one form. */
+  dayValue: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACE.sm + 2,
+    paddingVertical: 10,
+  },
+  dayText: { ...role(TYPE.body) },
+  /* See the note where this is used: without a size the native picker is laid
+     out at zero and nothing is drawn. The height matches the field beside it so
+     the row does not change shape as a day is set or cleared. */
+  dayPicker: { width: 142, height: 42 },
+  dayClear: { paddingVertical: 10, paddingHorizontal: SPACE.xs },
+  dayClearText: { ...role(TYPE.control) },
   error: { ...role(TYPE.note) },
   button: {
     borderWidth: 1,

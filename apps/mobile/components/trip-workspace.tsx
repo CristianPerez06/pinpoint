@@ -31,14 +31,11 @@ import {
   fetchTripInterest,
   fetchTripMarkers,
   fetchTripMembers,
-  inviteMember,
   ownMemberOf,
   recordInterest,
   setMarkerVisited,
   updateCity,
   updateMarker,
-  fetchTrips,
-  updateTrip,
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
@@ -49,6 +46,7 @@ import {
   markersAt,
 } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { useRouter } from 'expo-router'
 import {
   type ReactNode,
   type Ref,
@@ -88,6 +86,7 @@ import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
+import { useTripActions } from '@/lib/use-trip-actions'
 
 /**
  * Everything a trip can be doing on a phone, in one place.
@@ -173,6 +172,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
     type: marker.type,
     link: marker.link,
     price: marker.price,
+    plannedOn: marker.plannedOn,
   }
 }
 
@@ -213,6 +213,7 @@ export function TripWorkspace({
   // The header is the top of the screen, so it owns the space the system draws
   // into. Without this the wordmark sits under the clock and the Dynamic Island.
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const windowHeight = useWindowDimensions().height
 
   /**
@@ -296,7 +297,6 @@ export function TripWorkspace({
   const [filterOpen, setFilterOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [tripsOpen, setTripsOpen] = useState(false)
-  const [archivedTrips, setArchivedTrips] = useState<readonly Trip[] | null>(null)
   const [citiesOpen, setCitiesOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -310,6 +310,20 @@ export function TripWorkspace({
    * now lives in the control that starts the write.
    */
   const [problem, setProblem] = useState<string | null>(null)
+
+  /*
+   * Everything the trip's own sheet does, shared with the calendar.
+   *
+   * Extracted rather than kept here once a second screen started wearing that
+   * sheet: two copies of archiving would agree on the day they were written and
+   * not afterwards.
+   */
+  const tripActions = useTripActions({
+    trip,
+    trips: tripQuery,
+    members: memberQuery,
+    report: setProblem,
+  })
 
   /**
    * Opening or closing a surface ends whatever refusal belonged to the last one.
@@ -671,6 +685,13 @@ export function TripWorkspace({
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
+        /*
+         * A new place has no day, whichever day the calendar happens to be
+         * reading. The absence of a date means the decision has not been made,
+         * and defaulting it to a day somebody is looking at would be the product
+         * making that decision for them.
+         */
+        plannedOn: null,
         ...initial,
       },
       cityNotice: cityNoticeFor(claim, selectedCityId),
@@ -818,122 +839,6 @@ export function TripWorkspace({
     cancelPanel()
   }
 
-  /**
-   * Renaming the trip, into the one place the trips are held.
-   *
-   * The route resolves `trip` out of that list, so writing here is what makes
-   * the header, the trips sheet and the picker follow at once — they all read
-   * the same rows and there is no second copy for one of them to be showing.
-   */
-  async function renameTrip(name: string) {
-    setProblem(null)
-
-    const previous = trips
-    tripQuery.set((rows) =>
-      rows.map((each) => (each.id === trip.id ? { ...each, name } : each)),
-    )
-
-    const outcome = await updateTrip(supabase, trip.id, { name })
-    if (!outcome.ok) {
-      tripQuery.set(() => previous)
-      setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
-      )
-      return
-    }
-    const saved = outcome.data
-    tripQuery.set((rows) => rows.map((each) => (each.id === saved.id ? saved : each)))
-  }
-
-  /**
-   * Archive a trip, or put one back.
-   *
-   * The same write as a rename underneath — one column on one row — so it takes
-   * the same shape here: say it happened, and put it back if the database
-   * refuses. What it does not do is ask first. Archiving is reversible by any
-   * member, and a confirmation on a reversible action trains people to dismiss
-   * confirmations on the ones that are not.
-   *
-   * Dropping the trip from the list is what moves the person off one they just
-   * archived: the resolver upstream falls through to the first remaining trip —
-   * or to the no-trips state, which is the screen where a first trip is made.
-   * That fall-through already existed for a trip left behind by other means;
-   * archiving simply arrives at it by a new route.
-   *
-   * A restore is asked for again rather than written, because the row being put
-   * back is not in the list to be edited — it is in the archived reveal, which
-   * this list has never held.
-   */
-  async function setTripArchived(tripId: string, value: boolean) {
-    setProblem(null)
-
-    const outcome = await updateTrip(supabase, tripId, { archived: value })
-    if (!outcome.ok) {
-      setProblem(
-        outcome.kind === 'rejected'
-          ? outcome.message
-          : value
-            ? 'Could not archive this trip.'
-            : 'Could not restore this trip.',
-      )
-      return
-    }
-    // Dropped rather than kept in step: the reveal is re-read from the database
-    // the next time it is asked for, so a restored trip cannot linger in it.
-    setArchivedTrips(null)
-
-    if (value) tripQuery.set((rows) => rows.filter((each) => each.id !== tripId))
-    else void tripQuery.refetch({ force: true })
-  }
-
-  /**
-   * Archived trips, once somebody asks. Null until then.
-   *
-   * A read rather than a write, and treated like one anyway: the press has to
-   * be answered. Until this returned, the row was unchanged and pressing it
-   * again fired a second fetch — the clearest press-that-does-nothing in either
-   * application. What fills the gap while it loads is a separate question.
-   */
-  async function revealArchived() {
-    setProblem(null)
-
-    const state = await fetchTrips(supabase, { includeArchived: true })
-    if (state.status === 'failed') {
-      setProblem(state.message)
-      return
-    }
-    const all = state.status === 'ready' ? state.data : []
-    setArchivedTrips(all.filter((each) => each.archived))
-  }
-
-  /**
-   * Add somebody to the trip.
-   *
-   * Returns the offending field rather than setting a message here, because the
-   * sheet that called it is what has to mark it up — a duplicate address is a
-   * fact about the email box, not about the trip.
-   */
-  async function invite(displayName: string, email: string) {
-    const outcome = await inviteMember(supabase, {
-      tripId: trip.id,
-      displayName,
-      email,
-    })
-
-    if (!outcome.ok) {
-      if (outcome.kind === 'invalid-input') {
-        const [field, message] = Object.entries(outcome.fieldErrors)[0] ?? [
-          '_',
-          'Could not add that person.',
-        ]
-        return { field, message }
-      }
-      return { field: '_', message: outcome.message }
-    }
-
-    memberQuery.set((rows) => [...rows, outcome.data])
-    return null
-  }
 
   /**
    * Making a city, from inside the form that needs one.
@@ -1379,12 +1284,21 @@ export function TripWorkspace({
         onClose={() => showSheet(setTripsOpen, false)}
         trip={trip}
         trips={trips}
-        archived={archivedTrips}
-        onRevealArchived={revealArchived}
+        archived={tripActions.archived}
+        onRevealArchived={tripActions.revealArchived}
         onSelectTrip={onSelectTrip}
-        onRename={renameTrip}
+        onRename={tripActions.renameTrip}
+        onSetDates={tripActions.setTripDates}
+        /*
+          The calendar, which is the view this screen is not. `push` rather than
+          `replace`, so this screen stays mounted underneath and coming back is
+          the map exactly as it was left — the same city, the same filter, the
+          same camera — which is what the chrome requires of a screen somebody
+          returns from.
+        */
+        otherView={{ name: 'Calendar', onPress: () => router.push('/calendar') }}
         onCreated={onCreated}
-        onSetArchived={(tripId, value) => void setTripArchived(tripId, value)}
+        onSetArchived={(tripId, value) => void tripActions.setTripArchived(tripId, value)}
         onOpenPeople={() => {
           showSheet(setTripsOpen, false)
           showSheet(setPeopleOpen, true, memberQuery.refetch)
@@ -1407,7 +1321,7 @@ export function TripWorkspace({
         onClose={() => showSheet(setPeopleOpen, false)}
         members={members}
         ownMemberId={ownMemberId}
-        onInvite={invite}
+        onInvite={tripActions.invite}
       />
 
       <CitySheet

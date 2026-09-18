@@ -1,4 +1,4 @@
-import type { FieldErrors } from '@pinpoint/core'
+import type { FieldErrors, IsoDay } from '@pinpoint/core'
 import { createTrip } from '@pinpoint/data'
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import { useState } from 'react'
@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Button, FormNote, TextField } from '@/components/ui'
+import { Button, DayField, FormNote, TextField } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -107,6 +107,8 @@ export function CreateTripForm({
 }) {
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [startsOn, setStartsOn] = useState<IsoDay | null>(null)
+  const [endsOn, setEndsOn] = useState<IsoDay | null>(null)
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -119,6 +121,8 @@ export function CreateTripForm({
     const outcome = await createTrip(supabase, {
       name: name.trim(),
       displayName: displayName.trim(),
+      startsOn,
+      endsOn,
     })
 
     setBusy(false)
@@ -154,6 +158,26 @@ export function CreateTripForm({
         onChange={setDisplayName}
         error={fieldErrors.displayName}
         placeholder="Your name, as the others would say it"
+      />
+
+      {/*
+        Offered, never required. A trip is usually created before its dates are
+        known — the list of places is what accumulates first — so asking for them
+        and refusing to continue without them would make the product decline the
+        state most trips start in. They decide nothing except which day the
+        calendar opens on.
+      */}
+      <DayField
+        label="Start date (optional)"
+        value={startsOn}
+        onChange={setStartsOn}
+        error={fieldErrors.startsOn}
+      />
+      <DayField
+        label="End date (optional)"
+        value={endsOn}
+        onChange={setEndsOn}
+        error={fieldErrors.endsOn}
       />
 
       {message ? <FormNote tone="danger">{message}</FormNote> : null}
