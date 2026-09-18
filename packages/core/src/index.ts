@@ -56,10 +56,11 @@ export {
   dayToOpenOn,
   dayWithin,
   groupMarkersByDay,
+  groupUndatedByCity,
   markersOnDay,
   todayAsDay,
 } from './marker-day'
-export type { IsoDay, MarkersByDay } from './marker-day'
+export type { IsoDay, MarkersByDay, WaitingGroup } from './marker-day'
 
 // Only the write-side rule lives here. The type list, its icons, its families,
 // and `markerTypeOf` are presentation and live in `@pinpoint/map` — import them

@@ -1,3 +1,4 @@
+import type { City } from './city'
 import type { Marker } from './marker'
 
 /**
@@ -79,6 +80,55 @@ export function groupMarkersByDay(markers: readonly Marker[]): MarkersByDay {
   undated.sort(byNameThenId)
 
   return { days, undated }
+}
+
+/** One city's share of the places waiting for a day. */
+export interface WaitingGroup {
+  /** Null for the places filed under no city — or under one no longer listed. */
+  readonly city: City | null
+  readonly markers: readonly Marker[]
+}
+
+/**
+ * The places waiting for a day, one group per city.
+ *
+ * Groups are ordered by the city's name, and the places filed under no city
+ * come last in one group of their own. A place naming a city that is not in
+ * `cities` — removed by somebody else, and not yet re-read — joins that last
+ * group rather than a group with no name to show.
+ *
+ * Places keep the order they were given in, so passing `undated` from
+ * `groupMarkersByDay` keeps its name-then-id order inside every group.
+ *
+ * Here rather than in either application because the specification fixes the
+ * order, and two applications each sorting their own way is how a laptop and a
+ * phone come to list the same trip differently.
+ */
+export function groupUndatedByCity(
+  undated: readonly Marker[],
+  cities: readonly City[],
+): readonly WaitingGroup[] {
+  const byId = new Map(cities.map((city) => [city.id, city]))
+  const filed = new Map<string, { city: City; markers: Marker[] }>()
+  const unfiled: Marker[] = []
+
+  for (const marker of undated) {
+    const city = marker.cityId == null ? undefined : byId.get(marker.cityId)
+    if (!city) {
+      unfiled.push(marker)
+      continue
+    }
+    const group = filed.get(city.id)
+    if (group) group.markers.push(marker)
+    else filed.set(city.id, { city, markers: [marker] })
+  }
+
+  const groups: WaitingGroup[] = [...filed.values()].sort((a, b) => {
+    const byName = a.city.name.localeCompare(b.city.name)
+    return byName !== 0 ? byName : a.city.id.localeCompare(b.city.id)
+  })
+  if (unfiled.length > 0) groups.push({ city: null, markers: unfiled })
+  return groups
 }
 
 /** What is on one day. An empty day is an ordinary day, not a missing one. */
