@@ -289,6 +289,18 @@ paragraph. Joining its lines into one run of text turns that list into a sentenc
 does not parse, and the person who wrote it cannot fix it from the form, where it still
 looks right.
 
+A link SHALL be shown on one line. A link longer than the room available SHALL be cut
+short at the end with an ellipsis rather than wrap or extend past the presentation.
+Every application SHALL let a person follow the link from the presentation, and
+following it SHALL open the full address. Where the platform has a pointer, the full
+address SHALL be shown when the pointer rests on the link.
+
+Rationale: a link copied from a map, a booking site or a social network routinely runs to
+hundreds of characters of tracking parameters. Shown in full it takes over the card and
+pushes the fields below it out of view, while its tail tells the reader nothing. The start
+of the address is kept rather than just the site's name, because two links to the same
+site are told apart by what follows it.
+
 #### Scenario: Selecting a marker
 
 - **WHEN** a person selects a marker on either platform
@@ -327,6 +339,28 @@ looks right.
   on the phone
 - **THEN** both read `No day yet`, `No note yet` and `No link yet`
 - **AND** a screen reader announces those words rather than a symbol or nothing
+
+#### Scenario: A link longer than the room available
+
+- **WHEN** a person selects a marker whose link is several hundred characters long
+- **THEN** the link takes one line and ends in an ellipsis
+- **AND** nothing extends past the presentation's edge
+- **AND** following the link opens the full address
+
+#### Scenario: Following a link on the phone
+
+- **WHEN** a person taps the link on a selected marker on the phone
+- **THEN** the full address opens in the browser
+
+#### Scenario: A link short enough to fit
+
+- **WHEN** a person selects a marker whose link fits in the room available
+- **THEN** the link is shown in full, with no ellipsis
+
+#### Scenario: Reading a long link in full on the laptop
+
+- **WHEN** a person rests the pointer on a link cut short on the laptop
+- **THEN** the full address is shown
 
 ### Requirement: The map distinguishes loading from empty
 

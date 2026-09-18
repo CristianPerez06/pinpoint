@@ -56,12 +56,14 @@
 
 .fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--pp-space-sm);
   margin: 13px 0 0;
 }
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2px;
 }
 
@@ -101,7 +103,31 @@
   font-style: italic;
 }
 
+/*
+  A link takes one line, cut short at the end (#173).
+
+  Links copied from a map or a booking site run to hundreds of characters of
+  tracking parameters, and shown in full they took over the card. The start is
+  kept rather than just the site's name, because two links to one site differ in
+  what follows it; the anchor's `title` shows the whole address on hover.
+
+  `nowrap` makes the link's minimum width its full length, and a grid item's
+  default `min-width: auto` would grow the field — and the card — to fit it
+  rather than letting the ellipsis cut in. The `minmax(0, 1fr)` columns on
+  `.fields` and `.field` hold both levels to the card's width.
+
+  `inline-block` capped at the field's width rather than `block`, so a short link
+  is clickable over its words and not across the empty row beside them;
+  `vertical-align: top` because an inline-block that clips its overflow sits on
+  its bottom edge and would add a gap under the line.
+*/
 .link {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--pp-accent-ink);
   font-weight: 600;
   text-decoration: none;

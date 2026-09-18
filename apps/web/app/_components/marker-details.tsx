@@ -190,6 +190,7 @@ function Details({
             <a
               className={styles.link}
               href={marker.link}
+              title={marker.link}
               target="_blank"
               rel="noreferrer noopener"
             >
