@@ -1,7 +1,8 @@
 import { fetchTrips } from '@pinpoint/data'
 import { Redirect } from 'expo-router'
 
-import { FailedState, LoadingState } from '@/components/states'
+import { CalendarScreen } from '@/components/calendar-screen'
+import { FailedState } from '@/components/states'
 import { TripCalendar } from '@/components/trip-calendar'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
@@ -25,19 +26,29 @@ import { useQuery } from '@/lib/use-query'
  * the same place — which is what lets somebody switch trips here and find the
  * map on that trip when they go back.
  */
-export default function CalendarScreen() {
+export default function CalendarRoute() {
   const { session, loading } = useSession()
   const { chosenTripId, chooseTrip } = useTripChoice()
 
   const trips = useQuery(() => fetchTrips(supabase), [session])
 
+  /*
+    The calendar with nothing read yet, rather than a loading screen.
+
+    While the session is read back and again while the trips are, which are the
+    two waits this route has before it knows which trip it is on. It is the same
+    component `TripCalendar` draws, given nothing, so what arrives replaces bars
+    where they stand instead of arriving as a new screen.
+  */
+  const waiting = <CalendarScreen live={null} lists={null} />
+
   // The same guard every signed-in route carries. Reading the session back is
   // asynchronous, so redirecting during that frame would bounce somebody out of
   // a screen they are entitled to.
-  if (loading) return <LoadingState what="pinpoint" />
+  if (loading) return waiting
   if (!session) return <Redirect href="/login" />
 
-  if (trips.state.status === 'loading') return <LoadingState what="your trips" />
+  if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
     return <FailedState message={trips.state.message} />
   }

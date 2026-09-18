@@ -21,6 +21,13 @@ import chrome from '@/app/_components/trip-workspace.module.css'
  * `<main>` is passed as a child and stays a sibling of the chrome's `<header>`.
  * A `<header>` inside `<main>` exposes no `banner` landmark, and this route
  * would otherwise be the one place that quietly lost it.
+ *
+ * **In the `(map)` group so that it is the map's alone.** At the root of `app/`
+ * it was the loading boundary of every route beneath it, and on a full page
+ * load Next shows the outermost boundary — so opening the calendar by its
+ * address showed this, the map's frame, for as long as the calendar's reads
+ * took, with the calendar's own waiting screen held hidden underneath. The
+ * group changes no address.
  */
 export default function Loading() {
   return (

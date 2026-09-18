@@ -14,7 +14,7 @@ import { TripWorkspace } from '@/app/_components/trip-workspace'
 import { requireUserId } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
 
-import styles from './page.module.css'
+import styles from '../page.module.css'
 
 /**
  * The signed-in landing page: a map of the current trip, and the places on it.

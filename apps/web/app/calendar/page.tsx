@@ -8,7 +8,8 @@ import {
 } from '@pinpoint/data'
 import { Suspense } from 'react'
 
-import { FailedState, LoadingState } from '@/app/_components/states'
+import { CalendarScreen } from '@/app/_components/calendar-screen'
+import { FailedState } from '@/app/_components/states'
 import { TripCalendar } from '@/app/_components/trip-calendar'
 import { requireUserId } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
@@ -86,7 +87,12 @@ export default async function CalendarPage({
   if (requestedCityId) back.set('city', requestedCityId)
 
   return (
-    <Suspense fallback={<Shell><LoadingState /></Shell>}>
+    /*
+      The same waiting screen as `loading.tsx`. This boundary is here because
+      the calendar reads the address on the client; whichever of the two is
+      shown, it is the calendar with nothing read yet, never a second screen.
+    */
+    <Suspense fallback={<CalendarScreen live={null} />}>
       <TripCalendar
         key={trip.id}
         trip={trip}

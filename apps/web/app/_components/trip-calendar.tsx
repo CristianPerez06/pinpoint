@@ -1,13 +1,9 @@
 'use client'
 
 import {
-  addDays,
   type City,
   dayShown,
   type FieldErrors,
-  formatDay,
-  formatDayFull,
-  formatDayShort,
   groupMarkersByDay,
   groupUndatedByCity,
   type IsoDay,
@@ -16,7 +12,6 @@ import {
   markersOnDay,
   type Trip,
   type TripMember,
-  type WaitingGroup,
 } from '@pinpoint/core'
 import {
   deleteMarker,
@@ -30,17 +25,14 @@ import {
   updateMarker,
   withdrawInterest,
 } from '@pinpoint/data'
-import { groupCoincident, markerView } from '@pinpoint/map'
-import { ChevronLeft, ChevronRight, MapIcon } from 'lucide-react'
-import Link from 'next/link'
+import { groupCoincident } from '@pinpoint/map'
 import { useSearchParams } from 'next/navigation'
-import { type KeyboardEvent, useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
-import { ChromeBar } from '@/app/_components/chrome-bar'
+import { CalendarScreen } from '@/app/_components/calendar-screen'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm, type MarkerFormValues } from '@/app/_components/marker-form'
-import { TypeChip } from '@/app/_components/pin'
 import { TripBar } from '@/app/_components/trip-bar'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
@@ -68,9 +60,6 @@ import styles from './trip-calendar.module.css'
  * `new Date('2026-04-03')` parses as UTC midnight and reads as the previous day
  * across most of the western hemisphere.
  */
-
-/** How many days sit either side of the one being read, where there is room. */
-const NEIGHBOURS = 1
 
 /**
  * A refusal in words, whatever kind it was.
@@ -188,22 +177,6 @@ export function TripCalendar({
    * control can enforce it about panels it cannot see.
    */
   const [detour, setDetour] = useState<'none' | 'trip' | 'account'>('none')
-
-  /**
-   * Which of the two views the narrow shape shows.
-   *
-   * Always starts on the days, and is written nowhere — not the address, not
-   * storage — so every arrival opens the same way. Changing trip remounts this
-   * component (`key={trip.id}` on the page), which is arriving at that trip and
-   * resets it without anything here having to.
-   *
-   * It is only *read* by the stylesheet, and only below 900px. The wide shape
-   * shows the waiting places beside the days whatever this says, so the shape
-   * is decided by CSS alone and the server's first paint cannot disagree with
-   * the browser's first render about it.
-   */
-  const [view, setView] = useState<CalendarView>('days')
-  const viewIds = useId()
 
   /**
    * Everything the trip's own menu does, shared with the map.
@@ -469,169 +442,54 @@ export function TripCalendar({
     }
   }
 
-  const days = [-NEIGHBOURS, 0, NEIGHBOURS].map((offset) => addDays(day, offset))
-
   return (
-    <ChromeBar
-      scope={
-        <TripBar
-          trip={trip}
-          trips={trips}
-          members={members}
-          onSelect={tripActions.onSelect}
-          onRename={tripActions.onRename}
-          onSetDates={tripActions.onSetDates}
-          /*
-            The map, because this is the calendar. The menu names the view
-            somebody is *not* in, so it never offers to take them where they
-            already are — and the address is the one that restores the city as
-            well as the trip.
-          */
-          otherView={{ name: 'Map', href: workspaceHref }}
-          archived={tripActions.archived}
-          onRevealArchived={tripActions.onRevealArchived}
-          onArchive={tripActions.onArchive}
-          onRestore={tripActions.onRestore}
-          onInvite={tripActions.onInvite}
-          onShowPeople={() =>
-            void refreshMembers(() => fetchTripMembers(supabase, trip.id))
-          }
-          onCreated={tripActions.onSelect}
-          open={detour === 'trip'}
-          onOpen={(open) => setDetour(open ? 'trip' : 'none')}
-        />
-      }
-      /*
-        No city. There is no camera to frame here and nowhere to bias a search
-        toward, so a city control would offer more than it can do — and leaving
-        the position empty is what collapses the phone-width bar to one row.
-      */
-      session={
-        /*
-          The way back, in the band the map spends on finding, dropping and
-          filtering.
-
-          That band is empty on this screen and going back is the only session
-          control it has, so this is where the chrome's placement rule puts it.
-          Deliberately *not* beside the account: signing out is reached from
-          there, and rare destructive controls are kept away from frequent ones
-          so that neither is reached while aiming for the other. This is the
-          most frequent control on the screen.
-
-          Visible without opening anything, which the row in the trip's menu is
-          not — a control that has to be revealed before it can be seen does not
-          satisfy the requirement on its own.
-        */
-        <span className={styles.session}>
-          <Link href={workspaceHref} className={styles.back}>
-            <MapIcon size={16} strokeWidth={2.2} aria-hidden />
-            <span>Back to the map</span>
-          </Link>
-        </span>
-      }
-      account={
-        <AccountMenu
-          youAre={youAre}
-          open={detour === 'account'}
-          onOpen={(open) => setDetour(open ? 'account' : 'none')}
-        />
-      }
-    >
-    <main className={styles.screen} data-view={view}>
-      <ViewTabs
-        view={view}
-        onChange={setView}
-        waitingCount={grouped.undated.length}
-        ids={viewIds}
-      />
-
-      {/*
-        The day controls, and they belong to the screen rather than to the
-        product.
-
-        Below the header and not among its controls: the header says which trip
-        and who is reading it, and neither changes as the day does. Pinned
-        between the header and the scrolling body rather than inside that body,
-        because a screen whose navigation scrolls away strands whoever is at the
-        bottom of a long day.
-      */}
-      <div className={styles.dayBand}>
-        <div className={styles.controls}>
-          <button
-            type="button"
-            onClick={() => goToDay(addDays(day, -1))}
-            className={styles.step}
+    <CalendarScreen
+      live={{
+        scope: (
+          <TripBar
+            trip={trip}
+            trips={trips}
+            members={members}
+            onSelect={tripActions.onSelect}
+            onRename={tripActions.onRename}
+            onSetDates={tripActions.onSetDates}
             /*
-              Named in words, in every rendering. An arrow conveys nothing to a
-              screen reader, and "previous" alone conveys only that there is one
-              — the day it leads to is what the screen is showing and what the
-              control therefore has to say.
+              The map, because this is the calendar. The menu names the view
+              somebody is *not* in, so it never offers to take them where they
+              already are — and the address is the one that restores the city as
+              well as the trip.
             */
-            aria-label={`Previous day, ${formatDayFull(addDays(day, -1))}`}
-          >
-            <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
-          </button>
-
-          <label className={styles.picker}>
-            <span className={styles.pickerLabel}>Day</span>
-            <input
-              type="date"
-              value={day}
-              onChange={(event) => {
-                // An emptied date control must not navigate to nowhere. There
-                // is no "no day" to be on; the day being read is always a day.
-                if (event.target.value !== '') goToDay(event.target.value)
-              }}
-              className={styles.pickerInput}
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={() => goToDay(addDays(day, 1))}
-            className={styles.step}
-            aria-label={`Next day, ${formatDayFull(addDays(day, 1))}`}
-          >
-            <ChevronRight size={18} strokeWidth={2.2} aria-hidden />
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.body}>
-        {message ? (
-          <p role="alert" className={styles.message}>
-            {message}
-          </p>
-        ) : null}
-
-        <div className={styles.board}>
-          <Waiting
-            groups={waiting}
-            count={grouped.undated.length}
-            id={`${viewIds}-waiting`}
-            labelledBy={`${viewIds}-waiting-tab`}
-            onOpen={(marker) => setOpenMarkerId(marker.id)}
+            otherView={{ name: 'Map', href: workspaceHref }}
+            archived={tripActions.archived}
+            onRevealArchived={tripActions.onRevealArchived}
+            onArchive={tripActions.onArchive}
+            onRestore={tripActions.onRestore}
+            onInvite={tripActions.onInvite}
+            onShowPeople={() =>
+              void refreshMembers(() => fetchTripMembers(supabase, trip.id))
+            }
+            onCreated={tripActions.onSelect}
+            open={detour === 'trip'}
+            onOpen={(open) => setDetour(open ? 'trip' : 'none')}
           />
-
-          <div
-            className={styles.days}
-            id={`${viewIds}-days`}
-            role="tabpanel"
-            aria-labelledby={`${viewIds}-days-tab`}
-          >
-            {days.map((each, index) => (
-              <DayColumn
-                key={each}
-                day={each}
-                current={index === NEIGHBOURS}
-                markers={markersOnDay(grouped, each)}
-                onOpen={(marker) => setOpenMarkerId(marker.id)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
+        ),
+        account: (
+          <AccountMenu
+            youAre={youAre}
+            open={detour === 'account'}
+            onOpen={(open) => setDetour(open ? 'account' : 'none')}
+          />
+        ),
+        workspaceHref,
+        day,
+        onGoToDay: goToDay,
+        message,
+        waiting,
+        waitingCount: grouped.undated.length,
+        markersOn: (each) => markersOnDay(grouped, each),
+        onOpen: (marker) => setOpenMarkerId(marker.id),
+      }}
+    >
       {selection && !editing ? (
         <div className={styles.panel}>
           <MarkerDetails
@@ -688,230 +546,6 @@ export function TripCalendar({
           />
         </div>
       ) : null}
-    </main>
-    </ChromeBar>
-  )
-}
-
-type CalendarView = 'days' | 'waiting'
-
-/**
- * The switch between the day and the places waiting for one, in the narrow
- * shape.
- *
- * Drawn always and hidden by the stylesheet at 900px and up, where both are on
- * screen at once and a switch would do nothing. `display: none` takes it out of
- * the accessibility tree as well, so nobody is announced tabs that are inert.
- *
- * The count rides on the second tab so it is legible from either view — the
- * specification asks for it without anything being opened, and the tab is the
- * only thing about the waiting places that the days view shows.
- */
-function ViewTabs({
-  view,
-  onChange,
-  waitingCount,
-  ids,
-}: {
-  view: CalendarView
-  onChange: (view: CalendarView) => void
-  waitingCount: number
-  ids: string
-}) {
-  // Arrow keys move between the two, as a tab list is expected to.
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-    event.preventDefault()
-    const next: CalendarView = view === 'days' ? 'waiting' : 'days'
-    onChange(next)
-    document.getElementById(`${ids}-${next}-tab`)?.focus()
-  }
-
-  return (
-    <div
-      className={styles.tabs}
-      role="tablist"
-      aria-label="Calendar"
-      onKeyDown={onKeyDown}
-    >
-      <button
-        type="button"
-        role="tab"
-        id={`${ids}-days-tab`}
-        aria-controls={`${ids}-days`}
-        aria-selected={view === 'days'}
-        tabIndex={view === 'days' ? 0 : -1}
-        onClick={() => onChange('days')}
-        className={styles.tab}
-      >
-        Days
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id={`${ids}-waiting-tab`}
-        aria-controls={`${ids}-waiting`}
-        aria-selected={view === 'waiting'}
-        tabIndex={view === 'waiting' ? 0 : -1}
-        onClick={() => onChange('waiting')}
-        className={styles.tab}
-      >
-        No day yet
-        <WaitingCount count={waitingCount} />
-      </button>
-    </div>
-  )
-}
-
-/**
- * How many places are waiting, as a badge.
- *
- * Washed in the accent while there is something to do and muted when there is
- * not. The lettering is `accent-ink` on `accent-wash`, which is the pair that
- * stays apart on both grounds — not `accent-ink` on `accent`, which converges
- * to one colour on the dark ground.
- */
-function WaitingCount({ count }: { count: number }) {
-  return (
-    <span className={`${styles.count} ${count === 0 ? styles.countNone : ''}`}>
-      <span aria-hidden>{count}</span>
-      <span className={styles.visuallyHidden}>
-        {count === 1 ? ', 1 place' : `, ${count} places`}
-      </span>
-    </span>
-  )
-}
-
-/**
- * The places still waiting for a day, one group per city.
- *
- * Beside the days where there is room, open and scrolling by itself, because
- * the work of this screen is taking a place from here and putting it on a day
- * — with both in view, a person sees it leave one and arrive on the other. In
- * the narrow shape it is the second of the two views instead, one press away.
- *
- * Never collapsed, and **present when the count is zero**. A region that
- * appears and disappears moves everything beside it, so the screen would
- * rearrange itself at the moment the last place is dated — which is the moment
- * somebody is most likely to still be reading it.
- *
- * Grouped by city because a day is commonly spent in one, and the order of the
- * groups comes from `@pinpoint/core` so the phone lists them identically.
- */
-function Waiting({
-  groups,
-  count,
-  id,
-  labelledBy,
-  onOpen,
-}: {
-  groups: readonly WaitingGroup[]
-  count: number
-  id: string
-  labelledBy: string
-  onOpen: (marker: Marker) => void
-}) {
-  return (
-    <section
-      className={styles.waiting}
-      id={id}
-      role="tabpanel"
-      aria-labelledby={labelledBy}
-    >
-      {/* The narrow shape's tab already says this, so the stylesheet hides it
-          there. */}
-      <div className={styles.waitingHead}>
-        <h2 className={styles.waitingTitle}>No day yet</h2>
-        <WaitingCount count={count} />
-      </div>
-
-      <div className={styles.waitingList}>
-        {groups.length === 0 ? (
-          <p className={styles.waitingEmpty}>Nothing waiting for a day.</p>
-        ) : (
-          groups.map((group) => (
-            <div key={group.city?.id ?? 'unassigned'} className={styles.cityGroup}>
-              {/* `Unassigned` is what the city control calls a place filed
-                  under no city, so the product has one name for them. */}
-              <h3 className={styles.cityName}>
-                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
-              </h3>
-              <ul className={styles.list}>
-                {group.markers.map((marker) => (
-                  <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-                ))}
-              </ul>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
-  )
-}
-
-function DayColumn({
-  day,
-  current,
-  markers,
-  onOpen,
-}: {
-  day: IsoDay
-  current: boolean
-  markers: readonly Marker[]
-  onOpen: (marker: Marker) => void
-}) {
-  return (
-    <section
-      className={`${styles.day} ${current ? styles.dayCurrent : styles.dayNeighbour}`}
-      aria-current={current ? 'date' : undefined}
-      aria-label={formatDayFull(day)}
-    >
-      <h2 className={styles.dayName}>
-        {/* The full wording where there is room, the short one where there is
-            not — one element rather than two, so the accessible name does not
-            depend on which of a pair happens to be drawn. */}
-        <span className={styles.dayNameLong} aria-hidden>
-          {formatDay(day)}
-        </span>
-        <span className={styles.dayNameShort} aria-hidden>
-          {formatDayShort(day)}
-        </span>
-        <span className={styles.visuallyHidden}>{formatDayFull(day)}</span>
-      </h2>
-
-      {markers.length === 0 ? (
-        // An empty day is the ordinary state of most days on most trips, and it
-        // is information. It is said, not left blank and not drawn as a fault.
-        <p className={styles.dayEmpty}>Nothing planned.</p>
-      ) : (
-        <ul className={styles.list}>
-          {markers.map((marker) => (
-            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}
-
-function PlaceRow({
-  marker,
-  onOpen,
-}: {
-  marker: Marker
-  onOpen: (marker: Marker) => void
-}) {
-  return (
-    <li>
-      <button type="button" onClick={() => onOpen(marker)} className={styles.place}>
-        <TypeChip view={markerView(marker)} size={26} />
-        <span className={styles.placeName}>{marker.name}</span>
-        {/* Visited is said in words as well as drawn, because a signal that
-            survives only in styling does not survive a screen reader. */}
-        {marker.visited ? (
-          <span className={styles.placeVisited}>Visited</span>
-        ) : null}
-      </button>
-    </li>
+    </CalendarScreen>
   )
 }

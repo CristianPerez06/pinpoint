@@ -124,6 +124,45 @@ export function TextField({
 }
 
 /**
+ * The drawn bar that stands in for a name not yet read.
+ *
+ * The phone's copy of the laptop's (`ui.module.css` `.namePlaceholderBar`), with
+ * the same arithmetic: a box as tall as one line of the text it replaces and as
+ * wide as that text is given, holding an 11px bar centred in it — so the box
+ * does not change size when the name lands.
+ *
+ * `inkFaint` because `styling` forbids that colour for text and keeps it for
+ * what is drawn, which this is. Hidden from assistive technology: whatever
+ * holds it says what is loading, and a shape read out says nothing.
+ */
+export function NamePlaceholder({
+  width,
+  lineHeight,
+}: {
+  /** The width the name will have, in points, or a share of its container. */
+  width: number | `${number}%`
+  /** One line of the text being replaced — the `lineHeight` of its role. */
+  lineHeight: number
+}) {
+  const theme = useTheme()
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width, height: lineHeight, justifyContent: 'center' }}
+    >
+      <View
+        style={{
+          height: 11,
+          borderRadius: RADIUS.sm,
+          backgroundColor: theme.colour.inkFaint,
+        }}
+      />
+    </View>
+  )
+}
+
+/**
  * A day, chosen with the platform's own date control.
  *
  * WHY THE PLATFORM'S CONTROL AND NOT ONE OF OURS
@@ -162,6 +201,7 @@ export function DayField({
   error,
   clearable = true,
   standalone = false,
+  waiting = false,
 }: {
   label: string
   /** The day, or null for a place whose day has not been decided. */
@@ -184,6 +224,15 @@ export function DayField({
    * line. In a form it matches the text fields beside it instead.
    */
   standalone?: boolean
+  /**
+   * The day is not known yet — the calendar's band before its trip is read.
+   *
+   * The same field, inert: in the tab order, reported unavailable, doing
+   * nothing when pressed, and drawn in the chrome's inert look (sunk fill, no
+   * outline) with a bar where the date will be. A date written there would be
+   * a guess, since which day a trip opens on depends on its dates.
+   */
+  waiting?: boolean
 }) {
   const theme = useTheme()
   const mode = useThemeMode()
@@ -247,39 +296,61 @@ export function DayField({
         */}
         <Pressable
           onPress={() => {
+            if (waiting) return
             if (Platform.OS === 'ios') setPicking(true)
             else openOnAndroid()
           }}
           accessibilityRole="button"
+          accessibilityState={waiting ? { disabled: true } : undefined}
           accessibilityLabel={
-            value === null ? `${label}, no day yet` : `${label}, ${formatDay(value)}`
+            waiting
+              ? label
+              : value === null
+                ? `${label}, no day yet`
+                : `${label}, ${formatDay(value)}`
           }
           style={[
             styles.dayValue,
-            {
-              backgroundColor: standalone
-                ? theme.colour.surface
-                : theme.colour.surfaceMuted,
-              borderColor: error
-                ? theme.colour.danger
-                : standalone
-                  ? theme.colour.lineStrong
-                  : theme.colour.line,
-            },
+            waiting
+              ? {
+                  backgroundColor: theme.colour.surfaceSunk,
+                  borderColor: 'transparent',
+                }
+              : {
+                  backgroundColor: standalone
+                    ? theme.colour.surface
+                    : theme.colour.surfaceMuted,
+                  borderColor: error
+                    ? theme.colour.danger
+                    : standalone
+                      ? theme.colour.lineStrong
+                      : theme.colour.line,
+                },
           ]}
         >
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.dayText,
-              {
-                color: value === null ? theme.colour.inkMuted : theme.colour.ink,
-              },
-            ]}
-          >
-            {value === null ? 'No day yet' : formatDayNumeric(value)}
-          </Text>
-          <Calendar size={18} color={theme.colour.ink} strokeWidth={2} />
+          {waiting ? (
+            <NamePlaceholder
+              width={96}
+              lineHeight={TYPE.body.size * TYPE.body.lineHeight}
+            />
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.dayText,
+                {
+                  color: value === null ? theme.colour.inkMuted : theme.colour.ink,
+                },
+              ]}
+            >
+              {value === null ? 'No day yet' : formatDayNumeric(value)}
+            </Text>
+          )}
+          <Calendar
+            size={18}
+            color={waiting ? theme.colour.inkMuted : theme.colour.ink}
+            strokeWidth={2}
+          />
         </Pressable>
 
         {/*
@@ -287,7 +358,7 @@ export function DayField({
           empty field is a control that cannot do anything, which the chrome
           forbids for the same reason everywhere else.
         */}
-        {value !== null && clearable ? (
+        {value !== null && clearable && !waiting ? (
           <Pressable
             onPress={() => onChange(null)}
             accessibilityRole="button"
