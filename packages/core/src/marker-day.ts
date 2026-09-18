@@ -257,3 +257,20 @@ export function dayShown(
 ): IsoDay {
   return asked ?? dayToOpenOn(trip, now)
 }
+
+/**
+ * What a phone-shaped calendar is showing: the day being read, or the places
+ * still waiting for one.
+ */
+export type CalendarView = 'days' | 'waiting'
+
+/**
+ * The view a calendar shows: the one being asked for, or the days.
+ *
+ * `asked` comes from an address or a route parameter, so anything that is not
+ * one of the two views is treated as nothing having been asked — the days are
+ * what a fresh arrival sees, and a mistyped link should land somewhere real.
+ */
+export function calendarViewShown(asked: string | null | undefined): CalendarView {
+  return asked === 'waiting' ? 'waiting' : 'days'
+}

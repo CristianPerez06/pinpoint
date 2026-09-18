@@ -1,6 +1,8 @@
 import { signOut } from '@pinpoint/auth'
 import {
-  dayToOpenOn,
+  type CalendarView,
+  calendarViewShown,
+  dayShown,
   type FieldErrors,
   groupMarkersByDay,
   groupUndatedByCity,
@@ -33,6 +35,7 @@ import { MarkerFormSheet, type MarkerFormValues } from '@/components/marker-form
 import { MenuSheet } from '@/components/menu-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { TripSheet } from '@/components/trip-sheet'
+import { askMapToShow } from '@/lib/calendar-detour'
 import { supabase } from '@/lib/supabase'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
@@ -75,6 +78,7 @@ export function TripCalendar({
   onSelectTrip,
   onCreated,
   userId,
+  asked,
 }: {
   trip: Trip
   /** Every trip this account is on, so one can be chosen from here. */
@@ -82,6 +86,11 @@ export function TripCalendar({
   onSelectTrip: (tripId: string) => void
   onCreated: (tripId: string) => void
   userId: string
+  /**
+   * The day and view to open on, when coming back from looking at a place on
+   * the map. Null on every other arrival.
+   */
+  asked: { day?: string; view?: string } | null
 }) {
   const router = useRouter()
 
@@ -125,8 +134,16 @@ export function TripCalendar({
    * already here, grouped.
    *
    * Arriving at another trip re-seeds it by remounting, which the route does.
+   * Coming back from the map is the one arrival that asks for a day.
    */
-  const [day, setDay] = useState<IsoDay>(() => dayToOpenOn(trip))
+  const [day, setDay] = useState<IsoDay>(() => dayShown(asked?.day, trip))
+
+  /**
+   * Which view the screen is showing, remembered here only so that looking at
+   * a place on the map can say where to come back to. The screen owns it; this
+   * is told when it changes.
+   */
+  const [view, setView] = useState<CalendarView>(() => calendarViewShown(asked?.view))
 
   const tripActions = useTripActions({
     trip,
@@ -331,6 +348,18 @@ export function TripCalendar({
     }
   }
 
+  /**
+   * Looking at a place on the map, as a detour rather than a departure.
+   *
+   * The map is underneath, so this leaves it a note and goes back to it. The
+   * day and the view go in the note because this screen is gone once popped;
+   * the map hands them back when its way back to the calendar is used.
+   */
+  function viewOnMap(marker: Marker) {
+    askMapToShow({ tripId: trip.id, markerId: marker.id, day, view })
+    backToTheMap()
+  }
+
   /** The way back, used by the control in the header and by archiving a trip. */
   function backToTheMap() {
     /*
@@ -360,6 +389,8 @@ export function TripCalendar({
         problem,
         onDismissProblem: () => setProblem(null),
       }}
+      initialView={view}
+      onViewChange={setView}
       /*
         Drawn rows until the places and the cities have both been read once —
         the cities too, because the places waiting are grouped under them.
@@ -402,6 +433,10 @@ export function TripCalendar({
           // so there is never a chooser to go back to.
           onChoose={() => {}}
           onBack={() => {}}
+          extraAction={{
+            label: 'View on map',
+            onPress: () => viewOnMap(selection.group.markers[0]!),
+          }}
           onDismiss={() => setOpenMarkerId(null)}
           onEdit={(marker) => {
             setFieldErrors({})

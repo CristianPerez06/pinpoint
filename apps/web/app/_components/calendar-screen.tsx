@@ -2,6 +2,7 @@
 
 import {
   addDays,
+  type CalendarView,
   formatDay,
   formatDayFull,
   formatDayShort,
@@ -76,26 +77,39 @@ export type CalendarBindings = {
 
 export function CalendarScreen({
   live,
+  initialView = 'days',
+  onViewChange,
   children,
 }: {
   live: CalendarBindings | null
+  /**
+   * The view to start on — what the address says, which is the days unless
+   * somebody is coming back from looking at a place on the map.
+   */
+  initialView?: CalendarView
+  /** Told whenever the view changes, so the owner can keep the address honest. */
+  onViewChange?: (view: CalendarView) => void
   /** What opens over the screen — the details card and the form. */
   children?: ReactNode
 }) {
   /*
    * Which of the two views the narrow shape shows.
    *
-   * Always starts on the days, and is written nowhere — not the address, not
-   * storage — so every arrival opens the same way. Changing trip remounts the
-   * owner (`key={trip.id}` on the page), which is arriving at that trip and
-   * resets this without anything having to.
+   * Starts where the owner says — the address's `view`, which a fresh arrival
+   * does not carry, so it opens on the days. Changing trip remounts the owner
+   * (`key={trip.id}` on the page), at an address with no `view`, which resets
+   * this without anything having to.
    *
    * It is only *read* by the stylesheet, and only below 900px. The wide shape
    * shows the waiting places beside the days whatever this says, so the shape
    * is decided by CSS alone and the server's first paint cannot disagree with
    * the browser's first render about it.
    */
-  const [view, setView] = useState<CalendarView>('days')
+  const [view, setViewState] = useState<CalendarView>(initialView)
+  const setView = (next: CalendarView) => {
+    setViewState(next)
+    onViewChange?.(next)
+  }
   const viewIds = useId()
 
   const days = live
@@ -304,8 +318,6 @@ export function CalendarScreen({
     </ChromeBar>
   )
 }
-
-type CalendarView = 'days' | 'waiting'
 
 /**
  * The switch between the day and the places waiting for one, in the narrow

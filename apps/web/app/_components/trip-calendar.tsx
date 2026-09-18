@@ -2,6 +2,8 @@
 
 import {
   type City,
+  type CalendarView,
+  calendarViewShown,
   dayShown,
   type FieldErrors,
   groupMarkersByDay,
@@ -26,7 +28,7 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
@@ -256,6 +258,46 @@ export function TripCalendar({
   )
 
   /**
+   * Which view the narrow shape opens on, from the address.
+   *
+   * Kept in the address beside the day, for the same reason and in the same
+   * way: coming back from looking at a place on the map reverses a step of
+   * history, and the address is all that step brings back. Somebody who went
+   * to the map from the places waiting for a day returns to them. The screen
+   * owns the view; this seeds it and writes it down when it changes.
+   */
+  const [initialView] = useState<CalendarView>(() =>
+    calendarViewShown(searchParams.get('view')),
+  )
+
+  const writeView = useCallback((next: CalendarView) => {
+    // `replaceState` for the reasons `goToDay` gives.
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', next)
+    window.history.replaceState(null, '', `/calendar?${params.toString()}`)
+  }, [])
+
+  const router = useRouter()
+
+  /**
+   * Looking at a place on the map, as a detour rather than a departure.
+   *
+   * The map is told which place and that it came from here; nothing else. The
+   * day and the view are already in this screen's address, and the way back is
+   * the browser's own Back, so the step it reverses lands on them.
+   */
+  const viewOnMap = useCallback(
+    (marker: Marker) => {
+      const [path, query = ''] = workspaceHref.split('?')
+      const params = new URLSearchParams(query)
+      params.set('place', marker.id)
+      params.set('from', 'calendar')
+      router.push(`${path}?${params.toString()}`)
+    },
+    [router, workspaceHref],
+  )
+
+  /**
    * Every list this screen shows, read again.
    *
    * The reason these lists are `useRows` rather than plain state. Each declines
@@ -444,6 +486,8 @@ export function TripCalendar({
 
   return (
     <CalendarScreen
+      initialView={initialView}
+      onViewChange={writeView}
       live={{
         scope: (
           <TripBar
@@ -505,6 +549,10 @@ export function TripCalendar({
             // position, so there is never a chooser to go back to.
             onChoose={() => {}}
             onBack={() => {}}
+            extraAction={{
+              label: 'View on map',
+              onClick: () => viewOnMap(selection.group.markers[0]!),
+            }}
             onDismiss={() => setOpenMarkerId(null)}
             onEdit={(marker) => setEditingId(marker.id)}
             onDelete={(marker) => remove(marker)}

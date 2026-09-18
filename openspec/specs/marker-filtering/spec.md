@@ -420,8 +420,10 @@ Where the system opens a named marker on the person's behalf rather than in resp
 them selecting it on the map, it SHALL open that marker even when the current filter is
 not showing it, and SHALL say that the place is hidden by the filter.
 
-Recognising a searched place the trip already holds is the path this covers, and today the
-only one.
+Two paths do this: recognising a searched place the trip already holds, and showing on the
+map a place opened from the calendar (`trip-calendar`). The calendar deliberately shows every
+place on the trip whatever the map is narrowed to, so the place asked for there is as likely
+as any to be one the filter hides.
 
 The system SHALL NOT change or clear the filter in order to show the place. The filter was
 chosen deliberately, and altering it so the product's own output makes sense is a change
@@ -460,6 +462,12 @@ contains.
 #### Scenario: A searched place is hidden by the current filter
 
 - **WHEN** a person chooses a search candidate matching a marker the filter is hiding
+- **THEN** that marker is opened
+- **AND** it is stated that the place is hidden by the current filter
+
+#### Scenario: A place shown on the map from the calendar is hidden by the current filter
+
+- **WHEN** a person asks to see on the map, from the calendar, a place the filter is hiding
 - **THEN** that marker is opened
 - **AND** it is stated that the place is hidden by the current filter
 

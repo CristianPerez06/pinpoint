@@ -50,6 +50,7 @@ export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filte
 
 export {
   addDays,
+  calendarViewShown,
   dateOfDay,
   dayOfDate,
   dayShown,
@@ -60,7 +61,7 @@ export {
   markersOnDay,
   todayAsDay,
 } from './marker-day'
-export type { IsoDay, MarkersByDay, WaitingGroup } from './marker-day'
+export type { CalendarView, IsoDay, MarkersByDay, WaitingGroup } from './marker-day'
 
 // Only the write-side rule lives here. The type list, its icons, its families,
 // and `markerTypeOf` are presentation and live in `@pinpoint/map` — import them

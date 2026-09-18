@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   addDays,
+  calendarViewShown,
   dateOfDay,
   dayShown,
   dayToOpenOn,
@@ -387,5 +388,25 @@ describe('groupUndatedByCity', () => {
 
   it('has no groups when nothing is waiting', () => {
     expect(groupUndatedByCity([], [kyoto])).toEqual([])
+  })
+})
+
+describe('calendarViewShown', () => {
+  it('shows the places waiting for a day when asked for them', () => {
+    expect(calendarViewShown('waiting')).toBe('waiting')
+  })
+
+  it('shows the days when asked for them', () => {
+    expect(calendarViewShown('days')).toBe('days')
+  })
+
+  it('shows the days when nothing is asked', () => {
+    expect(calendarViewShown(null)).toBe('days')
+    expect(calendarViewShown(undefined)).toBe('days')
+  })
+
+  it('shows the days for a value that is neither', () => {
+    expect(calendarViewShown('Waiting')).toBe('days')
+    expect(calendarViewShown('')).toBe('days')
   })
 })

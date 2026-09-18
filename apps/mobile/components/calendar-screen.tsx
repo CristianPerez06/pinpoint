@@ -1,5 +1,6 @@
 import {
   addDays,
+  type CalendarView,
   formatDay,
   formatDayFull,
   type IsoDay,
@@ -80,10 +81,19 @@ export type CalendarLists = {
 export function CalendarScreen({
   live,
   lists,
+  initialView = 'days',
+  onViewChange,
   children,
 }: {
   live: CalendarBindings | null
   lists: CalendarLists | null
+  /**
+   * The view to start on. The days, except when coming back from looking at a
+   * place on the map, which returns to the view it left from.
+   */
+  initialView?: CalendarView
+  /** Told whenever the view changes, for an owner that has to remember it. */
+  onViewChange?: (view: CalendarView) => void
   /** The sheets that open over the screen. */
   children?: ReactNode
 }) {
@@ -93,15 +103,19 @@ export function CalendarScreen({
   /**
    * Which of the two views is shown.
    *
-   * Always starts on the day, and is kept nowhere else, so every arrival opens
-   * the same way. Changing trip remounts the owner (`key={trip.id}` on the
-   * route), which is arriving at that trip and resets this with nothing here
-   * having to.
+   * Starts on the day unless told otherwise — only the return from the map
+   * does. Changing trip remounts the owner (`key={trip.id}` on the route),
+   * which is arriving at that trip and resets this with nothing here having
+   * to.
    *
    * Switching works while the screen is waiting, because both views are drawn,
    * rows and all — it is an act that can complete without the trip.
    */
-  const [view, setView] = useState<CalendarView>('days')
+  const [view, setViewState] = useState<CalendarView>(initialView)
+  const setView = (next: CalendarView) => {
+    setViewState(next)
+    onViewChange?.(next)
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colour.ground }]}>
@@ -332,8 +346,6 @@ export function CalendarScreen({
     </View>
   )
 }
-
-type CalendarView = 'days' | 'waiting'
 
 /**
  * One of the two arrows either side of the day.
