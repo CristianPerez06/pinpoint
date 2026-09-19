@@ -71,7 +71,7 @@
       - a place with neither shows no pill;
       - creating and editing a city asks only for a name;
       - the city list shows no currency.
-- [ ] 6.2 Run `pnpm verify` and `openspec validate usd-prices-and-free-places --strict`.
+- [x] 6.2 Run `pnpm verify` and `openspec validate usd-prices-and-free-places --strict`.
       After the web deploy has landed, **ask the user before pushing the migration**. It
       clears every price on the live database and cannot be undone. Once they confirm, push
       it and run `pnpm db:types`, which must produce no diff against 1.2. Confirm on the
@@ -79,5 +79,5 @@
       Reopen both apps and verify every place shows no pill.
       **Prices already cleared** on the live database on 2026-09-18, at the user's request,
       by running the migration's `update` directly: 20 places cleared, 0 priced left, 103
-      places intact. The column drop still waits for the deploy. The migration's `update`
-      will run again on push, clearing only prices entered between now and then.
+      places intact. The migration was pushed after the deploy of #183: `cities.currency`
+      is gone, no marker has a price, and `pnpm db:types` showed no table changes.
