@@ -131,6 +131,17 @@ export default async function Home({
             matches nothing in the new one, for a reason nobody could see.
           */
           key={trip.id}
+          /*
+            A token for this render, so the screen can tell a rebuilt copy of
+            itself from a fresh one.
+
+            Going back to this page does not come here at all — the browser
+            replays the payload it saved the first time, lists and all. The
+            screen sees a mount either way and cannot tell them apart, so it
+            counts the tokens it has mounted with: a second sighting of one is a
+            copy, however old, and is read again. See `useShownAgain`.
+          */
+          readId={crypto.randomUUID()}
           trip={trip}
           trips={trips.data}
           initialMarkers={markers.status === 'ready' ? markers.data : []}

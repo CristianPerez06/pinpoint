@@ -39,6 +39,7 @@ import { TripBar } from '@/app/_components/trip-bar'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
+import { useShownAgain } from '@/lib/use-shown-again'
 import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-calendar.module.css'
@@ -79,6 +80,7 @@ function refusalMessage(
 }
 
 export function TripCalendar({
+  readId,
   trip: initialTrip,
   trips: storedTrips,
   initialMarkers,
@@ -88,6 +90,11 @@ export function TripCalendar({
   ownMemberId,
   workspaceHref,
 }: {
+  /**
+   * Which server render these lists came from, for the reason the map's
+   * workspace gives. See `useShownAgain`.
+   */
+  readId: string
   trip: Trip
   /**
    * Every trip this account belongs to, so one can be chosen from here without
@@ -334,6 +341,15 @@ export function TripCalendar({
    * here.
    */
   useVisibleAgain(() => void rereadEverything())
+
+  /*
+    Coming back to this screen through the browser's history — the back arrow
+    from the map, or forward onto the calendar again. The tab never went hidden,
+    so nothing above fires, and what the browser replays is the payload it saved
+    when this screen was first shown. Forced and silent, for the reasons the
+    map's workspace gives.
+  */
+  useShownAgain(readId, () => void rereadEverything({ force: true }))
 
   const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
   const waiting = useMemo(

@@ -17,7 +17,9 @@ is recent enough not to bother, and that a re-read never takes away what is alre
 screen. What it deliberately does not promise is anything appearing while somebody is
 looking: the trigger is coming back, and nothing here holds a connection open waiting to
 be told.
+
 ## Requirements
+
 ### Requirement: One place holds each list, and everything on screen reads it
 
 For each list a screen shows, the application SHALL hold it in exactly one place. Every
@@ -27,10 +29,22 @@ A write SHALL put the row the database returned into that one place. A re-read S
 replace what is there. An application SHALL NOT keep a second copy of a list, nor a
 separate record of local changes to be combined with it at render time.
 
+Where the database carries a write on to rows the write did not return — removing a city
+unassigns every marker filed under it — the application SHALL read those rows again
+afterwards, on every such write, whatever else they hold. It MAY show the expected
+result straight away, and the re-read SHALL then replace it. The re-read SHALL go ahead
+however recently the list was last read, because the write did not count as a read.
+
 Rationale: two copies of one list is how a rename ends up correct in the header and stale
 in the picker — which is the defect that started this — and combining them at render time
 is a merge somebody has to get right in every place it is written. One place cannot
 disagree with itself.
+
+Rationale for rows carried on: a row the database changed is changed in full, including
+the moment it was last changed, which is what a later save of that row is checked
+against. A screen that only writes in the part it expected to change still holds the old
+moment. The next save of that marker was then refused as changed by somebody else, when
+nobody had touched it (#188).
 
 #### Scenario: Something is changed on this device
 
@@ -43,16 +57,37 @@ disagree with itself.
 - **WHEN** a list is read again
 - **THEN** what is held is replaced by what was read
 
+#### Scenario: A place is edited straight after its city is removed
+
+- **WHEN** a person removes a city holding a marker, then without reloading opens that
+  marker, changes its name and saves
+- **THEN** the save goes through
+- **AND** it is not refused as changed by somebody else
+
+#### Scenario: A city with no places is removed
+
+- **WHEN** a person removes a city that holds no markers
+- **THEN** the markers are not read again on its account
+
 ### Requirement: A screen re-reads what it is showing when it becomes current again
 
 Each application SHALL re-read the lists on screen when that screen becomes current again
 after having been left, and SHALL state which event it treats as "current again" on that
 platform.
 
-- Web: the document becoming visible.
+- Web: the document becoming visible; and a screen being shown again from the browser's
+  history — by going back or forward to it, whether through a control in the page or
+  through the browser's own arrows.
 - Native: the application returning to the foreground from having been in the background.
   Returning from a merely interrupted state — a notification pull, a control pull, a
   system dialog — SHALL NOT count, because none of them is somebody coming back.
+
+A screen shown again from the browser's history SHALL NOT count the lists it is shown
+with as a read. They are the answer from when that screen was first shown, however long
+ago that was, and the interval floor in *A list is not read again while what it holds is
+still fresh* SHALL NOT decline this re-read on their account. The re-read is automatic in
+every other respect: it SHALL keep what is on screen until the new answer arrives, and
+SHALL NOT report a failure.
 
 Coming back SHALL be the only trigger. There SHALL be no polling, no interval, and no
 re-read on a timer, and nothing SHALL hold a persistent connection in order to be told
@@ -66,6 +101,14 @@ Rationale: the way a person learns that somebody else changed something is that 
 back to the application. That is one round of reads, at a moment when they are already
 waiting to look at the screen, and it covers every case this product has — a rename, an
 archive, an invitation — without a second mechanism that has to keep working.
+
+Rationale for history: a web screen left for another screen and returned to through the
+browser's history is not read again by the browser. It is rebuilt from the copy saved when
+it was first shown, which predates everything done since — on this device as well as
+elsewhere. Edit a place, open Settings, go back, and the place's card showed its old hours
+with nothing to say so (#193). Returning through history is somebody coming back to the
+screen as much as returning to the tab is, and the copy it arrives with is exactly as old
+as that copy is.
 
 What this costs is accepted rather than overlooked: nothing appears while a person is
 looking at the screen. Somebody else's change lands the next time they come back, and not
@@ -84,6 +127,26 @@ way to tell which one was wrong.
 - **WHEN** a person returns to the application after leaving it
 - **THEN** the lists on screen are read again
 - **AND** what somebody else changed while they were away is shown
+
+#### Scenario: A web screen is returned to through the browser's history
+
+- **WHEN** a person edits a place on the map, opens another screen, and returns to the map
+  by going back — through `Back to the map` or the browser's back arrow
+- **THEN** the lists on the map are read again
+- **AND** the place's card shows the edit without a reload
+- **AND** what was shown before the new answer arrived stays on screen until it does
+
+#### Scenario: A web screen is returned to through history within the interval
+
+- **WHEN** a person returns to a screen through the browser's history within the
+  freshness interval of the moment it was first shown
+- **THEN** its lists are read again regardless
+
+#### Scenario: A re-read on returning through history fails
+
+- **WHEN** the re-read made on returning to a screen through the browser's history fails
+- **THEN** the screen goes on showing what it was showing
+- **AND** the failure is not reported to the person
 
 #### Scenario: An interruption is not a return
 
@@ -288,4 +351,3 @@ same reason.
 
 - **WHEN** the same list is looked at on the other application
 - **THEN** it goes stale and refreshes by the same rules
-

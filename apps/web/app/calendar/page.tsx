@@ -95,6 +95,8 @@ export default async function CalendarPage({
     <Suspense fallback={<CalendarScreen live={null} />}>
       <TripCalendar
         key={trip.id}
+        // A token for this render, for the reason the map's page gives.
+        readId={crypto.randomUUID()}
         trip={trip}
         trips={trips.data}
         initialMarkers={markers.status === 'ready' ? markers.data : []}
