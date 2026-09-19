@@ -429,7 +429,6 @@ export function TripMap({
   ref,
   markers,
   held,
-  currencyOf,
   members,
   interestFor,
   ownMemberId,
@@ -468,8 +467,6 @@ export function TripMap({
    * which is what keeps hidden and removed distinguishable.
    */
   held: readonly Marker[]
-  /** Passed straight through to the details sheet; the map itself has no use for it. */
-  currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
   interestFor: (marker: Marker) => readonly MarkerInterest[]
   ownMemberId: string | null
@@ -1394,7 +1391,6 @@ export function TripMap({
 
       {formSheet === null && selection ? (
         <MarkerDetails
-          currencyOf={currencyOf}
           selection={selection}
           members={members}
           interestFor={interestFor}

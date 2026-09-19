@@ -331,7 +331,6 @@ export type ExtraAction = { label: string; onPress: () => void }
  */
 export function MarkerDetails({
   selection,
-  currencyOf,
   members,
   interestFor,
   ownMemberId,
@@ -347,8 +346,6 @@ export function MarkerDetails({
   removingId,
 }: {
   selection: Selection
-  /** The currency of the city a marker is filed under, or null when there is none. */
-  currencyOf: (marker: Marker) => string | null
   members: readonly TripMember[]
   /** One marker's records, so this component never sees the whole trip's. */
   interestFor: (marker: Marker) => readonly MarkerInterest[]
@@ -463,7 +460,6 @@ export function MarkerDetails({
 
   const marker = group.markers[index]!
   const view = group.views[index]!
-  const currency = currencyOf(marker)
   const removing = removingId === marker.id
 
   /**
@@ -610,11 +606,10 @@ export function MarkerDetails({
         </View>
         {marker.price === null ? null : (
           <View style={[styles.tag, { backgroundColor: theme.colour.surfaceMuted }]}>
-            {/* The currency of the city this is filed under, or none — never a
-                guess. Formatted by the shared helper so the phone and the laptop
-                cannot disagree about the same amount. */}
+            {/* `USD 25` or `Free`. Formatted by the shared helper so the phone
+                and the laptop cannot disagree about the same amount. */}
             <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>
-              {formatPrice(marker.price, currency)}
+              {formatPrice(marker.price)}
             </Text>
           </View>
         )}

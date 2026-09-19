@@ -16,7 +16,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
-import { Button, DayField, FieldLabel, FormNote, TextField } from '@/components/ui'
+import {
+  Button,
+  DayField,
+  FieldLabel,
+  FormNote,
+  PriceField,
+  TextField,
+} from '@/components/ui'
 import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -164,7 +171,7 @@ export function MarkerFormSheet({
    * there, so the offer is simply not drawn — again as the laptop's calendar
    * already does.
    */
-  onCreateCity?: (name: string, currency: string | null) => Promise<City | null>
+  onCreateCity?: (name: string) => Promise<City | null>
   /** Absent when creating: there is nothing yet to remove. */
   onDelete?: () => void
   /**
@@ -202,15 +209,16 @@ export function MarkerFormSheet({
   const [plannedOn, setPlannedOn] = useState<IsoDay | null>(initial.plannedOn)
   const [type, setType] = useState(initial.type)
   const [link, setLink] = useState(initial.link ?? '')
+  // A free place is a price of 0, and opens as Free with an empty box rather
+  // than as an amount of nothing.
+  const [free, setFree] = useState(initial.price === 0)
   const [price, setPrice] = useState(
-    initial.price === null ? '' : String(initial.price),
+    initial.price === null || initial.price === 0 ? '' : String(initial.price),
   )
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
-  const [newCity, setNewCity] = useState<{ name: string; currency: string } | null>(
-    null,
-  )
+  const [newCity, setNewCity] = useState<{ name: string } | null>(null)
   const [cityError, setCityError] = useState<string | null>(null)
 
   /**
@@ -325,9 +333,9 @@ export function MarkerFormSheet({
       plannedOn,
       type,
       link: absentIfBlank(link),
-      // A blank price is absent. A typed zero is a real answer — free entry is
-      // worth recording — so it must not collapse into the same thing.
-      price: price.trim() === '' ? null : Number(price),
+      // Free is a price of 0, and so is a typed 0. A blank price is absent —
+      // not entered yet — and must not collapse into free.
+      price: free ? 0 : price.trim() === '' ? null : Number(price),
     }
   }
 
@@ -336,10 +344,7 @@ export function MarkerFormSheet({
     setCityError(null)
 
     startCreateCity(async () => {
-      const created = await onCreateCity?.(
-        newCity.name.trim(),
-        absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
-      )
+      const created = await onCreateCity?.(newCity.name.trim())
 
       if (!created) {
         setCityError('Could not create that city.')
@@ -535,7 +540,7 @@ export function MarkerFormSheet({
               {cities.map((city) => (
                 <CityChip
                   key={city.id}
-                  label={city.currency ? `${city.name} (${city.currency})` : city.name}
+                  label={city.name}
                   chosen={cityId === city.id}
                   onPress={() => setCityId(city.id)}
                 />
@@ -547,7 +552,7 @@ export function MarkerFormSheet({
                 <CityChip
                   label="+ New city"
                   chosen={false}
-                  onPress={() => setNewCity({ name: '', currency: '' })}
+                  onPress={() => setNewCity({ name: '' })}
                 />
               ) : null}
             </View>
@@ -568,9 +573,7 @@ export function MarkerFormSheet({
                   <View style={styles.row}>
                     <Button
                       label={`Create ${cityNotice.offer}`}
-                      onPress={() =>
-                        setNewCity({ name: cityNotice.offer ?? '', currency: '' })
-                      }
+                      onPress={() => setNewCity({ name: cityNotice.offer ?? '' })}
                     />
                   </View>
                 ) : null}
@@ -603,17 +606,6 @@ export function MarkerFormSheet({
                 placeholder="Kyoto"
                 autoFocus
               />
-              <TextField
-                label="Currency (optional)"
-                value={newCity.currency}
-                onChange={(value) => setNewCity({ ...newCity, currency: value })}
-                placeholder="JPY"
-                autoCapitalize="characters"
-              />
-              <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                Prices filed under this city are read in its currency. Leave it
-                blank and they show as plain numbers — nothing is assumed.
-              </Text>
               {cityError ? <FormNote tone="danger">{cityError}</FormNote> : null}
               <View style={styles.row}>
                 <View style={styles.grow}>
@@ -665,13 +657,12 @@ export function MarkerFormSheet({
             autoCapitalize="none"
           />
 
-          <TextField
-            label="Price"
+          <PriceField
             value={price}
             onChange={setPrice}
+            free={free}
+            onFreeChange={setFree}
             error={fieldErrors.price}
-            placeholder="Leave blank if unknown"
-            keyboardType="decimal-pad"
           />
 
           {/*

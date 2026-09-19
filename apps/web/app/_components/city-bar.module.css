@@ -105,7 +105,7 @@
 }
 
 /*
- * The count and currency keep their own colour on the row being worked in.
+ * The count keeps its own colour on the row being worked in.
  *
  * `ink-muted` on the amber wash is the one place that token is wrong: the fill
  * is already carrying a state, and a grey note on it reads as a different

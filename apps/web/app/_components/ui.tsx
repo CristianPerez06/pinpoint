@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from 'react'
 
 import styles from './ui.module.css'
 
@@ -635,6 +635,74 @@ export function TextField({
         <span className={styles.hint}>{hint}</span>
       ) : null}
     </label>
+  )
+}
+
+/**
+ * A price in US dollars, with a `Free` toggle beside it.
+ *
+ * Free and a price are one value — a free place is a price of 0 — so only one
+ * of them can ever be set. Turning Free on empties the box and greys it out;
+ * going into the box, or pressing Free again, turns it off and leaves an empty
+ * box to type into. The box is greyed rather than `disabled` for exactly that
+ * reason: a disabled input cannot be clicked, and clicking it is one of the two
+ * ways back to a price.
+ */
+export function PriceField({
+  value,
+  onChange,
+  free,
+  onFreeChange,
+  error,
+}: {
+  value: string
+  onChange: (value: string) => void
+  free: boolean
+  onFreeChange: (free: boolean) => void
+  error?: string
+}) {
+  const invalid = error !== undefined
+  const id = useId()
+
+  return (
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.label}>
+        Price (USD)
+      </label>
+      <div className={styles.priceRow}>
+        <input
+          id={id}
+          type="number"
+          min={0}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => {
+            if (free) onFreeChange(false)
+          }}
+          placeholder={free ? 'Free' : 'Leave blank if unknown'}
+          aria-invalid={invalid}
+          data-free={free}
+          className={`${styles.control} ${styles.priceInput}`}
+        />
+        <button
+          type="button"
+          aria-pressed={free}
+          onClick={() => {
+            if (!free) onChange('')
+            onFreeChange(!free)
+          }}
+          className={styles.freeToggle}
+        >
+          Free
+        </button>
+      </div>
+
+      {invalid ? (
+        <span role="alert" className={styles.error}>
+          {error}
+        </span>
+      ) : null}
+    </div>
   )
 }
 

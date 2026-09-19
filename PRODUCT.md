@@ -78,8 +78,9 @@ a direction already travelled.
   no dark style, so the document is fetched and patched before either renderer sees it.
 - **Places arrive one at a time**, from a recommendation or a video, after the initial
   list is in.
-- **A trip crosses borders.** Currency sits on the *city*, not the trip and not the
-  marker.
+- **Every price is in US dollars.** A trip may cross borders, but one fixed currency is
+  simpler to enter and to compare than one per city — which is what this used to be,
+  and was reversed on purpose (#175).
 - **Names are not all Latin.** The first trip is full of macrons — Kyōto, Tōdai-ji,
   Dōtonbori — and names written in kana or kanji are expected and fall back to a system
   face by design.
@@ -119,10 +120,8 @@ types arrive over five colours.
   Revisit in the high hundreds per view.
 - **Markers on one point** are badged with a count and offered as a choice. Stored
   positions are never moved.
-- **A price is never converted** when a marker moves between cities. The number was
-  transcribed off a menu. A city with no currency shows a bare amount and assumes
-  nothing — a price in the wrong currency is worse than one in none, because it looks
-  correct.
+- **A free place is a price of 0**, shown as `Free`. There is no separate "free" flag
+  that could disagree with the price, and a blank price still means "not entered yet".
 - **Bulk import is not a feature.** A migration is not a product capability; nobody
   pastes sixty places twice.
 

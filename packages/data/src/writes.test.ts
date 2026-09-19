@@ -98,7 +98,6 @@ const CITY_ROW = {
   id: CITY_ID,
   trip_id: TRIP_ID,
   name: 'Kyoto',
-  currency: 'JPY',
   created_at: '2026-08-10T00:00:00.000Z',
 }
 
@@ -353,53 +352,29 @@ describe('createCity', () => {
   it('returns the stored row so the form can select it immediately', async () => {
     const { client } = stubClient({ data: CITY_ROW })
 
-    const outcome = await createCity(client, {
-      tripId: TRIP_ID,
-      name: 'Kyoto',
-      currency: 'JPY',
-    })
+    const outcome = await createCity(client, { tripId: TRIP_ID, name: 'Kyoto' })
 
     if (!outcome.ok) throw new Error('unreachable')
-    expect(outcome.data).toMatchObject({ id: CITY_ID, name: 'Kyoto', currency: 'JPY' })
+    expect(outcome.data).toMatchObject({ id: CITY_ID, name: 'Kyoto' })
   })
 
-  it('accepts a city with no currency', async () => {
-    const { client } = stubClient({ data: { ...CITY_ROW, currency: null } })
-
-    const outcome = await createCity(client, {
-      tripId: TRIP_ID,
-      name: 'Kyoto',
-      currency: null,
-    })
-
-    if (!outcome.ok) throw new Error('unreachable')
-    expect(outcome.data.currency).toBeNull()
-  })
-
-  it('rejects a currency that is not a three-letter code', async () => {
+  it('writes only a name, even when handed a currency', async () => {
+    // Every price is in US dollars; a city has no currency to store.
     const { client, calls } = stubClient({ data: CITY_ROW })
 
-    const outcome = await createCity(client, {
-      tripId: TRIP_ID,
-      name: 'Kyoto',
-      currency: 'yen',
-    })
+    await createCity(client, { tripId: TRIP_ID, name: 'Kyoto', currency: 'JPY' })
 
-    if (outcome.ok || outcome.kind !== 'invalid-input') {
-      throw new Error('expected invalid input')
-    }
-    expect(outcome.fieldErrors.currency).toBeDefined()
-    expect(calls.from).not.toHaveBeenCalled()
+    expect(calls.insert).toHaveBeenCalledWith({ trip_id: TRIP_ID, name: 'Kyoto' })
   })
 })
 
 describe('updateCity', () => {
-  it('sets a currency on a city that had none', async () => {
+  it('renames a city', async () => {
     const { client, calls } = stubClient({ data: CITY_ROW })
 
-    const outcome = await updateCity(client, CITY_ID, { currency: 'JPY' })
+    const outcome = await updateCity(client, CITY_ID, { name: 'Kyōto' })
 
-    expect(calls.update).toHaveBeenCalledWith({ currency: 'JPY' })
+    expect(calls.update).toHaveBeenCalledWith({ name: 'Kyōto' })
     expect(outcome.ok).toBe(true)
   })
 

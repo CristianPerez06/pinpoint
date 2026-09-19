@@ -100,49 +100,6 @@ together.
 - **THEN** it is visited for everyone on the trip
 - **AND** there is no per-member visited state
 
-### Requirement: A city declares the currency its markers' prices are in
-
-A city SHALL support an optional currency. A marker's price SHALL be interpreted
-in the currency of the city it is filed under, and SHALL be presented with it
-wherever the price is shown.
-
-A marker with no city, or filed under a city that declares no currency, SHALL have
-its price presented as a bare amount. The system SHALL NOT assume a currency, and
-SHALL NOT fall back to one declared elsewhere: a price shown in the wrong currency
-is worse than a price shown in none, because it looks correct.
-
-Moving a marker to a city with a different currency SHALL reinterpret the price
-and SHALL NOT convert the stored amount. Amounts are what someone typed off a menu
-or a ticket price; converting them would invent precision and would go stale.
-
-The currency belongs to the city rather than to the trip so that one trip can
-cross a border, and to the city rather than to each marker so that it is stated
-once instead of on every place saved.
-
-#### Scenario: A price under a city with a currency
-
-- **WHEN** a marker with a price is filed under a city that declares a currency
-- **THEN** the price is presented in that currency
-- **AND** both applications present it the same way
-
-#### Scenario: A price under a city with no currency
-
-- **WHEN** a marker with a price is filed under a city that declares no currency
-- **THEN** the price is presented as a bare amount
-- **AND** no currency is assumed for it
-
-#### Scenario: A price on an unassigned marker
-
-- **WHEN** a marker with a price is filed under no city
-- **THEN** the price is presented as a bare amount
-- **AND** the marker remains visible and addressable
-
-#### Scenario: A marker is refiled under a different currency
-
-- **WHEN** a marker is moved from a city declaring one currency to a city declaring another
-- **THEN** the stored amount is unchanged
-- **AND** it is presented in the new city's currency
-
 ### Requirement: A marker's city belongs to the same trip as the marker
 
 The system SHALL reject a marker that references a city belonging to a different
@@ -345,3 +302,62 @@ that crosses a city boundary is an ordinary thing to plan.
   different dates
 - **THEN** both the date and the city are stored as given
 - **AND** neither is changed on account of the other
+
+### Requirement: Every price is in US dollars, and a place can be free
+
+A marker's price SHALL be an amount in US dollars. The system SHALL NOT offer any other
+currency, SHALL NOT attach a currency to a city or a trip, and SHALL NOT convert an
+amount.
+
+A marker SHALL be able to be free. A free marker SHALL be one whose price is zero:
+recording a price of 0 and marking a place free SHALL be the same act and SHALL produce
+the same record. There SHALL be no separate "free" value that could disagree with the
+price.
+
+Wherever a price is shown, both applications SHALL present it the same way:
+
+- a free marker as `Free`;
+- a whole amount as `USD` followed by the amount with thousands separators and no
+  decimals, for example `USD 25` or `USD 1,200`;
+- an amount with cents as `USD` followed by the amount with two decimals, for example
+  `USD 32.50`.
+
+A marker with no price SHALL show neither an amount nor `Free`.
+
+Rationale: one fixed currency is simpler to enter and to read than one that depends on
+which city a place is filed under, and a trip crossing a border is not worth that extra
+step. Free is a price of zero rather than a separate fact because nobody planning a trip
+means anything different by the two.
+
+#### Scenario: A price is shown
+
+- **WHEN** a marker has a price of 25
+- **THEN** it is presented as `USD 25` on both applications
+
+#### Scenario: A price with cents is shown
+
+- **WHEN** a marker has a price of 32.5
+- **THEN** it is presented as `USD 32.50` on both applications
+
+#### Scenario: A free place is shown
+
+- **WHEN** a marker has a price of 0
+- **THEN** it is presented as `Free` on both applications
+- **AND** no amount is shown beside it
+
+#### Scenario: A place with no price
+
+- **WHEN** a marker has no price
+- **THEN** neither an amount nor `Free` is shown for it
+
+#### Scenario: A marker changes city
+
+- **WHEN** a marker with a price is moved to another city
+- **THEN** its stored amount is unchanged
+- **AND** it is still presented in US dollars
+
+#### Scenario: Prices recorded before US dollars
+
+- **WHEN** this rule takes effect
+- **THEN** every marker that had a price, including a price of 0, has none
+- **AND** no marker is shown as `Free` until someone marks it so

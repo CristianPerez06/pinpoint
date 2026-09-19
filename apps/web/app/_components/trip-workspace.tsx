@@ -104,8 +104,7 @@ function sameRect(a: Rect | null, b: Rect | null): boolean {
  * - **Optimistic** — one row, reversible, and the screen can draw the outcome
  *   before it is confirmed. Apply it at once, restore exactly what was there if
  *   the database refuses, and say that it was refused. Interest, visited,
- *   renaming a trip, archiving one, restoring one, renaming a city or setting
- *   its currency.
+ *   renaming a trip, archiving one, restoring one, renaming a city.
  * - **Pending** — everything else: the outcome cannot be drawn in advance, what
  *   happens next depends on the stored row, or the act cannot be undone. The
  *   control says what it is doing and is inert until it settles. Saving a
@@ -814,12 +813,6 @@ export function TripWorkspace({
     biasRef.current = computeBias
   }, [computeBias])
 
-  const currencyOf = useCallback(
-    (marker: Marker) =>
-      cities.find((city) => city.id === marker.cityId)?.currency ?? null,
-    [cities],
-  )
-
   /**
    * Recording an answer, and putting it back if the database disagrees.
    *
@@ -1129,10 +1122,10 @@ export function TripWorkspace({
    * has to select the row that comes back, and a row that does not exist yet
    * has no id to select. The caller says `Creating…` while this is in flight.
    */
-  async function addCity(name: string, currency: string | null) {
+  async function addCity(name: string) {
     setMessage(null)
 
-    const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
+    const outcome = await createCity(supabase, { tripId: trip.id, name })
     if (!outcome.ok) {
       setMessage(
         outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
@@ -1144,15 +1137,12 @@ export function TripWorkspace({
   }
 
   /**
-   * Renaming a city, or changing what its prices are read in.
+   * Renaming a city.
    *
    * Optimistic, by the same rule as renaming a trip: one row, reversible, and
-   * the picker can show the new name at once. One call carries both fields —
-   * two calls from one press could store the name and have the currency
-   * refused, which is a half-applied edit that nothing on screen could
-   * describe.
+   * the picker can show the new name at once.
    */
-  async function patchCity(cityId: string, patch: { name?: string; currency?: string | null }) {
+  async function patchCity(cityId: string, patch: { name?: string }) {
     setMessage(null)
 
     const previous = cities
@@ -1421,7 +1411,6 @@ export function TripWorkspace({
         {open ? (
           <MarkerDetails
             selection={open}
-            currencyOf={currencyOf}
             members={members}
             interestFor={interestFor}
             ownMemberId={ownMemberId}

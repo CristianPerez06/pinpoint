@@ -11,6 +11,7 @@ import {
   Button,
   FormError,
   overlayPanelClass,
+  PriceField,
   SelectField,
   TextField,
 } from '@/app/_components/ui'
@@ -93,23 +94,24 @@ export function MarkerForm({
    */
   onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
-  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
+  onCreateCity: (name: string) => Promise<City | null>
 }) {
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
   const [type, setType] = useState(initial.type)
   const [link, setLink] = useState(initial.link ?? '')
+  // A free place is a price of 0, and opens as Free with an empty box rather
+  // than as an amount of nothing.
+  const [free, setFree] = useState(initial.price === 0)
   const [price, setPrice] = useState(
-    initial.price === null ? '' : String(initial.price),
+    initial.price === null || initial.price === 0 ? '' : String(initial.price),
   )
   const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
-  const [newCity, setNewCity] = useState<{ name: string; currency: string } | null>(
-    null,
-  )
+  const [newCity, setNewCity] = useState<{ name: string } | null>(null)
   const [cityError, setCityError] = useState<string | null>(null)
 
   /**
@@ -133,9 +135,9 @@ export function MarkerForm({
       cityId,
       type,
       link: absentIfBlank(link),
-      // A blank price is absent. A typed zero is a real answer — free entry is
-      // worth recording — so it must not collapse into the same thing.
-        price: price.trim() === '' ? null : Number(price),
+        // Free is a price of 0, and so is a typed 0. A blank price is absent —
+        // not entered yet — and must not collapse into free.
+        price: free ? 0 : price.trim() === '' ? null : Number(price),
         // A date control empties to `''`, which is the field being cleared and
         // therefore a place going back to having no day — not a day of no
         // characters.
@@ -149,10 +151,7 @@ export function MarkerForm({
     setCityError(null)
 
     startCreateCity(async () => {
-      const created = await onCreateCity(
-        newCity.name.trim(),
-        absentIfBlank(newCity.currency)?.toUpperCase() ?? null,
-      )
+      const created = await onCreateCity(newCity.name.trim())
 
       if (!created) {
         setCityError('Could not create that city.')
@@ -271,7 +270,7 @@ export function MarkerForm({
         value={cityId ?? UNASSIGNED}
         onChange={(value) => {
           if (value === NEW_CITY) {
-            setNewCity({ name: '', currency: '' })
+            setNewCity({ name: '' })
             return
           }
           setCityId(value === UNASSIGNED ? null : value)
@@ -300,7 +299,7 @@ export function MarkerForm({
           </p>
           {cityNotice.offer && !newCity ? (
             <Button
-              onClick={() => setNewCity({ name: cityNotice.offer ?? '', currency: '' })}
+              onClick={() => setNewCity({ name: cityNotice.offer ?? '' })}
               tone="quiet"
             >
               {`Create ${cityNotice.offer}`}
@@ -318,16 +317,6 @@ export function MarkerForm({
             placeholder="Kyoto"
             autoFocus
           />
-          <TextField
-            label="Currency (optional)"
-            value={newCity.currency}
-            onChange={(value) => setNewCity({ ...newCity, currency: value })}
-            placeholder="JPY"
-          />
-          <p className={styles.hint}>
-            Prices filed under this city are read in its currency. Leave it blank
-            and they show as plain numbers — nothing is assumed.
-          </p>
           {cityError ? <FormError message={cityError} /> : null}
           <div className={styles.row}>
             <Button
@@ -362,13 +351,12 @@ export function MarkerForm({
         type="url"
       />
 
-      <TextField
-        label="Price"
+      <PriceField
         value={price}
         onChange={setPrice}
+        free={free}
+        onFreeChange={setFree}
         error={fieldErrors.price}
-        placeholder="Leave blank if unknown"
-        type="number"
       />
 
       <div className={styles.actions}>

@@ -20,13 +20,12 @@ import { rejected, type WriteOutcome, wrote } from './write-outcome'
  * biases toward.
  */
 
-const CITY_COLUMNS = 'id, trip_id, name, currency, created_at'
+const CITY_COLUMNS = 'id, trip_id, name, created_at'
 
 interface CityRow {
   id: string
   trip_id: string
   name: string
-  currency: string | null
   created_at: string
 }
 
@@ -35,7 +34,6 @@ function toCity(row: CityRow): City {
     id: row.id,
     tripId: row.trip_id,
     name: row.name,
-    currency: row.currency,
     createdAt: row.created_at,
   }
 }
@@ -75,18 +73,13 @@ function toInsertRow(input: NewCity): CityInsert {
   return {
     trip_id: input.tripId,
     name: input.name,
-    currency: input.currency,
   }
 }
 
-/**
- * Only what the patch mentions. `undefined` leaves a field alone; `null` clears
- * it, which is how a currency set by mistake is removed rather than replaced.
- */
+/** Only what the patch mentions. `undefined` leaves a field alone. */
 function toUpdateRow(patch: CityPatch): CityUpdate {
   const row: CityUpdate = {}
   if (patch.name !== undefined) row.name = patch.name
-  if (patch.currency !== undefined) row.currency = patch.currency
   return row
 }
 
@@ -117,15 +110,10 @@ export async function createCity(
 }
 
 /**
- * Rename a city, or set the currency its prices are read in.
+ * Rename a city.
  *
- * Both matter because a city is created mid-flow with whatever was known at the
- * time — frequently just a name. Without this a name typed in a hurry would be
- * permanent, and a currency skipped at creation could never be chosen at all.
- *
- * Changing the currency changes how amounts are read and never the amounts. They
- * were transcribed from a menu or a ticket; converting them would invent
- * precision and go stale the day it was written.
+ * A city is created mid-flow with whatever was known at the time. Without this
+ * a name typed in a hurry would be permanent.
  */
 export async function updateCity(
   client: PinpointClient,
