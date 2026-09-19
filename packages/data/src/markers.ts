@@ -4,6 +4,7 @@ import {
   markerPatchSchema,
   type NewMarker,
   newMarkerSchema,
+  openingHoursOf,
 } from '@pinpoint/core'
 import type { Database, PinpointClient } from '@pinpoint/supabase'
 
@@ -26,7 +27,7 @@ import { conflicted, rejected, type WriteOutcome, wrote } from './write-outcome'
 
 /** Columns, named once. The map needs all of them; a `select('*')` would also work and would stop saying so. */
 const MARKER_COLUMNS =
-  'id, trip_id, city_id, name, note, lng, lat, type, link, price, planned_on, visited, created_at, updated_at'
+  'id, trip_id, city_id, name, note, lng, lat, type, link, price, planned_on, hours, visited, created_at, updated_at'
 
 interface MarkerRow {
   id: string
@@ -40,6 +41,7 @@ interface MarkerRow {
   link: string | null
   price: number | null
   planned_on: string | null
+  hours: unknown
   visited: boolean
   created_at: string
   updated_at: string
@@ -51,6 +53,9 @@ interface MarkerRow {
  * by a newer version of the app would fail validation here and take the whole
  * trip's markers down with it. Reads resolve an unknown type to the fallback
  * and render; only writes reject.
+ *
+ * Hours follow the same rule: the column is checked only for shape, so a week
+ * that breaks the rules reads as hours nobody has entered rather than failing.
  */
 function toMarker(row: MarkerRow): Marker {
   return {
@@ -65,6 +70,7 @@ function toMarker(row: MarkerRow): Marker {
     link: row.link,
     price: row.price,
     plannedOn: row.planned_on,
+    hours: openingHoursOf(row.hours),
     visited: row.visited,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -137,6 +143,7 @@ function toInsertRow(input: NewMarker): MarkerInsert {
     link: input.link,
     price: input.price,
     planned_on: input.plannedOn,
+    hours: input.hours,
   }
 }
 
@@ -159,6 +166,7 @@ function toUpdateRow(patch: MarkerPatch): MarkerUpdate {
   if (patch.link !== undefined) row.link = patch.link
   if (patch.price !== undefined) row.price = patch.price
   if (patch.plannedOn !== undefined) row.planned_on = patch.plannedOn
+  if (patch.hours !== undefined) row.hours = patch.hours
   return row
 }
 

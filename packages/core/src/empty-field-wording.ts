@@ -18,4 +18,5 @@ export const EMPTY_FIELD_WORDING = {
   day: 'No day yet',
   note: 'No note yet',
   link: 'No link yet',
+  hours: 'No hours yet',
 } as const

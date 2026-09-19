@@ -14,6 +14,7 @@ const VALID = {
   link: null,
   price: null,
   plannedOn: null,
+  hours: null,
   visited: false,
   createdAt: '2026-08-02T12:00:00.000Z',
   updatedAt: '2026-08-02T12:00:00.000Z',
@@ -148,6 +149,17 @@ describe('markerSchema', () => {
     expect(parsed.success && 'plannedOn' in parsed.data).toBe(false)
   })
 
+  it('leaves the hours out when the patch does not mention them', () => {
+    const parsed = markerPatchSchema.safeParse({ note: 'Standing counter' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && 'hours' in parsed.data).toBe(false)
+  })
+
+  it('clears the hours when the patch says null', () => {
+    const parsed = markerPatchSchema.safeParse({ hours: null })
+    expect(parsed.success && parsed.data.hours).toBe(null)
+  })
+
   it('rejects a non-ISO createdAt', () => {
     expect(
       markerSchema.safeParse({ ...VALID, createdAt: '2026-08-02' }).success,
@@ -254,5 +266,22 @@ describe('newMarkerSchema', () => {
     const parsed = newMarkerSchema.safeParse({ ...NEW, plannedOn: '2026-04-03' })
     expect(parsed.success).toBe(true)
     expect(parsed.success && parsed.data.plannedOn).toBe('2026-04-03')
+  })
+
+  it('treats hours left out as no hours, rather than refusing the place', () => {
+    const parsed = newMarkerSchema.safeParse(NEW)
+    expect(parsed.success && parsed.data.hours).toBe(null)
+  })
+
+  it('accepts a place saved with hours', () => {
+    const hours = { fri: [['19:00', '02:00']] }
+    const parsed = newMarkerSchema.safeParse({ ...NEW, hours })
+    expect(parsed.success && parsed.data.hours).toEqual(hours)
+  })
+
+  it('refuses hours that break the rules, under the hours field', () => {
+    const parsed = newMarkerSchema.safeParse({ ...NEW, hours: { mon: [['09:00', '']] } })
+    expect(parsed.success).toBe(false)
+    expect(parsed.error?.issues[0]?.path[0]).toBe('hours')
   })
 })

@@ -565,6 +565,7 @@ export function TripCalendar({
               link: editing.link,
               price: editing.price,
               plannedOn: editing.plannedOn,
+              hours: editing.hours,
             }}
             cities={cities}
             cityNotice={null}

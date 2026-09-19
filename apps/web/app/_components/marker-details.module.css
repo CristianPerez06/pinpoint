@@ -98,6 +98,42 @@
   white-space: pre-wrap;
 }
 
+/*
+  A place's hours: day names in one column, times in the other.
+
+  One grid for every line, rather than a row per line, so the times start at
+  the same place down the card whatever the day names' widths — `Tue–Thu` and
+  `Fri` are not the same width, and comparing times that jump sideways is
+  reading, not glancing. `display: contents` lets each line's two spans take
+  their places in that one grid.
+*/
+.hours {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hoursLine {
+  display: contents;
+}
+
+.hoursDays {
+  font-weight: 600;
+}
+
+/* The days it is closed: said, but after and quieter than the days it is open. */
+.hoursClosed .hoursDays,
+.hoursClosed .hoursText {
+  color: var(--pp-ink-muted);
+  font-weight: 400;
+}
+
+.hoursRange {
+  white-space: nowrap;
+}
+
 .absent {
   color: var(--pp-ink-muted);
   font-style: italic;

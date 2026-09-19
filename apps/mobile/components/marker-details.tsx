@@ -1,9 +1,11 @@
 import {
+  describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
   formatPrice,
   type Marker,
   type MarkerInterest,
+  type OpeningHours,
   type TripMember,
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
@@ -132,6 +134,12 @@ const styles = StyleSheet.create({
   */
   link: { fontWeight: '600', alignSelf: 'flex-start' },
   absent: { ...role(TYPE.body), fontStyle: 'italic' },
+  hours: { gap: 1 },
+  hoursLine: { flexDirection: 'row', gap: 14 },
+  /* Wide enough for `Every day`, the longest name a line can carry. */
+  hoursDays: { ...role(TYPE.body), minWidth: 72, fontVariant: ['tabular-nums'] },
+  hoursText: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', columnGap: 4 },
+  hoursRange: { ...role(TYPE.body), fontVariant: ['tabular-nums'] },
   hint: { ...role(TYPE.note) },
   /*
     A place the filter is not drawing, opened anyway because search recognised
@@ -254,6 +262,47 @@ function Field({
       ) : (
         <Text style={[styles.fieldValue, { color: theme.colour.ink }]}>{value}</Text>
       )}
+    </View>
+  )
+}
+
+/**
+ * A place's week, one line per run of days, in the words both cards share.
+ *
+ * Every day name is measured into one column width, so the times start at the
+ * same place down the card — `Tue–Thu` and `Fri` are not the same width, and
+ * times that jump sideways from line to line cannot be compared at a glance.
+ * A line that has to wrap breaks between ranges, never inside one: each range
+ * is its own unbreakable word.
+ */
+function HoursLines({ hours }: { hours: OpeningHours }) {
+  const theme = useTheme()
+  const lines = describeHours(hours)
+
+  return (
+    <View style={styles.hours}>
+      {lines.map((line) => {
+        const colour = line.closed ? theme.colour.inkMuted : theme.colour.ink
+        return (
+          <View key={line.days} style={styles.hoursLine}>
+            <Text
+              style={[
+                styles.hoursDays,
+                { color: colour, fontWeight: line.closed ? '400' : '600' },
+              ]}
+            >
+              {line.days}
+            </Text>
+            <View style={styles.hoursText}>
+              {line.text.split(', ').map((part, index, parts) => (
+                <Text key={part} style={[styles.hoursRange, { color: colour }]}>
+                  {index < parts.length - 1 ? `${part},` : part}
+                </Text>
+              ))}
+            </View>
+          </View>
+        )
+      })}
     </View>
   )
 }
@@ -503,6 +552,17 @@ export function MarkerDetails({
         value={marker.plannedOn === null ? null : formatDay(marker.plannedOn)}
         absent={EMPTY_FIELD_WORDING.day}
       />
+
+      <View style={styles.field}>
+        <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>Hours</Text>
+        {marker.hours === null ? (
+          <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
+            {EMPTY_FIELD_WORDING.hours}
+          </Text>
+        ) : (
+          <HoursLines hours={marker.hours} />
+        )}
+      </View>
 
       <Field label="Note" value={marker.note} absent={EMPTY_FIELD_WORDING.note} />
       <Field

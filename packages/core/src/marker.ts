@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { markerTypeSchema } from './marker-type'
+import { openingHoursSchema } from './opening-hours'
 
 /**
  * A place someone wants to go.
@@ -47,6 +48,11 @@ export const markerSchema = z.object({
    * decision, not an error.
    */
   plannedOn: z.iso.date().nullable(),
+  /**
+   * The days the place is open and at what times, or null while nobody has
+   * entered them — which is never the same as closed. See `opening-hours.ts`.
+   */
+  hours: openingHoursSchema.nullable(),
   /** Shared by the whole trip: travelling companions visit a place together. */
   visited: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -90,6 +96,7 @@ const writableMarkerFields = markerSchema.pick({
   link: true,
   price: true,
   plannedOn: true,
+  hours: true,
 })
 
 /**
@@ -113,6 +120,9 @@ const writableMarkerFields = markerSchema.pick({
  */
 export const newMarkerSchema = writableMarkerFields.extend({
   plannedOn: markerSchema.shape.plannedOn.default(null),
+  // Defaulted for the same reason as `plannedOn`: a client that cannot express
+  // hours yet is a client whose places have none, not one whose saves fail.
+  hours: markerSchema.shape.hours.default(null),
 })
 
 export type NewMarker = z.infer<typeof newMarkerSchema>

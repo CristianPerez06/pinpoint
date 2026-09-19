@@ -1,0 +1,207 @@
+/*
+  The hours part of the place form, drawn from `mock/opening-hours-mock.html`
+  in the change that added it (#176). The day letters are the city chip's
+  chosen state — accent wash, accent ink — because they are the same kind of
+  control: something turned on, not something pressed once.
+*/
+
+.field {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-muted);
+}
+
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.day {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.day:hover {
+  border-color: var(--pp-ink-faint);
+}
+
+.day[aria-pressed='true'] {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent);
+  color: var(--pp-accent-ink);
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  color: var(--pp-ink-muted);
+}
+
+.subhead {
+  margin-top: 2px;
+  font-size: var(--pp-type-note-size);
+  font-weight: 700;
+  color: var(--pp-ink);
+}
+
+.ranges {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+.rangeBlock {
+  display: grid;
+  gap: 4px;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.time {
+  box-sizing: border-box;
+  width: 76px;
+  padding: var(--pp-space-sm) 0;
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.time::placeholder {
+  color: var(--pp-ink-muted);
+}
+
+.time:focus {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.to {
+  color: var(--pp-ink-muted);
+}
+
+/* `accentInk`, because it is text on the surface rather than on a fill. */
+.nextDay {
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  color: var(--pp-accent-ink);
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink-muted);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+.apart {
+  display: grid;
+  gap: var(--pp-space-sm);
+  padding: 10px 12px;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+}
+
+.apartHead {
+  display: flex;
+  align-items: center;
+}
+
+.apartDay {
+  font-weight: 700;
+}
+
+.link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pp-accent-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.chip {
+  justify-self: start;
+  padding: 6px 13px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--pp-ink-faint);
+}
+
+.choose {
+  display: grid;
+  gap: 6px;
+}
+
+.chooseDays {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.error {
+  font-size: var(--pp-type-note-size);
+  font-weight: 550;
+  color: var(--pp-danger);
+}
