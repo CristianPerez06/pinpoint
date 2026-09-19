@@ -54,7 +54,18 @@ export type {
   Weekday,
 } from './opening-hours'
 
-export { formatPrice } from './price'
+export {
+  CURRENCIES,
+  currencyCodeSchema,
+  currencyLabel,
+  currencyName,
+  searchCurrencies,
+} from './currency'
+
+export { formatMoney, formatPrice, formatPrices } from './price'
+
+export { localPriceClearedBy, localPricesUnder, pricesFromDraft } from './price-draft'
+export type { DraftedPrices, PriceDraft } from './price-draft'
 
 export {
   interestStateOf,

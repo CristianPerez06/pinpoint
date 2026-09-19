@@ -4,7 +4,9 @@ import {
   type FieldErrors,
   type IsoDay,
   joinHours,
+  localPriceClearedBy,
   type OpeningHours,
+  pricesFromDraft,
   splitHours,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
@@ -23,6 +25,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { CurrencyField } from '@/components/currency-field'
 import { HoursField } from '@/components/hours-field'
 import { MarkerGlyph } from '@/components/marker-icon'
 import {
@@ -93,6 +96,9 @@ export interface MarkerFormValues {
   type: string
   link: string | null
   price: number | null
+  /** In the second currency of the place's city, or null. See `@pinpoint/core`'s marker. */
+  localPrice: number | null
+  localCurrency: string | null
   /**
    * The day this place is planned for, or null for one still waiting.
    *
@@ -182,7 +188,7 @@ export function MarkerFormSheet({
    * there, so the offer is simply not drawn — again as the laptop's calendar
    * already does.
    */
-  onCreateCity?: (name: string) => Promise<City | null>
+  onCreateCity?: (name: string, currency: string | null) => Promise<City | null>
   /** Absent when creating: there is nothing yet to remove. */
   onDelete?: () => void
   /**
@@ -229,10 +235,21 @@ export function MarkerFormSheet({
   const [price, setPrice] = useState(
     initial.price === null || initial.price === 0 ? '' : String(initial.price),
   )
+  // The second box, kept per currency rather than as one string. Refiling the
+  // place to a city with another currency shows that currency's box, empty, and
+  // choosing the first city again brings back what was in its box — nothing is
+  // lost until the place is saved.
+  const [localByCurrency, setLocalByCurrency] = useState<Record<string, string>>(() =>
+    initial.localPrice !== null && initial.localCurrency !== null
+      ? { [initial.localCurrency]: String(initial.localPrice) }
+      : {},
+  )
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
-  const [newCity, setNewCity] = useState<{ name: string } | null>(null)
+  const [newCity, setNewCity] = useState<{ name: string; currency: string | null } | null>(
+    null,
+  )
   const [cityError, setCityError] = useState<string | null>(null)
 
   /**
@@ -245,6 +262,11 @@ export function MarkerFormSheet({
    */
   const [saving, startSave] = usePending()
   const [creatingCity, startCreateCity] = usePending()
+
+  const chosenCity = cities.find((city) => city.id === cityId) ?? null
+  const currency = chosenCity?.currency ?? null
+  const local = currency === null ? '' : (localByCurrency[currency] ?? '')
+  const cleared = localPriceClearedBy(initial, currency)
 
   const windowHeight = useWindowDimensions().height
   const heights = useMemo(
@@ -349,9 +371,9 @@ export function MarkerFormSheet({
       hours: joinHours(hours),
       type,
       link: absentIfBlank(link),
-      // Free is a price of 0, and so is a typed 0. A blank price is absent —
-      // not entered yet — and must not collapse into free.
-      price: free ? 0 : price.trim() === '' ? null : Number(price),
+      // Free is a price of 0, and so is a typed 0 in either box. A blank price
+      // is absent — not entered yet — and must not collapse into free.
+      ...pricesFromDraft({ free, usd: price, local, currency }),
     }
   }
 
@@ -360,7 +382,7 @@ export function MarkerFormSheet({
     setCityError(null)
 
     startCreateCity(async () => {
-      const created = await onCreateCity?.(newCity.name.trim())
+      const created = await onCreateCity?.(newCity.name.trim(), newCity.currency)
 
       if (!created) {
         setCityError('Could not create that city.')
@@ -568,7 +590,7 @@ export function MarkerFormSheet({
                 <CityChip
                   label="+ New city"
                   chosen={false}
-                  onPress={() => setNewCity({ name: '' })}
+                  onPress={() => setNewCity({ name: '', currency: null })}
                 />
               ) : null}
             </View>
@@ -589,7 +611,7 @@ export function MarkerFormSheet({
                   <View style={styles.row}>
                     <Button
                       label={`Create ${cityNotice.offer}`}
-                      onPress={() => setNewCity({ name: cityNotice.offer ?? '' })}
+                      onPress={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
                     />
                   </View>
                 ) : null}
@@ -621,6 +643,11 @@ export function MarkerFormSheet({
                 onChange={(value) => setNewCity({ ...newCity, name: value })}
                 placeholder="Kyoto"
                 autoFocus
+              />
+              <CurrencyField
+                value={newCity.currency}
+                onChange={(code) => setNewCity({ ...newCity, currency: code })}
+                hint={`Places in ${newCity.name.trim() || 'this city'} get a ${newCity.currency ?? ''} price box beside the dollars.`}
               />
               {cityError ? <FormNote tone="danger">{cityError}</FormNote> : null}
               <View style={styles.row}>
@@ -681,6 +708,25 @@ export function MarkerFormSheet({
             free={free}
             onFreeChange={setFree}
             error={fieldErrors.price}
+            local={
+              currency === null || chosenCity === null
+                ? undefined
+                : {
+                    currency,
+                    value: local,
+                    onChange: (value) =>
+                      setLocalByCurrency((current) => ({ ...current, [currency]: value })),
+                    hint: `${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                    error: fieldErrors.localPrice,
+                  }
+            }
+            warning={
+              cleared === null
+                ? null
+                : chosenCity === null
+                  ? `Leaving this place without a city clears the ${cleared} saved for it.`
+                  : `Moving to ${chosenCity.name} clears the ${cleared} saved for this place.`
+            }
           />
 
           {/*

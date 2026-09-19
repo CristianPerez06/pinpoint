@@ -12,6 +12,7 @@ import {
   cityClaiming,
   cityNoticeFor,
   isFiltered,
+  localPricesUnder,
   markersSelectedBy,
   matchesFilter,
   NO_FILTER,
@@ -174,6 +175,8 @@ function valuesOf(marker: Marker): MarkerFormValues {
     type: marker.type,
     link: marker.link,
     price: marker.price,
+    localPrice: marker.localPrice,
+    localCurrency: marker.localCurrency,
     plannedOn: marker.plannedOn,
     hours: marker.hours,
   }
@@ -682,6 +685,8 @@ export function TripWorkspace({
         type: FALLBACK_MARKER_TYPE,
         link: null,
         price: null,
+        localPrice: null,
+        localCurrency: null,
         /*
          * A new place has no day, whichever day the calendar happens to be
          * reading. The absence of a date means the decision has not been made,
@@ -906,10 +911,10 @@ export function TripWorkspace({
    * id to select. This was the one write on this platform that failed in
    * silence — it returned `null` and left the form to guess.
    */
-  async function addCity(name: string) {
+  async function addCity(name: string, currency: string | null) {
     setProblem(null)
 
-    const outcome = await createCity(supabase, { tripId: trip.id, name })
+    const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
@@ -926,8 +931,20 @@ export function TripWorkspace({
    * Optimistic, by the same rule as renaming a trip: one row, reversible, and
    * the list can show the new name at once.
    */
-  async function patchCity(cityId: string, patch: { name?: string }) {
+  async function patchCity(
+    cityId: string,
+    patch: { name?: string; currency?: string | null },
+  ) {
     setProblem(null)
+
+    // Whether this clears local prices, decided before the write. The database
+    // does the clearing and moves those places' `updated_at`, so they are read
+    // again afterwards — otherwise the next edit of one of them would be
+    // refused as based on a stale read, and its card would still show the amount.
+    const clearsLocalPrices =
+      patch.currency !== undefined &&
+      patch.currency !== cities.find((city) => city.id === cityId)?.currency &&
+      localPricesUnder(cityId, markers) > 0
 
     const previous = cities
     cityQuery.set((rows) =>
@@ -944,10 +961,14 @@ export function TripWorkspace({
     }
     const saved = outcome.data
     cityQuery.set((rows) => rows.map((city) => (city.id === cityId ? saved : city)))
+    if (clearsLocalPrices) await markerQuery.refetch({ force: true })
   }
 
   async function removeCity(cityId: string) {
     setProblem(null)
+
+    // Read again afterwards for the reason `patchCity` gives.
+    const clearsLocalPrices = localPricesUnder(cityId, markers) > 0
 
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
@@ -977,6 +998,7 @@ export function TripWorkspace({
     // re-frames on what is left instead of staying pointed at a group that has
     // just been dissolved.
     if (selectedCityId === cityId) selectCity(null)
+    if (clearsLocalPrices) await markerQuery.refetch({ force: true })
   }
 
   /**

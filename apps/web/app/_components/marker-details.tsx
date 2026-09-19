@@ -4,7 +4,7 @@ import {
   describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
-  formatPrice,
+  formatPrices,
   type Marker,
   type MarkerInterest,
   type TripMember,
@@ -162,6 +162,7 @@ function Details({
    * which would make somebody watch a pin they had just removed reappear.
    */
   const [removing, startRemove] = usePending()
+  const prices = formatPrices(marker)
 
   return (
     <div className={overlayPanelClass}>
@@ -178,10 +179,10 @@ function Details({
         >
           {view.typeLabel}
         </span>
-        {marker.price === null ? null : (
-          <span className={`${styles.tag} ${styles.tagPrice}`}>
-            {formatPrice(marker.price)}
-          </span>
+        {/* `USD 25 · JPY 3,800`, either alone, or `Free`; no pill for neither.
+            One shared helper, so the phone and the laptop cannot disagree. */}
+        {prices === null ? null : (
+          <span className={`${styles.tag} ${styles.tagPrice}`}>{prices}</span>
         )}
       </div>
 

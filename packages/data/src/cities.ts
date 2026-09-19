@@ -20,12 +20,13 @@ import { rejected, type WriteOutcome, wrote } from './write-outcome'
  * biases toward.
  */
 
-const CITY_COLUMNS = 'id, trip_id, name, created_at'
+const CITY_COLUMNS = 'id, trip_id, name, currency, created_at'
 
 interface CityRow {
   id: string
   trip_id: string
   name: string
+  currency: string | null
   created_at: string
 }
 
@@ -34,6 +35,7 @@ function toCity(row: CityRow): City {
     id: row.id,
     tripId: row.trip_id,
     name: row.name,
+    currency: row.currency,
     createdAt: row.created_at,
   }
 }
@@ -73,6 +75,7 @@ function toInsertRow(input: NewCity): CityInsert {
   return {
     trip_id: input.tripId,
     name: input.name,
+    currency: input.currency,
   }
 }
 
@@ -80,6 +83,9 @@ function toInsertRow(input: NewCity): CityInsert {
 function toUpdateRow(patch: CityPatch): CityUpdate {
   const row: CityUpdate = {}
   if (patch.name !== undefined) row.name = patch.name
+  // Changing or clearing this clears the local prices typed in the old
+  // currency. The database does that, so no path can forget to.
+  if (patch.currency !== undefined) row.currency = patch.currency
   return row
 }
 

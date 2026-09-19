@@ -88,6 +88,8 @@ const MARKER_ROW = {
   type: 'shopping',
   link: null,
   price: null,
+  local_price: null,
+  local_currency: null,
   planned_on: null,
   hours: null,
   visited: false,
@@ -99,6 +101,7 @@ const CITY_ROW = {
   id: CITY_ID,
   trip_id: TRIP_ID,
   name: 'Kyoto',
+  currency: null,
   created_at: '2026-08-10T00:00:00.000Z',
 }
 
@@ -116,6 +119,26 @@ const VALID_MARKER = {
 }
 
 describe('createMarker', () => {
+  it('writes a local price with its currency', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    await createMarker(client, { ...VALID_MARKER, price: 25, localPrice: 3800, localCurrency: 'JPY' })
+
+    expect(calls.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 25, local_price: 3800, local_currency: 'JPY' }),
+    )
+  })
+
+  it('refuses a local price without its currency, naming the price field', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    const outcome = await createMarker(client, { ...VALID_MARKER, localPrice: 3800 })
+
+    if (outcome.ok || outcome.kind !== 'invalid-input') throw new Error('expected invalid input')
+    expect(outcome.fieldErrors.localPrice).toBeDefined()
+    expect(calls.insert).not.toHaveBeenCalled()
+  })
+
   it('returns the stored row so the map need not re-read the trip', async () => {
     const { client } = stubClient({ data: MARKER_ROW })
 
@@ -401,13 +424,31 @@ describe('createCity', () => {
     expect(outcome.data).toMatchObject({ id: CITY_ID, name: 'Kyoto' })
   })
 
-  it('writes only a name, even when handed a currency', async () => {
-    // Every price is in US dollars; a city has no currency to store.
+  it('writes a second currency when given one, and none otherwise', async () => {
     const { client, calls } = stubClient({ data: CITY_ROW })
 
     await createCity(client, { tripId: TRIP_ID, name: 'Kyoto', currency: 'JPY' })
+    await createCity(client, { tripId: TRIP_ID, name: 'Kyoto' })
 
-    expect(calls.insert).toHaveBeenCalledWith({ trip_id: TRIP_ID, name: 'Kyoto' })
+    expect(calls.insert).toHaveBeenNthCalledWith(1, {
+      trip_id: TRIP_ID,
+      name: 'Kyoto',
+      currency: 'JPY',
+    })
+    expect(calls.insert).toHaveBeenNthCalledWith(2, {
+      trip_id: TRIP_ID,
+      name: 'Kyoto',
+      currency: null,
+    })
+  })
+
+  it('refuses USD as a second currency without writing', async () => {
+    const { client, calls } = stubClient({ data: CITY_ROW })
+
+    const outcome = await createCity(client, { tripId: TRIP_ID, name: 'Kyoto', currency: 'USD' })
+
+    expect(outcome.ok).toBe(false)
+    expect(calls.insert).not.toHaveBeenCalled()
   })
 })
 

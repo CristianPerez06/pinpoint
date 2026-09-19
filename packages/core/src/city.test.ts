@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { markersSelectedBy, UNASSIGNED_CITY } from './city'
+import { cityPatchSchema, markersSelectedBy, newCitySchema, UNASSIGNED_CITY } from './city'
 
 const KYOTO = 'city-kyoto'
 const TOKYO = 'city-tokyo'
@@ -43,5 +43,20 @@ describe('markersSelectedBy', () => {
 
   it('selects nothing for a city that no longer exists', () => {
     expect(markersSelectedBy('city-deleted', markers)).toEqual([])
+  })
+})
+
+describe('city currency', () => {
+  it('defaults a new city to no second currency', () => {
+    expect(
+      newCitySchema.parse({ tripId: '00000000-0000-4000-8000-000000000001', name: 'Tokyo' })
+        .currency,
+    ).toBeNull()
+  })
+
+  it('accepts a code in a patch, and refuses USD', () => {
+    expect(cityPatchSchema.parse({ currency: 'JPY' })).toEqual({ currency: 'JPY' })
+    expect(cityPatchSchema.parse({ currency: null })).toEqual({ currency: null })
+    expect(cityPatchSchema.safeParse({ currency: 'USD' }).success).toBe(false)
   })
 })

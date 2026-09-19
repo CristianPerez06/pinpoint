@@ -1,0 +1,131 @@
+.field {
+  display: grid;
+  gap: 5px;
+}
+
+.label {
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-muted);
+}
+
+.hint {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  font-weight: var(--pp-type-note-weight);
+  line-height: var(--pp-type-note-leading);
+}
+
+.chosen {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm) 6px var(--pp-space-sm) 11px;
+  background: var(--pp-surface-muted);
+  border-radius: var(--pp-radius-md);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+}
+
+.chosen span {
+  flex: 1;
+  min-width: 0;
+}
+
+.clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink-muted);
+  cursor: pointer;
+}
+
+.clear:hover {
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink);
+}
+
+.combo {
+  position: relative;
+}
+
+.icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pp-ink-muted);
+  pointer-events: none;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--pp-space-sm) 11px var(--pp-space-sm) 32px;
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  font-size: var(--pp-type-control-size);
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--pp-ink-muted);
+}
+
+.input:focus {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+/*
+ * In flow rather than floating, so it pushes what is below it down instead of
+ * covering it — the panels this sits in scroll, and a floating list would be
+ * clipped at their edge.
+ */
+.list {
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow-y: auto;
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
+}
+
+.option {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 11px;
+  color: var(--pp-ink);
+  cursor: pointer;
+}
+
+.option[aria-selected='true'] {
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+}
+
+.code {
+  flex: none;
+  width: 2.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 7px 11px;
+  color: var(--pp-ink-muted);
+}

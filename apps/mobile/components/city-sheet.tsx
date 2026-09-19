@@ -1,5 +1,5 @@
 import type { City, Marker } from '@pinpoint/core'
-import { UNASSIGNED_CITY } from '@pinpoint/core'
+import { localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
@@ -19,6 +19,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -88,7 +89,7 @@ export function CitySheet({
   /** Choosing one. Null is `All places`, which is a choice rather than a clear. */
   onSelect: (cityId: string | null) => void
   /** Renaming a city, awaited so the editor can say it is saving. */
-  onSave: (cityId: string, patch: { name: string }) => Promise<unknown>
+  onSave: (cityId: string, patch: { name: string; currency: string | null }) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /** A refusal from one of the writes reached from here, or null. */
   problem: string | null
@@ -211,6 +212,7 @@ export function CitySheet({
                     key={city.id}
                     city={city}
                     count={markers.filter((marker) => marker.cityId === city.id).length}
+                    localCount={localPricesUnder(city.id, markers)}
                     current={city.id === selectedCityId}
                     onPick={() => pick(city.id)}
                     editing={editing === city.id}
@@ -337,21 +339,25 @@ function CityRow({
   onSave,
   onDelete,
   onDone,
+  localCount,
 }: {
   city: City
   count: number
+  /** How many of this city's places have a local price, which a change of currency clears. */
+  localCount: number
   /** Whether this is the city being worked on. */
   current: boolean
   onPick: () => void
   editing: boolean
   onToggle: () => void
-  onSave: (patch: { name: string }) => Promise<unknown>
+  onSave: (patch: { name: string; currency: string | null }) => Promise<unknown>
   onDelete: () => Promise<unknown>
   /** Closes this row's editor, once whichever write it started has settled. */
   onDone: () => void
 }) {
   const theme = useTheme()
   const [name, setName] = useState(city.name)
+  const [currency, setCurrency] = useState(city.currency)
 
   /**
    * Two writes, two flags. Saving is optimistic — the list shows the new name
@@ -379,7 +385,16 @@ function CityRow({
         ? 'Nothing is filed under it.'
         : `${count} ${count === 1 ? 'place stays' : 'places stay'} on the trip and ${
             count === 1 ? 'becomes' : 'become'
-          } unassigned.`,
+          } unassigned.${
+            // Unassigned is a city with no currency, so local prices go too.
+            localCount === 0 || city.currency === null
+              ? ''
+              : ` ${count === 1 ? 'It' : `${localCount} of them`} ${
+                  localCount === 1 ? 'loses its' : 'lose their'
+                } ${
+                  city.currency
+                } price; ${localCount === 1 ? 'its USD price stays' : 'their USD prices stay'}.`
+          }`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -457,6 +472,11 @@ function CityRow({
       {editing ? (
         <View style={styles.editor}>
           <TextField label="Name" value={name} onChange={setName} />
+          <CurrencyField
+            value={currency}
+            onChange={setCurrency}
+            hint={`Places in ${name.trim() || city.name} get a ${currency ?? ''} price box beside the dollars.`}
+          />
 
           <View style={styles.actions}>
             <View style={styles.grow}>
@@ -467,14 +487,40 @@ function CityRow({
                 onPress={() => {
                   // Nothing to write is not a write. Closing without sending is
                   // the correct answer to a Save that changed nothing.
-                  if (name.trim() === city.name) {
+                  if (name.trim() === city.name && currency === city.currency) {
                     onDone()
                     return
                   }
-                  startSave(async () => {
-                    await onSave({ name: name.trim() })
-                    onDone()
-                  })
+                  const save = () =>
+                    startSave(async () => {
+                      await onSave({ name: name.trim(), currency })
+                      onDone()
+                    })
+                  // Asked only when something would be lost. Changing or
+                  // removing a currency no place has used yet is just a save.
+                  if (currency === city.currency || city.currency === null || localCount === 0) {
+                    save()
+                    return
+                  }
+                  const places = localCount === 1 ? '1 place' : `${localCount} places`
+                  Alert.alert(
+                    currency === null
+                      ? `Remove ${city.currency} from ${city.name}?`
+                      : `Change ${city.name} to ${currency}?`,
+                    `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${
+                      city.currency
+                    } price. ${localCount === 1 ? 'It' : 'They'} will lose it${
+                      currency === null ? '' : ', not have it converted'
+                    }. ${localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'}.`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: currency === null ? `Remove ${city.currency}` : 'Change',
+                        style: 'destructive',
+                        onPress: save,
+                      },
+                    ],
+                  )
                 }}
               />
             </View>

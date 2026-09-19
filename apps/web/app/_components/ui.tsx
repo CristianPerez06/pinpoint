@@ -639,14 +639,18 @@ export function TextField({
 }
 
 /**
- * A price in US dollars, with a `Free` toggle beside it.
+ * A price in US dollars, with a `Free` toggle beside it — and, in a city with a
+ * second currency, a second box under it for the price as it was seen there.
  *
  * Free and a price are one value — a free place is a price of 0 — so only one
- * of them can ever be set. Turning Free on empties the box and greys it out;
- * going into the box, or pressing Free again, turns it off and leaves an empty
- * box to type into. The box is greyed rather than `disabled` for exactly that
- * reason: a disabled input cannot be clicked, and clicking it is one of the two
- * ways back to a price.
+ * of them can ever be set. Turning Free on empties both boxes and greys them
+ * out; going into either box, or pressing Free again, turns it off and leaves
+ * empty boxes to type into. The boxes are greyed rather than `disabled` for
+ * exactly that reason: a disabled input cannot be clicked, and clicking one is
+ * a way back to a price.
+ *
+ * The two amounts are independent. Nothing converts one into the other, which
+ * is what the hint under the second box says.
  */
 export function PriceField({
   value,
@@ -654,52 +658,120 @@ export function PriceField({
   free,
   onFreeChange,
   error,
+  local,
+  warning,
 }: {
   value: string
   onChange: (value: string) => void
   free: boolean
   onFreeChange: (free: boolean) => void
   error?: string
+  /** The second box, present only when the chosen city has a second currency. */
+  local?: {
+    currency: string
+    value: string
+    onChange: (value: string) => void
+    /** `Tokyo's currency. …` — which city the currency comes from. */
+    hint: string
+    error?: string
+  }
+  /**
+   * A saved local amount that saving will clear, said under the boxes. Present
+   * whether or not the second box is — refiling to a city with no currency
+   * loses the amount as surely as refiling to one with another.
+   */
+  warning?: string | null
 }) {
   const invalid = error !== undefined
+  const localInvalid = local?.error !== undefined
   const id = useId()
+  const localId = useId()
 
   return (
-    <div className={styles.field}>
-      <label htmlFor={id} className={styles.label}>
-        Price (USD)
-      </label>
-      <div className={styles.priceRow}>
-        <input
-          id={id}
-          type="number"
-          min={0}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={() => {
-            if (free) onFreeChange(false)
-          }}
-          placeholder={free ? 'Free' : 'Leave blank if unknown'}
-          aria-invalid={invalid}
-          data-free={free}
-          className={`${styles.control} ${styles.priceInput}`}
-        />
-        <button
-          type="button"
-          aria-pressed={free}
-          onClick={() => {
-            if (!free) onChange('')
-            onFreeChange(!free)
-          }}
-          className={styles.freeToggle}
-        >
-          Free
-        </button>
+    <div className={styles.priceFields}>
+      <div className={styles.field}>
+        <label htmlFor={id} className={styles.label}>
+          Price (USD)
+        </label>
+        <div className={styles.priceRow}>
+          <input
+            id={id}
+            type="number"
+            min={0}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            onFocus={() => {
+              if (free) onFreeChange(false)
+            }}
+            placeholder={free ? 'Free' : 'Leave blank if unknown'}
+            aria-invalid={invalid}
+            data-free={free}
+            className={`${styles.control} ${styles.priceInput}`}
+          />
+          <button
+            type="button"
+            aria-pressed={free}
+            onClick={() => {
+              if (!free) {
+                onChange('')
+                local?.onChange('')
+              }
+              onFreeChange(!free)
+            }}
+            className={styles.freeToggle}
+          >
+            Free
+          </button>
+        </div>
+
+        {invalid ? (
+          <span role="alert" className={styles.error}>
+            {error}
+          </span>
+        ) : null}
       </div>
 
-      {invalid ? (
-        <span role="alert" className={styles.error}>
-          {error}
+      {local ? (
+        <div className={styles.field}>
+          <label htmlFor={localId} className={styles.label}>
+            {`Price (${local.currency})`}
+          </label>
+          <div className={styles.priceRow}>
+            <input
+              id={localId}
+              type="number"
+              min={0}
+              value={local.value}
+              onChange={(event) => local.onChange(event.target.value)}
+              onFocus={() => {
+                if (free) onFreeChange(false)
+              }}
+              placeholder={free ? 'Free' : 'Leave blank if unknown'}
+              aria-invalid={localInvalid}
+              data-free={free}
+              className={`${styles.control} ${styles.priceInput}`}
+            />
+            {/*
+              Room the width of `Free`, so this box ends where the dollar box
+              ends and the two amounts read as a pair.
+            */}
+            <span aria-hidden="true" className={`${styles.freeToggle} ${styles.freeSpacer}`}>
+              Free
+            </span>
+          </div>
+          {localInvalid ? (
+            <span role="alert" className={styles.error}>
+              {local.error}
+            </span>
+          ) : (
+            <span className={styles.hint}>{local.hint}</span>
+          )}
+        </div>
+      ) : null}
+
+      {warning ? (
+        <span role="status" className={styles.priceWarning}>
+          {warning}
         </span>
       ) : null}
     </div>

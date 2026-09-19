@@ -324,6 +324,7 @@ describe('groupUndatedByCity', () => {
       id,
       tripId: '00000000-0000-4000-8000-000000000001',
       name,
+      currency: null,
       createdAt: '2026-08-02T12:00:00.000Z',
     }
   }
