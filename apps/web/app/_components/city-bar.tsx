@@ -1,10 +1,11 @@
 'use client'
 
 import type { City, Marker } from '@pinpoint/core'
-import { UNASSIGNED_CITY } from '@pinpoint/core'
+import { localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 
+import { CurrencyField } from '@/app/_components/currency-field'
 import { Button, Menu, TextField, WaitingMenu } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
@@ -53,7 +54,7 @@ export type CityBarLiveProps = {
   selectedCityId: string | null
   onSelect: (cityId: string | null) => void
   /** Renaming a city, awaited so the editor can say it is saving. */
-  onSave: (cityId: string, patch: { name: string }) => Promise<unknown>
+  onSave: (cityId: string, patch: CityEdit) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /**
    * This list has just been shown.
@@ -197,6 +198,7 @@ function CityBarLive({
               <CityEditor
                 city={city}
                 markerCount={count}
+                localCount={localPricesUnder(city.id, markers)}
                 // The editor closes itself when its write settles, rather than
                 // being closed here as the write is sent. It is the only thing
                 // on screen that can say the write is still happening.
@@ -242,20 +244,40 @@ function countLabel(count: number): string {
   return count === 1 ? '1 place' : `${count} places`
 }
 
+/** What the editor writes: a name, and the second currency or none. */
+export interface CityEdit {
+  name: string
+  currency: string | null
+}
+
+/**
+ * `4 of them lose their JPY price; their USD prices stay.` — the sentence every
+ * warning about clearing local prices shares, so the three say it the same way.
+ */
+function localLoss(count: number, currency: string, lead: string): string {
+  return `${lead} ${count === 1 ? 'loses its' : 'lose their'} ${currency} price; ${
+    count === 1 ? 'its USD price stays' : 'their USD prices stay'
+  }.`
+}
+
 function CityEditor({
   city,
   markerCount,
+  localCount,
   onSave,
   onDelete,
   onClose,
 }: {
   city: City
   markerCount: number
-  onSave: (patch: { name: string }) => Promise<unknown>
+  /** How many of this city's places have a local price, which a change of currency clears. */
+  localCount: number
+  onSave: (patch: CityEdit) => Promise<unknown>
   onDelete: () => Promise<unknown>
   onClose: () => void
 }) {
   const [name, setName] = useState(city.name)
+  const [currency, setCurrency] = useState(city.currency)
 
   /**
    * Two writes, two flags. Saving is optimistic — the picker shows the new name
@@ -267,9 +289,33 @@ function CityEditor({
   const [removing, startRemove] = usePending()
   const busy = saving || removing
 
+  /**
+   * Asked only when something would be lost. Changing or removing a currency
+   * that no place has used yet is just a save.
+   */
+  function confirmCurrencyChange(): boolean {
+    if (currency === city.currency || city.currency === null || localCount === 0) return true
+    const places = localCount === 1 ? '1 place' : `${localCount} places`
+    const question =
+      currency === null
+        ? `Remove ${city.currency} from “${city.name}”?`
+        : `Change “${city.name}” to ${currency}?`
+    const why = `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${city.currency} price. ${
+      localCount === 1 ? 'It' : 'They'
+    } will lose it${currency === null ? '' : ', not have it converted'}. ${
+      localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'
+    }.`
+    return window.confirm(`${question}\n\n${why}`)
+  }
+
   return (
     <div className={styles.editor}>
       <TextField label="Name" value={name} onChange={setName} autoFocus />
+      <CurrencyField
+        value={currency}
+        onChange={setCurrency}
+        hint={`Places in ${name.trim() || city.name} get a ${currency ?? ''} price box beside the dollars.`}
+      />
 
       <div className={styles.actions}>
         <Button
@@ -277,12 +323,13 @@ function CityEditor({
           onClick={() => {
             // Nothing to write is not a write. Closing without sending is the
             // correct answer to a Save that changed nothing.
-            if (name.trim() === city.name) {
+            if (name.trim() === city.name && currency === city.currency) {
               onClose()
               return
             }
+            if (!confirmCurrencyChange()) return
             startSave(async () => {
-              await onSave({ name: name.trim() })
+              await onSave({ name: name.trim(), currency })
               onClose()
             })
           }}
@@ -304,7 +351,16 @@ function CityEditor({
                 markerCount === 0
                   ? 'It holds no places.'
                   : `${markerCount} ${markerCount === 1 ? 'place' : 'places'} will become unassigned. They are not deleted.`
-              if (window.confirm(`Remove “${city.name}”?\n\n${consequence}`)) {
+              // Unassigned is a city with no currency, so local prices go too.
+              const loss =
+                localCount === 0 || city.currency === null
+                  ? ''
+                  : ` ${localLoss(
+                      localCount,
+                      city.currency,
+                      markerCount === 1 ? 'It' : `${localCount} of them`,
+                    )}`
+              if (window.confirm(`Remove “${city.name}”?\n\n${consequence}${loss}`)) {
                 startRemove(async () => {
                   await onDelete()
                   onClose()

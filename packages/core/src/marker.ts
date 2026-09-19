@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { currencyCodeSchema } from './currency'
 import { markerTypeSchema } from './marker-type'
 import { openingHoursSchema } from './opening-hours'
 
@@ -29,6 +30,18 @@ export const markerSchema = z.object({
   link: z.url().max(2000).nullable(),
   /** In US dollars, always. Zero is a free place; null is a price nobody has entered. */
   price: z.number().nonnegative().nullable(),
+  /**
+   * The price as it was seen in the second currency of the place's city — a
+   * menu in yen — or null. Typed, never converted from `price` or into it.
+   *
+   * Never 0: a place whose only cost is 0 in any currency is free, which is
+   * `price = 0`. Always beside the code it was typed in, so the database can
+   * tell a yen amount from a won one and clear it when the city's currency
+   * changes, the city is removed, or the place moves to another city.
+   */
+  localPrice: z.number().positive().nullable(),
+  /** The currency `localPrice` is in. Set exactly when `localPrice` is. */
+  localCurrency: currencyCodeSchema.nullable(),
   /**
    * The day this place is planned for, or null while that is undecided.
    *
@@ -95,9 +108,30 @@ const writableMarkerFields = markerSchema.pick({
   type: true,
   link: true,
   price: true,
+  localPrice: true,
+  localCurrency: true,
   plannedOn: true,
   hours: true,
 })
+
+/**
+ * A local price and its currency come as a pair. The database refuses one
+ * without the other, and this says so first, naming the price field.
+ */
+function localPriceComesWithCurrency(
+  value: { localPrice?: number | null; localCurrency?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  const hasPrice = value.localPrice !== undefined && value.localPrice !== null
+  const hasCurrency = value.localCurrency !== undefined && value.localCurrency !== null
+  if (hasPrice !== hasCurrency) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['localPrice'],
+      message: 'A local price needs the currency it is in.',
+    })
+  }
+}
 
 /**
  * Fields a client supplies when dropping a marker.
@@ -123,7 +157,10 @@ export const newMarkerSchema = writableMarkerFields.extend({
   // Defaulted for the same reason as `plannedOn`: a client that cannot express
   // hours yet is a client whose places have none, not one whose saves fail.
   hours: markerSchema.shape.hours.default(null),
-})
+  // And again: a client that predates local prices is one whose places have none.
+  localPrice: markerSchema.shape.localPrice.default(null),
+  localCurrency: markerSchema.shape.localCurrency.default(null),
+}).superRefine(localPriceComesWithCurrency)
 
 export type NewMarker = z.infer<typeof newMarkerSchema>
 
@@ -150,5 +187,6 @@ export type NewMarker = z.infer<typeof newMarkerSchema>
 export const markerPatchSchema = writableMarkerFields
   .omit({ tripId: true })
   .partial()
+  .superRefine(localPriceComesWithCurrency)
 
 export type MarkerPatch = z.infer<typeof markerPatchSchema>

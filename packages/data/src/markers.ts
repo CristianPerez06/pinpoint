@@ -27,7 +27,7 @@ import { conflicted, rejected, type WriteOutcome, wrote } from './write-outcome'
 
 /** Columns, named once. The map needs all of them; a `select('*')` would also work and would stop saying so. */
 const MARKER_COLUMNS =
-  'id, trip_id, city_id, name, note, lng, lat, type, link, price, planned_on, hours, visited, created_at, updated_at'
+  'id, trip_id, city_id, name, note, lng, lat, type, link, price, local_price, local_currency, planned_on, hours, visited, created_at, updated_at'
 
 interface MarkerRow {
   id: string
@@ -40,6 +40,8 @@ interface MarkerRow {
   type: string
   link: string | null
   price: number | null
+  local_price: number | null
+  local_currency: string | null
   planned_on: string | null
   hours: unknown
   visited: boolean
@@ -69,6 +71,8 @@ function toMarker(row: MarkerRow): Marker {
     type: row.type,
     link: row.link,
     price: row.price,
+    localPrice: row.local_price,
+    localCurrency: row.local_currency,
     plannedOn: row.planned_on,
     hours: openingHoursOf(row.hours),
     visited: row.visited,
@@ -142,6 +146,8 @@ function toInsertRow(input: NewMarker): MarkerInsert {
     type: input.type,
     link: input.link,
     price: input.price,
+    local_price: input.localPrice,
+    local_currency: input.localCurrency,
     planned_on: input.plannedOn,
     hours: input.hours,
   }
@@ -165,6 +171,8 @@ function toUpdateRow(patch: MarkerPatch): MarkerUpdate {
   if (patch.type !== undefined) row.type = patch.type
   if (patch.link !== undefined) row.link = patch.link
   if (patch.price !== undefined) row.price = patch.price
+  if (patch.localPrice !== undefined) row.local_price = patch.localPrice
+  if (patch.localCurrency !== undefined) row.local_currency = patch.localCurrency
   if (patch.plannedOn !== undefined) row.planned_on = patch.plannedOn
   if (patch.hours !== undefined) row.hours = patch.hours
   return row

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { currencyCodeSchema } from './currency'
+
 /**
  * A coarse grouping of markers within a trip — the spreadsheet tab.
  *
@@ -19,15 +21,25 @@ export const citySchema = z.object({
   id: z.uuid(),
   tripId: z.uuid(),
   name: z.string().min(1).max(120),
+  /**
+   * An optional second currency beside US dollars, or null for none. Places
+   * filed here can also hold a price in it. See `currency.ts`.
+   */
+  currency: currencyCodeSchema.nullable(),
   createdAt: z.iso.datetime(),
 })
 
 export type City = z.infer<typeof citySchema>
 
-export const newCitySchema = citySchema.pick({
-  tripId: true,
-  name: true,
-})
+export const newCitySchema = citySchema
+  .pick({
+    tripId: true,
+    name: true,
+  })
+  .extend({
+    // Most cities have none, and a caller that does not mention it wants none.
+    currency: citySchema.shape.currency.default(null),
+  })
 
 export type NewCity = z.infer<typeof newCitySchema>
 
@@ -43,7 +55,7 @@ export type NewCity = z.infer<typeof newCitySchema>
  * resolves to.
  */
 export const cityPatchSchema = citySchema
-  .pick({ name: true })
+  .pick({ name: true, currency: true })
   .partial()
 
 export type CityPatch = z.infer<typeof cityPatchSchema>

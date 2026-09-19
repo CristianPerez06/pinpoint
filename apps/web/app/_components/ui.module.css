@@ -238,6 +238,11 @@
  * The toggle is the interest choice pill: outlined when off, the accent wash
  * and accent ink when on — a pair both grounds define, so dark needs no rule.
  */
+.priceFields {
+  display: grid;
+  gap: var(--pp-space-md);
+}
+
 .priceRow {
   display: flex;
   gap: var(--pp-space-sm);
@@ -270,6 +275,25 @@
 .freeToggle:hover {
   border-color: var(--pp-ink-faint);
   color: var(--pp-ink);
+}
+
+/* Holds the width of `Free` beside the second box, and draws nothing. */
+.freeSpacer {
+  visibility: hidden;
+  display: grid;
+  place-items: center;
+}
+
+/*
+ * `accentInk`, the readable member of the accent pair: a warning that a saved
+ * amount is about to go, which is louder than a hint and not an error — nothing
+ * is wrong until somebody saves.
+ */
+.priceWarning {
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  line-height: var(--pp-type-note-leading);
 }
 
 .freeToggle[aria-pressed='true'] {

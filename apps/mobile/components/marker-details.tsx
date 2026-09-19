@@ -2,7 +2,7 @@ import {
   describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
-  formatPrice,
+  formatPrices,
   type Marker,
   type MarkerInterest,
   type OpeningHours,
@@ -509,6 +509,7 @@ export function MarkerDetails({
 
   const marker = group.markers[index]!
   const view = group.views[index]!
+  const prices = formatPrices(marker)
   const removing = removingId === marker.id
 
   /**
@@ -664,13 +665,11 @@ export function MarkerDetails({
             {view.typeLabel}
           </Text>
         </View>
-        {marker.price === null ? null : (
+        {prices === null ? null : (
           <View style={[styles.tag, { backgroundColor: theme.colour.surfaceMuted }]}>
-            {/* `USD 25` or `Free`. Formatted by the shared helper so the phone
-                and the laptop cannot disagree about the same amount. */}
-            <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>
-              {formatPrice(marker.price)}
-            </Text>
+            {/* `USD 25 · JPY 3,800`, either alone, or `Free`. Formatted by the
+                shared helper so the phone and the laptop cannot disagree. */}
+            <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>{prices}</Text>
           </View>
         )}
       </View>

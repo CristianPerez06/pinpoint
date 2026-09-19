@@ -128,9 +128,13 @@ export function TextField({
  *
  * The phone's copy of the laptop's `PriceField`. Free and a price are one value
  * — a free place is a price of 0 — so only one is ever set. Turning Free on
- * empties the box and greys it out; going into the box, or pressing Free again,
- * turns it off. The box stays editable while greyed, because going into it is
- * one of the two ways back to a price.
+ * empties both boxes and greys them out; going into either box, or pressing
+ * Free again, turns it off. The boxes stay editable while greyed, because going
+ * into one is a way back to a price.
+ *
+ * In a city with a second currency a second box sits under the dollars, the
+ * width of the first, for the price as it was seen there. The two are
+ * independent: nothing converts one into the other.
  *
  * The toggle is the interest choice pill (`interest.tsx`), and at least 44
  * points tall, the smallest target a thumb reliably hits.
@@ -141,72 +145,129 @@ export function PriceField({
   free,
   onFreeChange,
   error,
+  local,
+  warning,
 }: {
   value: string
   onChange: (value: string) => void
   free: boolean
   onFreeChange: (free: boolean) => void
   error?: string
+  /** The second box, present only when the chosen city has a second currency. */
+  local?: {
+    currency: string
+    value: string
+    onChange: (value: string) => void
+    /** `Tokyo's currency. …` — which city the currency comes from. */
+    hint: string
+    error?: string
+  }
+  /**
+   * A saved local amount that saving will clear, said under the boxes. Present
+   * whether or not the second box is — refiling to a city with no currency
+   * loses the amount as surely as refiling to one with another.
+   */
+  warning?: string | null
 }) {
   const theme = useTheme()
 
+  function box(text: string, change: (value: string) => void, label: string, invalid: boolean) {
+    return (
+      <TextInput
+        value={text}
+        onChangeText={change}
+        onFocus={() => {
+          if (free) onFreeChange(false)
+        }}
+        placeholder={free ? 'Free' : 'Leave blank if unknown'}
+        placeholderTextColor={theme.colour.inkMuted}
+        keyboardType="decimal-pad"
+        accessibilityLabel={label}
+        style={[
+          styles.input,
+          styles.priceInput,
+          {
+            color: theme.colour.ink,
+            backgroundColor: theme.colour.surfaceMuted,
+            borderColor: invalid ? theme.colour.danger : theme.colour.line,
+            opacity: free ? 0.5 : 1,
+          },
+        ]}
+      />
+    )
+  }
+
   return (
-    <View style={styles.field}>
-      <FieldLabel>Price (USD)</FieldLabel>
-      <View style={styles.priceRow}>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          onFocus={() => {
-            if (free) onFreeChange(false)
-          }}
-          placeholder={free ? 'Free' : 'Leave blank if unknown'}
-          placeholderTextColor={theme.colour.inkMuted}
-          keyboardType="decimal-pad"
-          accessibilityLabel="Price in US dollars"
-          style={[
-            styles.input,
-            styles.priceInput,
-            {
-              color: theme.colour.ink,
-              backgroundColor: theme.colour.surfaceMuted,
-              borderColor: error ? theme.colour.danger : theme.colour.line,
-              opacity: free ? 0.5 : 1,
-            },
-          ]}
-        />
-        <Pressable
-          onPress={() => {
-            if (!free) onChange('')
-            onFreeChange(!free)
-          }}
-          accessibilityRole="button"
-          accessibilityState={{ selected: free }}
-          style={[
-            styles.freeToggle,
-            {
-              borderColor: free ? theme.colour.accent : theme.colour.lineStrong,
-              backgroundColor: free ? theme.colour.accentWash : 'transparent',
-            },
-          ]}
-        >
-          <Text
+    <View style={styles.priceFields}>
+      <View style={styles.field}>
+        <FieldLabel>Price (USD)</FieldLabel>
+        <View style={styles.priceRow}>
+          {box(value, onChange, 'Price in US dollars', error !== undefined)}
+          <Pressable
+            onPress={() => {
+              if (!free) {
+                onChange('')
+                local?.onChange('')
+              }
+              onFreeChange(!free)
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: free }}
             style={[
-              styles.freeToggleText,
-              { color: free ? theme.colour.accentInk : theme.colour.ink },
+              styles.freeToggle,
+              {
+                borderColor: free ? theme.colour.accent : theme.colour.lineStrong,
+                backgroundColor: free ? theme.colour.accentWash : 'transparent',
+              },
             ]}
           >
-            Free
+            <Text
+              style={[
+                styles.freeToggleText,
+                { color: free ? theme.colour.accentInk : theme.colour.ink },
+              ]}
+            >
+              Free
+            </Text>
+          </Pressable>
+        </View>
+        {error ? (
+          <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
+            {error}
           </Text>
-        </Pressable>
+        ) : null}
       </View>
-      {error ? (
-        <Text
-          accessibilityRole="alert"
-          style={[styles.error, { color: theme.colour.danger }]}
-        >
-          {error}
-        </Text>
+
+      {local ? (
+        <View style={styles.field}>
+          <FieldLabel>{`Price (${local.currency})`}</FieldLabel>
+          <View style={styles.priceRow}>
+            {box(local.value, local.onChange, `Price in ${local.currency}`, local.error !== undefined)}
+            {/*
+              Room the width of `Free`, so this box ends where the dollar box
+              ends and the two amounts read as a pair. Drawn invisible rather
+              than measured, so a larger text size moves both edges together.
+            */}
+            <View
+              style={[styles.freeToggle, { borderColor: 'transparent', opacity: 0 }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <Text style={styles.freeToggleText}>Free</Text>
+            </View>
+          </View>
+          {local.error ? (
+            <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
+              {local.error}
+            </Text>
+          ) : (
+            <Text style={[styles.error, { color: theme.colour.inkMuted }]}>{local.hint}</Text>
+          )}
+        </View>
+      ) : null}
+
+      {warning ? (
+        <Text style={[styles.priceWarning, { color: theme.colour.accentInk }]}>{warning}</Text>
       ) : null}
     </View>
   )
@@ -620,6 +681,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputMultiline: { minHeight: 74, textAlignVertical: 'top' },
+  priceFields: { gap: SPACE.md },
+  /*
+   * Louder than a hint and not an error — nothing is wrong until somebody
+   * saves. `accentInk` is the readable member of the accent pair.
+   */
+  priceWarning: { ...role(TYPE.note), fontWeight: '600' },
   /* The price and its `Free`, on one line. */
   priceRow: { flexDirection: 'row', alignItems: 'stretch', gap: SPACE.sm },
   priceInput: { flex: 1 },

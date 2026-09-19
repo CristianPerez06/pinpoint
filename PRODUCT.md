@@ -80,7 +80,10 @@ a direction already travelled.
   list is in.
 - **Every price is in US dollars.** A trip may cross borders, but one fixed currency is
   simpler to enter and to compare than one per city — which is what this used to be,
-  and was reversed on purpose (#175).
+  and was reversed on purpose (#175). A city may add **one second currency** (#186),
+  so its places can also hold the price as it was seen — a menu in yen — beside the
+  dollars. Both are typed, neither is converted, and a local amount that no longer
+  fits its city is cleared, after a warning, rather than relabelled.
 - **Names are not all Latin.** The first trip is full of macrons — Kyōto, Tōdai-ji,
   Dōtonbori — and names written in kana or kanji are expected and fall back to a system
   face by design.
@@ -123,6 +126,7 @@ types arrive over five colours.
   positions are never moved.
 - **A free place is a price of 0**, shown as `Free`. There is no separate "free" flag
   that could disagree with the price, and a blank price still means "not entered yet".
+  A 0 in either currency is free, and a free place carries no amount in either.
 - **No opening hours means "not filled in", never "closed"** (#176). Hours are stored
   per day of the week, in the place's own local time, and never converted. A day
   left out of a place's hours is a closed day; a place with none has simply not had

@@ -453,6 +453,8 @@ export function TripCalendar({
             type: editing.type,
             link: editing.link,
             price: editing.price,
+            localPrice: editing.localPrice,
+            localCurrency: editing.localCurrency,
             plannedOn: editing.plannedOn,
             hours: editing.hours,
           }}

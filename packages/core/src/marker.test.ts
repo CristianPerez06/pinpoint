@@ -13,6 +13,8 @@ const VALID = {
   type: 'culture',
   link: null,
   price: null,
+  localPrice: null,
+  localCurrency: null,
   plannedOn: null,
   hours: null,
   visited: false,
@@ -212,6 +214,24 @@ describe('optional fields', () => {
     expect(markerSchema.safeParse({ ...VALID, price: -1 }).success).toBe(false)
   })
 
+  it('accepts a local price in a currency', () => {
+    const marker = markerSchema.parse({ ...VALID, localPrice: 3800, localCurrency: 'JPY' })
+    expect(marker.localPrice).toBe(3800)
+    expect(marker.localCurrency).toBe('JPY')
+  })
+
+  it('rejects a local price of 0, which would be free', () => {
+    expect(
+      markerSchema.safeParse({ ...VALID, localPrice: 0, localCurrency: 'JPY' }).success,
+    ).toBe(false)
+  })
+
+  it('rejects USD as a local currency', () => {
+    expect(
+      markerSchema.safeParse({ ...VALID, localPrice: 25, localCurrency: 'USD' }).success,
+    ).toBe(false)
+  })
+
   it('rejects an unknown marker type', () => {
     expect(
       markerSchema.safeParse({ ...VALID, type: 'onsen' }).success,
@@ -234,6 +254,19 @@ describe('newMarkerSchema', () => {
 
   it('does not require server-assigned fields', () => {
     expect(newMarkerSchema.safeParse(NEW).success).toBe(true)
+  })
+
+  it('records an omitted local price as none', () => {
+    const parsed = newMarkerSchema.parse(NEW)
+    expect(parsed.localPrice).toBeNull()
+    expect(parsed.localCurrency).toBeNull()
+  })
+
+  it('refuses a local price without its currency, naming the price field', () => {
+    const result = newMarkerSchema.safeParse({ ...NEW, localPrice: 3800 })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.path).toEqual(['localPrice'])
+    expect(newMarkerSchema.safeParse({ ...NEW, localCurrency: 'JPY' }).success).toBe(false)
   })
 
   it('does not accept visited — the database owns that default', () => {
@@ -283,5 +316,19 @@ describe('newMarkerSchema', () => {
     const parsed = newMarkerSchema.safeParse({ ...NEW, hours: { mon: [['09:00', '']] } })
     expect(parsed.success).toBe(false)
     expect(parsed.error?.issues[0]?.path[0]).toBe('hours')
+  })
+})
+
+describe('markerPatchSchema and local prices', () => {
+  it('leaves the local price alone when a patch does not mention it', () => {
+    expect(markerPatchSchema.parse({ name: 'Renamed' })).toEqual({ name: 'Renamed' })
+  })
+
+  it('clears a local price as a pair', () => {
+    expect(markerPatchSchema.safeParse({ localPrice: null, localCurrency: null }).success).toBe(true)
+  })
+
+  it('refuses half a pair', () => {
+    expect(markerPatchSchema.safeParse({ localPrice: 3800 }).success).toBe(false)
   })
 })

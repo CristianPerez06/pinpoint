@@ -5,13 +5,16 @@ import {
   type CityNotice,
   type FieldErrors,
   joinHours,
+  localPriceClearedBy,
   type OpeningHours,
+  pricesFromDraft,
   splitHours,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { X } from 'lucide-react'
 import { useState } from 'react'
 
+import { CurrencyField } from '@/app/_components/currency-field'
 import { HoursField } from '@/app/_components/hours-field'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 import { usePending } from '@/lib/use-pending'
@@ -45,6 +48,9 @@ export interface MarkerFormValues {
   type: string
   link: string | null
   price: number | null
+  /** In the second currency of the place's city, or null. See `@pinpoint/core`'s marker. */
+  localPrice: number | null
+  localCurrency: string | null
   /** The day this place is planned for, `YYYY-MM-DD`, or null while undecided. */
   plannedOn: string | null
   /** The days it is open and when, or null while nobody has entered them. */
@@ -104,7 +110,7 @@ export function MarkerForm({
    */
   onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
-  onCreateCity: (name: string) => Promise<City | null>
+  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
 }) {
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
@@ -117,6 +123,15 @@ export function MarkerForm({
   const [price, setPrice] = useState(
     initial.price === null || initial.price === 0 ? '' : String(initial.price),
   )
+  // The second box, kept per currency rather than as one string. Refiling the
+  // place to a city with another currency shows that currency's box, empty, and
+  // choosing the first city again brings back what was in its box — nothing is
+  // lost until the place is saved.
+  const [localByCurrency, setLocalByCurrency] = useState<Record<string, string>>(() =>
+    initial.localPrice !== null && initial.localCurrency !== null
+      ? { [initial.localCurrency]: String(initial.localPrice) }
+      : {},
+  )
   const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
   // Opened as "usual hours plus the days that differ", and turned back into a
   // week on saving — both by the same pair of functions the phone uses.
@@ -124,7 +139,9 @@ export function MarkerForm({
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
-  const [newCity, setNewCity] = useState<{ name: string } | null>(null)
+  const [newCity, setNewCity] = useState<{ name: string; currency: string | null } | null>(
+    null,
+  )
   const [cityError, setCityError] = useState<string | null>(null)
 
   /**
@@ -138,6 +155,11 @@ export function MarkerForm({
   const [saving, startSave] = usePending()
   const [creatingCity, startCreateCity] = usePending()
 
+  const chosenCity = cities.find((city) => city.id === cityId) ?? null
+  const currency = chosenCity?.currency ?? null
+  const local = currency === null ? '' : (localByCurrency[currency] ?? '')
+  const cleared = localPriceClearedBy(initial, currency)
+
   function submit() {
     // Routed through the same guard as the button because Enter in any field
     // submits a form, and `aria-disabled` does not stop that.
@@ -148,9 +170,9 @@ export function MarkerForm({
       cityId,
       type,
       link: absentIfBlank(link),
-        // Free is a price of 0, and so is a typed 0. A blank price is absent —
-        // not entered yet — and must not collapse into free.
-        price: free ? 0 : price.trim() === '' ? null : Number(price),
+        // Free is a price of 0, and so is a typed 0 in either box. A blank price
+        // is absent — not entered yet — and must not collapse into free.
+        ...pricesFromDraft({ free, usd: price, local, currency }),
         // A date control empties to `''`, which is the field being cleared and
         // therefore a place going back to having no day — not a day of no
         // characters.
@@ -166,7 +188,7 @@ export function MarkerForm({
     setCityError(null)
 
     startCreateCity(async () => {
-      const created = await onCreateCity(newCity.name.trim())
+      const created = await onCreateCity(newCity.name.trim(), newCity.currency)
 
       if (!created) {
         setCityError('Could not create that city.')
@@ -285,7 +307,7 @@ export function MarkerForm({
         value={cityId ?? UNASSIGNED}
         onChange={(value) => {
           if (value === NEW_CITY) {
-            setNewCity({ name: '' })
+            setNewCity({ name: '', currency: null })
             return
           }
           setCityId(value === UNASSIGNED ? null : value)
@@ -314,7 +336,7 @@ export function MarkerForm({
           </p>
           {cityNotice.offer && !newCity ? (
             <Button
-              onClick={() => setNewCity({ name: cityNotice.offer ?? '' })}
+              onClick={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
               tone="quiet"
             >
               {`Create ${cityNotice.offer}`}
@@ -331,6 +353,11 @@ export function MarkerForm({
             onChange={(value) => setNewCity({ ...newCity, name: value })}
             placeholder="Kyoto"
             autoFocus
+          />
+          <CurrencyField
+            value={newCity.currency}
+            onChange={(code) => setNewCity({ ...newCity, currency: code })}
+            hint={`Places in ${newCity.name.trim() || 'this city'} get a ${newCity.currency ?? ''} price box beside the dollars.`}
           />
           {cityError ? <FormError message={cityError} /> : null}
           <div className={styles.row}>
@@ -374,6 +401,25 @@ export function MarkerForm({
         free={free}
         onFreeChange={setFree}
         error={fieldErrors.price}
+        local={
+          currency === null || chosenCity === null
+            ? undefined
+            : {
+                currency,
+                value: local,
+                onChange: (value) =>
+                  setLocalByCurrency((current) => ({ ...current, [currency]: value })),
+                hint: `${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                error: fieldErrors.localPrice,
+              }
+        }
+        warning={
+          cleared === null
+            ? null
+            : chosenCity === null
+              ? `Leaving this place without a city clears the ${cleared} saved for it.`
+              : `Moving to ${chosenCity.name} clears the ${cleared} saved for this place.`
+        }
       />
 
       <div className={styles.actions}>
