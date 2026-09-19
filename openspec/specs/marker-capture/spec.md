@@ -764,7 +764,7 @@ lose it, and SHALL say that their prices in US dollars stay.
 - **THEN** the confirmation states that 9 places become unassigned
 - **AND** it states that 4 of them lose their JPY price and that their USD prices stay
 
-### Requirement: The place form captures the hours a place is open
+### Requirement: The place form captures one range of hours for the days a place is open
 
 The form that saves and edits a place SHALL offer its opening hours, on every
 application. It SHALL be optional, labelled as optional, and placed after the day the
@@ -783,51 +783,39 @@ Tuesday-or-Thursday was meant.
 time fields. Saving with no day on SHALL record the place as having no hours, whatever
 times had been entered before the days were turned off.
 
-**Usual hours.** The form SHALL offer one set of hours, headed `Usual hours`, that applies
-to every day turned on.
-
-**Different on some days.** The form SHALL offer `Different on some days`, which sets one
-of the days turned on apart with hours of its own. Only a day that is turned on SHALL be
-offered. Any number of such days SHALL be allowed, and each SHALL be removable, returning
-that day to the usual hours. Turning a day off SHALL discard any hours set apart for it.
-
-**A second range.** The usual hours and each day set apart SHALL each allow a second
-range, reached through `Add a second range` and removable again. The form SHALL NOT offer
-a third.
+**One range.** The form SHALL offer one opening time and one closing time, which apply to
+every day turned on. It SHALL NOT offer a second range, nor a way to give some days hours
+of their own.
 
 **Times** SHALL be entered and shown on a 24-hour clock.
 
-**Hints while typing.** Where a range's closing time is earlier than its opening time,
-the form SHALL say beneath it that the place closes at that time the next day, for
-example `Closes 02:00 the next day`. Where the two times are equal, it SHALL say `Open all
-day`.
+**Hints while typing.** Where the closing time is earlier than the opening time, the form
+SHALL say beneath it that the place closes at that time the next day, for example `Closes
+02:00 the next day`. Where the two times are equal, it SHALL say `Open all day`.
 
-**Refusal.** A range with only one of its two times, or ranges breaking the rules for
+**Refusal.** A range with only one of its two times, or a range breaking the rules for
 opening hours, SHALL be refused. The refusal SHALL name the hours field and SHALL preserve
 everything entered, in the hours and everywhere else in the form.
 
-**Opening the form on a place that has hours.** The days SHALL be turned on as stored.
-The usual hours SHALL be the hours shared by the most open days. Where two sets of hours
-are shared by equally many days, the one on the earliest day of the week SHALL be the
-usual hours. Every other open day SHALL appear set apart with its own hours. Saving
-without changing anything SHALL leave the hours exactly as they were.
+**Opening the form on a place that has hours.** The days SHALL be turned on as stored,
+and the opening and closing times SHALL be those stored. Saving without changing
+anything SHALL leave the hours exactly as they were.
 
 Changing a place's hours SHALL be governed by the same rules as any other change to a
 place, including the refusal of a save based on a stale read.
 
-#### Scenario: Saving a place with the same hours every open day
+#### Scenario: Saving a place with hours
 
-- **WHEN** a person turns on Monday to Friday, enters 09:00 to 17:00 as the usual hours,
-  and saves
+- **WHEN** a person turns on Monday to Friday, enters 09:00 to 17:00, and saves
 - **THEN** the place is open Monday to Friday, 09:00–17:00
 - **AND** it is closed on Saturday and Sunday
 
-#### Scenario: A day with different hours
+#### Scenario: The form offers one range only
 
-- **WHEN** a person turns on Tuesday to Saturday with usual hours 12:00–15:00 and
-  19:00–23:00, sets Saturday apart with 10:00–14:00, and saves
-- **THEN** Tuesday to Friday carry the usual hours
-- **AND** Saturday carries 10:00–14:00 only
+- **WHEN** a person turns on any day
+- **THEN** the form shows one opening time and one closing time
+- **AND** it offers no way to add a second range
+- **AND** it offers no way to give one day different hours
 
 #### Scenario: The form opens with nothing to fill in
 
@@ -850,11 +838,6 @@ place, including the refusal of a save based on a stale read.
 - **WHEN** a person enters 00:00 to 00:00
 - **THEN** the form says `Open all day`
 
-#### Scenario: No third range
-
-- **WHEN** a day already has two ranges
-- **THEN** the form offers no way to add a third
-
 #### Scenario: A range missing a time
 
 - **WHEN** a person enters an opening time with no closing time and saves
@@ -862,12 +845,12 @@ place, including the refusal of a save based on a stale read.
 - **AND** the refusal names the hours field
 - **AND** everything else they entered is preserved
 
-#### Scenario: Editing a place with mixed hours
+#### Scenario: Editing a place with hours
 
-- **WHEN** a person opens the form on a place open Tuesday to Friday 12:00–15:00 and
-  19:00–23:00, and Saturday 10:00–14:00
-- **THEN** the usual hours are 12:00–15:00 and 19:00–23:00
-- **AND** Saturday appears set apart with 10:00–14:00
+- **WHEN** a person opens the form on a place open Monday, Wednesday and Friday,
+  09:00–17:00
+- **THEN** Monday, Wednesday and Friday are turned on
+- **AND** the times read 09:00 and 17:00
 
 #### Scenario: Saving an edit that did not touch the hours
 

@@ -30,7 +30,6 @@ export { markerSchema, markerPatchSchema, newMarkerSchema } from './marker'
 export type { Marker, MarkerPatch, NewMarker } from './marker'
 
 export {
-  daysNotApart,
   describeDays,
   describeHours,
   EMPTY_HOURS_DRAFT,
@@ -39,8 +38,6 @@ export {
   openingHoursOf,
   openingHoursSchema,
   rangeHint,
-  rejoinDay,
-  setDayApart,
   splitHours,
   toggleDay,
   WEEK,

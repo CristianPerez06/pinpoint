@@ -133,8 +133,8 @@ export function MarkerForm({
       : {},
   )
   const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
-  // Opened as "usual hours plus the days that differ", and turned back into a
-  // week on saving — both by the same pair of functions the phone uses.
+  // Opened as the days and their one range, and turned back into a week on
+  // saving — both by the same pair of functions the phone uses.
   const [hours, setHours] = useState(() => splitHours(initial.hours))
 
   // Creating a city happens inside this form so the place being saved is never

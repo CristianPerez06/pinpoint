@@ -4,15 +4,18 @@ import { z } from 'zod'
  * The days a place is open, and at what times (#176).
  *
  * Shared rather than one copy per application for the reason `price.ts` gives:
- * the laptop and the phone must say the same thing about the same place, and
- * the form on each must turn the same stored week into the same "usual hours"
- * — otherwise saving an untouched place on one application would rewrite what
- * the other one saved.
+ * the laptop and the phone must say the same thing about the same place.
  *
  * Stored per day, keyed `mon` … `sun`. Only open days are keys: a day that is
  * not a key is closed, and a place with no hours at all is `null` — "nobody has
  * entered them", which is never the same thing as closed. That is why hours
  * with no open day are not a value this schema accepts.
+ *
+ * Every open day carries one range, and the same one (#190). A second range
+ * and different hours on some days were offered once (#176) and never used, so
+ * the rule is now one time for the whole week. The per-day shape is kept
+ * rather than collapsed to `{ days, open, close }`: it needs no migration, and
+ * "is this place open on the day it is planned for" stays a one-key read.
  *
  * Every time is the place's own local time, as written on its door. Nothing
  * here knows about time zones, and nothing should.
@@ -52,15 +55,7 @@ export type HoursRange = [open: string, close: string]
 
 export type OpeningHours = Partial<Record<Weekday, HoursRange[]>>
 
-/**
- * Closing before opening means the next morning; closing when it opens means
- * all day. Comparing the strings is comparing the times, because both are
- * zero-padded to the same width.
- */
-function crossesMidnight([open, close]: HoursRange): boolean {
-  return close < open
-}
-
+/** Closing when it opens means all day. */
 function isAllDay([open, close]: HoursRange): boolean {
   return open === close
 }
@@ -75,8 +70,8 @@ const rangeSchema = z.tuple([z.string(), z.string()])
  * through this before writing, and a second copy in SQL would be a copy to
  * keep in step.
  *
- * Every message names the day it is about, since the form shows one message
- * for the whole hours field.
+ * The form enters one range for every open day, so no message names a day:
+ * the one range is what the person typed.
  */
 export const openingHoursSchema = z
   .object({
@@ -91,43 +86,29 @@ export const openingHoursSchema = z
   .strict()
   .superRefine((hours, ctx) => {
     const open = WEEK.filter((day) => hours[day] !== undefined)
+    const say = (message: string) => ctx.addIssue({ code: 'custom', message })
 
     if (open.length === 0) {
-      ctx.addIssue({ code: 'custom', message: 'Pick at least one day it opens.' })
+      say('Pick at least one day it opens.')
       return
     }
 
-    for (const day of open) {
-      const ranges = hours[day]!
-      const name = WEEKDAY_WORDING[day].name
-      const say = (message: string) =>
-        ctx.addIssue({ code: 'custom', path: [day], message })
+    if (open.some((day) => hours[day]!.length !== 1)) {
+      say('Every open day needs one set of hours.')
+      return
+    }
 
-      if (ranges.length === 0 || ranges.length > 2) {
-        say(`${name} needs one or two sets of hours.`)
-        continue
-      }
+    const [first, ...rest] = open.map((day) => hours[day]![0]!)
+    if (rest.some(([o, c]) => o !== first![0] || c !== first![1])) {
+      say('Every open day needs the same hours.')
+      return
+    }
 
-      if (ranges.some(([o, c]) => o === '' || c === '')) {
-        say(`Enter both times for ${name}.`)
-        continue
-      }
-
-      if (ranges.some(([o, c]) => !TIME.test(o) || !TIME.test(c))) {
-        say(`Write ${name}'s times like 09:00.`)
-        continue
-      }
-
-      if (ranges.length === 2) {
-        const [first, second] = ranges as [HoursRange, HoursRange]
-        if (isAllDay(first) || isAllDay(second)) {
-          say(`${name} is open all day, so it needs only one set of hours.`)
-        } else if (crossesMidnight(first)) {
-          say(`On ${name}, only the second set of hours can run past midnight.`)
-        } else if (second[0] <= first[1]) {
-          say(`On ${name}, the second set of hours must start after the first ends.`)
-        }
-      }
+    const [o, c] = first!
+    if (o === '' || c === '') {
+      say('Enter both times.')
+    } else if (!TIME.test(o) || !TIME.test(c)) {
+      say('Write the times like 09:00.')
     }
   })
 
@@ -183,56 +164,29 @@ export function normaliseTime(input: string): string | null {
 // ─── the form ────────────────────────────────────────────────────────────────
 
 /**
- * A week as the form edits it: the days turned on, the usual hours, and the
- * days set apart with hours of their own.
+ * A week as the form edits it: the days turned on, and the one range they share.
  *
  * Times are whatever is in the fields, typed and possibly half-finished — the
  * schema is what decides whether they can be saved, when they are.
  */
 export type HoursDraft = {
   days: Weekday[]
-  usual: HoursRange[]
-  apart: { day: Weekday; ranges: HoursRange[] }[]
+  range: HoursRange
 }
 
-export const EMPTY_HOURS_DRAFT: HoursDraft = { days: [], usual: [['', '']], apart: [] }
+export const EMPTY_HOURS_DRAFT: HoursDraft = { days: [], range: ['', ''] }
 
 /**
- * Stored hours, as the form opens them.
- *
- * The usual hours are whichever hours the most open days share. Where two
- * sets are shared by equally many days, the one that appears first in the week
- * wins. Every other open day is set apart. `joinHours` undoes this exactly, so a
- * form opened and saved without touching the hours writes back what it read.
+ * Stored hours, as the form opens them. Every open day has the same range, so
+ * the first one is the range; `joinHours` undoes this exactly, so a form opened
+ * and saved without touching the hours writes back what it read.
  */
 export function splitHours(hours: OpeningHours | null): HoursDraft {
   if (hours === null) return EMPTY_HOURS_DRAFT
 
   const days = WEEK.filter((day) => hours[day] !== undefined)
-  const counts = new Map<string, number>()
-  for (const day of days) {
-    const key = JSON.stringify(hours[day])
-    counts.set(key, (counts.get(key) ?? 0) + 1)
-  }
-
-  // Maps iterate in insertion order, which is week order, so a strict `>` is
-  // what gives the tie to the earliest day.
-  let usualKey = ''
-  let most = 0
-  for (const [key, count] of counts) {
-    if (count > most) {
-      usualKey = key
-      most = count
-    }
-  }
-
-  return {
-    days,
-    usual: JSON.parse(usualKey) as HoursRange[],
-    apart: days
-      .filter((day) => JSON.stringify(hours[day]) !== usualKey)
-      .map((day) => ({ day, ranges: hours[day]! })),
-  }
+  const [open, close] = hours[days[0]!]![0]!
+  return { days, range: [open, close] }
 }
 
 /**
@@ -240,62 +194,28 @@ export function splitHours(hours: OpeningHours | null): HoursDraft {
  * validated.
  *
  * Times are normalised where they can be, and left as typed where they cannot,
- * so the schema's refusal is about what the person actually entered. A second
- * range left completely empty is dropped rather than refused — it was added and
- * never used, which is not a mistake worth stopping a save for.
+ * so the schema's refusal is about what the person actually entered.
  */
 export function joinHours(draft: HoursDraft): OpeningHours | null {
   if (draft.days.length === 0) return null
 
-  const tidy = (ranges: HoursRange[]): HoursRange[] =>
-    ranges
-      .filter(([o, c], index) => index === 0 || o.trim() !== '' || c.trim() !== '')
-      .map(([o, c]) => [normaliseTime(o) ?? o.trim(), normaliseTime(c) ?? c.trim()])
+  const [o, c] = draft.range
+  const open = normaliseTime(o) ?? o.trim()
+  const close = normaliseTime(c) ?? c.trim()
 
   const hours: OpeningHours = {}
   for (const day of WEEK) {
-    if (!draft.days.includes(day)) continue
-    const apart = draft.apart.find((entry) => entry.day === day)
-    hours[day] = tidy(apart ? apart.ranges : draft.usual)
+    if (draft.days.includes(day)) hours[day] = [[open, close]]
   }
   return hours
 }
 
-/**
- * Turn a day on or off.
- *
- * Turning a day off also drops any hours set apart for it: a day that is not
- * open has no hours of its own to keep, and bringing it back should bring it
- * back on the usual hours rather than on something typed and then hidden.
- */
+/** Turn a day on or off. The range stays as typed either way. */
 export function toggleDay(draft: HoursDraft, day: Weekday): HoursDraft {
-  if (draft.days.includes(day)) {
-    return {
-      ...draft,
-      days: draft.days.filter((each) => each !== day),
-      apart: draft.apart.filter((entry) => entry.day !== day),
-    }
-  }
-  return { ...draft, days: [...draft.days, day].sort(byWeek) }
-}
-
-/** Set a day apart, starting from a copy of the usual hours. */
-export function setDayApart(draft: HoursDraft, day: Weekday): HoursDraft {
-  if (!draft.days.includes(day) || draft.apart.some((entry) => entry.day === day)) {
-    return draft
-  }
-  const apart = [...draft.apart, { day, ranges: draft.usual.map(([o, c]): HoursRange => [o, c]) }]
-  return { ...draft, apart: apart.sort((a, b) => byWeek(a.day, b.day)) }
-}
-
-/** Return a day set apart to the usual hours. */
-export function rejoinDay(draft: HoursDraft, day: Weekday): HoursDraft {
-  return { ...draft, apart: draft.apart.filter((entry) => entry.day !== day) }
-}
-
-/** Open days that could still be set apart, in week order. */
-export function daysNotApart(draft: HoursDraft): Weekday[] {
-  return draft.days.filter((day) => !draft.apart.some((entry) => entry.day === day))
+  const days = draft.days.includes(day)
+    ? draft.days.filter((each) => each !== day)
+    : [...draft.days, day].sort(byWeek)
+  return { ...draft, days }
 }
 
 /**
@@ -329,57 +249,39 @@ export function rangeHint([open, close]: HoursRange): string | null {
 // ─── the card ────────────────────────────────────────────────────────────────
 
 export type HoursLine = {
-  /** `Tue–Thu`, `Fri`, `Every day`, or `Closed`. */
+  /** `Mon, Wed, Fri`, `Tue–Sat`, `Every day`, or `Closed`. */
   days: string
-  /** `12:00–15:00, 19:00–23:00`, `24 hours`, or the closed days. */
+  /** `09:00–17:00`, `24 hours`, or the closed days. */
   text: string
   /** The last line, listing the days the place is closed; drawn as secondary. */
   closed: boolean
 }
 
 /**
- * Hours as both cards show them.
+ * Hours as both cards show them: the open days on one line with their range,
+ * then the closed days on a last line of their own.
  *
- * Monday first. Neighbouring days with identical hours share a line; all seven
- * identical read `Every day`. The closed days share one last line, so a closed
- * day is something the card says rather than a gap the reader has to notice.
- * Never more than seven lines.
+ * Every open day has the same range, so the days share a line whether or not
+ * they are neighbours (#190). Neighbours read as a span, the rest are listed,
+ * and all seven read `Every day`. Listing the closed days makes a closed day
+ * something the card says rather than a gap the reader has to notice.
  */
 export function describeHours(hours: OpeningHours): HoursLine[] {
   const open = WEEK.filter((day) => hours[day] !== undefined)
   const closed = WEEK.filter((day) => hours[day] === undefined)
-  const same = (a: Weekday, b: Weekday) =>
-    JSON.stringify(hours[a]) === JSON.stringify(hours[b])
 
-  const lines: HoursLine[] = []
+  const days =
+    open.length === 7
+      ? 'Every day'
+      : runsOf(open)
+          .map((run) =>
+            run.length === 1 ? short(run[0]!) : `${short(run[0]!)}–${short(run[run.length - 1]!)}`,
+          )
+          .join(', ')
 
-  if (open.length === 7 && open.every((day) => same(day, 'mon'))) {
-    lines.push({ days: 'Every day', text: rangesText(hours.mon!), closed: false })
-    return lines
-  }
-
-  let start = 0
-  while (start < WEEK.length) {
-    const day = WEEK[start]!
-    if (hours[day] === undefined) {
-      start += 1
-      continue
-    }
-    let end = start
-    while (
-      end + 1 < WEEK.length &&
-      hours[WEEK[end + 1]!] !== undefined &&
-      same(day, WEEK[end + 1]!)
-    ) {
-      end += 1
-    }
-    lines.push({
-      days: end === start ? short(day) : `${short(day)}–${short(WEEK[end]!)}`,
-      text: rangesText(hours[day]!),
-      closed: false,
-    })
-    start = end + 1
-  }
+  const lines: HoursLine[] = [
+    { days, text: rangeText(hours[open[0]!]![0]!), closed: false },
+  ]
 
   if (closed.length > 0) {
     lines.push({ days: 'Closed', text: closed.map(short).join(', '), closed: true })
@@ -388,8 +290,8 @@ export function describeHours(hours: OpeningHours): HoursLine[] {
   return lines
 }
 
-function rangesText(ranges: HoursRange[]): string {
-  return ranges.map((range) => (isAllDay(range) ? '24 hours' : `${range[0]}–${range[1]}`)).join(', ')
+function rangeText(range: HoursRange): string {
+  return isAllDay(range) ? '24 hours' : `${range[0]}–${range[1]}`
 }
 
 function short(day: Weekday): string {
