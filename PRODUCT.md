@@ -131,6 +131,9 @@ types arrive over five colours.
   per day of the week, in the place's own local time, and never converted. A day
   left out of a place's hours is a closed day; a place with none has simply not had
   them entered, and "closed all week" cannot be recorded.
+- **Hours are one time range, the same on every open day** (#190). A second range and
+  different hours on some days were offered with #176, never used, and removed because
+  they made the form much busier.
 - **Bulk import is not a feature.** A migration is not a product capability; nobody
   pastes sixty places twice.
 

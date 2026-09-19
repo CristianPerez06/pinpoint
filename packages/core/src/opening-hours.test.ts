@@ -7,11 +7,8 @@ import {
   normaliseTime,
   openingHoursOf,
   openingHoursSchema,
-  daysNotApart,
   EMPTY_HOURS_DRAFT,
   rangeHint,
-  rejoinDay,
-  setDayApart,
   splitHours,
   toggleDay,
   WEEK,
@@ -19,23 +16,28 @@ import {
   type OpeningHours,
 } from './opening-hours'
 
-const lunch: HoursRange = ['12:00', '15:00']
-const dinner: HoursRange = ['19:00', '23:00']
+const nine: HoursRange = ['09:00', '17:00']
 
-/** The worst case from the spec and the mock. */
+/** The worst case from the card's spec: four days, none neighbours, closing late. */
 const bar: OpeningHours = {
-  tue: [lunch, dinner],
-  wed: [lunch, dinner],
-  thu: [lunch, dinner],
-  fri: [lunch, ['19:00', '02:00']],
-  sat: [['10:00', '14:00']],
+  mon: [['19:00', '02:00']],
+  wed: [['19:00', '02:00']],
+  fri: [['19:00', '02:00']],
+  sun: [['19:00', '02:00']],
 }
+
+const week = (days: readonly (typeof WEEK)[number][], range: HoursRange): OpeningHours =>
+  Object.fromEntries(days.map((day) => [day, [range]]))
 
 const valid = (hours: unknown) => openingHoursSchema.safeParse(hours).success
 
 describe('openingHoursSchema', () => {
   it('accepts the worst case', () => {
     expect(valid(bar)).toBe(true)
+  })
+
+  it('accepts days closed in between', () => {
+    expect(valid(week(['tue', 'wed', 'thu', 'fri', 'sat'], nine))).toBe(true)
   })
 
   it('refuses hours with no open day, so "closed all week" cannot be stored', () => {
@@ -50,34 +52,26 @@ describe('openingHoursSchema', () => {
     expect(valid({ mon: [['00:00', '00:00']] })).toBe(true)
   })
 
-  it('refuses a second range beside an all-day one', () => {
-    expect(valid({ mon: [['00:00', '00:00'], dinner] })).toBe(false)
+  it('refuses two ranges in one day', () => {
+    expect(valid({ mon: [['12:00', '15:00'], ['19:00', '23:00']] })).toBe(false)
   })
 
   it('refuses ranges that overlap', () => {
     expect(valid({ mon: [['12:00', '16:00'], ['15:00', '23:00']] })).toBe(false)
   })
 
-  it('refuses a second range that starts before the first', () => {
-    expect(valid({ mon: [dinner, lunch] })).toBe(false)
-  })
-
-  it('refuses a first range that runs past midnight when a second follows', () => {
-    expect(valid({ mon: [['20:00', '02:00'], ['03:00', '05:00']] })).toBe(false)
-  })
-
-  it('refuses a third range', () => {
-    expect(valid({ mon: [['08:00', '09:00'], lunch, dinner] })).toBe(false)
+  it('refuses different hours on different days', () => {
+    expect(valid({ mon: [nine], tue: [['10:00', '18:00']] })).toBe(false)
   })
 
   it('refuses a day with no ranges', () => {
     expect(valid({ mon: [] })).toBe(false)
   })
 
-  it('refuses a missing time, naming the day', () => {
+  it('refuses a missing time', () => {
     const result = openingHoursSchema.safeParse({ fri: [['09:00', '']] })
     expect(result.success).toBe(false)
-    expect(result.error?.issues[0]?.message).toContain('Friday')
+    expect(result.error?.issues[0]?.message).toBe('Enter both times.')
   })
 
   it('refuses a time that is not a time', () => {
@@ -86,7 +80,7 @@ describe('openingHoursSchema', () => {
   })
 
   it('refuses a key that is not a day', () => {
-    expect(valid({ monday: [lunch] })).toBe(false)
+    expect(valid({ monday: [nine] })).toBe(false)
   })
 })
 
@@ -97,6 +91,10 @@ describe('openingHoursOf', () => {
 
   it('reads a stored value that breaks the rules as no hours, rather than failing', () => {
     expect(openingHoursOf({ mon: 'nonsense' })).toBeNull()
+  })
+
+  it('reads a week with two ranges as no hours', () => {
+    expect(openingHoursOf({ mon: [['12:00', '15:00'], ['19:00', '23:00']] })).toBeNull()
   })
 
   it('reads a valid week as given', () => {
@@ -163,123 +161,86 @@ describe('describeDays', () => {
 describe('describeHours', () => {
   it('reads the worst case line by line', () => {
     expect(describeHours(bar)).toEqual([
-      { days: 'Tue–Thu', text: '12:00–15:00, 19:00–23:00', closed: false },
-      { days: 'Fri', text: '12:00–15:00, 19:00–02:00', closed: false },
-      { days: 'Sat', text: '10:00–14:00', closed: false },
-      { days: 'Closed', text: 'Mon, Sun', closed: true },
+      { days: 'Mon, Wed, Fri, Sun', text: '19:00–02:00', closed: false },
+      { days: 'Closed', text: 'Tue, Thu, Sat', closed: true },
     ])
   })
 
   it('reads the same hours every day as Every day', () => {
-    const every = Object.fromEntries(WEEK.map((day) => [day, [['09:00', '18:00']]]))
-    expect(describeHours(every)).toEqual([
+    expect(describeHours(week(WEEK, ['09:00', '18:00']))).toEqual([
       { days: 'Every day', text: '09:00–18:00', closed: false },
     ])
   })
 
   it('reads weekdays only with the weekend closed', () => {
-    const weekdays = Object.fromEntries(
-      WEEK.slice(0, 5).map((day) => [day, [['09:00', '17:00']]]),
-    )
-    expect(describeHours(weekdays)).toEqual([
+    expect(describeHours(week(WEEK.slice(0, 5), nine))).toEqual([
       { days: 'Mon–Fri', text: '09:00–17:00', closed: false },
       { days: 'Closed', text: 'Sat, Sun', closed: true },
     ])
   })
 
+  it('puts days that are not neighbours on one line', () => {
+    expect(describeHours(week(['mon', 'wed', 'fri'], nine))).toEqual([
+      { days: 'Mon, Wed, Fri', text: '09:00–17:00', closed: false },
+      { days: 'Closed', text: 'Tue, Thu, Sat, Sun', closed: true },
+    ])
+  })
+
+  it('spans neighbours and lists the rest', () => {
+    expect(describeHours(week(['mon', 'tue', 'wed', 'fri'], nine))[0]).toEqual({
+      days: 'Mon–Wed, Fri',
+      text: '09:00–17:00',
+      closed: false,
+    })
+  })
+
   it('reads all day as 24 hours', () => {
-    const always = Object.fromEntries(WEEK.map((day) => [day, [['00:00', '00:00']]]))
-    expect(describeHours(always)).toEqual([
+    expect(describeHours(week(WEEK, ['00:00', '00:00']))).toEqual([
       { days: 'Every day', text: '24 hours', closed: false },
     ])
   })
 
-  it('does not join days with the same hours that are not neighbours', () => {
-    expect(describeHours({ mon: [lunch], tue: [dinner], wed: [lunch] })).toEqual([
-      { days: 'Mon', text: '12:00–15:00', closed: false },
-      { days: 'Tue', text: '19:00–23:00', closed: false },
-      { days: 'Wed', text: '12:00–15:00', closed: false },
-      { days: 'Closed', text: 'Thu, Fri, Sat, Sun', closed: true },
-    ])
-  })
-
-  it('never takes more than seven lines', () => {
-    const hours: OpeningHours = {}
-    WEEK.forEach((day, i) => {
-      if (i % 2 === 0) hours[day] = [[`0${i}:00`, '12:00']]
-    })
-    expect(describeHours(hours).length).toBeLessThanOrEqual(7)
-
-    const allDifferent = Object.fromEntries(
-      WEEK.map((day, i) => [day, [[`0${i}:00`, '20:00']]]),
-    )
-    expect(describeHours(allDifferent)).toHaveLength(7)
+  it('never takes more than two lines', () => {
+    for (let mask = 1; mask < 128; mask += 1) {
+      const days = WEEK.filter((_, i) => mask & (1 << i))
+      expect(describeHours(week(days, nine)).length).toBeLessThanOrEqual(2)
+    }
   })
 })
 
 describe('splitHours and joinHours', () => {
   it('opens a place with no hours with no day on', () => {
-    expect(splitHours(null)).toEqual({ days: [], usual: [['', '']], apart: [] })
+    expect(splitHours(null)).toEqual({ days: [], range: ['', ''] })
   })
 
-  it('takes the hours most days share as the usual hours', () => {
-    expect(splitHours(bar)).toEqual({
-      days: ['tue', 'wed', 'thu', 'fri', 'sat'],
-      usual: [lunch, dinner],
-      apart: [
-        { day: 'fri', ranges: [lunch, ['19:00', '02:00']] },
-        { day: 'sat', ranges: [['10:00', '14:00']] },
-      ],
+  it('opens a place with its days and its range', () => {
+    expect(splitHours(week(['mon', 'wed', 'fri'], nine))).toEqual({
+      days: ['mon', 'wed', 'fri'],
+      range: nine,
     })
-  })
-
-  it('gives a tie to the earliest day of the week', () => {
-    const split = splitHours({ mon: [lunch], tue: [lunch], sat: [dinner], sun: [dinner] })
-    expect(split.usual).toEqual([lunch])
-    expect(split.apart.map((entry) => entry.day)).toEqual(['sat', 'sun'])
   })
 
   it('saves no hours when no day is on, whatever times were typed', () => {
-    expect(joinHours({ days: [], usual: [['09:00', '17:00']], apart: [] })).toBeNull()
+    expect(joinHours({ days: [], range: nine })).toBeNull()
   })
 
-  it('gives every day not set apart the usual hours', () => {
-    expect(
-      joinHours({
-        days: ['mon', 'tue', 'wed', 'thu', 'fri'],
-        usual: [['9', '1700']],
-        apart: [],
-      }),
-    ).toEqual(Object.fromEntries(WEEK.slice(0, 5).map((day) => [day, [['09:00', '17:00']]])))
+  it('gives every day turned on the range, normalised', () => {
+    expect(joinHours({ days: ['mon', 'tue', 'wed', 'thu', 'fri'], range: ['9', '1700'] })).toEqual(
+      week(WEEK.slice(0, 5), nine),
+    )
   })
 
-  it('drops a second range left empty, and keeps a half-filled one for the schema to refuse', () => {
-    expect(joinHours({ days: ['mon'], usual: [lunch, ['', '']], apart: [] })).toEqual({
-      mon: [lunch],
-    })
-    const half = joinHours({ days: ['mon'], usual: [lunch, ['19:00', '']], apart: [] })
-    expect(valid(half)).toBe(false)
+  it('keeps a half-filled range for the schema to refuse', () => {
+    expect(valid(joinHours({ days: ['mon'], range: ['19:00', ''] }))).toBe(false)
   })
 
-  it('ignores hours set apart for a day that is no longer on', () => {
-    expect(
-      joinHours({ days: ['mon'], usual: [lunch], apart: [{ day: 'tue', ranges: [dinner] }] }),
-    ).toEqual({ mon: [lunch] })
-  })
-
-  it('writes back exactly what it read, for every shape of week', () => {
-    const shapes: HoursRange[][] = [[lunch], [lunch, dinner], [['20:00', '02:00']], [['00:00', '00:00']]]
-    // Every assignment of "closed or one of four shapes" to each day would be
-    // 5^7; a deterministic walk through a few hundred of them is enough to
-    // catch a split that loses or reorders anything.
-    for (let seed = 1; seed < 400; seed += 1) {
-      const hours: OpeningHours = {}
-      WEEK.forEach((day, i) => {
-        const pick = (seed * (i + 3) * 7919) % 5
-        if (pick < 4) hours[day] = shapes[pick]!
-      })
-      if (Object.keys(hours).length === 0) continue
-      expect(joinHours(splitHours(hours))).toEqual(hours)
+  it('writes back exactly what it read, for every set of days', () => {
+    const ranges: HoursRange[] = [nine, ['20:00', '02:00'], ['00:00', '00:00']]
+    for (const range of ranges) {
+      for (let mask = 1; mask < 128; mask += 1) {
+        const hours = week(WEEK.filter((_, i) => mask & (1 << i)), range)
+        expect(joinHours(splitHours(hours))).toEqual(hours)
+      }
     }
   })
 })
@@ -291,21 +252,8 @@ describe('editing a draft', () => {
     expect(draft.days).toEqual(['mon', 'fri'])
   })
 
-  it('discards the hours set apart for a day that is turned off', () => {
-    let draft = toggleDay(toggleDay(EMPTY_HOURS_DRAFT, 'mon'), 'sat')
-    draft = setDayApart(draft, 'sat')
-    draft = toggleDay(draft, 'sat')
-    expect(draft.apart).toEqual([])
-    expect(toggleDay(draft, 'sat').apart).toEqual([])
-  })
-
-  it('sets a day apart starting from the usual hours, and only a day that is on', () => {
-    const draft = { days: ['mon', 'tue'] as const, usual: [lunch], apart: [] }
-    const apart = setDayApart({ ...draft, days: [...draft.days] }, 'tue')
-    expect(apart.apart).toEqual([{ day: 'tue', ranges: [lunch] }])
-    expect(apart.apart[0]!.ranges).not.toBe(apart.usual)
-    expect(setDayApart({ ...draft, days: [...draft.days] }, 'sun').apart).toEqual([])
-    expect(daysNotApart(apart)).toEqual(['mon'])
-    expect(rejoinDay(apart, 'tue').apart).toEqual([])
+  it('turns a day off and keeps the range as typed', () => {
+    const draft = toggleDay({ days: ['mon', 'tue'], range: nine }, 'tue')
+    expect(draft).toEqual({ days: ['mon'], range: nine })
   })
 })

@@ -224,7 +224,7 @@ export function MarkerFormSheet({
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
   const [plannedOn, setPlannedOn] = useState<IsoDay | null>(initial.plannedOn)
-  // Opened as "usual hours plus the days that differ", and turned back into a
+  // Opened as the days and their one range, and turned back into a
   // week on saving — both by the same pair of functions the laptop uses.
   const [hours, setHours] = useState(() => splitHours(initial.hours))
   const [type, setType] = useState(initial.type)
