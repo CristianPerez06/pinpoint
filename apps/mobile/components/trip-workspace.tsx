@@ -967,8 +967,19 @@ export function TripWorkspace({
   async function removeCity(cityId: string) {
     setProblem(null)
 
-    // Read again afterwards for the reason `patchCity` gives.
-    const clearsLocalPrices = localPricesUnder(cityId, markers) > 0
+    /*
+      Whether this unassigns anything, decided before the write — afterwards
+      nothing here remembers which markers were filed under it.
+
+      Any marker it unassigns is *updated* by the database, which moves that
+      marker's `updated_at`, and the next save of one is checked against the
+      copy this device holds. Setting `cityId` to null below writes the part
+      that was expected and leaves the old moment, so that save was refused as
+      changed by somebody else when nobody had touched it (#188). Every
+      unassignment needs the re-read, not only the ones that also cleared a
+      local price.
+    */
+    const unassignsMarkers = markers.some((marker) => marker.cityId === cityId)
 
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
@@ -998,7 +1009,7 @@ export function TripWorkspace({
     // re-frames on what is left instead of staying pointed at a group that has
     // just been dissolved.
     if (selectedCityId === cityId) selectCity(null)
-    if (clearsLocalPrices) await markerQuery.refetch({ force: true })
+    if (unassignsMarkers) await markerQuery.refetch({ force: true })
   }
 
   /**

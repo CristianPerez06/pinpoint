@@ -62,6 +62,7 @@ import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
 import { overlayPanelClass } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
+import { useShownAgain } from '@/lib/use-shown-again'
 import { useVisibleAgain } from '@/lib/use-visible-again'
 
 import styles from './trip-workspace.module.css'
@@ -221,6 +222,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
 }
 
 export function TripWorkspace({
+  readId,
   trip: initialTrip,
   trips: storedTrips,
   initialMarkers,
@@ -230,6 +232,12 @@ export function TripWorkspace({
   ownMemberId,
   notice,
 }: {
+  /**
+   * Which server render these lists came from. A second mount carrying one this
+   * tab has already seen is this screen rebuilt from the browser's history, and
+   * its lists are as old as that first visit. See `useShownAgain`.
+   */
+  readId: string
   trip: Trip
   /**
    * Every trip this account belongs to, so one can be chosen without another
@@ -625,6 +633,20 @@ export function TripWorkspace({
     polling, no interval, and nothing holding a connection open.
   */
   useVisibleAgain(() => void rereadEverything())
+
+  /*
+    Coming back to this screen through the browser's history is the same event
+    at a different scale, and the tab never went hidden — so nothing above
+    fires. What arrives is the payload the browser saved when the screen was
+    first shown, holding the lists as they were then: an edit made a moment ago
+    is not in it, and neither is anything somebody else did since (#193).
+
+    Forced, because this mount stamped the lists as read a moment ago and they
+    are nothing of the sort. Silent all the same: nobody pressed anything, so a
+    failure leaves the screen as it is and says nothing. That is the difference
+    between this and the control below, which forces *and* answers.
+  */
+  useShownAgain(readId, () => void rereadEverything({ force: true }))
 
   /**
    * Reading everything again because somebody pressed the control for it.
@@ -1194,8 +1216,19 @@ export function TripWorkspace({
   async function removeCity(cityId: string) {
     setMessage(null)
 
-    // Read again afterwards for the reason `patchCity` gives.
-    const clearsLocalPrices = localPricesUnder(cityId, markers) > 0
+    /*
+      Whether this unassigns anything, decided before the write — afterwards
+      nothing here remembers which markers were filed under it.
+
+      Any marker it unassigns is *updated* by the database, which moves that
+      marker's `updated_at`, and the next save of one is checked against the
+      copy this device holds. Setting `cityId` to null below writes the part
+      that was expected and leaves the old moment, so that save was refused as
+      changed by somebody else when nobody had touched it (#188). Every
+      unassignment needs the re-read, not only the ones that also cleared a
+      local price.
+    */
+    const unassignsMarkers = markers.some((marker) => marker.cityId === cityId)
 
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
@@ -1214,7 +1247,7 @@ export function TripWorkspace({
       ),
     )
     if (selectedCityId === cityId) selectCity(null)
-    if (clearsLocalPrices) {
+    if (unassignsMarkers) {
       await refreshMarkers(() => fetchTripMarkers(supabase, trip.id), { force: true })
     }
   }
