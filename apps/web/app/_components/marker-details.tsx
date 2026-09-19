@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
   formatPrice,
@@ -10,7 +11,7 @@ import {
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
@@ -80,6 +81,38 @@ function ControlField({ label, children }: { label: string; children: ReactNode 
 /** Says what is missing, in the words both cards share. */
 function Absent({ children }: { children: string }) {
   return <span className={styles.absent}>{children}</span>
+}
+
+/**
+ * A place's week, one line per run of days, in the words both cards share.
+ *
+ * Two columns, so the times line up down the card whatever the day names are
+ * — `Tue–Thu` and `Fri` are different widths, and times that jump sideways
+ * from line to line cannot be compared at a glance.
+ */
+function HoursLines({ lines }: { lines: ReturnType<typeof describeHours> }) {
+  return (
+    <div className={styles.hours}>
+      {lines.map((line) => (
+        <div
+          key={line.days}
+          className={`${styles.hoursLine} ${line.closed ? styles.hoursClosed : ''}`}
+        >
+          <span className={styles.hoursDays}>{line.days}</span>
+          <span className={styles.hoursText}>
+            {line.text.split(', ').map((part, index) => (
+              // One range per unbreakable piece, so a line that has to wrap
+              // breaks between ranges and never inside one.
+              <Fragment key={part}>
+                {index > 0 ? ', ' : null}
+                <span className={styles.hoursRange}>{part}</span>
+              </Fragment>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /** An action the card offers on behalf of the screen that opened it. */
@@ -176,6 +209,14 @@ function Details({
             formatDay(marker.plannedOn)
           )}
         </Field>
+
+        <ControlField label="Hours">
+          {marker.hours === null ? (
+            <Absent>{EMPTY_FIELD_WORDING.hours}</Absent>
+          ) : (
+            <HoursLines lines={describeHours(marker.hours)} />
+          )}
+        </ControlField>
 
         <Field label="Note" valueClassName={styles.noteValue}>
           {marker.note ?? <Absent>{EMPTY_FIELD_WORDING.note}</Absent>}

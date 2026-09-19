@@ -91,8 +91,9 @@ a direction already travelled.
 
 **In force today, on both platforms:** account creation and sign-in; creating,
 renaming and sharing a trip; finding a place by name; dropping a pin by hand; the
-six-field marker form (name, note, type, city, link, price); editing and removing;
-cities as the coarse grouping; per-member interest; visited; and the people filter.
+marker form (name, note, type, city, day, opening hours, link, price); editing and
+removing; cities as the coarse grouping; per-member interest; visited; and the people
+filter.
 
 **Vocabulary that is load-bearing.** *Marker* — a saved place with a position.
 *City* — a name somebody chose for a cluster of pins, not a geographical fact; nothing
@@ -122,6 +123,10 @@ types arrive over five colours.
   positions are never moved.
 - **A free place is a price of 0**, shown as `Free`. There is no separate "free" flag
   that could disagree with the price, and a blank price still means "not entered yet".
+- **No opening hours means "not filled in", never "closed"** (#176). Hours are stored
+  per day of the week, in the place's own local time, and never converted. A day
+  left out of a place's hours is a closed day; a place with none has simply not had
+  them entered, and "closed all week" cannot be recorded.
 - **Bulk import is not a feature.** A migration is not a product capability; nobody
   pastes sixty places twice.
 

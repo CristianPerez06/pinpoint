@@ -89,6 +89,7 @@ const MARKER_ROW = {
   link: null,
   price: null,
   planned_on: null,
+  hours: null,
   visited: false,
   created_at: '2026-08-10T00:00:00.000Z',
   updated_at: '2026-08-10T00:00:00.000Z',
@@ -154,6 +155,37 @@ describe('createMarker', () => {
       expect.objectContaining({ planned_on: '2026-04-03' }),
     )
     expect(outcome.ok && outcome.data.plannedOn).toBe('2026-04-03')
+  })
+
+  it('carries the hours a place was saved with, under the column name', async () => {
+    const hours = { tue: [['12:00', '15:00'], ['19:00', '23:00']] }
+    const { client, calls } = stubClient({ data: { ...MARKER_ROW, hours } })
+
+    const outcome = await createMarker(client, { ...VALID_MARKER, hours })
+
+    expect(calls.insert).toHaveBeenCalledWith(expect.objectContaining({ hours }))
+    expect(outcome.ok && outcome.data.hours).toEqual(hours)
+  })
+
+  it('saves a place with no hours key as having none', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    await createMarker(client, VALID_MARKER)
+
+    expect(calls.insert).toHaveBeenCalledWith(expect.objectContaining({ hours: null }))
+  })
+
+  it('refuses hours that break the rules, naming the hours field', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+
+    const outcome = await createMarker(client, {
+      ...VALID_MARKER,
+      hours: { mon: [['09:00', '']] },
+    })
+
+    expect(outcome.ok).toBe(false)
+    expect(!outcome.ok && outcome.kind === 'invalid-input' && 'hours' in outcome.fieldErrors).toBe(true)
+    expect(calls.insert).not.toHaveBeenCalled()
   })
 
   it('round-trips a day as the same calendar date it was given', async () => {
@@ -235,6 +267,17 @@ describe('updateMarker', () => {
 
     await updateMarker(client, MARKER_ID, { plannedOn: null }, VERSION)
     expect(calls.update).toHaveBeenCalledWith({ planned_on: null })
+  })
+
+  it('changes and clears the hours', async () => {
+    const { client, calls } = stubClient({ data: MARKER_ROW })
+    const hours = { sat: [['10:00', '14:00']] }
+
+    await updateMarker(client, MARKER_ID, { hours }, VERSION)
+    expect(calls.update).toHaveBeenCalledWith({ hours })
+
+    await updateMarker(client, MARKER_ID, { hours: null }, VERSION)
+    expect(calls.update).toHaveBeenCalledWith({ hours: null })
   })
 
   it('leaves the day alone when the patch does not mention it', async () => {

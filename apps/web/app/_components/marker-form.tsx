@@ -1,10 +1,18 @@
 'use client'
 
-import type { City, CityNotice, FieldErrors } from '@pinpoint/core'
+import {
+  type City,
+  type CityNotice,
+  type FieldErrors,
+  joinHours,
+  type OpeningHours,
+  splitHours,
+} from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { X } from 'lucide-react'
 import { useState } from 'react'
 
+import { HoursField } from '@/app/_components/hours-field'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 import { usePending } from '@/lib/use-pending'
 import {
@@ -39,6 +47,8 @@ export interface MarkerFormValues {
   price: number | null
   /** The day this place is planned for, `YYYY-MM-DD`, or null while undecided. */
   plannedOn: string | null
+  /** The days it is open and when, or null while nobody has entered them. */
+  hours: OpeningHours | null
 }
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
@@ -108,6 +118,9 @@ export function MarkerForm({
     initial.price === null || initial.price === 0 ? '' : String(initial.price),
   )
   const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
+  // Opened as "usual hours plus the days that differ", and turned back into a
+  // week on saving — both by the same pair of functions the phone uses.
+  const [hours, setHours] = useState(() => splitHours(initial.hours))
 
   // Creating a city happens inside this form so the place being saved is never
   // lost to a detour. `null` means the detour is closed.
@@ -142,6 +155,8 @@ export function MarkerForm({
         // therefore a place going back to having no day — not a day of no
         // characters.
         plannedOn: absentIfBlank(plannedOn),
+        // No day on is no hours, whatever was typed before the days went off.
+        hours: joinHours(hours),
       }),
     )
   }
@@ -332,6 +347,8 @@ export function MarkerForm({
           </div>
         </div>
       ) : null}
+
+      <HoursField draft={hours} onChange={setHours} error={fieldErrors.hours} />
 
       <TextField
         label="Note"

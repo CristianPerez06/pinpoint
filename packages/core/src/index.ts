@@ -29,6 +29,31 @@ export type { FieldErrors, ValidationIssue } from './field-errors'
 export { markerSchema, markerPatchSchema, newMarkerSchema } from './marker'
 export type { Marker, MarkerPatch, NewMarker } from './marker'
 
+export {
+  daysNotApart,
+  describeDays,
+  describeHours,
+  EMPTY_HOURS_DRAFT,
+  joinHours,
+  normaliseTime,
+  openingHoursOf,
+  openingHoursSchema,
+  rangeHint,
+  rejoinDay,
+  setDayApart,
+  splitHours,
+  toggleDay,
+  WEEK,
+  WEEKDAY_WORDING,
+} from './opening-hours'
+export type {
+  HoursDraft,
+  HoursLine,
+  HoursRange,
+  OpeningHours,
+  Weekday,
+} from './opening-hours'
+
 export { formatPrice } from './price'
 
 export {

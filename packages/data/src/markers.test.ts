@@ -52,6 +52,32 @@ const ROW = {
 }
 
 describe('fetchTripMarkers', () => {
+  it('reads a place saved before hours existed as having none', async () => {
+    const { client } = stubClient({ data: [ROW] })
+
+    const state = await fetchTripMarkers(client, ROW.trip_id)
+
+    expect(state.status === 'ready' && state.data[0]?.hours).toBe(null)
+  })
+
+  it('reads stored hours as given', async () => {
+    const hours = { fri: [['19:00', '02:00']] }
+    const { client } = stubClient({ data: [{ ...ROW, hours }] })
+
+    const state = await fetchTripMarkers(client, ROW.trip_id)
+
+    expect(state.status === 'ready' && state.data[0]?.hours).toEqual(hours)
+  })
+
+  it('reads hours that break the rules as none, rather than failing the trip', async () => {
+    const { client } = stubClient({ data: [{ ...ROW, hours: { mon: 'nonsense' } }] })
+
+    const state = await fetchTripMarkers(client, ROW.trip_id)
+
+    expect(state.status).toBe('ready')
+    expect(state.status === 'ready' && state.data[0]?.hours).toBe(null)
+  })
+
   it('returns the markers of the trip', async () => {
     const { client } = stubClient({ data: [ROW] })
 

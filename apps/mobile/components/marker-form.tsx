@@ -1,4 +1,12 @@
-import type { City, CityNotice, FieldErrors, IsoDay } from '@pinpoint/core'
+import {
+  type City,
+  type CityNotice,
+  type FieldErrors,
+  type IsoDay,
+  joinHours,
+  type OpeningHours,
+  splitHours,
+} from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -15,6 +23,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { HoursField } from '@/components/hours-field'
 import { MarkerGlyph } from '@/components/marker-icon'
 import {
   Button,
@@ -92,6 +101,8 @@ export interface MarkerFormValues {
    * a sibling of `cityId` here exactly as it is in the database.
    */
   plannedOn: IsoDay | null
+  /** The days it is open and when, or null while nobody has entered them. */
+  hours: OpeningHours | null
 }
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
@@ -207,6 +218,9 @@ export function MarkerFormSheet({
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
   const [plannedOn, setPlannedOn] = useState<IsoDay | null>(initial.plannedOn)
+  // Opened as "usual hours plus the days that differ", and turned back into a
+  // week on saving — both by the same pair of functions the laptop uses.
+  const [hours, setHours] = useState(() => splitHours(initial.hours))
   const [type, setType] = useState(initial.type)
   const [link, setLink] = useState(initial.link ?? '')
   // A free place is a price of 0, and opens as Free with an empty box rather
@@ -331,6 +345,8 @@ export function MarkerFormSheet({
       note: absentIfBlank(note),
       cityId,
       plannedOn,
+      // No day on is no hours, whatever was typed before the days went off.
+      hours: joinHours(hours),
       type,
       link: absentIfBlank(link),
       // Free is a price of 0, and so is a typed 0. A blank price is absent —
@@ -637,6 +653,8 @@ export function MarkerFormSheet({
             onChange={setPlannedOn}
             error={fieldErrors.plannedOn}
           />
+
+          <HoursField draft={hours} onChange={setHours} error={fieldErrors.hours} />
 
           <TextField
             label="Note"

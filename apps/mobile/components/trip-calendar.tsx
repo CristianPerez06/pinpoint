@@ -454,6 +454,7 @@ export function TripCalendar({
             link: editing.link,
             price: editing.price,
             plannedOn: editing.plannedOn,
+            hours: editing.hours,
           }}
           cities={cities}
           // Nothing to say: the place already has a city or does not, and this

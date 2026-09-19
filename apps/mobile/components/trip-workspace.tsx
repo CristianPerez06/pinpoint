@@ -175,6 +175,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
     link: marker.link,
     price: marker.price,
     plannedOn: marker.plannedOn,
+    hours: marker.hours,
   }
 }
 
@@ -688,6 +689,7 @@ export function TripWorkspace({
          * making that decision for them.
          */
         plannedOn: null,
+        hours: null,
         ...initial,
       },
       cityNotice: cityNoticeFor(claim, selectedCityId),
