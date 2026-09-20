@@ -1,5 +1,11 @@
 import type { MarkerView } from '@pinpoint/map'
-import { MARKER_BADGE_SIZE, MARKER_GLYPH_SIZE, MARKER_PATH, RADIUS } from '@pinpoint/tokens'
+import {
+  MARKER_BADGE_SIZE,
+  MARKER_GLYPH_SIZE,
+  MARKER_PATH,
+  MARKER_SELECTED_SCALE,
+  RADIUS,
+} from '@pinpoint/tokens'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
@@ -115,7 +121,26 @@ export function Pin({
 }) {
   const theme = useTheme()
 
-  const { width, height } = view.size
+  /*
+   * A selected pin is drawn larger, by the shared amount, so that the pin the
+   * open sheet describes can be picked out of the ones around it. The phone
+   * drew the ring alone until now and the laptop grew it as well; nothing said
+   * which was right, which is how they drifted.
+   *
+   * Scaled by drawing at a larger size rather than by a transform. The
+   * annotation takes its frame from this view's own dimensions, and the anchor
+   * is a normalised fraction of them, so the point lands on the coordinate at
+   * either size without anything else being told.
+   */
+  const scale = selected ? MARKER_SELECTED_SCALE : 1
+  const width = view.size.width * scale
+  const height = view.size.height * scale
+
+  // Emptied rather than faded. See the comment on `form` in @pinpoint/map: the
+  // whole pin at reduced strength put every family under the contrast floor on
+  // the light ground, and no setting of that dial cleared it.
+  const hollow = view.form === 'hollow'
+  const family = theme.markerType[view.type]
 
   return (
     /*
@@ -125,19 +150,27 @@ export function Pin({
      * somewhere other than where it is drawn.
      */
     <View
-      // The muting comes from the shared description rather than being chosen
-      // here, so this pin and the web one cannot disagree about how faint a
-      // visited place looks.
-      style={{ width, height, opacity: view.opacity }}
+      style={{ width, height }}
       accessibilityLabel={
         count > 1 ? `${count} places here` : `${view.label} (${view.typeLabel})`
       }
     >
-      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      {/* The viewBox stays the unscaled box, so the path, the ring and the
+          glyph are all described in the same coordinates at either size. */}
+      <Svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${view.size.width} ${view.size.height}`}
+      >
         {selected ? (
           <Circle cx={16} cy={15} r={17} fill={theme.colour.accentRing} />
         ) : null}
-        <Path d={MARKER_PATH} fill={theme.markerType[view.type]} />
+        <Path
+          d={MARKER_PATH}
+          fill={hollow ? theme.colour.surface : family}
+          stroke={hollow ? family : undefined}
+          strokeWidth={hollow ? 3 : undefined}
+        />
       </Svg>
 
       {/*
@@ -149,24 +182,27 @@ export function Pin({
         style={[
           styles.glyph,
           {
-            left: 16 - MARKER_GLYPH_SIZE / 2,
-            top: 15 - MARKER_GLYPH_SIZE / 2,
-            width: MARKER_GLYPH_SIZE,
-            height: MARKER_GLYPH_SIZE,
+            // Scaled with the pin: the glyph sits on the teardrop's head at
+            // (16, 15) in the unscaled box, and multiplying keeps it there
+            // rather than letting it drift toward the centre as the pin grows.
+            left: (16 - MARKER_GLYPH_SIZE / 2) * scale,
+            top: (15 - MARKER_GLYPH_SIZE / 2) * scale,
+            width: MARKER_GLYPH_SIZE * scale,
+            height: MARKER_GLYPH_SIZE * scale,
           },
         ]}
       >
         <MarkerGlyph
           icon={view.icon}
-          size={MARKER_GLYPH_SIZE}
-          colour={theme.markerForeground}
+          size={MARKER_GLYPH_SIZE * scale}
+          colour={hollow ? family : theme.markerForeground}
           strokeWidth={2.4}
         />
       </View>
 
-      {/* A tick as well as the muting: faintness only reads as "visited" when
-          there is a solid pin nearby to compare against, and filtered down to
-          visited places there would be none. */}
+      {/* A tick as well as the hollow form: the form only reads as "visited"
+          when there is a solid pin nearby to compare against, and filtered down
+          to visited places there would be none. */}
       {view.visited ? (
         <View
           style={[

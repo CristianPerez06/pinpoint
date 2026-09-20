@@ -97,3 +97,24 @@ export const MARKER_GLYPH_SIZE = 15
 
 /** Diameter of the badge showing how many markers sit at one point. */
 export const MARKER_BADGE_SIZE = 18
+
+/**
+ * How much larger the selected marker is drawn.
+ *
+ * Here for the reason `MARKER_SIZE` and `MARKER_ANCHOR` are here: the two
+ * applications have to draw the selected marker identically, and the way they
+ * stopped doing so was each deciding for itself. The laptop grew it and the
+ * phone did not, for as long as both have had a map, because nothing said a
+ * selected marker was drawn any particular way.
+ *
+ * `1.2` is the laptop's existing value, kept rather than re-derived. It has
+ * been on screen since the map existed and it clears a tight cluster; choosing
+ * a new number would change the platform that was already right in order to
+ * agree with the one that was not.
+ *
+ * The growth is about the anchor, not the centre. A marker's point sits on its
+ * coordinate at every size, so whatever applies this has to scale from the
+ * bottom centre — `MARKER_ANCHOR` — or the pin lifts off the place it names as
+ * it grows.
+ */
+export const MARKER_SELECTED_SCALE = 1.2

@@ -8,8 +8,12 @@
   transform-origin: 50% 100%;
 }
 
+/* The amount comes from the shared token, set on the element as
+   `--selected-scale`, so the phone and the laptop grow it identically. The
+   origin is the bottom centre — the anchor — so the point stays on its
+   coordinate as the pin grows. */
 .pin[data-selected] {
-  transform: scale(1.2);
+  transform: scale(var(--selected-scale));
 }
 
 .body {
@@ -22,6 +26,34 @@
 
 .drop {
   fill: var(--family);
+}
+
+/*
+ * The visited pin.
+ *
+ * Emptied rather than faded. Drawing the whole pin faintly took the family
+ * colour and the glyph down together — the two things that say what kind of
+ * place it is — and put every one of the eight families under the 3:1 floor on
+ * the light ground. There was no better number to pick: an unvisited pin only
+ * clears 3.11:1 there to begin with, so the contrast to spend did not exist.
+ *
+ * So the colour moves outward instead of fading: it becomes the outline and the
+ * glyph, at full strength, and the body of the pin goes to `surface`. Nothing
+ * is made fainter, and "we have been here" is carried by the pin's shape, which
+ * costs no contrast and survives a greyscale screen.
+ *
+ * The stroke is drawn inside and outside the path in equal parts, so 3 here is
+ * 1.5 of visible outline either side of the silhouette. Thinner reads as a
+ * hairline at pin size; thicker starts to close the pin up again.
+ */
+.pin[data-form='hollow'] .drop {
+  fill: var(--pp-surface);
+  stroke: var(--family);
+  stroke-width: 3;
+}
+
+.pin[data-form='hollow'] .glyph {
+  stroke: var(--family);
 }
 
 .ring {

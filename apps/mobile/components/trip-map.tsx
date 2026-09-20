@@ -1102,7 +1102,22 @@ export function TripMap({
             />
           ) : null}
 
-          {groups.map((group) => (
+          {/*
+            The selected group is drawn last so it sits above its neighbours.
+            A pin in a tight cluster is otherwise partly covered by whichever of
+            them happens to be drawn after it, which is the case selection most
+            needs to answer.
+
+            Ordering rather than a z-index, because ordering is already how this
+            map stacks: the revealed pin and the draft below are placed after the
+            saved markers for exactly this reason. A second mechanism for the
+            same thing on one surface is how they end up disagreeing.
+          */}
+          {[...groups]
+            .sort((a, b) =>
+              Number(open?.groupKey === a.key) - Number(open?.groupKey === b.key),
+            )
+            .map((group) => (
             <MapLibreMarker
               key={group.key}
               id={group.key}

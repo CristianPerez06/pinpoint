@@ -7,7 +7,6 @@ import {
   markersAt,
   markerView,
   type MarkerViewInput,
-  VISITED_OPACITY,
 } from './marker-view'
 
 function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) {
@@ -213,25 +212,33 @@ describe('groupCoincident', () => {
 describe('markerView — visited', () => {
   const place = { lng: 135.7, lat: 35.0, name: 'To-ji', type: 'temple' }
 
-  it('mutes a visited marker without touching its colour', () => {
+  it('draws a visited marker in a different form without touching its colour', () => {
     const seen = markerView({ ...place, visited: true })
     const unseen = markerView({ ...place, visited: false })
 
     // The whole point of the rule: colour names the type and only the type, so
     // a visited place and an unvisited one of the same type are the same colour
-    // and differ only in how solidly they are drawn.
+    // and differ only in the form they are drawn in.
     expect(seen.type).toBe(unseen.type)
     expect(seen.icon).toBe(unseen.icon)
-    expect(seen.opacity).toBe(VISITED_OPACITY)
-    expect(unseen.opacity).toBe(1)
+    expect(seen.form).toBe('hollow')
+    expect(unseen.form).toBe('solid')
     expect(seen.visited).toBe(true)
     expect(unseen.visited).toBe(false)
+  })
+
+  it('carries the fact and the form separately', () => {
+    // `visited` is what the tick is drawn from and `form` is how the pin is
+    // drawn; a reader of one should not have to infer the other.
+    const seen = markerView({ ...place, visited: true })
+    expect(seen.visited).toBe(true)
+    expect(seen.form).toBe('hollow')
   })
 
   it('treats an unanswered marker as not visited', () => {
     // A draft has never been anywhere and is not asked.
     expect(markerView(place).visited).toBe(false)
-    expect(markerView(place).opacity).toBe(1)
+    expect(markerView(place).form).toBe('solid')
   })
 })
 

@@ -1,5 +1,5 @@
 import type { MarkerView } from '@pinpoint/map'
-import { MARKER_GLYPH_SIZE, MARKER_PATH } from '@pinpoint/tokens'
+import { MARKER_GLYPH_SIZE, MARKER_PATH, MARKER_SELECTED_SCALE } from '@pinpoint/tokens'
 
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 
@@ -36,12 +36,15 @@ export function Pin({
       className={styles.pin}
       data-selected={selected || undefined}
       data-visited={view.visited || undefined}
+      // From the shared description, not chosen here — the two applications
+      // have to draw a visited marker in the same form.
+      data-form={view.form}
       style={{
         width: view.size.width,
         height: view.size.height,
-        // From the shared description, not chosen here — the two applications
-        // have to mute a visited marker by the same amount.
-        opacity: view.opacity,
+        // How much bigger a selected pin is drawn, from the shared token, so
+        // the phone and the laptop cannot disagree about it.
+        ['--selected-scale' as string]: MARKER_SELECTED_SCALE,
         // The family is a name; this is where it becomes a colour, for whichever
         // ground the cascade has chosen.
         ['--family' as string]: `var(--pp-pin-${view.type})`,
@@ -76,10 +79,10 @@ export function Pin({
       ) : null}
 
       {/*
-        A tick as well as the muting, because muting alone is a comparison: it
-        only reads as "visited" when there is an unvisited pin nearby to compare
-        against. Filtered down to visited places, every pin would be faint and
-        none of them would say why.
+        A tick as well as the hollow form, because the form alone is a
+        comparison: it only reads as "visited" when there is a solid pin nearby
+        to compare against. Filtered down to visited places, every pin would be
+        hollow and none of them would say why.
       */}
       {view.visited ? (
         <span className={styles.visited} aria-hidden="true">
