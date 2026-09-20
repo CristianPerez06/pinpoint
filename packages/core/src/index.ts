@@ -21,7 +21,7 @@ export type {
 
 export { formatDay, formatDayFull, formatDayNumeric, formatDayShort } from './day-wording'
 
-export { EMPTY_FIELD_WORDING } from './empty-field-wording'
+export { EMPTY_FIELD_WORDING, UNFILED_CITY_WORDING } from './empty-field-wording'
 
 export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'

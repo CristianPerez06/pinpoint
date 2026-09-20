@@ -2,7 +2,7 @@
 
 import type { City, Marker } from '@pinpoint/core'
 import { localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
@@ -57,6 +57,22 @@ export type CityBarLiveProps = {
   onSave: (cityId: string, patch: CityEdit) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
   /**
+   * Making one, through the same path the place form uses.
+   *
+   * Resolves to the city, or to null where the write was refused — the same
+   * contract the form's creation already has, so two routes cannot produce
+   * differently formed cities.
+   *
+   * Creating deliberately does **not** select. A city with no places has
+   * nothing for the map to frame on (`marker-capture`: a city holding no
+   * markers claims nothing), so selecting it would put its name over a map
+   * showing none of it, which reads as a failure rather than a fresh start.
+   * The reason to make one early is that a searched place the geocoder reports
+   * as being in Nara files itself under a city named Nara whether or not that
+   * city holds anything yet.
+   */
+  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
+  /**
    * This list has just been shown.
    *
    * The same signal as the People view: opening it is a request to look at this
@@ -90,12 +106,15 @@ function CityBarLive({
   onSelect,
   onSave,
   onDelete,
+  onCreateCity,
   onShowCities,
   open,
   onOpen,
 }: CityBarLiveProps) {
   /** Which city's editor is open, by id. Null while the list is just a list. */
   const [editing, setEditing] = useState<string | null>(null)
+  /** Whether the creator is open. Never open at the same time as an editor. */
+  const [creating, setCreating] = useState(false)
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
   /**
@@ -115,6 +134,7 @@ function CityBarLive({
   function setOpen(next: boolean) {
     if (next) {
       setEditing(null)
+      setCreating(false)
       // Outside any state updater. React calls an updater twice in development
       // on purpose, so a read fired from in there would be sent twice every
       // time.
@@ -194,7 +214,7 @@ function CityBarLive({
               </button>
             </div>
 
-            {editing === city.id ? (
+            {editing === city.id && !creating ? (
               <CityEditor
                 city={city}
                 markerCount={count}
@@ -235,7 +255,132 @@ function CityBarLive({
             its own. */}
         <span className={styles.penSlot} aria-hidden />
       </button>
+
+      {/*
+        Making a city, pinned to the foot of the panel.
+
+        Sticky rather than a sibling of the scrolling area, because the panel
+        this renders into *is* the scrolling area — `.menuPanel` in `ui.tsx`
+        carries the `max-height` and `overflow-y`, and it is shared by the trip,
+        filter and account menus as well. Sticking the row to the panel's inner
+        bottom edge keeps it reachable on a trip with more cities than fit,
+        which `workspace-chrome` requires, without restructuring a primitive
+        three other menus depend on.
+
+        At the foot rather than the head: the first row is where the current
+        selection is read, and an action there competes with the thing the
+        control exists to show.
+      */}
+      <div className={styles.foot}>
+        {creating ? (
+          <CityCreator
+            existing={cities}
+            onCreate={onCreateCity}
+            onClose={() => setCreating(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null)
+              setCreating(true)
+            }}
+            className={styles.create}
+          >
+            <Plus size={14} strokeWidth={2.5} aria-hidden />
+            <span>New city…</span>
+          </button>
+        )}
+      </div>
     </Menu>
+  )
+}
+
+/**
+ * Making a city from the list, rather than while saving a place.
+ *
+ * It asks for the same two things `CityEditor` lets a person change afterwards,
+ * and the same two the place form collects when it creates one mid-save. A
+ * third shape for one record is how the routes start to disagree.
+ *
+ * It does not select what it creates — see `onCreateCity` on the props above.
+ */
+function CityCreator({
+  existing,
+  onCreate,
+  onClose,
+}: {
+  existing: readonly City[]
+  onCreate: (name: string, currency: string | null) => Promise<City | null>
+  onClose: () => void
+}) {
+  const [name, setName] = useState('')
+  const [currency, setCurrency] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [creating, startCreate] = usePending()
+
+  const trimmed = name.trim()
+
+  /**
+   * Refused here rather than by the database, because the database has no
+   * opinion about it: two cities of one name are legal rows and a nonsense
+   * trip. The place form already declines to offer a name the trip holds, for
+   * the same reason. Compared on the same normalised text `marker-capture`
+   * uses to match a geocoded city name, so the two agree on what "already
+   * holds" means.
+   */
+  function nameIsTaken(): boolean {
+    const normalise = (value: string) =>
+      value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase()
+    return existing.some((city) => normalise(city.name) === normalise(trimmed))
+  }
+
+  function create() {
+    if (trimmed === '') {
+      setError('Give the city a name.')
+      return
+    }
+    if (nameIsTaken()) {
+      setError(`This trip already has a city called “${trimmed}”.`)
+      return
+    }
+    setError(null)
+    startCreate(async () => {
+      const created = await onCreate(trimmed, currency)
+      // Nothing is cleared on a refusal. What was typed is the only copy of it,
+      // and the workspace has already said why over the map.
+      if (!created) return
+      onClose()
+    })
+  }
+
+  return (
+    <div className={styles.editor}>
+      <TextField
+        label="Name"
+        value={name}
+        onChange={(next) => {
+          setName(next)
+          setError(null)
+        }}
+        error={error ?? undefined}
+        autoFocus
+      />
+      <CurrencyField
+        value={currency}
+        onChange={setCurrency}
+        hint={`Places in ${trimmed || 'this city'} get a ${currency ?? ''} price box beside the dollars.`}
+      />
+
+      <div className={styles.actions}>
+        <Button tone="primary" onClick={create} disabled={creating}>
+          {creating ? 'Creating…' : 'Create city'}
+        </Button>
+        <Button tone="quiet" disabled={creating} onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   )
 }
 

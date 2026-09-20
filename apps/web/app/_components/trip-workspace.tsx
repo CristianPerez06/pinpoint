@@ -1276,6 +1276,9 @@ export function TripWorkspace({
         onSelectCity: selectCity,
         onSaveCity: patchCity,
         onDeleteCity: removeCity,
+        // The same function the place form is given, so the two routes to a new
+        // city cannot drift apart.
+        onCreateCity: addCity,
         onShowCities: () =>
           void refreshCities(() => fetchTripCities(supabase, trip.id)),
 
@@ -1474,6 +1477,11 @@ export function TripWorkspace({
             selection={open}
             members={members}
             interestFor={interestFor}
+            // Resolved here, where the cities are, rather than handing the
+            // card the whole trip's — the same narrowness `interestFor` keeps.
+            cityNameOf={(marker) =>
+              cities.find((city) => city.id === marker.cityId)?.name ?? null
+            }
             ownMemberId={ownMemberId}
             onRecordInterest={(marker, interested) => void answer(marker, interested)}
             onWithdrawInterest={(marker) => void unanswer(marker)}

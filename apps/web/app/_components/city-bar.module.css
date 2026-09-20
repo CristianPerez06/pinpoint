@@ -202,3 +202,51 @@
     min-width: 0;
   }
 }
+
+/*
+ * The foot of the panel, where a city is made.
+ *
+ * Sticky rather than placed after the scrolling area, because the panel itself
+ * is that area: `.menuPanel` in `ui.module.css` carries the `max-height` and
+ * `overflow-y`, and three other menus render into it. Sticking to the panel's
+ * inner bottom edge keeps this reachable on a trip with more cities than fit —
+ * which `workspace-chrome` requires — without changing a shared primitive.
+ *
+ * The negative offsets pull it flush with the panel's padding box so its own
+ * background covers that padding; without them the rows would show through the
+ * gap underneath as the list scrolls past.
+ */
+.foot {
+  position: sticky;
+  bottom: calc(var(--pp-space-md) * -1);
+  margin: 0 calc(var(--pp-space-md) * -1) calc(var(--pp-space-md) * -1);
+  padding: var(--pp-space-xs) var(--pp-space-md) var(--pp-space-md);
+  background: var(--pp-surface);
+  border-top: 1px solid var(--pp-line);
+}
+
+/*
+ * An action, not a category, so it is lettered in the accent rather than
+ * carrying a fill — the chrome holds no filled colour, and text on a themed
+ * ground is `accentInk` (see the token note in AGENTS.md about the pair that
+ * converges on the dark ground).
+ */
+.create {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-md);
+  background: none;
+  color: var(--pp-accent-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.create:hover {
+  background: var(--pp-accent-wash);
+}

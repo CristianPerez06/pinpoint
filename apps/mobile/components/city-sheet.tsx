@@ -5,6 +5,7 @@ import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
 import Check from 'lucide-react-native/icons/check'
 import Pencil from 'lucide-react-native/icons/pencil'
+import Plus from 'lucide-react-native/icons/plus'
 import { useState } from 'react'
 import {
   Alert,
@@ -70,6 +71,7 @@ export function CitySheet({
   onSelect,
   onSave,
   onDelete,
+  onCreateCity,
   problem,
   onDismissProblem,
 }: {
@@ -91,6 +93,15 @@ export function CitySheet({
   /** Renaming a city, awaited so the editor can say it is saving. */
   onSave: (cityId: string, patch: { name: string; currency: string | null }) => Promise<unknown>
   onDelete: (cityId: string) => Promise<unknown>
+  /**
+   * Making one, through the same path the place form uses. Null where the
+   * write was refused.
+   *
+   * Creating does not select what it makes: a city with no places has nothing
+   * for the map to frame on, so selecting it would name a city over a map
+   * showing none of it. The laptop's control carries the longer account.
+   */
+  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
   /** A refusal from one of the writes reached from here, or null. */
   problem: string | null
   onDismissProblem: () => void
@@ -100,9 +111,12 @@ export function CitySheet({
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
   const [editing, setEditing] = useState<string | null>(null)
+  /** Whether the creator is open. Never open beside an editor. */
+  const [creating, setCreating] = useState(false)
 
   function close() {
     setEditing(null)
+    setCreating(false)
     onClose()
   }
 
@@ -202,9 +216,16 @@ export function CitySheet({
               />
 
               {cities.length === 0 ? (
+                /*
+                  This used to say a city "is created the first time you file a
+                  place under a new name while saving it", which was the only
+                  way one could be made and is no longer true. It still says
+                  what a city is for: a trip with none is exactly when nobody
+                  knows.
+                */
                 <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-                  No cities yet. One is created the first time you file a place
-                  under a new name while saving it.
+                  No cities yet. Name the places you&rsquo;re going, or file one
+                  while you save a place.
                 </Text>
               ) : (
                 cities.map((city) => (
@@ -249,10 +270,129 @@ export function CitySheet({
                 onPress={() => pick(UNASSIGNED_CITY)}
               />
             </ScrollView>
+
+            {/*
+              Making a city, under the list rather than in it.
+
+              Outside the `ScrollView` on purpose, so it stays put while the
+              list scrolls — `workspace-chrome` requires it be reachable on a
+              trip holding more cities than fit. The sheet above has a definite
+              `maxHeight`, so this and the scroller divide that height between
+              them rather than this being pushed off the bottom.
+            */}
+            <View style={[styles.foot, { borderTopColor: theme.colour.line }]}>
+              {creating ? (
+                <CityCreator
+                  existing={cities}
+                  onCreate={onCreateCity}
+                  onClose={() => setCreating(false)}
+                />
+              ) : (
+                <Pressable
+                  onPress={() => {
+                    setEditing(null)
+                    setCreating(true)
+                  }}
+                  accessibilityRole="button"
+                  accessibilityHint="Adds a city to this trip"
+                  style={styles.createRow}
+                >
+                  <Plus size={16} color={theme.colour.accentInk} strokeWidth={2.5} />
+                  <Text style={[styles.createText, { color: theme.colour.accentInk }]}>
+                    New city…
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Pressable>
     </Modal>
+  )
+}
+
+/**
+ * Making a city from the list, rather than while saving a place.
+ *
+ * Asks for the same two things `CityRow`'s editor lets a person change
+ * afterwards, and the same two the place form collects when it creates one
+ * mid-save. A third shape for one record is how the routes start to disagree.
+ */
+function CityCreator({
+  existing,
+  onCreate,
+  onClose,
+}: {
+  existing: readonly City[]
+  onCreate: (name: string, currency: string | null) => Promise<City | null>
+  onClose: () => void
+}) {
+  const [name, setName] = useState('')
+  const [currency, setCurrency] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [creating, startCreate] = usePending()
+
+  const trimmed = name.trim()
+
+  /**
+   * Refused here rather than by the database, which has no opinion about it:
+   * two cities of one name are legal rows and a nonsense trip. Compared on the
+   * same normalised text `marker-capture` uses to match a geocoded city name,
+   * so both sides agree on what "already holds" means. The laptop's creator
+   * does this identically.
+   */
+  function nameIsTaken(): boolean {
+    const normalise = (value: string) =>
+      value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase()
+    return existing.some((city) => normalise(city.name) === normalise(trimmed))
+  }
+
+  return (
+    <View style={styles.editor}>
+      <TextField
+        label="Name"
+        value={name}
+        onChange={(next) => {
+          setName(next)
+          setError(null)
+        }}
+        error={error ?? undefined}
+      />
+      <CurrencyField
+        value={currency}
+        onChange={setCurrency}
+        hint={`Places in ${trimmed || 'this city'} get a ${currency ?? ''} price box beside the dollars.`}
+      />
+
+      <View style={styles.actions}>
+        <View style={styles.grow}>
+          <Button
+            label={creating ? 'Creating…' : 'Create city'}
+            tone="primary"
+            disabled={creating}
+            onPress={() => {
+              if (trimmed === '') {
+                setError('Give the city a name.')
+                return
+              }
+              if (nameIsTaken()) {
+                setError(`This trip already has a city called ${trimmed}.`)
+                return
+              }
+              setError(null)
+              startCreate(async () => {
+                const created = await onCreate(trimmed, currency)
+                // Nothing is cleared on a refusal. What was typed is the only
+                // copy of it, and the sheet says why above the list.
+                if (!created) return
+                onClose()
+              })
+            }}
+          />
+        </View>
+        <Button label="Cancel" tone="quiet" disabled={creating} onPress={onClose} />
+      </View>
+    </View>
   )
 }
 
@@ -608,4 +748,14 @@ const styles = StyleSheet.create({
   editor: { gap: SPACE.sm, paddingBottom: SPACE.md },
   actions: { flexDirection: 'row', gap: SPACE.sm },
   grow: { flex: 1 },
+  // The foot sits outside the scroller, so it keeps its place while the list
+  // moves. `borderTopColor` is themed at the call site.
+  foot: { borderTopWidth: 1, paddingTop: SPACE.sm },
+  createRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingVertical: SPACE.sm,
+  },
+  createText: { ...role(TYPE.control) },
 })

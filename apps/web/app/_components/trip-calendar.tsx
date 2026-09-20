@@ -550,6 +550,11 @@ export function TripCalendar({
             selection={selection}
             members={members}
             interestFor={interestFor}
+            // Resolved here, where the cities are, rather than handing the
+            // card the whole trip's — the same narrowness `interestFor` keeps.
+            cityNameOf={(marker) =>
+              cities.find((city) => city.id === marker.cityId)?.name ?? null
+            }
             ownMemberId={ownMemberId}
             onRecordInterest={(marker, interested) => void record(marker, interested)}
             onWithdrawInterest={(marker) => void withdraw(marker)}
@@ -597,12 +602,17 @@ export function TripCalendar({
               setConflict(null)
             }}
             /*
-              Creating a city is the map's business. Offering it from here would
-              mean a second place that can make one, on a screen that never
-              shows where a city is — so the detour is simply not offered and
-              the list is whatever the trip already holds.
+              No `onCreateCity`. Creating a city is the map's business: a city
+              is where its places are, and this screen never shows where
+              anything is, so it cannot show what it would be creating. The
+              list is whatever the trip already holds.
+
+              Absent rather than stubbed. This passed `async () => null` until
+              `#189`, which the form could only read as a creation that failed —
+              so it drew `+ New city…` and answered it with "Could not create
+              that city." every time. The offer and the ability to honour it are
+              now the same fact.
             */
-            onCreateCity={async () => null}
           />
         </div>
       ) : null}

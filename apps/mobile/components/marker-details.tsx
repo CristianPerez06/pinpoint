@@ -2,6 +2,7 @@ import {
   describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
+  UNFILED_CITY_WORDING,
   formatPrices,
   type Marker,
   type MarkerInterest,
@@ -382,6 +383,7 @@ export function MarkerDetails({
   selection,
   members,
   interestFor,
+  cityNameOf,
   ownMemberId,
   onRecordInterest,
   onWithdrawInterest,
@@ -398,6 +400,8 @@ export function MarkerDetails({
   members: readonly TripMember[]
   /** One marker's records, so this component never sees the whole trip's. */
   interestFor: (marker: Marker) => readonly MarkerInterest[]
+  /** One marker's city name, resolved by the workspace that holds the cities. */
+  cityNameOf: (marker: Marker) => string | null
   ownMemberId: string | null
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
@@ -545,6 +549,20 @@ export function MarkerDetails({
           onChange={(visited) => onSetVisited(marker, visited)}
         />
       </View>
+
+      {/*
+        The city, above the day, as on the laptop.
+
+        `absent` is unreachable here and that is the point: a place filed under
+        nothing is not missing a value, it has `Unassigned` — which is the word
+        the place form and the city sheet already use for that group. The other
+        fields say `No … yet` because they are waiting to be filled in.
+      */}
+      <Field
+        label="City"
+        value={cityNameOf(marker) ?? UNFILED_CITY_WORDING}
+        absent={UNFILED_CITY_WORDING}
+      />
 
       {/* The day, where the laptop's card carries it: after what was decided
           about the place and before what was written about it. */}

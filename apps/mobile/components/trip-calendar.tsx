@@ -420,6 +420,11 @@ export function TripCalendar({
           selection={selection}
           members={members}
           interestFor={interestFor}
+          // Resolved here, where the cities are, rather than handing the sheet
+          // the whole trip's — the same narrowness `interestFor` keeps.
+          cityNameOf={(marker) =>
+            cities.find((city) => city.id === marker.cityId)?.name ?? null
+          }
           ownMemberId={ownMemberId}
           onRecordInterest={(marker, interested) => void answer(marker, interested)}
           onWithdrawInterest={(marker) => void unanswer(marker)}
@@ -478,6 +483,15 @@ export function TripCalendar({
             would be a control that cannot answer for itself. Both are absent
             rather than present and inert, and the laptop's calendar leaves the
             same two out.
+
+            That last sentence was wrong for as long as it stood. The laptop's
+            calendar passed `async () => null`, which its form read as a failed
+            creation rather than as an absence — so it offered `+ New city…` and
+            refused every use of it (`#189`). The comment asserted a parity that
+            was never checked, which is what let the defect live: anyone reading
+            here was told the other side already agreed. Both calendars now pass
+            nothing, and both forms draw the option only when they are given a
+            way to honour it.
           */
           onDelete={() => confirmRemove(editing)}
           removing={removingId === editing.id}

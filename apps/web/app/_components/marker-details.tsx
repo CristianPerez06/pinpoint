@@ -5,6 +5,7 @@ import {
   EMPTY_FIELD_WORDING,
   formatDay,
   formatPrices,
+  UNFILED_CITY_WORDING,
   type Marker,
   type MarkerInterest,
   type TripMember,
@@ -124,6 +125,7 @@ function Details({
   hidden,
   members,
   interest,
+  cityName,
   ownMemberId,
   onRecordInterest,
   onWithdrawInterest,
@@ -141,6 +143,14 @@ function Details({
   members: readonly TripMember[]
   /** This marker's records only. */
   interest: readonly MarkerInterest[]
+  /**
+   * The name of the city this place is filed under, or null for none.
+   *
+   * Resolved by the caller rather than looked up here, for the reason
+   * `interest` is passed the same way: this component is given what it needs
+   * about one place and never the whole trip's.
+   */
+  cityName: string | null
   ownMemberId: string | null
   onRecordInterest: (interested: boolean) => void
   onWithdrawInterest: () => void
@@ -202,6 +212,16 @@ function Details({
         <ControlField label="Visited">
           <VisitedToggle visited={marker.visited} onChange={onSetVisited} />
         </ControlField>
+
+        {/*
+          Above the day, because filing is the coarser fact and because this is
+          where it was noticed missing when the day was added.
+
+          Not drawn with `Absent` when there is no city. `Absent` is for a value
+          that has not been supplied; a place filed under nothing has an answer,
+          and it is `Unassigned`. See `UNFILED_CITY_WORDING`.
+        */}
+        <Field label="City">{cityName ?? UNFILED_CITY_WORDING}</Field>
 
         <Field label="Day">
           {marker.plannedOn === null ? (
@@ -368,6 +388,7 @@ export function MarkerDetails({
   selection,
   members,
   interestFor,
+  cityNameOf,
   ownMemberId,
   onRecordInterest,
   onWithdrawInterest,
@@ -383,6 +404,8 @@ export function MarkerDetails({
   members: readonly TripMember[]
   /** One marker's records, so this component never sees the whole trip's. */
   interestFor: (marker: Marker) => readonly MarkerInterest[]
+  /** One marker's city name, resolved by the workspace that holds the cities. */
+  cityNameOf: (marker: Marker) => string | null
   ownMemberId: string | null
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
@@ -425,6 +448,7 @@ export function MarkerDetails({
       hidden={hidden}
       members={members}
       interest={interestFor(marker)}
+      cityName={cityNameOf(marker)}
       ownMemberId={ownMemberId}
       onRecordInterest={(interested) => onRecordInterest(marker, interested)}
       onWithdrawInterest={() => onWithdrawInterest(marker)}
