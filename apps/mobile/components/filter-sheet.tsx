@@ -1,6 +1,6 @@
 import {
   dateOfDay,
-  formatDayCompact,
+  formatDayRange,
   formatDayShort,
   type InterestFilter,
   isFiltered,
@@ -570,11 +570,16 @@ function inWeeks(days: readonly IsoDay[]): readonly (readonly IsoDay[])[] {
   return weeks.filter((week) => week !== undefined)
 }
 
-/** What a run of days is called: the span it covers, or the one day it holds. */
+/**
+ * What a run of days is called: the stretch it covers, or the one day it holds.
+ *
+ * The wording is `@pinpoint/core`'s, not this file's. It used to be four lines
+ * here and four identical lines in the other application, which is two answers
+ * to one question waiting to drift apart — and a third was about to be written
+ * for a trip's dates in the trip menu.
+ */
 function runLabel(run: readonly IsoDay[]): string {
-  const first = formatDayCompact(run[0])
-  if (run.length === 1) return first
-  return `${first} – ${formatDayCompact(run[run.length - 1])}`
+  return formatDayRange(run[0], run[run.length - 1]) ?? run[0]
 }
 
 /** The small uppercase line that says what a list of ticks is asking. */

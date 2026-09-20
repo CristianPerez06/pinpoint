@@ -1,3 +1,4 @@
+import { dayToPrepareWith } from '@pinpoint/core'
 import {
   fetchTripCities,
   fetchTripInterest,
@@ -86,6 +87,29 @@ export default async function CalendarPage({
   const back = new URLSearchParams({ trip: trip.id })
   if (requestedCityId) back.set('city', requestedCityId)
 
+  /*
+   * The day to draw, or null where this machine cannot honestly answer.
+   *
+   * It used to be worked out inside the screen's own state initialiser, which
+   * runs here *and* again in the browser. For a trip carrying no dates the rule
+   * falls through to today — this machine's today on one side and the reader's
+   * on the other, which differ for several hours of every day for anybody away
+   * from where this runs. React found the day headings and both arrow labels
+   * disagreeing, threw the whole calendar away and rebuilt it, and the reader
+   * saw yesterday's date until it did.
+   *
+   * Deciding it once here removes the disagreement, but it cannot conjure the
+   * answer: where the rule lands on "today", only the reader knows which day
+   * that is. So `dayToPrepareWith` returns null in exactly those cases and the
+   * screen waits for its day rather than being drawn with a guess — a guess
+   * being a real date, correctly drawn, with nothing on screen inviting anybody
+   * to doubt it.
+   *
+   * A day named in the address is nobody's guess, so it is taken as given.
+   */
+  const initialDay =
+    typeof params.day === 'string' ? params.day : dayToPrepareWith(trip)
+
   return (
     /*
       The same waiting screen as `loading.tsx`. This boundary is here because
@@ -98,6 +122,7 @@ export default async function CalendarPage({
         // A token for this render, for the reason the map's page gives.
         readId={crypto.randomUUID()}
         trip={trip}
+        initialDay={initialDay}
         trips={trips.data}
         initialMarkers={markers.status === 'ready' ? markers.data : []}
         initialCities={cities.status === 'ready' ? cities.data : []}

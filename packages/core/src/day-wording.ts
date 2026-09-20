@@ -74,14 +74,113 @@ export function formatDayCompact(day: IsoDay): string {
  * The year is here and not in `formatDay` on purpose: on screen the year is
  * noise beside a date control that already shows it, but a screen reader hearing
  * only "next day, Friday 3 April" is being told less than the screen shows.
+ *
+ * **Built from `formatDay` rather than asked of `Intl` separately, and that is
+ * the whole point of it.** Asked on its own, `en-GB` returns `Friday, 3 April
+ * 2026` — with a comma the on-screen forms do not carry. Nobody chose that
+ * comma; it is what the locale happens to answer. So the same day was written
+ * one way in a heading and another in the control beside it, which reads as two
+ * different days to somebody moving between them, and as a typo to anybody
+ * reviewing it.
+ *
+ * Composing it means the two cannot drift apart again: this form is that form
+ * plus a year, by construction, and a change to the wording reaches both.
  */
 export function formatDayFull(day: IsoDay): string {
-  return worded(day, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const named = formatDay(day)
+  // `formatDay` hands back the stored string where the runtime cannot word a
+  // day. A year appended to that makes a date nobody can read.
+  if (named === day) return day
+  return `${named} ${yearOf(day)}`
+}
+
+/**
+ * `9–26 Oct 2026` — a stretch of days, as one wording rather than one per place
+ * that needs one.
+ *
+ * Here for the reason the rest of this file is here, and because two private
+ * copies of it had already appeared — one in each application's filter, written
+ * the same and owned by nobody. A trip's dates in the trip menu would have been
+ * the third.
+ *
+ * Both ends are optional and are read independently, because a trip may carry
+ * either alone. A single date is never written bare: `From 14 Nov 2026` and
+ * `Until 8 Mar 2027` say which end of the trip it is, where `14 Nov 2026` on its
+ * own could be read as either. Neither date returns `null`, so a caller renders
+ * nothing rather than an empty label — a column of placeholders says less than
+ * the names it crowds.
+ *
+ * **The year is always present.** A trip is commonly planned a year ahead, and
+ * `9–26 Oct` reads correctly right up until the year it means stops being
+ * obvious. Collapsing the repeated month pays for most of its width: the
+ * filter's week headings were `3 Apr – 9 Apr` and are now `3–9 Apr 2026`, one
+ * character shorter.
+ */
+export function formatDayRange(
+  from: IsoDay | null,
+  to: IsoDay | null,
+): string | null {
+  if (from == null && to == null) return null
+  if (from == null) return `Until ${formatDayWithYear(to!)}`
+  if (to == null) return `From ${formatDayWithYear(from)}`
+  if (from === to) return formatDayWithYear(from)
+
+  /*
+   * Where this runtime cannot word a month, every branch below would splice a
+   * `YYYY-MM-DD` into the middle of a worded date — `9–2026-10-26`. Both ends
+   * stored, joined, is the readable answer, and it is the same fallback the
+   * single-day formats make.
+   */
+  if (formatDayCompact(from) === from || formatDayCompact(to) === to)
+    return `${from} – ${to}`
+
+  /*
+   * An end before its start is refused when a trip's dates are saved, so this
+   * is the guard for a row written by something that did not go through that
+   * rule. Both ends are written in full rather than quietly swapped: swapping
+   * would state an order nobody entered.
+   */
+  if (to < from) return `${formatDayWithYear(from)} – ${formatDayWithYear(to)}`
+
+  // Different years, so each end carries its own: `28 Dec 2026 – 3 Jan 2027`.
+  if (yearOf(from) !== yearOf(to))
+    return `${formatDayWithYear(from)} – ${formatDayWithYear(to)}`
+
+  /*
+   * One month, written once: `9–26 Oct 2026`. The dash is tight between two
+   * bare numerals and spaced between two worded dates, which is what makes the
+   * collapsed form read as one date rather than two.
+   */
+  if (monthOf(from) === monthOf(to))
+    return `${dayNumberOf(from)}–${formatDayWithYear(to)}`
+
+  // Two months in one year, so the year is only needed once, at the end.
+  return `${formatDayCompact(from)} – ${formatDayWithYear(to)}`
+}
+
+/** `3 Apr 2026` — a day with its year and no weekday. */
+function formatDayWithYear(day: IsoDay): string {
+  const compact = formatDayCompact(day)
+  if (compact === day) return day
+  return `${compact} ${yearOf(day)}`
+}
+
+/*
+ * The year, the month and the day number are read off the stored string rather
+ * than asked of `Intl`, for the reason `formatDayNumeric` gives: the digits are
+ * already there, and a locale has nothing to say about them except their order,
+ * which none of these depends on.
+ */
+function yearOf(day: IsoDay): string {
+  return day.slice(0, 4)
+}
+
+function monthOf(day: IsoDay): string {
+  return day.slice(0, 7)
+}
+
+function dayNumberOf(day: IsoDay): string {
+  return String(Number(day.slice(8, 10)))
 }
 
 /**

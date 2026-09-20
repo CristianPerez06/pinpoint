@@ -4,7 +4,7 @@ import {
   type City,
   type CalendarView,
   calendarViewShown,
-  dayShown,
+  dayToOpenOn,
   type FieldErrors,
   groupMarkersByDay,
   groupUndatedByCity,
@@ -29,7 +29,12 @@ import {
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
 import { CalendarScreen } from '@/app/_components/calendar-screen'
@@ -79,9 +84,20 @@ function refusalMessage(
   return outcome.kind === 'invalid-input' ? fallback : outcome.message
 }
 
+/**
+ * A store that never changes, for `useSyncExternalStore`.
+ *
+ * Module scope because the subscribe function has to keep its identity between
+ * renders; one written inline resubscribes on every one of them.
+ */
+function subscribeToNothing(): () => void {
+  return () => {}
+}
+
 export function TripCalendar({
   readId,
   trip: initialTrip,
+  initialDay,
   trips: storedTrips,
   initialMarkers,
   initialCities,
@@ -96,6 +112,17 @@ export function TripCalendar({
    */
   readId: string
   trip: Trip
+  /**
+   * The day to open on as decided where this page was prepared, or null where
+   * only the reader can decide it.
+   *
+   * A prop rather than something worked out here, because working it out here
+   * means working it out twice — once while the HTML is prepared and once while
+   * it is hydrated — and those two answers are different todays. Null where the
+   * rule lands on "today", so the screen waits for its day rather than being
+   * drawn with somebody else's. See the state that reads it.
+   */
+  initialDay: IsoDay | null
   /**
    * Every trip this account belongs to, so one can be chosen from here without
    * another read. The trip's name opens the same menu it opens on the map, and
@@ -238,13 +265,51 @@ export function TripCalendar({
    * Seeded from the address so a reload or a shared link still opens where it
    * says, and falls back to the day this trip makes most sense to open on.
    */
-  const [day, setDay] = useState<IsoDay>(() =>
-    dayShown(searchParams.get('day'), trip),
+  const [chosen, setChosen] = useState<IsoDay | null>(() =>
+    searchParams.get('day'),
   )
+
+  /**
+   * The day to open on, as the *reader's* clock sees it.
+   *
+   * `useSyncExternalStore` rather than an effect that corrects the value
+   * afterwards, because this is the one thing it exists for: a value the server
+   * and the browser legitimately disagree about. React takes the third argument
+   * while the HTML is prepared and while it is hydrated, then the second one
+   * once the page is the reader's — so the two renders match by construction
+   * and arriving at the reader's day is a re-render rather than a repair.
+   *
+   * An effect calling `setDay` was written first and is worse in two ways. It
+   * repairs state React has already committed, which is what
+   * `react-hooks/set-state-in-effect` is warning about; and it has to carry a
+   * guard against undoing a day somebody has since stepped to, which this shape
+   * makes impossible — a chosen day is different state, not the same state
+   * overwritten.
+   *
+   * Today does not change under a reader mid-session in any way this screen
+   * needs to follow, so nothing subscribes.
+   */
+  const opening = useSyncExternalStore(
+    subscribeToNothing,
+    () => dayToOpenOn(trip),
+    () => initialDay,
+  )
+
+  /**
+   * The day being read: the one asked for, the one this trip opens on, or null
+   * while only the reader can say.
+   *
+   * `marker-day.ts` records that today means the *device's* today on purpose —
+   * somebody in Kyōto at nine in the morning means the day it is there, and a
+   * date worked out in UTC hands them yesterday for most of their waking hours.
+   * A day named in the address is a fixed string that no clock can disagree
+   * about, so it is taken as given.
+   */
+  const day = chosen ?? opening
 
   const goToDay = useCallback(
     (next: IsoDay) => {
-      setDay(next)
+      setChosen(next)
 
       /*
        * `history.replaceState`, not `router.replace`.
@@ -498,7 +563,17 @@ export function TripCalendar({
     <CalendarScreen
       initialView={initialView}
       onViewChange={writeView}
-      live={{
+      /*
+        Null until the day is known, which is this screen's own waiting state:
+        an inert day band with a bar where the date will be, and columns that
+        say nothing rather than saying the wrong thing.
+
+        It is null only where the opening day depends on whose clock is asked —
+        a trip carrying no dates, or one being read while it is happening. For
+        every other trip `initialDay` arrives already decided and no wait is
+        drawn. `dayToPrepareWith` is where that line is drawn, and why.
+      */
+      live={day == null ? null : {
         scope: (
           <TripBar
             trip={trip}

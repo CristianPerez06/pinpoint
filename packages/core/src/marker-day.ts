@@ -284,9 +284,49 @@ export function dayToOpenOn(
   trip: { startsOn: IsoDay | null; endsOn: IsoDay | null },
   now: Date = new Date(),
 ): IsoDay {
-  const today = todayAsDay(now)
+  return openingDayFor(todayAsDay(now), trip)
+}
+
+/** The rule itself, over a day rather than a clock, so it is stated once. */
+function openingDayFor(
+  today: IsoDay,
+  trip: { startsOn: IsoDay | null; endsOn: IsoDay | null },
+): IsoDay {
   if (dayWithin(today, trip.startsOn, trip.endsOn)) return today
   return trip.startsOn ?? today
+}
+
+/**
+ * The day a screen prepared away from its reader may commit to, or null where
+ * only the reader can answer.
+ *
+ * Some of this product's screens are built in one place and read in another,
+ * and the two do not agree about what day it is. Time zones run from UTC−12 to
+ * UTC+14, so a reader's calendar day is never more than one day either side of
+ * the day where the screen was prepared — but within that, "today" is a
+ * different date for several hours of every day.
+ *
+ * So the rule is asked three times, of yesterday, today and tomorrow. Where all
+ * three agree the answer cannot depend on whose clock was used and the screen
+ * may be drawn with it. Where they differ, only the reader knows, and this says
+ * so by returning null rather than guessing — which is the whole point, because
+ * a guess here is a real date, correctly drawn, holding whatever that day holds.
+ * Nothing on screen would invite anybody to doubt it.
+ *
+ * In practice a trip carrying no dates always answers null, a trip being read
+ * while it is happening answers null near its own boundaries, and a trip in the
+ * future or the past answers its start date — which is most of them, and is why
+ * this is worth deciding precisely rather than making every calendar wait.
+ */
+export function dayToPrepareWith(
+  trip: { startsOn: IsoDay | null; endsOn: IsoDay | null },
+  now: Date = new Date(),
+): IsoDay | null {
+  const today = todayAsDay(now)
+  const [yesterday, own, tomorrow] = [-1, 0, 1].map((offset) =>
+    openingDayFor(addDays(today, offset), trip),
+  )
+  return own === yesterday && own === tomorrow ? own : null
 }
 
 /**
