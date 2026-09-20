@@ -1,6 +1,11 @@
 'use client'
 
-import type { FieldErrors, Trip, TripMember } from '@pinpoint/core'
+import {
+  type FieldErrors,
+  formatDayRange,
+  type Trip,
+  type TripMember,
+} from '@pinpoint/core'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -229,23 +234,37 @@ function TripBarLive({
           {trips.length > 1 ? (
             <>
               <p className={styles.heading}>Trips</p>
-              {trips.map((each) => (
-                <button
-                  key={each.id}
-                  type="button"
-                  onClick={() => {
-                    onSelect(each.id)
-                    setOpen(false)
-                  }}
-                  aria-current={each.id === trip.id}
-                  className={styles.row}
-                >
-                  <span className={styles.rowName}>{each.name}</span>
-                  {each.id === trip.id ? (
-                    <span className={styles.rowNote}>Open</span>
-                  ) : null}
-                </button>
-              ))}
+              {trips.map((each) => {
+                /*
+                 * A trip with no dates shows its name alone — no placeholder and
+                 * no dash. Most trips exist in that state for most of their
+                 * life, and a column of stand-ins says nothing while taking the
+                 * room the names need.
+                 */
+                const dates = formatDayRange(each.startsOn, each.endsOn)
+                return (
+                  <button
+                    key={each.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(each.id)
+                      setOpen(false)
+                    }}
+                    aria-current={each.id === trip.id}
+                    className={styles.row}
+                  >
+                    <span
+                      className={`${styles.rowName} ${dates ? styles.rowNameDated : ''}`}
+                    >
+                      {each.name}
+                    </span>
+                    {dates ? <span className={styles.rowDates}>{dates}</span> : null}
+                    {each.id === trip.id ? (
+                      <span className={styles.rowNote}>Open</span>
+                    ) : null}
+                  </button>
+                )
+              })}
               <hr className={styles.divide} />
             </>
           ) : null}

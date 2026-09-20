@@ -91,6 +91,16 @@
   justify-content: space-between;
   gap: var(--pp-space-sm);
   width: 100%;
+  /*
+   * A grid item's floor is its own content, not zero, so a row wide enough to
+   * hold a long trip name *and* a set of dates simply grew past the 320px panel
+   * and was clipped by it — the name at full length, the dates cut in half.
+   * Nothing overflowed while a row held only a name, which is why this arrived
+   * with the dates. It is the same trap the search field met in the bar, from
+   * the other side: there a floor made an item overflow, here the absence of
+   * one did.
+   */
+  min-width: 0;
   padding: 7px var(--pp-space-sm);
   border: 0;
   border-radius: var(--pp-radius-sm);
@@ -221,6 +231,33 @@
   font-size: var(--pp-type-row-name-size);
   font-weight: var(--pp-type-row-name-weight);
   letter-spacing: var(--pp-type-row-name-tracking);
+}
+
+/*
+ * A trip name that has to share its row with a set of dates.
+ *
+ * `min-width: 0` because a flex item's floor is its content, not zero — without
+ * it the name refuses to shrink and pushes the dates out of the row instead of
+ * trimming, which is the failure the bar already met once with the search field.
+ */
+.rowNameDated {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The dates a trip runs between. Never wrapped and never shrunk: they are what
+ * tells two trips to the same city apart, so the name yields to them.
+ */
+.rowDates {
+  flex: 0 0 auto;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .rowNote {

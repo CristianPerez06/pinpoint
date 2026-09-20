@@ -24,6 +24,7 @@ export {
   formatDayCompact,
   formatDayFull,
   formatDayNumeric,
+  formatDayRange,
   formatDayShort,
 } from './day-wording'
 
@@ -105,6 +106,7 @@ export {
   daysOffered,
   dayShown,
   dayToOpenOn,
+  dayToPrepareWith,
   dayWithin,
   groupMarkersByDay,
   groupUndatedByCity,

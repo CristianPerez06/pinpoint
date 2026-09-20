@@ -7,6 +7,7 @@ import {
   dayShown,
   daysOffered,
   dayToOpenOn,
+  dayToPrepareWith,
   dayWithin,
   groupMarkersByDay,
   groupUndatedByCity,
@@ -227,6 +228,147 @@ describe('dayToOpenOn', () => {
     expect(
       dayToOpenOn({ startsOn: '2027-04-01', endsOn: null }, noon('2026-09-15')),
     ).toBe('2027-04-01')
+  })
+})
+
+describe('dayToPrepareWith', () => {
+  const noon = (day: string) => new Date(`${day}T12:00:00`)
+
+  it('commits to a start date the reader cannot disagree about', () => {
+    // Weeks before the trip. Yesterday, today and tomorrow all fall outside it,
+    // so every candidate reader lands on the same start date.
+    expect(
+      dayToPrepareWith(
+        { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+        noon('2026-09-20'),
+      ),
+    ).toBe('2026-10-09')
+  })
+
+  it('refuses a trip carrying no dates', () => {
+    // The rule falls through to today, and today is exactly what differs.
+    expect(
+      dayToPrepareWith({ startsOn: null, endsOn: null }, noon('2026-09-20')),
+    ).toBeNull()
+  })
+
+  it('refuses while the trip is being lived', () => {
+    // Mid-trip the answer is today, so it is the reader's to give.
+    expect(
+      dayToPrepareWith(
+        { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+        noon('2026-10-15'),
+      ),
+    ).toBeNull()
+  })
+
+  it('still commits on the eve of a trip, where every reader agrees', () => {
+    // A reader a day behind is two days out and gets the start date; this clock
+    // is one day out and gets the start date; a reader a day ahead is *on* the
+    // start date, so today and the start date are the same answer. All three
+    // agree, so declining here would make a calendar wait for nothing.
+    expect(
+      dayToPrepareWith(
+        { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+        noon('2026-10-08'),
+      ),
+    ).toBe('2026-10-09')
+  })
+
+  it('refuses on the day the trip is left behind', () => {
+    // A reader a day behind is still on the last day and gets that day; this
+    // clock is past the end and falls back to the start date. Two different
+    // answers, so only the reader can settle it.
+    expect(
+      dayToPrepareWith(
+        { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+        noon('2026-10-27'),
+      ),
+    ).toBeNull()
+  })
+
+  it('commits to a start date once the trip is safely past', () => {
+    expect(
+      dayToPrepareWith(
+        { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+        noon('2026-12-01'),
+      ),
+    ).toBe('2026-10-09')
+  })
+
+  it('refuses a trip carrying only an end date', () => {
+    // No start to fall back to, so the answer is today whichever side of the
+    // end date the reader stands.
+    expect(
+      dayToPrepareWith(
+        { startsOn: null, endsOn: '2026-12-31' },
+        noon('2026-09-20'),
+      ),
+    ).toBeNull()
+  })
+
+  it('agrees with dayToOpenOn whenever it commits at all', () => {
+    // It never answers a different day — it only declines to answer.
+    const trips = [
+      { startsOn: '2026-10-09', endsOn: '2026-10-26' },
+      { startsOn: '2027-04-01', endsOn: null },
+      { startsOn: null, endsOn: null },
+    ]
+    for (const trip of trips) {
+      const prepared = dayToPrepareWith(trip, noon('2026-09-20'))
+      if (prepared !== null) {
+        expect(prepared).toBe(dayToOpenOn(trip, noon('2026-09-20')))
+      }
+    }
+  })
+})
+
+describe('whose today the calendar opens on', () => {
+  /*
+   * The property the web calendar's opening day depends on, pinned here rather
+   * than in the component — because it is a fact about the rule, and it is the
+   * reason that screen is built the way it is.
+   *
+   * The screen is prepared in one place and read in another. For a trip with
+   * dates the rule returns a fixed string, so the two agree whatever either
+   * clock says. For a trip with *no* dates it falls through to today, and the
+   * two disagree for several hours of every day for anybody away from where the
+   * screen was prepared.
+   *
+   * That difference is the whole of the fault: the reader was shown the
+   * preparer's day, React found the day headings disagreeing and rebuilt the
+   * whole calendar, and yesterday's date sat on screen until it did. So the day
+   * is settled once where the screen is prepared, and the reader's own clock is
+   * read where the screen is read.
+   */
+  const whereItWasPrepared = new Date('2026-09-20T05:30:00Z')
+  const whereItIsRead = new Date('2026-09-19T22:30:00-07:00')
+
+  it('gives two different days for a trip carrying no dates', () => {
+    // The same instant, read from two places, on two different calendar days.
+    expect(whereItWasPrepared.getTime()).toBe(whereItIsRead.getTime())
+
+    const undated = { startsOn: null, endsOn: null }
+    expect(dayToOpenOn(undated, new Date('2026-09-20T12:00:00'))).toBe('2026-09-20')
+    expect(dayToOpenOn(undated, new Date('2026-09-19T12:00:00'))).toBe('2026-09-19')
+  })
+
+  it('gives one day for a trip carrying dates, whatever the clock says', () => {
+    const dated = { startsOn: '2026-10-09', endsOn: '2026-10-26' }
+    expect(dayToOpenOn(dated, new Date('2026-09-20T12:00:00'))).toBe('2026-10-09')
+    expect(dayToOpenOn(dated, new Date('2026-09-19T12:00:00'))).toBe('2026-10-09')
+  })
+
+  it('gives one day whenever a day was asked for, dates or not', () => {
+    // A day in the address is a fixed string, so no clock can disagree about
+    // it — which is why the reader's own today is only consulted without one.
+    const undated = { startsOn: null, endsOn: null }
+    expect(dayShown('2026-04-03', undated, new Date('2026-09-20T12:00:00'))).toBe(
+      '2026-04-03',
+    )
+    expect(dayShown('2026-04-03', undated, new Date('2026-09-19T12:00:00'))).toBe(
+      '2026-04-03',
+    )
   })
 })
 

@@ -1,4 +1,9 @@
-import type { FieldErrors, IsoDay, Trip } from '@pinpoint/core'
+import {
+  type FieldErrors,
+  formatDayRange,
+  type IsoDay,
+  type Trip,
+} from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import Archive from 'lucide-react-native/icons/archive'
 import ArchiveRestore from 'lucide-react-native/icons/archive-restore'
@@ -540,11 +545,19 @@ function TripRow({
 }) {
   const theme = useTheme()
 
+  /*
+   * A trip with no dates shows its name alone — no placeholder and no dash.
+   * Most trips exist in that state for most of their life, and a column of
+   * stand-ins says nothing while taking the room the names need.
+   */
+  const dates = formatDayRange(trip.startsOn, trip.endsOn)
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected: current }}
+      accessibilityLabel={dates ? `${trip.name}, ${dates}` : trip.name}
       style={styles.row}
     >
       <View style={styles.tick}>
@@ -564,6 +577,16 @@ function TripRow({
       >
         {trip.name}
       </Text>
+      {/*
+        Never wrapped and never shrunk: the dates are what tells two trips to
+        the same city apart, so the name yields to them. `flexShrink: 0` is what
+        makes that true — without it both sides give way and neither reads.
+      */}
+      {dates ? (
+        <Text style={[styles.rowDates, { color: theme.colour.inkMuted }]}>
+          {dates}
+        </Text>
+      ) : null}
     </Pressable>
   )
 }
@@ -593,6 +616,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   rowName: { ...role(TYPE.rowName), flex: 1 },
+  rowDates: { ...role(TYPE.note), flexShrink: 0 },
   /*
    * What a row says about itself, beside its name.
    *
