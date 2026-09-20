@@ -5,6 +5,7 @@ import {
   calendarViewShown,
   dateOfDay,
   dayShown,
+  daysOffered,
   dayToOpenOn,
   dayWithin,
   groupMarkersByDay,
@@ -408,5 +409,94 @@ describe('calendarViewShown', () => {
   it('shows the days for a value that is neither', () => {
     expect(calendarViewShown('Waiting')).toBe('days')
     expect(calendarViewShown('')).toBe('days')
+  })
+})
+
+describe('daysOffered', () => {
+  const dated = (day: string | null) => ({ plannedOn: day })
+
+  it('offers every day a trip spans, including the ones nothing is planned for', () => {
+    // An empty day has to be visible as an empty day. Offering only the days
+    // that hold something would make "nothing is planned for Thursday"
+    // unaskable, which is one of the questions this filter exists for.
+    const days = daysOffered({ startsOn: '2026-03-19', endsOn: '2026-03-22' }, [])
+
+    expect(days).toEqual(['2026-03-19', '2026-03-20', '2026-03-21', '2026-03-22'])
+  })
+
+  it('offers the days its places carry when the trip has no dates of its own', () => {
+    // The normal case for a long time: places accumulate well before anybody
+    // settles what the dates are.
+    const days = daysOffered({ startsOn: null, endsOn: null }, [
+      dated('2026-03-22'),
+      dated('2026-03-19'),
+      dated(null),
+    ])
+
+    expect(days).toEqual(['2026-03-19', '2026-03-22'])
+  })
+
+  it('offers a day outside the trip, which the schema permits', () => {
+    const days = daysOffered({ startsOn: '2026-03-19', endsOn: '2026-03-20' }, [
+      dated('2026-04-03'),
+    ])
+
+    expect(days).toEqual(['2026-03-19', '2026-03-20', '2026-04-03'])
+  })
+
+  it('lists each day once however many places share it', () => {
+    const days = daysOffered({ startsOn: null, endsOn: null }, [
+      dated('2026-03-19'),
+      dated('2026-03-19'),
+      dated('2026-03-19'),
+    ])
+
+    expect(days).toEqual(['2026-03-19'])
+  })
+
+  it('returns days in order', () => {
+    // `YYYY-MM-DD` sorts chronologically as text, which is the other reason
+    // these are strings rather than Dates.
+    const days = daysOffered({ startsOn: null, endsOn: null }, [
+      dated('2026-04-03'),
+      dated('2026-03-19'),
+      dated('2026-12-01'),
+    ])
+
+    expect(days).toEqual(['2026-03-19', '2026-04-03', '2026-12-01'])
+  })
+
+  it('offers nothing for a trip with no dates and no dated places', () => {
+    expect(daysOffered({ startsOn: null, endsOn: null }, [dated(null)])).toEqual([])
+  })
+
+  it('takes a lone start or end date without inventing a span', () => {
+    // Inventing a length from one bound would be guessing at something nobody
+    // stated, which is how `dayToOpenOn` treats the same case.
+    expect(daysOffered({ startsOn: '2026-03-19', endsOn: null }, [])).toEqual([
+      '2026-03-19',
+    ])
+    expect(daysOffered({ startsOn: null, endsOn: '2026-03-22' }, [])).toEqual([
+      '2026-03-22',
+    ])
+  })
+
+  it('drops an absurd span rather than enumerating it', () => {
+    // These dates are typed by hand, so a slipped year gives a trip lasting
+    // three centuries. Enumerating it would hang the interface building a list
+    // nobody can read; the days something is actually planned for still stand.
+    const days = daysOffered({ startsOn: '2026-03-19', endsOn: '2299-03-19' }, [
+      dated('2026-03-20'),
+    ])
+
+    expect(days).toEqual(['2026-03-20'])
+  })
+
+  it('ignores an end date before the start', () => {
+    const days = daysOffered({ startsOn: '2026-03-22', endsOn: '2026-03-19' }, [
+      dated('2026-03-20'),
+    ])
+
+    expect(days).toEqual(['2026-03-19', '2026-03-20', '2026-03-22'])
   })
 })

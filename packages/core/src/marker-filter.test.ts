@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   activeFilterCount,
+  type FilterableMarker,
   isFiltered,
   type MarkerFilter,
   matchesFilter,
@@ -12,21 +13,46 @@ const ANA = 'member-ana'
 const BEN = 'member-ben'
 const CHO = 'member-cho'
 
-const unvisited = { visited: false }
-const visited = { visited: true }
+/**
+ * A marker carrying nothing any question would select on, so that a test naming
+ * one dimension is only ever about that dimension.
+ */
+const place = (over: Partial<FilterableMarker> = {}): FilterableMarker => ({
+  visited: false,
+  type: 'place',
+  plannedOn: null,
+  cityId: 'city-kyoto',
+  ...over,
+})
+
+const unvisited = place()
+const visited = place({ visited: true })
 
 const wants = (memberId: string) => ({ memberId, interested: true })
 const declines = (memberId: string) => ({ memberId, interested: false })
 
 const wantedBy = (...members: string[]): MarkerFilter => ({
+  ...NO_FILTER,
   interest: { kind: 'wanted-by', members },
-  visited: 'any',
 })
 
 const UNANSWERED: MarkerFilter = {
+  ...NO_FILTER,
   interest: { kind: 'unanswered' },
-  visited: 'any',
 }
+
+const ofKind = (...kinds: string[]): MarkerFilter => ({
+  ...NO_FILTER,
+  kind: { kind: 'one-of', kinds },
+})
+
+const onDays = (...days: string[]): MarkerFilter => ({
+  ...NO_FILTER,
+  day: { kind: 'on', days },
+})
+
+const UNDATED: MarkerFilter = { ...NO_FILTER, day: { kind: 'undated' } }
+const UNFILED: MarkerFilter = { ...NO_FILTER, city: 'unfiled' }
 
 describe('matchesFilter — who wants to go', () => {
   it('shows everything when nothing is being asked', () => {
@@ -130,6 +156,7 @@ describe('matchesFilter — visited', () => {
 
   it('combines with interest rather than replacing it', () => {
     const filter: MarkerFilter = {
+      ...NO_FILTER,
       interest: { kind: 'wanted-by', members: [ANA, BEN] },
       visited: 'unvisited',
     }
@@ -138,6 +165,128 @@ describe('matchesFilter — visited', () => {
     expect(matchesFilter(unvisited, wantedByBoth, filter)).toBe(true)
     expect(matchesFilter(visited, wantedByBoth, filter)).toBe(false)
     expect(matchesFilter(unvisited, [wants(ANA)], filter)).toBe(false)
+  })
+})
+
+describe('matchesFilter — kind of place', () => {
+  it('narrows to one kind', () => {
+    expect(matchesFilter(place({ type: 'food' }), [], ofKind('food'))).toBe(true)
+    expect(matchesFilter(place({ type: 'temple' }), [], ofKind('food'))).toBe(false)
+  })
+
+  it('selects a place of any of the kinds chosen', () => {
+    // The opposite of how naming members composes, and deliberately so: a place
+    // has exactly one kind, so requiring both at once would select nothing.
+    const filter = ofKind('food', 'temple')
+
+    expect(matchesFilter(place({ type: 'food' }), [], filter)).toBe(true)
+    expect(matchesFilter(place({ type: 'temple' }), [], filter)).toBe(true)
+    expect(matchesFilter(place({ type: 'stay' }), [], filter)).toBe(false)
+  })
+
+  it('treats choosing no kind as not asking about kind', () => {
+    // Where naming no members selects nothing, naming no kinds selects
+    // everything. The two empties mean opposite things, which is why they are
+    // different shapes rather than two arrays in one object.
+    expect(matchesFilter(place({ type: 'food' }), [], ofKind())).toBe(true)
+  })
+
+  it('matches the kind a place is drawn as, not the string it stores', () => {
+    // `castle` was retired into `culture`. A row still holding it draws as a
+    // culture pin, so narrowing to culture has to select it — otherwise the
+    // place you are looking at vanishes when you ask for what you can see.
+    expect(matchesFilter(place({ type: 'castle' }), [], ofKind('culture'))).toBe(true)
+    expect(matchesFilter(place({ type: 'castle' }), [], ofKind('place'))).toBe(false)
+  })
+
+  it('matches an unknown stored kind as the fallback it draws as', () => {
+    const unknown = place({ type: 'something-nothing-has-ever-defined' })
+
+    expect(matchesFilter(unknown, [], ofKind('place'))).toBe(true)
+    expect(matchesFilter(unknown, [], ofKind('food'))).toBe(false)
+  })
+})
+
+describe('matchesFilter — the day a place is planned for', () => {
+  const thursday = place({ plannedOn: '2026-03-19' })
+  const sunday = place({ plannedOn: '2026-03-22' })
+  const someday = place({ plannedOn: null })
+
+  it('narrows to one day', () => {
+    const filter = onDays('2026-03-19')
+
+    expect(matchesFilter(thursday, [], filter)).toBe(true)
+    expect(matchesFilter(sunday, [], filter)).toBe(false)
+    expect(matchesFilter(someday, [], filter)).toBe(false)
+  })
+
+  it('selects days that are not next to each other', () => {
+    // The reason the days are a set rather than a stretch between two dates:
+    // "Thursday and Sunday" is a question a range cannot ask.
+    const filter = onDays('2026-03-19', '2026-03-22')
+
+    expect(matchesFilter(thursday, [], filter)).toBe(true)
+    expect(matchesFilter(sunday, [], filter)).toBe(true)
+    expect(matchesFilter(place({ plannedOn: '2026-03-20' }), [], filter)).toBe(false)
+  })
+
+  it('singles out the places carrying no day, and only those', () => {
+    expect(matchesFilter(someday, [], UNDATED)).toBe(true)
+    expect(matchesFilter(thursday, [], UNDATED)).toBe(false)
+  })
+
+  it('treats choosing no day as not asking about the day', () => {
+    expect(matchesFilter(thursday, [], onDays())).toBe(true)
+    expect(matchesFilter(someday, [], onDays())).toBe(true)
+  })
+
+  it('shows a place on several days when any one of them is chosen', () => {
+    // No place can carry more than one day yet. The rule is pinned here so that
+    // whatever adds that inherits it rather than deciding it a second time —
+    // #158 and #156 have to agree, and whichever runs second would otherwise be
+    // the one that decides.
+    const acrossThreeNights = ['2026-03-19', '2026-03-20', '2026-03-21']
+    const matchesAnyOf = (days: readonly string[], chosen: MarkerFilter) =>
+      days.some((day) => matchesFilter(place({ plannedOn: day }), [], chosen))
+
+    expect(matchesAnyOf(acrossThreeNights, onDays('2026-03-20'))).toBe(true)
+    expect(matchesAnyOf(acrossThreeNights, onDays('2026-03-25'))).toBe(false)
+  })
+})
+
+describe('matchesFilter — places filed under no city', () => {
+  it('narrows to the places no city holds', () => {
+    expect(matchesFilter(place({ cityId: null }), [], UNFILED)).toBe(true)
+    expect(matchesFilter(place({ cityId: 'city-kyoto' }), [], UNFILED)).toBe(false)
+  })
+
+  it('offers no way to narrow to a named city', () => {
+    // Not an omission. A city is a name somebody chose for a cluster of places,
+    // not a geographical fact, so hiding everything filed under a different name
+    // can hide a place that is genuinely around the corner. Being filed under no
+    // city is a state of the record instead, which is why only it is offered.
+    const answers = [NO_FILTER.city, 'unfiled']
+    expect(answers).not.toContain('city-kyoto')
+  })
+})
+
+describe('matchesFilter — the questions compose', () => {
+  it('requires every question to be satisfied at once', () => {
+    const filter: MarkerFilter = {
+      ...NO_FILTER,
+      interest: { kind: 'wanted-by', members: [ANA] },
+      visited: 'unvisited',
+      kind: { kind: 'one-of', kinds: ['food'] },
+      day: { kind: 'on', days: ['2026-03-19'] },
+    }
+    const lunch = place({ type: 'food', plannedOn: '2026-03-19' })
+
+    expect(matchesFilter(lunch, [wants(ANA)], filter)).toBe(true)
+    // Each of these fails exactly one of the four.
+    expect(matchesFilter(lunch, [declines(ANA)], filter)).toBe(false)
+    expect(matchesFilter({ ...lunch, visited: true }, [wants(ANA)], filter)).toBe(false)
+    expect(matchesFilter({ ...lunch, type: 'temple' }, [wants(ANA)], filter)).toBe(false)
+    expect(matchesFilter({ ...lunch, plannedOn: null }, [wants(ANA)], filter)).toBe(false)
   })
 })
 
@@ -164,10 +313,14 @@ describe('isFiltered', () => {
     expect(isFiltered(NO_FILTER)).toBe(false)
   })
 
-  it('reports either kind of narrowing', () => {
+  it('reports every kind of narrowing', () => {
     expect(isFiltered(wantedBy(ANA))).toBe(true)
     expect(isFiltered(UNANSWERED)).toBe(true)
     expect(isFiltered({ ...NO_FILTER, visited: 'unvisited' })).toBe(true)
+    expect(isFiltered(ofKind('food'))).toBe(true)
+    expect(isFiltered(onDays('2026-03-19'))).toBe(true)
+    expect(isFiltered(UNDATED)).toBe(true)
+    expect(isFiltered(UNFILED)).toBe(true)
   })
 })
 
@@ -198,6 +351,33 @@ describe('activeFilterCount', () => {
     expect(activeFilterCount({ ...UNANSWERED, visited: 'unvisited' })).toBe(2)
   })
 
+  it('counts naming kinds and days as one question each', () => {
+    // Same rule as naming people: the number is of questions, not of ticks, so
+    // it means the same thing in the first week of a trip and in the last.
+    expect(activeFilterCount(ofKind('food'))).toBe(1)
+    expect(activeFilterCount(ofKind('food', 'temple', 'stay'))).toBe(1)
+    expect(activeFilterCount(onDays('2026-03-19'))).toBe(1)
+    expect(activeFilterCount(onDays('2026-03-19', '2026-03-20', '2026-03-22'))).toBe(1)
+    expect(activeFilterCount(UNDATED)).toBe(1)
+    expect(activeFilterCount(UNFILED)).toBe(1)
+  })
+
+  it('stays a single digit with every question asked at once', () => {
+    // What lets the trigger keep the settled 124px slot `#87` gave it: a
+    // control whose width follows its own state drags its own panel out from
+    // under whoever is choosing inside it.
+    const everything: MarkerFilter = {
+      interest: { kind: 'wanted-by', members: [ANA, BEN, CHO] },
+      visited: 'unvisited',
+      kind: { kind: 'one-of', kinds: ['food', 'temple'] },
+      day: { kind: 'on', days: ['2026-03-19', '2026-03-22'] },
+      city: 'unfiled',
+    }
+
+    expect(activeFilterCount(everything)).toBe(5)
+    expect(String(activeFilterCount(everything))).toHaveLength(1)
+  })
+
   it('agrees with isFiltered about whether anything is being hidden', () => {
     // Two functions answering one question have to answer it the same way: a
     // control that declares a filter is on while the count reads zero would be
@@ -208,6 +388,10 @@ describe('activeFilterCount', () => {
       UNANSWERED,
       { ...NO_FILTER, visited: 'unvisited' } as MarkerFilter,
       { ...wantedBy(ANA), visited: 'unvisited' } as MarkerFilter,
+      ofKind('food'),
+      onDays('2026-03-19'),
+      UNDATED,
+      UNFILED,
     ]) {
       expect(activeFilterCount(filter) > 0).toBe(isFiltered(filter))
     }

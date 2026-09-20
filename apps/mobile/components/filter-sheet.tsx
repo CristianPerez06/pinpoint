@@ -1,12 +1,27 @@
 import {
+  dateOfDay,
+  formatDayCompact,
+  formatDayShort,
   type InterestFilter,
   isFiltered,
+  type IsoDay,
   type MarkerFilter,
   NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
+import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import ChevronDown from 'lucide-react-native/icons/chevron-down'
+import { type ReactNode, useState } from 'react'
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useTheme } from '@/lib/theme'
@@ -78,6 +93,31 @@ const styles = StyleSheet.create({
   },
   tick: { fontSize: 13, fontWeight: '800' },
   divide: { height: 1, marginVertical: SPACE.xs },
+  swatch: { width: 12, height: 12, borderRadius: 4 },
+  questionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingVertical: 13,
+  },
+  questionName: { ...role(TYPE.control), fontWeight: '600' },
+  // `flex: 1` with `minWidth: 0` is what lets this truncate instead of pushing
+  // the chevron off the row — a flex item's floor is its own content otherwise.
+  questionSaid: { ...role(TYPE.note), flex: 1, minWidth: 0, textAlign: 'right' },
+  questionSaidSet: {
+    ...role(TYPE.note),
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'right',
+    // Said twice over — the accent and a heavier weight — because a signal
+    // carried only in hue does not survive greyscale or a colour-blind reader.
+    fontWeight: '700',
+  },
+  chevronOpen: { transform: [{ rotate: '180deg' }] },
+  empty: { ...role(TYPE.note), paddingVertical: SPACE.sm },
+  // The foot sits outside the scroller, so it keeps its place while the
+  // questions move. `borderTopColor` is themed at the call site.
+  foot: { borderTopWidth: 1, paddingTop: SPACE.sm },
   clear: {
     marginTop: SPACE.sm,
     borderWidth: 1,
@@ -89,6 +129,12 @@ const styles = StyleSheet.create({
   clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
 })
 
+/** Fraction of the screen the sheet may grow to before it scrolls instead. */
+const SHEET_CAP = 0.8
+
+/** Which question is open. One at a time, and none when the sheet is shown. */
+type OpenQuestion = 'interest' | 'kind' | 'day'
+
 export function FilterSheet({
   open,
   filter,
@@ -96,6 +142,7 @@ export function FilterSheet({
   onClose,
   members,
   ownMemberId,
+  days,
 }: {
   open: boolean
   filter: MarkerFilter
@@ -104,17 +151,37 @@ export function FilterSheet({
   members: readonly TripMember[]
   /** So the reader is named the way the marker sheet names them. */
   ownMemberId: string | null
+  /**
+   * The days this trip offers to be narrowed by, in order.
+   *
+   * From `daysOffered` in `@pinpoint/core`, which is also what the laptop's
+   * menu is handed — so the two offer the same days for the same trip.
+   */
+  days: readonly IsoDay[]
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
+
+  const [question, setQuestion] = useState<OpenQuestion | null>(null)
 
   const chosen = filter.interest.kind === 'wanted-by' ? filter.interest.members : []
+  const kinds = filter.kind.kind === 'one-of' ? filter.kind.kinds : []
+  const chosenDays = filter.day.kind === 'on' ? filter.day.days : []
 
   const setInterest = (interest: InterestFilter) => onChange({ ...filter, interest })
 
   // What the way out below is live for, and what the toolbar's filter button
   // is drawing its dot for. One predicate, read in both places.
   const narrowed = isFiltered(filter)
+
+  /* Reopening shows the overview rather than whatever was last expanded: the
+     rows are the point of the sheet, and one standing open is a state nobody
+     asked to return to. */
+  function close() {
+    setQuestion(null)
+    onClose()
+  }
 
   function toggleMember(memberId: string) {
     const next = chosen.includes(memberId)
@@ -128,16 +195,77 @@ export function FilterSheet({
     )
   }
 
+  function toggleKind(id: string) {
+    const next = kinds.includes(id)
+      ? kinds.filter((kind) => kind !== id)
+      : [...kinds, id]
+
+    // Same shape as unticking the last person, opposite meaning: no kinds
+    // chosen selects everything rather than nothing, because a place has
+    // exactly one kind.
+    onChange({
+      ...filter,
+      kind: next.length === 0 ? { kind: 'any' } : { kind: 'one-of', kinds: next },
+    })
+  }
+
+  function toggleDay(day: IsoDay) {
+    const next = chosenDays.includes(day)
+      ? chosenDays.filter((each) => each !== day)
+      : [...chosenDays, day]
+
+    onChange({
+      ...filter,
+      day: next.length === 0 ? { kind: 'any' } : { kind: 'on', days: next },
+    })
+  }
+
+  /*
+   * What each collapsed row says it is set to, in words rather than as a count.
+   *
+   * A member named here who has since left the trip resolves to nothing and
+   * drops out, rather than showing an id.
+   */
+  const interestSaid =
+    filter.interest.kind === 'unanswered'
+      ? 'Nobody has answered'
+      : filter.interest.kind === 'wanted-by'
+        ? wordList(
+            chosen
+              .map((id) => members.find((member) => member.id === id))
+              .filter((member) => member !== undefined)
+              .map((member) =>
+                member.id === ownMemberId ? 'You' : member.displayName,
+              ),
+          )
+        : 'Anyone'
+
+  const kindSaid =
+    kinds.length === 0
+      ? 'Any kind'
+      : wordList(
+          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map(
+            (type) => type.label,
+          ),
+        )
+
+  const daySaid =
+    filter.day.kind === 'undated'
+      ? 'No day yet'
+      : chosenDays.length === 0
+        ? 'Any day'
+        : wordList([...chosenDays].sort().map(formatDayShort))
+
   return (
     <Modal
       visible={open}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={close}
       // Android's back gesture reaches `onRequestClose`; on iOS the backdrop and
       // the Done button are the ways out.
     >
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
         {/* The sheet swallows presses so that touching a row does not dismiss
             through the backdrop underneath it. */}
         <Pressable
@@ -147,59 +275,203 @@ export function FilterSheet({
             {
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.line,
+              // Definite, so the scroller inside has a height to divide with
+              // the foot. A container sizing to its children reports almost
+              // nothing to a scroller and clips everything past the first row
+              // — see `AGENTS.md`.
+              maxHeight: cap,
               paddingBottom: SPACE.md + insets.bottom,
             },
           ]}
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.colour.ink }]}>Wanted by</Text>
-            <Pressable onPress={onClose} accessibilityRole="button" style={styles.done}>
+            <Text style={[styles.title, { color: theme.colour.ink }]}>Filter</Text>
+            <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
               <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
                 Done
               </Text>
             </Pressable>
           </View>
 
-          {members.map((member) => (
+          {/*
+            The questions scroll; the way out does not.
+
+            The sheet above has a definite `maxHeight`, so this and the foot
+            divide that height between them. Without it this scroller would be
+            asked how tall it is by a parent sizing to its children, answer
+            almost nothing, and clip everything past the first row — see
+            `AGENTS.md`, which is the same trap the city sheet already names.
+          */}
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {/*
+              One question per row, opened one at a time.
+
+              The laptop's panel had to collapse because five questions drawn at
+              once outgrow it on a large trip; this sheet is taller, but the same
+              content is the same content and a person scrolling past twenty-one
+              days to reach `Hide visited` is the same defect with more room to
+              hide in.
+            */}
+            <Question
+              name="Wanted by"
+              said={interestSaid}
+              set={filter.interest.kind !== 'anyone'}
+              open={question === 'interest'}
+              onToggle={() =>
+                setQuestion(question === 'interest' ? null : 'interest')
+              }
+            >
+              {/* The question this list asks, because the two below ask the
+                  opposite one and tick boxes do not say which is which. */}
+              <Heading>Places all of them want</Heading>
+
+              {members.map((member) => (
+                <Option
+                  key={member.id}
+                  label={member.id === ownMemberId ? 'You' : member.displayName}
+                  checked={chosen.includes(member.id)}
+                  onPress={() => toggleMember(member.id)}
+                />
+              ))}
+
+              <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+
+              {/* Not a person, so not one of the people. Picking it clears the
+                  ticks rather than adding to them — "wanted by Ana, and also
+                  nobody has answered" has no meaning. */}
+              <Option
+                label="Nobody has answered yet"
+                checked={filter.interest.kind === 'unanswered'}
+                onPress={() =>
+                  setInterest(
+                    filter.interest.kind === 'unanswered'
+                      ? { kind: 'anyone' }
+                      : { kind: 'unanswered' },
+                  )
+                }
+              />
+            </Question>
+
+            <Question
+              name="Kind of place"
+              said={kindSaid}
+              set={kinds.length > 0}
+              open={question === 'kind'}
+              onToggle={() => setQuestion(question === 'kind' ? null : 'kind')}
+            >
+              {/*
+                `any`, and it has to be said rather than shown.
+
+                This list and the one above it are both tick boxes in one sheet
+                and they compose oppositely: naming two people asks for the
+                places they agree on, naming two kinds asks for either. A place
+                has exactly one kind, so the other reading would always select
+                nothing — but nobody discovers that by ticking, they discover an
+                empty map.
+              */}
+              <Heading>Places of any of these</Heading>
+
+              {MARKER_TYPES.map((type) => (
+                <Option
+                  key={type.id}
+                  label={type.label}
+                  swatch={theme.markerType[type.id]}
+                  checked={kinds.includes(type.id)}
+                  onPress={() => toggleKind(type.id)}
+                />
+              ))}
+            </Question>
+
+            <Question
+              name="Day"
+              said={daySaid}
+              set={filter.day.kind !== 'any'}
+              open={question === 'day'}
+              onToggle={() => setQuestion(question === 'day' ? null : 'day')}
+            >
+              <Heading>Places on any of these days</Heading>
+
+              {days.length === 0 ? (
+                /* Said rather than left blank: an empty region reads as a list
+                   that failed to load. */
+                <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
+                  Nothing is planned for a day yet.
+                </Text>
+              ) : (
+                inWeeks(days).map((run) => (
+                  <View key={run[0]}>
+                    <Heading>{runLabel(run)}</Heading>
+                    {run.map((day) => (
+                      <Option
+                        key={day}
+                        label={formatDayShort(day)}
+                        checked={chosenDays.includes(day)}
+                        onPress={() => toggleDay(day)}
+                      />
+                    ))}
+                  </View>
+                ))
+              )}
+
+              <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+
+              {/* Not a day, so not one of the days — the same shape as the
+                  triage pile above and the same reason. "Thursday, and also the
+                  ones with no day" is two questions wearing one answer. */}
+              <Option
+                label="No day yet"
+                checked={filter.day.kind === 'undated'}
+                onPress={() =>
+                  onChange({
+                    ...filter,
+                    day:
+                      filter.day.kind === 'undated'
+                        ? { kind: 'any' }
+                        : { kind: 'undated' },
+                  })
+                }
+              />
+            </Question>
+
+            <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
+
+            {/*
+              The only way this product narrows by city, and deliberately the
+              only one. A city is a name somebody chose for a cluster of places
+              rather than a geographical fact, so hiding everything filed under
+              a different name can hide a place that is genuinely around the
+              corner. Being filed under *no* city is a state of the record
+              instead. `city.ts` carries the measurement this rests on.
+            */}
             <Option
-              key={member.id}
-              label={member.id === ownMemberId ? 'You' : member.displayName}
-              checked={chosen.includes(member.id)}
-              onPress={() => toggleMember(member.id)}
+              label="Not filed under a city"
+              checked={filter.city === 'unfiled'}
+              onPress={() =>
+                onChange({
+                  ...filter,
+                  city: filter.city === 'unfiled' ? 'any' : 'unfiled',
+                })
+              }
             />
-          ))}
 
-          <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
-
-          {/* Not a person, so not one of the people. Picking it clears the ticks
-              rather than adding to them — "wanted by Ana, and also nobody has
-              answered" has no meaning. */}
-          <Option
-            label="Nobody has answered yet"
-            checked={filter.interest.kind === 'unanswered'}
-            onPress={() =>
-              setInterest(
-                filter.interest.kind === 'unanswered'
-                  ? { kind: 'anyone' }
-                  : { kind: 'unanswered' },
-              )
-            }
-          />
-
-          <View style={[styles.divide, { backgroundColor: theme.colour.line }]} />
-
-          <Option
-            label="Hide visited"
-            checked={filter.visited === 'unvisited'}
-            onPress={() =>
-              onChange({
-                ...filter,
-                visited: filter.visited === 'unvisited' ? 'any' : 'unvisited',
-              })
-            }
-          />
+            <Option
+              label="Hide visited"
+              checked={filter.visited === 'unvisited'}
+              onPress={() =>
+                onChange({
+                  ...filter,
+                  visited: filter.visited === 'unvisited' ? 'any' : 'unvisited',
+                })
+              }
+            />
+          </ScrollView>
 
           {/*
+            Outside the scroller, so it keeps its place while the questions
+            move. `marker-filtering` requires the way out to be reachable from
+            where the narrowing is declared, and a trip spanning three weeks
+            would otherwise push it past the bottom of the sheet.
+
             Permanent and inert rather than absent, which is the requirement and
             not a preference: a control that arrives on selection moves whatever
             is beside it, so applying a filter would rearrange the sheet that
@@ -211,38 +483,175 @@ export function FilterSheet({
             door. And the two states differ by fill and by weight as well as by
             colour, for the same reason.
           */}
-          <Pressable
-            onPress={() => {
-              if (narrowed) onChange(NO_FILTER)
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Clear the filter"
-            accessibilityState={{ disabled: !narrowed }}
-            style={[
-              styles.clear,
-              narrowed
-                ? {
-                    borderColor: theme.colour.accent,
-                    backgroundColor: theme.colour.accentWash,
-                  }
-                : {
-                    borderColor: 'transparent',
-                    backgroundColor: theme.colour.surfaceMuted,
-                  },
-            ]}
-          >
-            <Text
+          <View style={[styles.foot, { borderTopColor: theme.colour.line }]}>
+            <Pressable
+              onPress={() => {
+                if (narrowed) onChange(NO_FILTER)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear the filter"
+              accessibilityState={{ disabled: !narrowed }}
               style={[
-                narrowed ? styles.clearText : styles.clearTextInert,
-                { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
+                styles.clear,
+                narrowed
+                  ? {
+                      borderColor: theme.colour.accent,
+                      backgroundColor: theme.colour.accentWash,
+                    }
+                  : {
+                      borderColor: 'transparent',
+                      backgroundColor: theme.colour.surfaceMuted,
+                    },
               ]}
             >
-              Clear
-            </Text>
-          </Pressable>
+              <Text
+                style={[
+                  narrowed ? styles.clearText : styles.clearTextInert,
+                  { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
+                ]}
+              >
+                Clear
+              </Text>
+            </Pressable>
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
+  )
+}
+
+/**
+ * A list of words as a person would say it.
+ *
+ * Used only for what a collapsed row says it is set to, which is why naming
+ * members is allowed here: the rule against it is about the *trigger*, whose
+ * width would then follow its own state. This sits inside the sheet and
+ * truncates.
+ */
+function wordList(words: readonly string[]): string {
+  if (words.length === 0) return ''
+  if (words.length === 1) return words[0]
+  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+}
+
+/**
+ * Whole days between two of them.
+ *
+ * Through local midnights and rounded, because a day is not always twenty-four
+ * hours long — a daylight-saving boundary makes one of them twenty-three, and
+ * an unrounded division would put the day after it in the wrong week.
+ */
+function daysBetween(from: IsoDay, to: IsoDay): number {
+  const ms = dateOfDay(to).getTime() - dateOfDay(from).getTime()
+  return Math.round(ms / 86_400_000)
+}
+
+/**
+ * The offered days, in seven-day runs from the first one.
+ *
+ * Runs rather than calendar weeks starting on a Monday, so a trip beginning on
+ * a Saturday does not open with a two-day stub. The laptop groups them the same
+ * way, from the same rule.
+ *
+ * Each run is **labelled by the days it covers, not by an ordinal**, and that
+ * came from looking. `Week 1`, `Week 2`, `Week 3` read correctly on a trip of
+ * consecutive days and lied on the live one, whose places sit on five days
+ * scattered across two months: the group labelled `Week 2` began twenty-six
+ * days after `Week 1`.
+ */
+function inWeeks(days: readonly IsoDay[]): readonly (readonly IsoDay[])[] {
+  if (days.length === 0) return []
+  const weeks: IsoDay[][] = []
+  for (const day of days) {
+    const index = Math.floor(daysBetween(days[0], day) / 7)
+    ;(weeks[index] ??= []).push(day)
+  }
+  // Holes where a trip's places jump a month, which `daysOffered` permits.
+  return weeks.filter((week) => week !== undefined)
+}
+
+/** What a run of days is called: the span it covers, or the one day it holds. */
+function runLabel(run: readonly IsoDay[]): string {
+  const first = formatDayCompact(run[0])
+  if (run.length === 1) return first
+  return `${first} – ${formatDayCompact(run[run.length - 1])}`
+}
+
+/** The small uppercase line that says what a list of ticks is asking. */
+function Heading({ children }: { children: ReactNode }) {
+  const theme = useTheme()
+  return (
+    <Text style={[styles.label, { color: theme.colour.inkMuted }]}>{children}</Text>
+  )
+}
+
+/**
+ * One question, as a row that expands.
+ *
+ * Closed, it is the same height on a trip of ten members and a trip of two —
+ * which is what keeps the way out of the narrowing on screen rather than three
+ * weeks of days below it.
+ *
+ * `said` is what this question is currently set to, in words. That is a
+ * requirement rather than a nicety: a row reading `2` would be the same
+ * unitless number the trigger already rejected, one level in.
+ */
+function Question({
+  name,
+  said,
+  set,
+  open,
+  onToggle,
+  children,
+}: {
+  name: string
+  said: string
+  set: boolean
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  const theme = useTheme()
+
+  return (
+    <View>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        /* The whole state in the name, for somebody who is not looking at it —
+           the chevron and the colour are drawn and reach nobody else. */
+        accessibilityLabel={`${name}. ${said}`}
+        style={styles.questionHead}
+      >
+        <Text style={[styles.questionName, { color: theme.colour.ink }]}>{name}</Text>
+        <Text
+          numberOfLines={1}
+          style={[
+            set ? styles.questionSaidSet : styles.questionSaid,
+            { color: set ? theme.colour.accentInk : theme.colour.inkMuted },
+          ]}
+        >
+          {said}
+        </Text>
+        {/*
+          The rotation goes on a `View`, not on the glyph.
+
+          `react-native-svg` reads `transform` off an `Svg`'s style and applies
+          it as an SVG transform, where a rotation is a number of degrees and
+          not the `'180deg'` string React Native's own transform takes. Handing
+          it the string made the chevron **disappear** rather than fail — the
+          open row simply had nothing at its right edge, which reads as a glyph
+          that was never drawn and is not. Rotating an ordinary `View` around it
+          keeps the transform in React Native's layout, where the string is what
+          is expected.
+        */}
+        <View style={open ? styles.chevronOpen : undefined}>
+          <ChevronDown size={16} color={theme.colour.inkMuted} />
+        </View>
+      </Pressable>
+      {open ? <View>{children}</View> : null}
+    </View>
   )
 }
 
@@ -250,10 +659,19 @@ function Option({
   label,
   checked,
   onPress,
+  swatch,
 }: {
   label: string
   checked: boolean
   onPress: () => void
+  /**
+   * The colour this kind is drawn in on the map, where there is one.
+   *
+   * The same statement the map already makes, repeated in the control that
+   * hides it, so ticking `Food` and watching the orange pins go is one idea
+   * rather than two.
+   */
+  swatch?: string
 }) {
   const theme = useTheme()
 
@@ -277,6 +695,9 @@ function Option({
           <Text style={[styles.tick, { color: theme.colour.ground }]}>✓</Text>
         ) : null}
       </View>
+      {swatch === undefined ? null : (
+        <View style={[styles.swatch, { backgroundColor: swatch }]} />
+      )}
       <Text style={[styles.optionText, { color: theme.colour.ink }]}>{label}</Text>
     </Pressable>
   )

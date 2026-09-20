@@ -80,6 +80,34 @@ export const UNASSIGNED_CITY = 'unassigned'
  * two implementations of "the unassigned ones" would eventually disagree, and
  * the disagreement would surface as a row counting four places and a map drawing
  * three. That reads as a data problem and would not be one.
+ *
+ * ## This answers where to point the camera. It does not hide anything.
+ *
+ * Every caller uses it for two jobs — framing the map, and biasing place search
+ * — and none of them narrows the drawn set with it. That set is decided by
+ * `matchesFilter` alone, and selecting a city must never reach it.
+ *
+ * `marker-filtering` said otherwise for as long as it existed: that selecting
+ * the unassigned group showed the unfiled places "and places filed under a city
+ * are not". No application ever did it, and the requirement has been corrected
+ * rather than implemented, for two reasons worth keeping.
+ *
+ * A city here is a name somebody chose for a cluster of places, not a
+ * geographical fact — nothing resolves a city name to a position — so hiding
+ * everything filed under a different name can hide a place that is genuinely
+ * around the corner, which is the question the product exists to answer. That
+ * was measured rather than argued: on a real six-city trip, framing on the
+ * largest city puts seven of a neighbouring city's eight places on screen,
+ * because the two are about as far apart as the larger one's own places are
+ * spread. And where a city's places do not reach its neighbours, framing has
+ * already narrowed the view without hiding anything.
+ *
+ * The other reason is that this control declares nothing. Narrowing from here
+ * would hide places with nothing on screen saying so and no way back, which is
+ * the failure `marker-filtering` exists to prevent. Being filed under *no* city
+ * is still a thing worth narrowing to — it is a state of the record rather than
+ * a location — and it is offered by the filter, where a control says that it
+ * has narrowed the view and offers the way out.
  */
 export function markersSelectedBy<M extends { readonly cityId: string | null }>(
   selection: string | null,

@@ -57,6 +57,17 @@ export function formatDayShort(day: IsoDay): string {
 }
 
 /**
+ * `3 Apr` — a day with no weekday on it.
+ *
+ * For a heading that names a *range* of days rather than one of them, where the
+ * weekday is noise: the days it spans are listed underneath with their own
+ * weekdays, and repeating one of them in the heading says nothing.
+ */
+export function formatDayCompact(day: IsoDay): string {
+  return worded(day, { day: 'numeric', month: 'short' })
+}
+
+/**
  * `Friday 3 April 2026` — a day named in full, for a control that has to say
  * where it leads without being looked at.
  *

@@ -203,6 +203,61 @@ export function dateOfDay(day: IsoDay): Date {
   return new Date(year, month - 1, date)
 }
 
+/**
+ * The days a trip offers to be narrowed by.
+ *
+ * The days the trip spans, plus every day one of its places carries — sorted,
+ * without repeats. Both halves are needed and neither is sufficient: a trip's
+ * own dates give the days nothing is planned for yet, which is what makes an
+ * empty day visible as an empty day; and the places' own days cover the two
+ * cases the schema deliberately permits, a place dated outside the trip's dates
+ * and a trip carrying no dates at all.
+ *
+ * A trip with a start and no end cannot have its span enumerated — there is
+ * nothing to stop at, and inventing a length would be guessing at something
+ * nobody stated — so such a trip contributes only that one day plus whatever
+ * its places carry. `dayToOpenOn` treats a lone end date the same way.
+ *
+ * **The span is capped.** These dates are typed by hand, so a slipped year gives
+ * a trip lasting three centuries, and enumerating it would hang the interface
+ * while building a list nobody can read. Past the cap the trip's own span is
+ * dropped and only the days its places carry are offered, which is the answer
+ * that stays useful: those are the days something is actually planned for.
+ */
+const MAX_SPANNED_DAYS = 400
+
+export function daysOffered(
+  trip: { readonly startsOn: IsoDay | null; readonly endsOn: IsoDay | null },
+  markers: readonly { readonly plannedOn: IsoDay | null }[],
+): readonly IsoDay[] {
+  const days = new Set<IsoDay>()
+
+  if (trip.startsOn != null && trip.endsOn != null && trip.startsOn <= trip.endsOn) {
+    let day = trip.startsOn
+    let guard = 0
+    while (day <= trip.endsOn && guard < MAX_SPANNED_DAYS) {
+      days.add(day)
+      day = addDays(day, 1)
+      guard += 1
+    }
+    // Over the cap the span says more about a typo than about a trip, so it is
+    // discarded rather than truncated — a list that stops in the middle of a
+    // trip would read as the rest of it being unplannable.
+    if (guard >= MAX_SPANNED_DAYS) days.clear()
+  } else {
+    if (trip.startsOn != null) days.add(trip.startsOn)
+    if (trip.endsOn != null) days.add(trip.endsOn)
+  }
+
+  for (const marker of markers) {
+    if (marker.plannedOn != null) days.add(marker.plannedOn)
+  }
+
+  // `YYYY-MM-DD` sorts chronologically as text, which is the other reason these
+  // are strings rather than `Date`s.
+  return [...days].sort()
+}
+
 /** Whether a day falls within a trip's dates. An absent bound does not exclude. */
 export function dayWithin(
   day: IsoDay,
