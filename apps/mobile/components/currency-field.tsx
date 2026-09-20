@@ -50,7 +50,7 @@ export function CurrencyField({
 
   return (
     <View style={styles.field}>
-      <FieldLabel>Second currency (optional)</FieldLabel>
+      <FieldLabel>Second currency</FieldLabel>
       <View
         style={[
           styles.control,
@@ -88,8 +88,18 @@ export function CurrencyField({
           </Pressable>
         )}
       </View>
+      {/*
+        The label used to carry `(optional)`. It no longer does — no label in
+        either form states that a field is optional — so with nothing chosen the
+        fact has to be said here, where it was previously said nowhere but the
+        `None` the control already reads.
+      */}
       {value !== null && hint ? (
         <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>{hint}</Text>
+      ) : value === null ? (
+        <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+          Leave it as None if prices here are only in US dollars.
+        </Text>
       ) : null}
 
       <CurrencyPicker

@@ -126,15 +126,21 @@ export function TextField({
 /**
  * A price in US dollars, with a `Free` toggle beside it.
  *
- * The phone's copy of the laptop's `PriceField`. Free and a price are one value
- * — a free place is a price of 0 — so only one is ever set. Turning Free on
- * empties both boxes and greys them out; going into either box, or pressing
- * Free again, turns it off. The boxes stay editable while greyed, because going
- * into one is a way back to a price.
+ * The phone's copy of the laptop's `PriceField`: one bounded section labelled
+ * `Price`, drawn like the hours group (#191), holding both amounts and `Free`
+ * on one row. The currency code sits *on* each box rather than in a label above
+ * it, which is what lets the two amounts share one label. Because the label no
+ * longer names a currency, a message about one of the two amounts has to name
+ * it instead.
  *
- * In a city with a second currency a second box sits under the dollars, the
- * width of the first, for the price as it was seen there. The two are
- * independent: nothing converts one into the other.
+ * Free and a price are one value — a free place is a price of 0 — so only one
+ * is ever set. Turning Free on empties both boxes and greys them out; going
+ * into either box, or pressing Free again, turns it off. The boxes stay
+ * editable while greyed, because going into one is a way back to a price.
+ *
+ * In a city with a second currency a second box sits beside the dollars, on the
+ * same row, for the price as it was seen there. The two are independent:
+ * nothing converts one into the other.
  *
  * The toggle is the interest choice pill (`interest.tsx`), and at least 44
  * points tall, the smallest target a thumb reliably hits.
@@ -171,100 +177,124 @@ export function PriceField({
 }) {
   const theme = useTheme()
 
-  function box(text: string, change: (value: string) => void, label: string, invalid: boolean) {
+  /*
+    A code and an amount sharing one border. The code labels the field for
+    assistive technology through `accessibilityLabel`, which spells the currency
+    out rather than reading three letters.
+  */
+  function box(
+    code: string,
+    spoken: string,
+    text: string,
+    change: (value: string) => void,
+    invalid: boolean,
+  ) {
     return (
-      <TextInput
-        value={text}
-        onChangeText={change}
-        onFocus={() => {
-          if (free) onFreeChange(false)
-        }}
-        placeholder={free ? 'Free' : 'Leave blank if unknown'}
-        placeholderTextColor={theme.colour.inkMuted}
-        keyboardType="decimal-pad"
-        accessibilityLabel={label}
+      <View
         style={[
-          styles.input,
-          styles.priceInput,
+          styles.money,
           {
-            color: theme.colour.ink,
             backgroundColor: theme.colour.surfaceMuted,
             borderColor: invalid ? theme.colour.danger : theme.colour.line,
             opacity: free ? 0.5 : 1,
           },
         ]}
-      />
+      >
+        <Text style={[styles.code, { color: theme.colour.inkMuted }]}>{code}</Text>
+        <TextInput
+          value={text}
+          onChangeText={change}
+          onFocus={() => {
+            if (free) onFreeChange(false)
+          }}
+          /*
+            No placeholder beyond `Free`. "Blank if unknown" does not fit a box
+            sized for an amount — it truncated to "Blank if unk…" here and in
+            the narrow card — so what it said moved to the line beneath, which
+            is where this form says everything else of that kind.
+          */
+          placeholder={free ? 'Free' : ''}
+          placeholderTextColor={theme.colour.inkMuted}
+          keyboardType="decimal-pad"
+          accessibilityLabel={spoken}
+          style={[styles.amount, { color: theme.colour.ink }]}
+        />
+      </View>
     )
   }
 
   return (
-    <View style={styles.priceFields}>
-      <View style={styles.field}>
-        <FieldLabel>Price (USD)</FieldLabel>
-        <View style={styles.priceRow}>
-          {box(value, onChange, 'Price in US dollars', error !== undefined)}
-          <Pressable
-            onPress={() => {
-              if (!free) {
-                onChange('')
-                local?.onChange('')
-              }
-              onFreeChange(!free)
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: free }}
+    <View style={[styles.priceFields, { borderColor: theme.colour.line }]}>
+      <FieldLabel>Price</FieldLabel>
+
+      <View style={styles.priceRow}>
+        {box('USD', 'Price in US dollars', value, onChange, error !== undefined)}
+        {local
+          ? box(
+              local.currency,
+              `Price in ${local.currency}`,
+              local.value,
+              local.onChange,
+              local.error !== undefined,
+            )
+          : null}
+        <Pressable
+          onPress={() => {
+            if (!free) {
+              onChange('')
+              local?.onChange('')
+            }
+            onFreeChange(!free)
+          }}
+          accessibilityRole="button"
+          accessibilityState={{ selected: free }}
+          style={[
+            styles.freeToggle,
+            {
+              borderColor: free ? theme.colour.accent : theme.colour.lineStrong,
+              backgroundColor: free ? theme.colour.accentWash : 'transparent',
+            },
+          ]}
+        >
+          <Text
             style={[
-              styles.freeToggle,
-              {
-                borderColor: free ? theme.colour.accent : theme.colour.lineStrong,
-                backgroundColor: free ? theme.colour.accentWash : 'transparent',
-              },
+              styles.freeToggleText,
+              { color: free ? theme.colour.accentInk : theme.colour.ink },
             ]}
           >
-            <Text
-              style={[
-                styles.freeToggleText,
-                { color: free ? theme.colour.accentInk : theme.colour.ink },
-              ]}
-            >
-              Free
-            </Text>
-          </Pressable>
-        </View>
-        {error ? (
-          <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
-            {error}
+            Free
           </Text>
-        ) : null}
+        </Pressable>
       </View>
 
-      {local ? (
-        <View style={styles.field}>
-          <FieldLabel>{`Price (${local.currency})`}</FieldLabel>
-          <View style={styles.priceRow}>
-            {box(local.value, local.onChange, `Price in ${local.currency}`, local.error !== undefined)}
-            {/*
-              Room the width of `Free`, so this box ends where the dollar box
-              ends and the two amounts read as a pair. Drawn invisible rather
-              than measured, so a larger text size moves both edges together.
-            */}
-            <View
-              style={[styles.freeToggle, { borderColor: 'transparent', opacity: 0 }]}
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-            >
-              <Text style={styles.freeToggleText}>Free</Text>
-            </View>
-          </View>
-          {local.error ? (
-            <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
-              {local.error}
-            </Text>
-          ) : (
-            <Text style={[styles.error, { color: theme.colour.inkMuted }]}>{local.hint}</Text>
-          )}
-        </View>
+      {error ? (
+        <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
+          {error}
+        </Text>
       ) : null}
+
+      {local?.error ? (
+        /*
+          Prefixed with the code, because the label no longer carries it. With
+          two amounts under one `Price` label, an unprefixed message does not
+          say which of them is being refused. Done here rather than at the call
+          site so neither app can forget it.
+        */
+        <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
+          {`${local.currency}: ${local.error}`}
+        </Text>
+      ) : null}
+
+      {/*
+        Always said, with or without a second currency: it is where the boxes'
+        placeholder used to say it. The currency sentence joins it when there is
+        a second amount to explain.
+      */}
+      <Text style={[styles.error, { color: theme.colour.inkMuted }]}>
+        {local
+          ? `Leave an amount blank if you don't know it. ${local.hint}`
+          : "Leave it blank if you don't know."}
+      </Text>
 
       {warning ? (
         <Text style={[styles.priceWarning, { color: theme.colour.accentInk }]}>{warning}</Text>
@@ -681,15 +711,55 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputMultiline: { minHeight: 74, textAlignVertical: 'top' },
-  priceFields: { gap: SPACE.md },
+  /*
+   * One bounded section labelled `Price`, drawn like the hours group (#191).
+   * Outlined rather than filled: `surfaceSunk` against `surface` measures 1.05:1
+   * on the dark ground, which is to say it is the surface.
+   */
+  priceFields: {
+    gap: SPACE.sm,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+  },
   /*
    * Louder than a hint and not an error — nothing is wrong until somebody
    * saves. `accentInk` is the readable member of the accent pair.
    */
   priceWarning: { ...role(TYPE.note), fontWeight: '600' },
-  /* The price and its `Free`, on one line. */
-  priceRow: { flexDirection: 'row', alignItems: 'stretch', gap: SPACE.sm },
-  priceInput: { flex: 1 },
+  /*
+   * The amounts and `Free`, on one line — wrapping rather than shrinking when
+   * all three do not fit. `flexBasis` on the box and not a `minWidth`: an item
+   * with a floor overflows its container instead of wrapping (`AGENTS.md`),
+   * while one too wide for the line drops to the next. Measured on the mock, two
+   * amounts squeezed by `flex: 1` alone left about five digits of typable box,
+   * which is short of what a yen or won price needs.
+   */
+  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: SPACE.sm },
+  /* A currency code and an amount, sharing one border. */
+  money: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 116,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACE.sm + 2,
+  },
+  /* On the box rather than above it, so both amounts share one `Price` label. */
+  code: { ...role(TYPE.label) },
+  amount: {
+    ...fieldRole(TYPE.body),
+    flex: 1,
+    minWidth: 0,
+    // Vertical padding rather than a height, so a larger system text size grows
+    // the field instead of clipping what is in it.
+    paddingVertical: 10,
+  },
   freeToggle: {
     minHeight: 44,
     justifyContent: 'center',

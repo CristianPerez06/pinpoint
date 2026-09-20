@@ -40,7 +40,7 @@ export function HoursField({
   return (
     <div className={styles.field} role="group" aria-labelledby={labelId}>
       <span id={labelId} className={styles.label}>
-        Hours (optional)
+        Hours
       </span>
 
       <div className={styles.days}>

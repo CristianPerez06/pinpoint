@@ -154,6 +154,11 @@ A name and a position SHALL be required. Every other field SHALL be optional, an
 an optional field left blank SHALL be recorded as absent rather than as empty
 text.
 
+**No label SHALL state that a field is optional.** A field that may be left empty SHALL
+say so in the guidance beneath it, in a sentence, and SHALL NOT repeat it as a
+parenthetical in its own label. A field whose guidance would otherwise say nothing SHALL
+gain a sentence rather than keep the parenthetical.
+
 The price field SHALL say that it is in US dollars. Beside it the form SHALL offer a
 `Free` control, on every application. Turning `Free` on SHALL empty the price field and
 show it as unavailable. Turning `Free` off again, or going into the price field, SHALL
@@ -161,12 +166,22 @@ return the field to an ordinary empty price. A price and `Free` SHALL never both
 Saving with `Free` on SHALL record the place as free, and saving a price of 0 SHALL do the
 same. A form opened on a place that is free SHALL open with `Free` on.
 
+**The prices SHALL read as one bounded section**, carrying a single label `Price`, with
+the amounts and the `Free` control inside it. Each amount field SHALL carry its currency's
+code on the field itself rather than in a label above it. The section SHALL be drawn so
+that where it begins and ends is visible without reading its contents.
+
 When the city chosen in the form has a second currency, the form SHALL show a second
-price field directly under the price in US dollars, labelled with that currency's code
-(`Price (JPY)`), and SHALL say beside it that the amount is typed as seen and is not
-converted. When the chosen city has no second currency, or no city is chosen, the form
-SHALL show no second field. The field SHALL follow the city chosen in the form as it
-changes, before anything is saved.
+price field beside the price in US dollars, within the same section, carrying that
+currency's code, and SHALL say beneath them that the amount is typed as seen and is not
+converted. Where the two fields cannot both sit on one row at a readable width, they
+SHALL wrap rather than shrink: an amount field SHALL never be narrowed past the width
+its currency's plausible amounts need. When the chosen city has no second currency, or no
+city is chosen, the form SHALL show no second field. The field SHALL follow the city
+chosen in the form as it changes, before anything is saved.
+
+Because the currency is no longer named in a label, any message about one of the two
+amounts SHALL name the currency it concerns.
 
 Both price fields SHALL be optional, and SHALL be independent: changing one SHALL NOT
 change the other. Turning `Free` on SHALL empty and show as unavailable both fields, and
@@ -246,14 +261,14 @@ person having to reload or navigate away.
 
 - **WHEN** a person fills in the form for a place filed under a city whose second
   currency is JPY
-- **THEN** the form shows `Price (USD)` and, under it, `Price (JPY)`
+- **THEN** the form shows one `Price` section holding a `USD` amount and a `JPY` amount
 - **AND** either, both or neither can be filled in and saved
 
 #### Scenario: A place in a city without a second currency
 
 - **WHEN** a person fills in the form for a place filed under a city with no second
   currency, or under no city
-- **THEN** the form shows `Price (USD)` and `Free` only
+- **THEN** the form shows one `Price` section holding a `USD` amount and `Free` only
 
 #### Scenario: Editing a place with both amounts
 
@@ -274,13 +289,32 @@ person having to reload or navigate away.
 - **THEN** the place is recorded as free
 - **AND** its card shows `Free`, not an amount
 
+#### Scenario: No label says a field is optional
+
+- **WHEN** a person opens the place form
+- **THEN** no field label contains the word `optional`
+- **AND** the day field says beneath it that it can be left blank to decide later
+
+#### Scenario: A message about one of two amounts
+
+- **WHEN** a place in a city whose second currency is JPY is saved with an unacceptable
+  amount in the second field
+- **THEN** the refusal names the `JPY` amount rather than "the second price"
+
+#### Scenario: Both amounts at a width too narrow for one row
+
+- **WHEN** the form is shown in a card too narrow to hold both amount fields and `Free`
+  on one row
+- **THEN** the fields wrap onto a further line within the same `Price` section
+- **AND** neither amount field is narrowed past a readable width
+
 #### Scenario: A place is moved to a city with a different currency
 
 - **WHEN** a person editing a place with a local price of 3800 in a JPY city chooses a
   city whose second currency is KRW
-- **THEN** the second field is labelled `Price (KRW)` and is empty
+- **THEN** the second field carries the code `KRW` and is empty
 - **AND** the form says that saving will clear `JPY 3,800`
-- **AND** choosing the original city again shows `3800` in `Price (JPY)`
+- **AND** choosing the original city again shows `3800` in the `JPY` field
 
 ### Requirement: A place is filed under a city chosen as it is saved
 
@@ -767,8 +801,14 @@ lose it, and SHALL say that their prices in US dollars stay.
 ### Requirement: The place form captures one range of hours for the days a place is open
 
 The form that saves and edits a place SHALL offer its opening hours, on every
-application. It SHALL be optional, labelled as optional, and placed after the day the
-place is planned for.
+application. It SHALL be optional and placed after the day the place is planned for.
+
+**The hours SHALL read as one bounded section**, carrying a single label `Hours`, with
+the days, the line naming them and the times inside it. The section SHALL be drawn so
+that where it begins and ends is visible without reading its contents, and SHALL NOT rely
+on a background fill to do so — a fill that is indistinguishable from the surface behind
+it on either ground says nothing. Its fields SHALL keep the same appearance they have
+elsewhere in the form.
 
 **Days.** The form SHALL offer the seven days of the week as a row of letters in week
 order, starting on Monday (`M T W T F S S`), each of which can be turned on and off.
@@ -856,3 +896,11 @@ place, including the refusal of a save based on a stale read.
 
 - **WHEN** a person opens the form on a place with hours, changes only its note, and saves
 - **THEN** the place's hours are unchanged
+
+#### Scenario: The hours are labelled
+
+- **WHEN** a person opens the place form
+- **THEN** the hours section is labelled `Hours`
+- **AND** the label does not say that the hours are optional
+- **AND** the line beneath the days says the hours can be left empty if they are not known
+
