@@ -8,7 +8,6 @@ import Pencil from 'lucide-react-native/icons/pencil'
 import Plus from 'lucide-react-native/icons/plus'
 import { useState } from 'react'
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -21,7 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CurrencyField } from '@/components/currency-field'
-import { Button, FormNote, TextField } from '@/components/ui'
+import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -518,36 +517,55 @@ function CityRow({
    * database unassigns rather than deletes — and the wording has to say so, or
    * somebody will reasonably assume they are about to lose them.
    */
-  function confirmDelete() {
-    Alert.alert(
-      `Remove ${city.name}?`,
-      count === 0
-        ? 'Nothing is filed under it.'
-        : `${count} ${count === 1 ? 'place stays' : 'places stay'} on the trip and ${
-            count === 1 ? 'becomes' : 'become'
-          } unassigned.${
-            // Unassigned is a city with no currency, so local prices go too.
-            localCount === 0 || city.currency === null
-              ? ''
-              : ` ${count === 1 ? 'It' : `${localCount} of them`} ${
-                  localCount === 1 ? 'loses its' : 'lose their'
-                } ${
-                  city.currency
-                } price; ${localCount === 1 ? 'its USD price stays' : 'their USD prices stay'}.`
-          }`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () =>
-            startRemove(async () => {
-              await onDelete()
-              onDone()
-            }),
-        },
-      ],
-    )
+  /**
+   * Which question is standing, or none. Only one can: the editor shows the
+   * question instead of its fields, so there is nowhere for a second.
+   */
+  const [asking, setAsking] = useState<'currency' | 'remove' | null>(null)
+
+  function removalConsequence(): string {
+    if (count === 0) return 'Nothing is filed under it.'
+    return `${count} ${count === 1 ? 'place stays' : 'places stay'} on the trip and ${
+      count === 1 ? 'becomes' : 'become'
+    } unassigned.${
+      // Unassigned is a city with no currency, so local prices go too.
+      localCount === 0 || city.currency === null
+        ? ''
+        : ` ${count === 1 ? 'It' : `${localCount} of them`} ${
+            localCount === 1 ? 'loses its' : 'lose their'
+          } ${city.currency} price; ${
+            localCount === 1 ? 'its USD price stays' : 'their USD prices stay'
+          }.`
+    }`
+  }
+
+  /**
+   * Whether changing the currency would lose anything. Changing or removing a
+   * currency no place has used yet is just a save — the rule is what is lost.
+   */
+  const currencyLoses =
+    currency !== city.currency && city.currency !== null && localCount > 0
+
+  function currencyQuestion(): string {
+    return currency === null
+      ? `Remove ${city.currency} from ${city.name}?`
+      : `Change ${city.name} to ${currency}?`
+  }
+
+  function currencyConsequence(): string {
+    const places = localCount === 1 ? '1 place' : `${localCount} places`
+    return `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${
+      city.currency
+    } price. ${localCount === 1 ? 'It' : 'They'} will lose it${
+      currency === null ? '' : ', not have it converted'
+    }. ${localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'}.`
+  }
+
+  function save() {
+    startSave(async () => {
+      await onSave({ name: name.trim(), currency })
+      onDone()
+    })
   }
 
   return (
@@ -610,6 +628,39 @@ function CityRow({
       </View>
 
       {editing ? (
+        asking !== null ? (
+          /*
+            The question replaces the editor's body rather than swapping a
+            footer, which is what the place sheet does. The fields above offer
+            `Save`, a different write, and leaving them live invites somebody to
+            type into a record they are being asked to destroy — and the removal
+            consequence is the longest sentence in the product, so it wants the
+            body's width rather than a band beneath it.
+          */
+          <View style={styles.editor}>
+            <Question
+              question={
+                asking === 'remove' ? `Remove ${city.name}?` : currencyQuestion()
+              }
+              consequence={
+                asking === 'remove' ? removalConsequence() : currencyConsequence()
+              }
+              confirm={asking === 'remove' ? 'Remove' : 'Change'}
+              waiting={busy}
+              onConfirm={() => {
+                if (asking !== 'remove') {
+                  save()
+                  return
+                }
+                startRemove(async () => {
+                  await onDelete()
+                  onDone()
+                })
+              }}
+              onDecline={() => setAsking(null)}
+            />
+          </View>
+        ) : (
         <View style={styles.editor}>
           <TextField label="Name" value={name} onChange={setName} />
           <CurrencyField
@@ -631,49 +682,25 @@ function CityRow({
                     onDone()
                     return
                   }
-                  const save = () =>
-                    startSave(async () => {
-                      await onSave({ name: name.trim(), currency })
-                      onDone()
-                    })
-                  // Asked only when something would be lost. Changing or
-                  // removing a currency no place has used yet is just a save.
-                  if (currency === city.currency || city.currency === null || localCount === 0) {
-                    save()
+                  if (currencyLoses) {
+                    setAsking('currency')
                     return
                   }
-                  const places = localCount === 1 ? '1 place' : `${localCount} places`
-                  Alert.alert(
-                    currency === null
-                      ? `Remove ${city.currency} from ${city.name}?`
-                      : `Change ${city.name} to ${currency}?`,
-                    `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${
-                      city.currency
-                    } price. ${localCount === 1 ? 'It' : 'They'} will lose it${
-                      currency === null ? '' : ', not have it converted'
-                    }. ${localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'}.`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: currency === null ? `Remove ${city.currency}` : 'Change',
-                        style: 'destructive',
-                        onPress: save,
-                      },
-                    ],
-                  )
+                  save()
                 }}
               />
             </View>
             <View style={styles.grow}>
               <Button
-                label={removing ? 'Removing…' : 'Remove'}
+                label="Remove"
                 tone="danger"
                 disabled={busy}
-                onPress={confirmDelete}
+                onPress={() => setAsking('remove')}
               />
             </View>
           </View>
         </View>
+        )
       ) : null}
     </View>
   )

@@ -12,7 +12,7 @@ import {
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { X } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
 import { HoursField } from '@/app/_components/hours-field'
@@ -21,10 +21,14 @@ import { usePending } from '@/lib/use-pending'
 import {
   Button,
   FormError,
+  notDimmed,
   overlayPanelClass,
   PriceField,
+  Question,
   SelectField,
   TextField,
+  useDismissible,
+  useFocusReturn,
 } from '@/app/_components/ui'
 
 import styles from './marker-form.module.css'
@@ -68,6 +72,7 @@ const NEW_CITY = '__new'
 
 export function MarkerForm({
   title,
+  capturing,
   initial,
   cities,
   cityNotice,
@@ -79,6 +84,20 @@ export function MarkerForm({
   onCreateCity,
 }: {
   title: string
+  /**
+   * This form is capturing a place that does not exist yet.
+   *
+   * It decides what leaving costs, and it cannot be worked out from the fields:
+   * a capture form opens already holding **a position somebody found on the
+   * map**, which no field shows and nothing compares. `marker-capture` argues
+   * that re-finding a spot is worse than retyping a name, so a capture form is
+   * treated as holding work from the moment it opens, whether or not anything
+   * has been typed into it.
+   *
+   * An edit form holds only what is already stored, so leaving it having
+   * changed nothing costs nothing.
+   */
+  capturing: boolean
   initial: MarkerFormValues
   cities: readonly City[]
   /**
@@ -125,6 +144,13 @@ export function MarkerForm({
    */
   onCreateCity?: (name: string, currency: string | null) => Promise<City | null>
 }) {
+  /**
+   * Whether the question about leaving is standing.
+   *
+   * A separate state from the form's own fields, so declining puts everything
+   * back untouched — the question replaces nothing and edits nothing.
+   */
+  const [leaving, setLeaving] = useState(false)
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
@@ -213,8 +239,54 @@ export function MarkerForm({
     })
   }
 
+  /**
+   * Whether anything here would be lost by closing.
+   *
+   * Compared against what the form opened with rather than tracked by a flag,
+   * so that typing a letter and deleting it leaves nothing to ask about.
+   *
+   * **The position is not in this comparison, and that is the point.** A form
+   * capturing a new place carries a spot somebody found on the map, and
+   * `marker-capture` argues that re-finding a spot is worse than retyping a
+   * name. So a capture form is treated as holding work from the moment it
+   * opens, whether or not a field has been touched.
+   */
+  const entered =
+    capturing ||
+    name.trim() !== initial.name ||
+    absentIfBlank(note) !== (initial.note ?? null) ||
+    cityId !== initial.cityId ||
+    type !== initial.type ||
+    absentIfBlank(link) !== (initial.link ?? null) ||
+    absentIfBlank(plannedOn) !== (initial.plannedOn ?? null)
+
+  /**
+   * Leaving, asked about where there is something to lose.
+   *
+   * `workspace-chrome` requires a way out that does not involve hunting for one
+   * particular button, and `marker-capture` requires that what was entered
+   * survives. Those pull in opposite directions only if Escape is made to
+   * choose between them: the way out is always there, and where taking it would
+   * destroy something, taking it asks.
+   */
+  const panel = useRef<HTMLFormElement | null>(null)
+  const leave = useCallback(() => {
+    if (entered) {
+      setLeaving(true)
+      return
+    }
+    onCancel()
+  }, [entered, onCancel])
+
+  useDismissible({ open: true, onDismiss: leave, panel, isDimmed: notDimmed })
+  useFocusReturn(panel)
+
   return (
     <form
+      ref={panel}
+      role="dialog"
+      aria-label={title}
+      tabIndex={-1}
       className={`${overlayPanelClass} ${styles.form}`}
       /*
        * The browser does not get to refuse this form.
@@ -247,7 +319,7 @@ export function MarkerForm({
         <button
           type="button"
           className={styles.dismiss}
-          onClick={onCancel}
+          onClick={leave}
           aria-label="Discard"
           title="Discard"
         >
@@ -437,14 +509,33 @@ export function MarkerForm({
         }
       />
 
+      {/*
+        Leaving, asked about where there is something to lose — and drawn in
+        place of the footer, so `Save place` is not standing live beside a
+        question about throwing away what it would save.
+      */}
+      {leaving ? (
+        <Question
+          question="Discard what you typed?"
+          consequence={
+            capturing
+              ? 'The place you found on the map goes with it.'
+              : 'Your changes to this place are not saved.'
+          }
+          confirm="Discard"
+          onConfirm={onCancel}
+          onDecline={() => setLeaving(false)}
+        />
+      ) : (
       <div className={styles.actions}>
         <Button type="submit" tone="primary" disabled={saving}>
           {saving ? 'Saving…' : 'Save place'}
         </Button>
-        <Button onClick={onCancel} tone="quiet">
+        <Button onClick={leave} tone="quiet">
           Cancel
         </Button>
       </div>
+      )}
     </form>
   )
 }

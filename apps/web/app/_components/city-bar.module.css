@@ -170,6 +170,8 @@
  * rather than as a list interrupted by a form.
  */
 .editor {
+  /* This editor pads by `sm`, not the `md` a question assumes. */
+  --pp-question-bleed: var(--pp-space-sm);
   display: grid;
   gap: var(--pp-space-sm);
   margin: var(--pp-space-xs) 0 var(--pp-space-sm);

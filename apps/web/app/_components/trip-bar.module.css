@@ -320,3 +320,22 @@
 a.row {
   text-decoration: none;
 }
+
+/*
+ * A refusal from a write this panel started.
+ *
+ * A button because pressing it dismisses the message, which is what the phone's
+ * sheet has always offered — stripped of the button chrome, because what it
+ * looks like is the note inside it.
+ */
+.problem {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--pp-space-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

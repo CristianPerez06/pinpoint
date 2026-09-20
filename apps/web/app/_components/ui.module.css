@@ -935,3 +935,96 @@
 .control[type='date'] {
   text-align: center;
 }
+
+/*
+ * A question the product asks before destroying something.
+ *
+ * Drawn where a footer was, so it carries its own top line and the danger tint
+ * rather than inheriting the panel's ordinary footer. Weight enough to read as
+ * more important than the row it replaced, and no more — this is seen often, and
+ * it is a question rather than an alarm.
+ *
+ * The negative side margins let it meet the panel's edges while the panel keeps
+ * its own padding, which is what makes the tint read as a band across the panel
+ * instead of a card floating inside it.
+ */
+.question {
+  /*
+   * Stuck to the bottom of the panel, which scrolls at `max-height: 70%`.
+   *
+   * Without this a tall card puts the question below the fold: somebody presses
+   * `Remove`, the footer they were looking at is replaced by something they
+   * cannot see, and the card reads as a button that did nothing. The filter's
+   * own footer met this exactly and was fixed the same way.
+   */
+  position: sticky;
+  bottom: calc(-1 * var(--pp-question-bleed, var(--pp-space-md)));
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  /*
+   * The band meets its container's edges, so it has to know that container's
+   * padding — and the two that hold it do not agree: the panel over the map
+   * pads by `md`, the city editor by `sm`. Hardcoding one of them pushes the
+   * band 8px past the other's edge, which reads as a deliberate full-bleed in
+   * one place and as a misalignment in the other. So the inset is named, with
+   * the common case as its default, and a container that differs says so.
+   */
+  margin: var(--pp-space-sm) calc(-1 * var(--pp-question-bleed, var(--pp-space-md)))
+    calc(-1 * var(--pp-question-bleed, var(--pp-space-md)));
+  padding: var(--pp-space-sm) var(--pp-question-bleed, var(--pp-space-md))
+    var(--pp-question-bleed, var(--pp-space-md));
+  border-top: 1px solid var(--pp-danger);
+  background: var(--pp-danger-surface);
+}
+
+.questionText {
+  margin: 0;
+  font-size: var(--pp-type-control-size);
+  font-weight: 650;
+  color: var(--pp-ink);
+}
+
+/*
+ * `ink-muted`, never `ink-faint`. This carries the count of what is about to be
+ * unassigned, which is the one thing the person needs in order to answer — the
+ * opposite of text deliberately hard to notice.
+ */
+.consequence {
+  margin: 0;
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  color: var(--pp-ink-muted);
+}
+
+/* Decline first, confirm second, both taking half the width. */
+.questionControls {
+  display: flex;
+  gap: var(--pp-space-sm);
+  margin-top: var(--pp-space-xs);
+}
+
+.questionControls > * {
+  flex: 1 1 0;
+  /*
+   * `.button` is an `inline-flex` with no `justify-content`, which is invisible
+   * while a button is only as wide as its label and wrong the moment one is
+   * stretched: the two here are given equal halves of the band, and their words
+   * sat against the left edge of each.
+   */
+  justify-content: center;
+}
+
+/*
+ * The confirming control carries a border; the declining one already has one.
+ *
+ * Without this the way *out* is the solid-looking control and the answer being
+ * asked for reads as plain text — backwards for a question, where the confirm
+ * is the thing the person came to the band to press. `DESIGN.md` forbids a
+ * filled red block, not an outline, so this stays inside the rule: danger text,
+ * a danger edge, and a fill that only arrives on hover.
+ */
+.questionControls > :last-child {
+  border-color: var(--pp-danger);
+  font-weight: 650;
+}

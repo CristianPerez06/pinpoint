@@ -640,6 +640,42 @@ there shows the map through the corners.
 - **Padding:** `md` (16px). **Width:** 328px floating, 340px hanging as a detour.
 - Panels scroll internally at `max-height: 70%`; the page never scrolls.
 
+### Asking Before Destroying
+
+**The product asks its own questions. It never hands the person the browser's box or the
+operating system's alert** — neither takes a token, neither carries the danger pair, and
+the browser's in particular reads as something the browser threw up rather than as
+something this application asked.
+
+- **Where it appears:** inside the panel or sheet that offered the act. There is no
+  dialog in this system and no second kind of sheet; a panel that changes what it shows
+  without closing is what the trip bar already does between its rename, dates and archive
+  faces. A question is one more face.
+- **How much it replaces:** *what is being removed stays; whatever offers other acts
+  goes.* Removing a place from its card swaps the footer alone, because the card **is**
+  the place and seeing it is how you know what you are answering about. Removing a city
+  from the city panel replaces the body, because that body lists other cities each with
+  its own delete control — and no second destructive control may stand beside a live
+  question.
+- **The question:** one line naming what will happen, in the product's voice. Where the
+  consequence lands on records that are not on screen, a second line says what and how
+  many. A count discovered afterwards arrived too late to inform the decision.
+- **The controls:** decline first, confirm second. Confirm carries Danger text on a
+  transparent fill and fills to Danger on hover — never a filled red block, per the
+  standing rule. The footer takes the Danger Surface tint so the question has weight
+  without shouting.
+- **Weight:** enough to read as more important than the row it replaced, and no more.
+  This is seen often; it is a question, not an alarm.
+- **At phone width:** unchanged. The sheet already rises from the bottom edge, so the
+  footer is where the thumb is.
+- **Dismissal declines.** Pressing outside or Escape closes the question and writes
+  nothing. This is the one thing a modal would give that this does not, and the safe
+  direction is the one it gives up.
+- **Announced when it appears**, so somebody not looking at the screen hears the
+  question rather than noticing the controls changed.
+- **The confirming control owns the wait.** It says `Removing…` and cannot be fired
+  twice. The act begins when the question is answered, not when it was offered.
+
 ### Inputs & Fields
 
 - **Style:** Muted Fill, transparent 1px border, 10px radius (pill for search), 8×11

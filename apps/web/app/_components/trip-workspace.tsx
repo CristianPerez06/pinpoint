@@ -399,6 +399,16 @@ export function TripWorkspace({
    */
   const [message, setMessage] = useState<string | null>(null)
   /**
+   * A refusal from a write the trip panel started, kept apart from the note
+   * over the map.
+   *
+   * Two channels because they answer for two different places: the note speaks
+   * for writes that happen *on* the screen behind, and this speaks for writes
+   * started inside a panel that is still open in front of it. One state for
+   * both put the answer behind the thing that asked the question.
+   */
+  const [tripProblem, setTripProblem] = useState<string | null>(null)
+  /**
    * Somebody else changed this place while it was being edited.
    *
    * Held apart from `message` because it is not the same kind of event. A
@@ -451,7 +461,7 @@ export function TripWorkspace({
     trips,
     setTrips,
     setMembers,
-    report: setMessage,
+    report: setTripProblem,
     addressOfTrip: (tripId) => `/?trip=${tripId}`,
     addressAfterArchive: '/',
   })
@@ -1278,6 +1288,8 @@ export function TripWorkspace({
         onRevealArchived: tripActions.onRevealArchived,
         onArchiveTrip: tripActions.onArchive,
         onRestoreTrip: tripActions.onRestore,
+        tripProblem,
+        onDismissTripProblem: () => setTripProblem(null),
         onInvite: tripActions.onInvite,
         onShowPeople: () =>
           void refreshMembers(() => fetchTripMembers(supabase, trip.id)),
@@ -1540,6 +1552,7 @@ export function TripWorkspace({
         {panel.kind === 'create' || panel.kind === 'edit' ? (
           <MarkerForm
             title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
+            capturing={panel.kind !== 'edit'}
             initial={panel.initial}
             cities={cities}
             // Editing never carries one: the rule guesses where a place is

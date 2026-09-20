@@ -55,7 +55,6 @@ import {
   useState,
 } from 'react'
 import {
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -869,36 +868,17 @@ export function TripWorkspace({
     return onPlaceRequest(take)
   }, [])
 
-  /**
-   * Removing a place, confirmed and said plainly.
-   *
-   * "Cannot be undone" rather than a softer word, because it cannot: there is no
-   * archive, no trash, and nothing that would let a member get a marker back.
-   * The platform's destructive styling is a signal, not a substitute for saying
-   * it.
-   *
-   * One function for both routes in — the details sheet and the form — so the
-   * two cannot drift into asking differently about the same act.
-   */
-  function confirmRemove(marker: Marker) {
-    Alert.alert(`Remove ${marker.name}?`, 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => void remove(marker),
-      },
-    ])
-  }
-
   async function remove(marker: Marker) {
     setProblem(null)
-    // Which marker, not whether something is happening. Held here rather than
-    // in the two controls that offer this write, because on this platform the
-    // write does not start when either of them is pressed — it starts when the
-    // alert between them is answered, and the alert belongs here so that both
-    // routes ask the same question in the same words. Keyed by id, so it can
+    // Which marker, not whether something is happening. Keyed by id, so it can
     // only ever make the control for *this* place say anything.
+    //
+    // This used to be held here for a second reason that has gone: the question
+    // was a platform alert sitting outside both controls that offer this write,
+    // so the write began when the alert was answered rather than when either
+    // was pressed, and neither control could own the wait. The question is now
+    // asked inside whichever surface offered the act, so the control that
+    // confirms *is* the control — which is what `write-feedback` asks for.
     setRemovingId(marker.id)
 
     const outcome = await deleteMarker(supabase, marker.id)
@@ -1052,7 +1032,7 @@ export function TripWorkspace({
         onCancel={cancelPanel}
         onAdjustPosition={adjustPosition}
         onCreateCity={addCity}
-        onDelete={panel.kind === 'edit' ? () => confirmRemove(panel.marker) : undefined}
+        onDelete={panel.kind === 'edit' ? () => void remove(panel.marker) : undefined}
         removing={panel.kind === 'edit' && removingId === panel.marker.id}
         onHeight={setFormHeight}
       />
@@ -1233,7 +1213,7 @@ export function TripWorkspace({
             initial: valuesOf(marker),
           })
         }}
-        onDeleteMarker={confirmRemove}
+        onDeleteMarker={(marker) => void remove(marker)}
         removingId={removingId}
         /*
           Tapping a saved place gives up on the one being added.
