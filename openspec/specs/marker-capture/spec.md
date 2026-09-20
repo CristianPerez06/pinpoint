@@ -423,6 +423,22 @@ available and SHALL be applied to the place being saved. Where the form offered 
 that does not exist, creating it SHALL take the offered name as its starting point,
 editable before it is created.
 
+This is no longer the only route to a new city — the control that names the city being
+worked in offers one too, stated in `workspace-chrome` — but it remains the only one that
+does not interrupt a place being saved, which is what this paragraph is for.
+
+Where the form is raised somewhere that cannot create a city, it SHALL NOT offer to. The
+offer SHALL be **absent** rather than present and refusing, and its absence SHALL be the
+only difference from the form raised anywhere else: the trip's cities and the unassigned
+option SHALL still be offered, and the place SHALL still be filable by hand.
+
+Rationale: an offer that cannot be honoured is worse than no offer. A control that answers
+every use with a refusal teaches that the product is broken, which is a more expensive
+thing to learn than that one screen does less. The two surfaces are not equivalent, and
+this is the honest way to say so — which is not the same as the surface presenting a
+lesser account of a place, forbidden by `trip-calendar`, because nothing recorded about
+the place is withheld.
+
 A city holding no markers SHALL claim nothing, because there is nothing to measure from.
 A place belonging to it SHALL be reported as belonging to no city and filed by hand. This
 state ends with that city's first marker.
@@ -525,6 +541,18 @@ rather than being hidden until it is filed.
 - **WHEN** a person saves the first place on a trip that has no cities
 - **THEN** they can save it unassigned
 - **AND** they can create the trip's first city without leaving the form
+
+#### Scenario: The form is raised where a city cannot be created
+
+- **WHEN** a person opens the place form from a surface that cannot create a city
+- **THEN** no option to create one is offered
+- **AND** the trip's existing cities and the unassigned option are still offered
+- **AND** the place can still be filed under a different city from here
+
+#### Scenario: Both applications agree on where creating is offered
+
+- **WHEN** the place form is raised from the same surface on the laptop and on the phone
+- **THEN** creating a city is offered on both, or on neither
 
 ### Requirement: A marker can be edited and removed by any member of the trip
 
@@ -903,4 +931,3 @@ place, including the refusal of a save based on a stale read.
 - **THEN** the hours section is labelled `Hours`
 - **AND** the label does not say that the hours are optional
 - **AND** the line beneath the days says the hours can be left empty if they are not known
-

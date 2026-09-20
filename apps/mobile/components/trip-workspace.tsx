@@ -1126,6 +1126,9 @@ export function TripWorkspace({
             onSelect={selectCity}
             onSave={patchCity}
             onDelete={removeCity}
+            // The same function the place form is given, so the two routes to a
+            // new city cannot drift apart.
+            onCreateCity={addCity}
             problem={problem}
             onDismissProblem={() => setProblem(null)}
           />
@@ -1291,6 +1294,11 @@ export function TripWorkspace({
         held={held}
         members={members}
         interestFor={interestFor}
+        // Resolved here, where the cities are, rather than handing the sheet the
+        // whole trip's — the same narrowness `interestFor` keeps.
+        cityNameOf={(marker) =>
+          cities.find((city) => city.id === marker.cityId)?.name ?? null
+        }
         ownMemberId={ownMemberId}
         onRecordInterest={(marker, interested) => void answer(marker, interested)}
         onWithdrawInterest={(marker) => void unanswer(marker)}
@@ -1367,6 +1375,7 @@ function Body({
   held,
   members,
   interestFor,
+  cityNameOf,
   ownMemberId,
   onRecordInterest,
   onWithdrawInterest,
@@ -1404,6 +1413,8 @@ function Body({
   held: readonly Marker[]
   members: readonly TripMember[]
   interestFor: (marker: Marker) => readonly MarkerInterest[]
+  /** One marker's city name, passed on to the details sheet. */
+  cityNameOf: (marker: Marker) => string | null
   ownMemberId: string | null
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
@@ -1463,6 +1474,7 @@ function Body({
         held={held}
         members={members}
         interestFor={interestFor}
+        cityNameOf={cityNameOf}
         ownMemberId={ownMemberId}
         onRecordInterest={onRecordInterest}
         onWithdrawInterest={onWithdrawInterest}

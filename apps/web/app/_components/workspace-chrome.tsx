@@ -58,6 +58,7 @@ export type ChromeBindings = {
   onSelectCity: CityBarLiveProps['onSelect']
   onSaveCity: CityBarLiveProps['onSave']
   onDeleteCity: CityBarLiveProps['onDelete']
+  onCreateCity: CityBarLiveProps['onCreateCity']
   onShowCities: CityBarLiveProps['onShowCities']
 
   filter: FilterBarLiveProps['filter']
@@ -171,6 +172,7 @@ export function WorkspaceChrome({
             onSelect={live.onSelectCity}
             onSave={live.onSaveCity}
             onDelete={live.onDeleteCity}
+            onCreateCity={live.onCreateCity}
             onShowCities={live.onShowCities}
             open={live.detour === 'city'}
             onOpen={(open) => live.onDetour(open ? 'city' : 'none')}

@@ -110,7 +110,20 @@ export function MarkerForm({
    */
   onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
-  onCreateCity: (name: string, currency: string | null) => Promise<City | null>
+  /**
+   * Absent where the surface raising this form cannot make a city — the
+   * calendar, which never shows where anything is and so cannot show what it
+   * would be creating.
+   *
+   * Optionality is the whole mechanism, not a convenience. The offer is drawn
+   * only when this is passed, so a surface cannot present one it has no way to
+   * honour. A boolean beside a handler could disagree with it; this cannot.
+   *
+   * The calendar used to pass `async () => null` to mean the same thing, and
+   * the form read that as a creation that failed: `+ New city…` was offered,
+   * and answering it said "Could not create that city." every time.
+   */
+  onCreateCity?: (name: string, currency: string | null) => Promise<City | null>
 }) {
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
@@ -184,7 +197,7 @@ export function MarkerForm({
   }
 
   function createCity() {
-    if (!newCity) return
+    if (!newCity || !onCreateCity) return
     setCityError(null)
 
     startCreateCity(async () => {
@@ -316,7 +329,9 @@ export function MarkerForm({
         options={[
           { value: UNASSIGNED, label: 'Unassigned' },
           ...cities.map((city) => ({ value: city.id, label: city.name })),
-          { value: NEW_CITY, label: '+ New city…' },
+          // Absent, rather than present and refusing, where the surface cannot
+          // create one. See `onCreateCity`.
+          ...(onCreateCity ? [{ value: NEW_CITY, label: '+ New city…' }] : []),
         ]}
       />
 

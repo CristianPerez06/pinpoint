@@ -431,6 +431,7 @@ export function TripMap({
   held,
   members,
   interestFor,
+  cityNameOf,
   ownMemberId,
   onRecordInterest,
   onWithdrawInterest,
@@ -469,6 +470,8 @@ export function TripMap({
   held: readonly Marker[]
   members: readonly TripMember[]
   interestFor: (marker: Marker) => readonly MarkerInterest[]
+  /** One marker's city name, passed straight to the details sheet. */
+  cityNameOf: (marker: Marker) => string | null
   ownMemberId: string | null
   onRecordInterest: (marker: Marker, interested: boolean) => void
   onWithdrawInterest: (marker: Marker) => void
@@ -1394,6 +1397,7 @@ export function TripMap({
           selection={selection}
           members={members}
           interestFor={interestFor}
+          cityNameOf={cityNameOf}
           ownMemberId={ownMemberId}
           onRecordInterest={onRecordInterest}
           onWithdrawInterest={onWithdrawInterest}

@@ -257,8 +257,19 @@ near each other, not what each one is called.
 ### Requirement: Selecting a marker shows what was recorded about it
 
 The map SHALL allow a person to select a marker and see the information held about
-that place: its name, its note, its link, its price, and its type. Values that are
-absent SHALL be shown as absent rather than as empty text.
+that place: its name, its note, its link, its price, its type, and the city it is filed
+under. Values that are absent SHALL be shown as absent rather than as empty text.
+
+The city SHALL be shown because filing is decided by a rule rather than by hand — a city
+claims a place within a stated distance of its nearest place — so a place can be filed
+somewhere nobody chose. A surface that shows everything recorded about a place and omits
+the one field the product decided on its own leaves that decision unreadable.
+
+A place filed under no city SHALL read `Unassigned`, and SHALL NOT use the `No … yet`
+shape the other empty fields take. Those fields say "yet" because they are waiting to be
+filled in; being filed under no city is a state a place may rest in, and it is the word
+the place form and the trip's own grouping of markers already use. Every application
+SHALL use that one word, read from one shared definition, as it does for the others.
 
 The information SHALL be reachable from the map without navigating away from it.
 
@@ -304,7 +315,7 @@ site are told apart by what follows it.
 #### Scenario: Selecting a marker
 
 - **WHEN** a person selects a marker on either platform
-- **THEN** they see the name, note, link, price, and type recorded for that place
+- **THEN** they see the name, note, link, price, type, and city recorded for that place
 - **AND** the map is still on screen
 
 #### Scenario: A marker with only a name
@@ -361,6 +372,25 @@ site are told apart by what follows it.
 
 - **WHEN** a person rests the pointer on a link cut short on the laptop
 - **THEN** the full address is shown
+
+#### Scenario: A place filed under a city
+
+- **WHEN** a person selects a marker filed under a city
+- **THEN** that city is named among the fields
+- **AND** it reads the same on the laptop and on the phone
+
+#### Scenario: A place filed under no city
+
+- **WHEN** a person selects a marker filed under no city
+- **THEN** the city field reads `Unassigned`
+- **AND** it does not read `No city yet` or any other `No … yet` wording
+- **AND** it does not read as information that is missing
+
+#### Scenario: The city a place was filed under by the rule
+
+- **WHEN** a place was filed under a city by the claiming rule rather than by hand
+- **THEN** selecting it names that city
+- **AND** the person can tell where it was filed without opening the form
 
 ### Requirement: The map distinguishes loading from empty
 
