@@ -69,10 +69,10 @@ export {
   groupCoincident,
   markersAt,
   markerView,
-  VISITED_OPACITY,
 } from './marker-view'
 export type {
   MarkerAnchor,
+  MarkerForm,
   MarkerGroup,
   MarkerView,
   MarkerViewInput,

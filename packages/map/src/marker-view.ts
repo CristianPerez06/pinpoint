@@ -102,32 +102,47 @@ export interface MarkerView {
    */
   size: { width: number; height: number }
   anchor: MarkerAnchor
-  /** Whether the trip has been here. Drawn as muting, never as a colour. */
+  /**
+   * Whether the trip has been here.
+   *
+   * Kept beside `form` rather than replaced by it, because the two answer
+   * different questions: this is the fact, and `form` is how the fact is drawn.
+   * The tick is drawn from this one.
+   */
   visited: boolean
   /**
-   * How solidly to draw this marker, between 0 and 1.
+   * Which form to draw this marker in.
    *
    * Here rather than in each application for the same reason the box and anchor
-   * are: two applications choosing their own amount is how they drift apart, and
-   * the specification requires them to produce the same map from the same data.
+   * are: two applications choosing their own is how they drift apart, and the
+   * specification requires them to produce the same map from the same data.
    *
-   * Muting rather than recolouring is deliberate. Colour names the type and only
-   * the type, so a second meaning cannot be given to it — and lightness is
-   * already spoken for here, which is why `place` is separated from `culture` by
-   * hue rather than by being paler.
+   * A name rather than an amount, and that is the whole of the change this
+   * field carries. It used to be an opacity, and a visited marker was the whole
+   * pin drawn at 0.45 — fill and glyph together. That takes away both of the
+   * things that say what kind of place a place is, and it does so below the
+   * floor: on the light ground all eight families landed between 1.58:1 and
+   * 1.98:1 against the land, where anything that is not text needs 3:1.
+   *
+   * It could not be rescued by choosing a better number. An unvisited pin only
+   * clears 3.11:1 on that ground to begin with, so there is no contrast to
+   * spend — at 0.85 the worst family still reaches only 2.54:1, and by then it
+   * is 1.29:1 from its own unvisited twin, which is to say indistinguishable.
+   * Strength cannot carry this signal at any setting, so the signal moved to
+   * form, which costs no contrast and survives a greyscale screen.
    */
-  opacity: number
+  form: MarkerForm
 }
 
 /**
- * How solidly a visited marker is drawn.
+ * The two forms a marker is drawn in.
  *
- * Low enough to read as done at a glance among unvisited pins, high enough that
- * the glyph and the type colour are still legible: a visited place is still a
- * place, and somebody standing in the street may well be looking for the one
- * they already found.
+ * `hollow` is the visited one: the family colour moves to the outline and the
+ * glyph, and the body of the pin is empty. Nothing is made fainter, so the
+ * place still shows what kind of place it is, and "we have been here" is
+ * carried by the pin's shape.
  */
-export const VISITED_OPACITY = 0.45
+export type MarkerForm = 'solid' | 'hollow'
 
 /**
  * Describe one marker.
@@ -151,7 +166,7 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     size: { width: MARKER_SIZE.width, height: MARKER_SIZE.height },
     anchor: { x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y },
     visited: marker.visited === true,
-    opacity: marker.visited === true ? VISITED_OPACITY : 1,
+    form: marker.visited === true ? 'hollow' : 'solid',
   }
 }
 
