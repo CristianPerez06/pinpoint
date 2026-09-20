@@ -19,7 +19,13 @@ export type {
   PlaceBeingFiled,
 } from './city-claim'
 
-export { formatDay, formatDayFull, formatDayNumeric, formatDayShort } from './day-wording'
+export {
+  formatDay,
+  formatDayCompact,
+  formatDayFull,
+  formatDayNumeric,
+  formatDayShort,
+} from './day-wording'
 
 export { EMPTY_FIELD_WORDING, UNFILED_CITY_WORDING } from './empty-field-wording'
 
@@ -81,13 +87,22 @@ export {
   matchesFilter,
   NO_FILTER,
 } from './marker-filter'
-export type { InterestFilter, MarkerFilter, VisitedFilter } from './marker-filter'
+export type {
+  CityFilter,
+  DayFilter,
+  FilterableMarker,
+  InterestFilter,
+  KindFilter,
+  MarkerFilter,
+  VisitedFilter,
+} from './marker-filter'
 
 export {
   addDays,
   calendarViewShown,
   dateOfDay,
   dayOfDate,
+  daysOffered,
   dayShown,
   dayToOpenOn,
   dayWithin,

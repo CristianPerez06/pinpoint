@@ -13,6 +13,7 @@ import type {
 import {
   cityClaiming,
   cityNoticeFor,
+  daysOffered,
   isFiltered,
   localPricesUnder,
   markersSelectedBy,
@@ -718,6 +719,17 @@ export function TripWorkspace({
     [markers, interestFor, filter],
   )
 
+  /*
+   * The days the filter offers.
+   *
+   * From every marker rather than from `visibleMarkers`: a day is offered
+   * because the trip has something on it, and deriving the choices from what
+   * the current filter already admits would make a day disappear from the list
+   * the moment it was the thing being narrowed away — so narrowing to one day
+   * would remove every other day from the control that did it.
+   */
+  const filterDays = useMemo(() => daysOffered(trip, markers), [trip, markers])
+
   const groups = useMemo(
     () => groupCoincident([...visibleMarkers]),
     [visibleMarkers],
@@ -1285,6 +1297,7 @@ export function TripWorkspace({
         filter,
         onFilter: setFilter,
         ownMemberId,
+        filterDays,
 
         biasRef,
         onChooseCandidate: chooseCandidate,

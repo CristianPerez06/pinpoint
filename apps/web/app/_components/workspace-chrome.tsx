@@ -64,6 +64,8 @@ export type ChromeBindings = {
   filter: FilterBarLiveProps['filter']
   onFilter: FilterBarLiveProps['onChange']
   ownMemberId: FilterBarLiveProps['ownMemberId']
+  /** The days this trip can be narrowed by — see `daysOffered`. */
+  filterDays: FilterBarLiveProps['days']
 
   biasRef: PlaceSearchLiveProps['biasRef']
   /**
@@ -377,6 +379,7 @@ export function WorkspaceChrome({
                 onChange={live.onFilter}
                 members={live.members}
                 ownMemberId={live.ownMemberId}
+                days={live.filterDays}
                 open={live.detour === 'filter'}
                 onOpen={(open) => live.onDetour(open ? 'filter' : 'none')}
               />

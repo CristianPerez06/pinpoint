@@ -11,6 +11,7 @@ import type {
 import {
   cityClaiming,
   cityNoticeFor,
+  daysOffered,
   isFiltered,
   localPricesUnder,
   markersSelectedBy,
@@ -465,6 +466,16 @@ export function TripWorkspace({
    * One narrowed set, from the same predicate the laptop uses, so the two cannot
    * disagree about what this trip contains.
    */
+  /*
+   * The days the filter offers.
+   *
+   * From every marker rather than from `visible`: a day is offered because the
+   * trip has something on it, and deriving the choices from what the filter
+   * already admits would make a day vanish from the list the moment it was the
+   * thing being narrowed away.
+   */
+  const filterDays = useMemo(() => daysOffered(trip, held), [trip, held])
+
   const visible = useMemo(
     () =>
       held.filter((marker) =>
@@ -1070,6 +1081,7 @@ export function TripWorkspace({
             onClose={() => setFilterOpen(false)}
             members={members}
             ownMemberId={ownMemberId}
+            days={filterDays}
           />
 
           <TripSheet

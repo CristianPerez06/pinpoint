@@ -268,3 +268,169 @@
     display: none;
   }
 }
+
+/*
+ * One question, as a row that expands.
+ *
+ * The panel drew every choice of every question at once while there were two
+ * questions. At five — ten members, eight kinds and twenty-one days — that is
+ * about 1,240px in a panel capped near 560px, and what falls below the fold
+ * includes `Clear`, which `marker-filtering` requires to be reachable from
+ * where the narrowing is declared. Collapsing is what stops the panel growing
+ * with the trip: closed, it is the same height on a trip of ten and a trip of
+ * two.
+ */
+.section {
+  display: grid;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  padding: 7px var(--pp-space-sm);
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sectionHead:hover {
+  background: var(--pp-surface-muted);
+}
+
+.sectionName {
+  flex: none;
+  font-weight: 600;
+}
+
+/*
+ * What this question is currently set to, in words.
+ *
+ * Named here and not on the trigger, and the distinction is the whole of why
+ * this is allowed. `marker-filtering` forbids the *closed control* from listing
+ * the members it was built from, because that label grows without bound and the
+ * control changes width every time the filter is used — which is `#87`. This
+ * row has a settled width and truncates, so it can say what the trigger may
+ * not, and it is the answer to that same requirement's scenario that opening
+ * the control shows which members are named.
+ *
+ * `min-width: 0` is what actually lets it truncate: a flex item's floor is its
+ * content, so without this the text pushes the row wider than the panel instead
+ * of ellipsing, and the chevron leaves the right edge.
+ */
+.sectionSaid,
+.sectionSaidSet {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--pp-type-note-size);
+}
+
+.sectionSaid {
+  color: var(--pp-ink-muted);
+}
+
+/* A question that is narrowing something, said twice over — the accent, and a
+   heavier weight — because a signal carried only in hue does not survive a
+   greyscale display or a colour-blind reader. */
+.sectionSaidSet {
+  color: var(--pp-accent-ink);
+  font-weight: 600;
+}
+
+.chevron,
+.chevronOpen {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--pp-ink-muted);
+  transition: transform 0.16s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.sectionBody {
+  display: grid;
+  padding-bottom: var(--pp-space-xs);
+}
+
+/*
+ * The swatch beside a kind.
+ *
+ * The map already says what a kind looks like, and this is the same statement
+ * in the control that hides it — so ticking `Food` and watching the orange pins
+ * go is one idea rather than two. `aria-hidden`, because the word beside it
+ * says the same thing and a reader who cannot see the colour loses nothing.
+ */
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/*
+ * What a run of days covers, inside the day list.
+ *
+ * A range rather than `Week 1`, `Week 2`, and that came from looking: empty
+ * runs are dropped, so an ordinal counts groups rather than weeks the moment a
+ * trip has a gap in it — on the live trip, whose places sit on five days across
+ * two months, the group labelled `Week 2` began twenty-six days after `Week 1`.
+ * A range cannot be wrong that way.
+ */
+.week {
+  margin: var(--pp-space-xs) 0 0;
+  padding: 0 var(--pp-space-sm);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+  color: var(--pp-ink-faint);
+}
+
+/* A trip with no dates and nothing planned. Said rather than left blank: an
+   empty region reads as a list that failed to load. */
+.empty {
+  margin: 0;
+  padding: var(--pp-space-xs) var(--pp-space-sm);
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+/*
+ * The two plain choices and the way out, held on the panel's bottom edge.
+ *
+ * Sticky rather than merely last, and it came from looking rather than from
+ * reasoning: collapsing the questions keeps the *resting* panel short, but a
+ * question expanded still overflows, and `Clear` went below the fold — the
+ * thing `marker-filtering` forbids, arriving by the very route the collapsing
+ * was meant to close. The phone's sheet already holds its foot outside the
+ * scroller; this is the laptop's version of the same decision.
+ *
+ * The negative side margins undo the panel's padding so the fill reaches both
+ * edges — without them the scrolled rows show through the gap either side and
+ * the foot reads as floating rather than as the panel's own floor. `bottom`
+ * cancels the panel's bottom padding for the same reason.
+ */
+.foot {
+  position: sticky;
+  bottom: calc(-1 * var(--pp-space-md));
+  z-index: 1;
+  display: grid;
+  gap: var(--pp-space-xs);
+  margin: 0 calc(-1 * var(--pp-space-md)) calc(-1 * var(--pp-space-md));
+  padding: var(--pp-space-sm) var(--pp-space-md) var(--pp-space-md);
+  border-top: 1px solid var(--pp-line);
+  background: var(--pp-surface);
+}

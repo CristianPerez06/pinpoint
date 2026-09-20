@@ -2,14 +2,20 @@
 
 import {
   activeFilterCount,
+  dateOfDay,
+  formatDayCompact,
+  formatDayShort,
   type InterestFilter,
   isFiltered,
+  type IsoDay,
   type MarkerFilter,
   NO_FILTER,
   type TripMember,
 } from '@pinpoint/core'
+import { MARKER_TYPES } from '@pinpoint/map'
 
-import { SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { useState } from 'react'
 
 import { Menu, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 
@@ -94,6 +100,15 @@ export type FilterBarLiveProps = {
   /** So the reader is named the way the detail card names them. */
   ownMemberId: string | null
   /**
+   * The days this trip offers to be narrowed by, in order.
+   *
+   * Handed in rather than derived here, because deriving it needs every marker
+   * on the trip and this control needs none of them otherwise. `daysOffered` in
+   * `@pinpoint/core` is what produces it, so the phone's sheet is offered the
+   * same set from the same rule.
+   */
+  days: readonly IsoDay[]
+  /**
    * Whether this menu is the detour that is open.
    *
    * Held by the workspace with every other panel in the chrome. "Only one open
@@ -115,19 +130,94 @@ export type FilterBarProps =
   | { waiting: true }
   | ({ waiting?: false } & FilterBarLiveProps)
 
+/**
+ * Which question is open. One at a time, and none when the panel is first shown.
+ *
+ * The panel used to draw every choice of every question at once, which fitted
+ * while there were two questions and stops fitting at five: ten members, eight
+ * kinds and twenty-one days is about 1,240px of content in a panel capped near
+ * 560px, so two thirds of it — including the way out — sits below the fold.
+ * `marker-filtering` requires clearing to be reachable from where the narrowing
+ * is declared, so the panel has to stop growing with the trip.
+ */
+type OpenQuestion = 'interest' | 'kind' | 'day'
+
+/**
+ * A list of words as a person would say it.
+ *
+ * Used only for what a collapsed row says it is set to, which is why it is
+ * allowed to name members at all: the rule against naming them is about the
+ * *trigger*, whose width would then follow its own state, and this sits inside
+ * the panel at a settled width and truncates.
+ */
+function wordList(words: readonly string[]): string {
+  if (words.length === 0) return ''
+  if (words.length === 1) return words[0]
+  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+}
+
+/**
+ * Whole days between two of them.
+ *
+ * Through local midnights and rounded, because a day is not always twenty-four
+ * hours long — a daylight-saving boundary makes one of them twenty-three, and
+ * an unrounded division would put the day after it in the wrong week.
+ */
+function daysBetween(from: IsoDay, to: IsoDay): number {
+  const ms = dateOfDay(to).getTime() - dateOfDay(from).getTime()
+  return Math.round(ms / 86_400_000)
+}
+
+/**
+ * The offered days, in seven-day runs from the first one.
+ *
+ * Runs rather than calendar weeks starting on a Monday, so a trip beginning on
+ * a Saturday does not open with a two-day stub.
+ *
+ * Each run is **labelled by the days it covers, not by an ordinal**, and that
+ * came from looking. `Week 1`, `Week 2`, `Week 3` read correctly on a trip of
+ * consecutive days and lied on the live one, whose places sit on five days
+ * scattered across two months: the group labelled `Week 2` began twenty-six
+ * days after `Week 1`. Empty runs are dropped rather than drawn, so an ordinal
+ * counts groups instead of weeks the moment a trip has a gap in it — and a
+ * range cannot be wrong that way.
+ */
+function inWeeks(days: readonly IsoDay[]): readonly (readonly IsoDay[])[] {
+  if (days.length === 0) return []
+  const weeks: IsoDay[][] = []
+  for (const day of days) {
+    const index = Math.floor(daysBetween(days[0], day) / 7)
+    ;(weeks[index] ??= []).push(day)
+  }
+  // Holes where a trip's places jump a month, which `daysOffered` permits.
+  return weeks.filter((week) => week !== undefined)
+}
+
+/** What a run of days is called: the span it covers, or the one day it holds. */
+function runLabel(run: readonly IsoDay[]): string {
+  const first = formatDayCompact(run[0])
+  if (run.length === 1) return first
+  return `${first} – ${formatDayCompact(run[run.length - 1])}`
+}
+
 function FilterBarLive({
   filter,
   onChange,
   members,
   ownMemberId,
+  days,
   open,
   onOpen,
 }: FilterBarLiveProps) {
+  const [question, setQuestion] = useState<OpenQuestion | null>(null)
+
   const nameOf = (member: TripMember) =>
     member.id === ownMemberId ? 'You' : member.displayName
 
   const chosen =
     filter.interest.kind === 'wanted-by' ? filter.interest.members : []
+  const kinds = filter.kind.kind === 'one-of' ? filter.kind.kinds : []
+  const chosenDays = filter.day.kind === 'on' ? filter.day.days : []
 
   function setInterest(interest: InterestFilter) {
     onChange({ ...filter, interest })
@@ -145,8 +235,99 @@ function FilterBarLive({
     )
   }
 
+  function toggleKind(id: string) {
+    const next = kinds.includes(id)
+      ? kinds.filter((kind) => kind !== id)
+      : [...kinds, id]
+
+    // Same shape as unticking the last person, opposite meaning: no kinds
+    // chosen selects everything rather than nothing, because a place has
+    // exactly one kind. Returning to `any` is what says so in one place.
+    onChange({
+      ...filter,
+      kind: next.length === 0 ? { kind: 'any' } : { kind: 'one-of', kinds: next },
+    })
+  }
+
+  function toggleDay(day: IsoDay) {
+    const next = chosenDays.includes(day)
+      ? chosenDays.filter((each) => each !== day)
+      : [...chosenDays, day]
+
+    onChange({
+      ...filter,
+      day: next.length === 0 ? { kind: 'any' } : { kind: 'on', days: next },
+    })
+  }
+
   const narrowed = isFiltered(filter)
   const active = activeFilterCount(filter)
+
+  /*
+   * What each collapsed row says it is set to.
+   *
+   * In words rather than as a count, which is the requirement: a row reading
+   * `2` would be the same unitless number the trigger already rejected, one
+   * level in. A member named here who has since left the trip resolves to
+   * nothing and drops out, rather than showing an id.
+   */
+  const interestSaid =
+    filter.interest.kind === 'unanswered'
+      ? 'Nobody has answered'
+      : filter.interest.kind === 'wanted-by'
+        ? wordList(
+            chosen
+              .map((id) => members.find((member) => member.id === id))
+              .filter((member) => member !== undefined)
+              .map(nameOf),
+          )
+        : 'Anyone'
+
+  const kindSaid =
+    kinds.length === 0
+      ? 'Any kind'
+      : wordList(
+          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map(
+            (type) => type.label,
+          ),
+        )
+
+  const daySaid =
+    filter.day.kind === 'undated'
+      ? 'No day yet'
+      : chosenDays.length === 0
+        ? 'Any day'
+        : wordList([...chosenDays].sort().map(formatDayShort))
+
+  function section(
+    id: OpenQuestion,
+    name: string,
+    said: string,
+    set: boolean,
+    body: React.ReactNode,
+  ) {
+    const isOpen = question === id
+    return (
+      <div className={styles.section}>
+        <button
+          type="button"
+          className={styles.sectionHead}
+          aria-expanded={isOpen}
+          onClick={() => setQuestion(isOpen ? null : id)}
+        >
+          <span className={styles.sectionName}>{name}</span>
+          <span className={set ? styles.sectionSaidSet : styles.sectionSaid}>
+            {said}
+          </span>
+          <ChevronDown
+            aria-hidden
+            className={isOpen ? styles.chevronOpen : styles.chevron}
+          />
+        </button>
+        {isOpen ? <div className={styles.sectionBody}>{body}</div> : null}
+      </div>
+    )
+  }
 
   return (
     <Menu
@@ -173,72 +354,214 @@ function FilterBarLive({
       marked={narrowed}
       align="end"
       open={open}
-      onOpen={onOpen}
+      /* Reopening shows the overview rather than whatever was last expanded:
+         the rows are the point of the panel, and one of them standing open is
+         a state nobody asked to return to. */
+      onOpen={(next) => {
+        if (!next) setQuestion(null)
+        onOpen(next)
+      }}
     >
-      <p className={styles.heading}>Wanted by</p>
+      {section(
+        'interest',
+        'Wanted by',
+        interestSaid,
+        filter.interest.kind !== 'anyone',
+        <>
+          {/* The question this list is asking, because the two lists below it
+              ask the opposite one and tick boxes do not say which is which. */}
+          <p className={styles.heading}>Places all of them want</p>
 
-      {members.map((member) => (
-        <label key={member.id} className={styles.option}>
-          <input
-            type="checkbox"
-            checked={chosen.includes(member.id)}
-            onChange={() => toggleMember(member.id)}
-            className={styles.checkbox}
-          />
-          <span>{nameOf(member)}</span>
-        </label>
-      ))}
+          {members.map((member) => (
+            <label key={member.id} className={styles.option}>
+              <input
+                type="checkbox"
+                checked={chosen.includes(member.id)}
+                onChange={() => toggleMember(member.id)}
+                className={styles.checkbox}
+              />
+              <span>{nameOf(member)}</span>
+            </label>
+          ))}
 
-      {/* Everybody ticked is one press rather than one per person, which
-          on a two-person trip is the difference between the common case
-          being easy and being merely possible. */}
-      {members.length > 1 ? (
-        <button
-          type="button"
-          onClick={() =>
-            setInterest({
-              kind: 'wanted-by',
-              members: members.map((member) => member.id),
-            })
-          }
-          className={styles.everyone}
-        >
-          Everyone
-        </button>
-      ) : null}
+          {/* Everybody ticked is one press rather than one per person, which
+              on a two-person trip is the difference between the common case
+              being easy and being merely possible. */}
+          {members.length > 1 ? (
+            <button
+              type="button"
+              onClick={() =>
+                setInterest({
+                  kind: 'wanted-by',
+                  members: members.map((member) => member.id),
+                })
+              }
+              className={styles.everyone}
+            >
+              Everyone
+            </button>
+          ) : null}
 
-      <hr className={styles.divide} />
+          <hr className={styles.divide} />
+
+          {/*
+            Not a person, so not one of the people. It is the triage pile — the
+            set that is invisible in a spreadsheet — and it cannot combine with
+            a name: "wanted by Ana, and also nobody has answered" has no
+            meaning, so picking it clears the ticks rather than adding to them.
+          */}
+          <label className={styles.option}>
+            <input
+              type="checkbox"
+              checked={filter.interest.kind === 'unanswered'}
+              onChange={(event) =>
+                setInterest(
+                  event.target.checked ? { kind: 'unanswered' } : { kind: 'anyone' },
+                )
+              }
+              className={styles.checkbox}
+            />
+            <span>Nobody has answered yet</span>
+          </label>
+        </>,
+      )}
+
+      {section(
+        'kind',
+        'Kind of place',
+        kindSaid,
+        kinds.length > 0,
+        <>
+          {/*
+            `any`, and it has to be said rather than shown.
+
+            This list and the one above it are both tick boxes in one panel, and
+            they compose oppositely: naming two people asks for the places they
+            agree on, naming two kinds asks for either. A place has exactly one
+            kind, so the other reading would always select nothing — but nobody
+            discovers that by ticking, they discover an empty map.
+          */}
+          <p className={styles.heading}>Places of any of these</p>
+
+          {MARKER_TYPES.map((type) => (
+            <label key={type.id} className={styles.option}>
+              <input
+                type="checkbox"
+                checked={kinds.includes(type.id)}
+                onChange={() => toggleKind(type.id)}
+                className={styles.checkbox}
+              />
+              <span
+                aria-hidden
+                className={styles.swatch}
+                style={{ background: `var(--pp-pin-${type.id})` }}
+              />
+              <span>{type.label}</span>
+            </label>
+          ))}
+        </>,
+      )}
+
+      {section(
+        'day',
+        'Day',
+        daySaid,
+        filter.day.kind !== 'any',
+        <>
+          <p className={styles.heading}>Places on any of these days</p>
+
+          {days.length === 0 ? (
+            /* A trip with no dates and nothing planned. Saying so beats an
+               empty region, which reads as the list having failed to load. */
+            <p className={styles.empty}>Nothing is planned for a day yet.</p>
+          ) : (
+            inWeeks(days).map((run) => (
+              <div key={run[0]}>
+                <p className={styles.week}>{runLabel(run)}</p>
+                {run.map((day) => (
+                  <label key={day} className={styles.option}>
+                    <input
+                      type="checkbox"
+                      checked={chosenDays.includes(day)}
+                      onChange={() => toggleDay(day)}
+                      className={styles.checkbox}
+                    />
+                    <span>{formatDayShort(day)}</span>
+                  </label>
+                ))}
+              </div>
+            ))
+          )}
+
+          <hr className={styles.divide} />
+
+          {/*
+            Not a day, so not one of the days — the same shape as the triage
+            pile above, and the same reason. "Thursday, and also the ones with
+            no day" is two questions wearing one answer, so choosing this clears
+            the days rather than joining them.
+          */}
+          <label className={styles.option}>
+            <input
+              type="checkbox"
+              checked={filter.day.kind === 'undated'}
+              onChange={(event) =>
+                onChange({
+                  ...filter,
+                  day: event.target.checked ? { kind: 'undated' } : { kind: 'any' },
+                })
+              }
+              className={styles.checkbox}
+            />
+            <span>No day yet</span>
+          </label>
+        </>,
+      )}
 
       {/*
-        Not a person, so not one of the people. It is the triage pile — the
-        set that is invisible in a spreadsheet — and it cannot combine with
-        a name: "wanted by Ana, and also nobody has answered" has no
-        meaning, so picking it clears the ticks rather than adding to them.
+        The two plain choices and the way out, held on the panel's bottom edge.
+
+        Sticky rather than merely last, and that came from looking: with a
+        question expanded the panel scrolls, and `Clear` went below the fold —
+        which is the thing `marker-filtering` forbids, arriving by the route the
+        collapsing was supposed to close. The phone's sheet already keeps its
+        foot outside the scroller for the same reason; this is the laptop's
+        version of that.
       */}
-      <label className={styles.option}>
+      <div className={styles.foot}>
+      {/*
+        The only way this product narrows by city, and deliberately the only one.
+
+        A city here is a name somebody chose for a cluster of places rather than
+        a geographical fact, so hiding everything filed under a different name
+        can hide a place that is genuinely around the corner. Being filed under
+        *no* city is a state of the record instead, and hiding the places that
+        have one says nothing false about what is near what. `city.ts` carries
+        the measurement this rests on.
+
+        A plain row rather than a section, because it is one choice and a row
+        that expands to show a single tick box would be a worse version of it.
+      */}
+        <label className={styles.option}>
         <input
           type="checkbox"
-          checked={filter.interest.kind === 'unanswered'}
+          checked={filter.city === 'unfiled'}
           onChange={(event) =>
-            setInterest(
-              event.target.checked ? { kind: 'unanswered' } : { kind: 'anyone' },
-            )
+            onChange({ ...filter, city: event.target.checked ? 'unfiled' : 'any' })
           }
           className={styles.checkbox}
         />
-        <span>Nobody has answered yet</span>
+        <span>Not filed under a city</span>
       </label>
-
-      <hr className={styles.divide} />
 
       {/*
         In here now rather than beside the trigger, because the trigger
         declares. The specification permits exactly this separation and no wider
         a one: the control that declares the narrowing must also be the one that
-        reveals the way out of it, and reaching it must cost a single deliberate
-        act. Opening the thing that says `9 of 17` is that act.
+        reveals the way out, and reaching it must cost a single deliberate act.
+        Opening the thing that says `Filter · 2` is that act.
       */}
-      <label className={styles.option}>
+        <label className={styles.option}>
         <input
           type="checkbox"
           checked={filter.visited === 'unvisited'}
@@ -259,16 +582,17 @@ function FilterBarLive({
         cannot see the styling would be told nothing at all — the colour-only
         failure this control exists to avoid, arriving through the back door.
       */}
-      <button
-        type="button"
-        aria-disabled={!narrowed}
+        <button
+          type="button"
+          aria-disabled={!narrowed}
         onClick={() => {
           if (narrowed) onChange(NO_FILTER)
         }}
         className={styles.clear}
       >
-        Clear the filter
-      </button>
+          Clear the filter
+        </button>
+      </div>
     </Menu>
   )
 }
