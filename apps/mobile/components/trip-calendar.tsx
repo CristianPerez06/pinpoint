@@ -27,7 +27,6 @@ import {
 import { groupCoincident } from '@pinpoint/map'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Alert } from 'react-native'
 
 import { CalendarScreen } from '@/components/calendar-screen'
 import { MarkerDetails, type Selection } from '@/components/marker-details'
@@ -251,13 +250,6 @@ export function TripCalendar({
      */
   }
 
-  function confirmRemove(marker: Marker) {
-    Alert.alert(`Remove ${marker.name}?`, 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => void remove(marker) },
-    ])
-  }
-
   async function remove(marker: Marker) {
     setProblem(null)
     // Which marker, not whether something is happening: the sheet can only ever
@@ -443,7 +435,7 @@ export function TripCalendar({
             setConflict(null)
             setEditingId(marker.id)
           }}
-          onDelete={confirmRemove}
+          onDelete={(marker) => void remove(marker)}
           removingId={removingId}
         />
       ) : null}
@@ -493,7 +485,7 @@ export function TripCalendar({
             nothing, and both forms draw the option only when they are given a
             way to honour it.
           */
-          onDelete={() => confirmRemove(editing)}
+          onDelete={() => void remove(editing)}
           removing={removingId === editing.id}
         />
       ) : null}

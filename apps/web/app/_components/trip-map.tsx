@@ -697,6 +697,19 @@ export function TripMap({
       const element = document.createElement('button')
       element.type = 'button'
       element.className = styles.marker
+      /*
+       * A stable handle on this point, so focus can be given back to it.
+       *
+       * Not for styling and not for tests: a panel opened from a pin has to
+       * return focus to that pin when it closes, and it cannot hold the element
+       * to do it — selecting a marker redraws the whole marker layer, so the
+       * button that was pressed is detached and replaced by an equal one before
+       * the panel is dismissed. Focusing the detached one drops focus to the
+       * body, which is the failure the return exists to prevent. `key` is
+       * documented as stable across renders for the same position, so it
+       * survives exactly the redraw that the element does not.
+       */
+      element.dataset.point = group.key
       element.title = group.count > 1 ? `${group.count} places here` : group.view.label
       element.setAttribute(
         'aria-label',

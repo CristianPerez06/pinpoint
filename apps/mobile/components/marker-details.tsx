@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { InterestRows, VisitedToggle } from '@/components/interest'
 import { MarkerGlyph } from '@/components/marker-icon'
+import { Question } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -443,6 +444,18 @@ export function MarkerDetails({
   removingId: string | null
 }) {
   const theme = useTheme()
+  /**
+   * Whether the question is standing in place of the footer.
+   *
+   * Up here with the other hooks rather than beside the footer it belongs to,
+   * because this component returns early when the group holds more than one
+   * place — a hook below that return would be called on some renders and not
+   * others. Held locally at all because it is about what this sheet is showing
+   * and nothing outside it needs to know. Deliberately not reset when the write
+   * is refused: the refusal is reported over the map and the question stays, so
+   * the person can answer again without reopening it.
+   */
+  const [asking, setAsking] = useState(false)
   const { group, index, hidden } = selection
   // The sheet is pinned to the very bottom of the screen, so its last field —
   // or its "Others at this point" button — would otherwise sit under the home
@@ -600,35 +613,48 @@ export function MarkerDetails({
         was recorded, which is the order somebody reads in — see it, then decide
         it is wrong.
       */}
-      <View style={styles.rowActions}>
-        <Pressable
-          onPress={() => onEdit(marker)}
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${marker.name}`}
-          style={[styles.action, { borderColor: theme.colour.lineStrong }]}
-        >
-          <Text style={[styles.actionText, { color: theme.colour.ink }]}>Edit</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (removing) return
-            onDelete(marker)
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${marker.name}`}
-          // Inert through `accessibilityState` rather than by being unreachable,
-          // so a screen reader still finds it and is told which state it is in.
-          accessibilityState={{ disabled: removing }}
-          style={[
-            styles.action,
-            { backgroundColor: theme.colour.dangerSurface, opacity: removing ? 0.5 : 1 },
-          ]}
-        >
-          <Text style={[styles.actionText, { color: theme.colour.danger }]}>
-            {removing ? 'Removing…' : 'Remove'}
-          </Text>
-        </Pressable>
-      </View>
+      {/*
+        The question replaces this footer and nothing above it, because the
+        sheet *is* the place being removed — seeing it is how somebody knows
+        which record they are answering about.
+      */}
+      {asking ? (
+        <Question
+          question={`Remove ${marker.name}?`}
+          // "Cannot be undone" rather than a softer word, because it cannot:
+          // there is no archive, no trash, and nothing that would let a member
+          // get a marker back.
+          consequence="This cannot be undone."
+          confirm="Remove"
+          waiting={removing}
+          onConfirm={() => onDelete(marker)}
+          onDecline={() => setAsking(false)}
+        />
+      ) : (
+        <View style={styles.rowActions}>
+          <Pressable
+            onPress={() => onEdit(marker)}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${marker.name}`}
+            style={[styles.action, { borderColor: theme.colour.lineStrong }]}
+          >
+            <Text style={[styles.actionText, { color: theme.colour.ink }]}>Edit</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setAsking(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${marker.name}`}
+            style={[
+              styles.action,
+              { backgroundColor: theme.colour.dangerSurface },
+            ]}
+          >
+            <Text style={[styles.actionText, { color: theme.colour.danger }]}>
+              Remove
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {extraAction ? (
         <Pressable

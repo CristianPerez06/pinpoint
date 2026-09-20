@@ -666,6 +666,134 @@ export function Button({
  * reason web keeps them apart: sharing one channel makes the two
  * indistinguishable exactly where the difference matters.
  */
+/**
+ * A question the product asks before it destroys something.
+ *
+ * **Not `Alert.alert`, and not a modal of our own.** The system alert cannot
+ * take a token, cannot carry the danger pair, and words its buttons in the
+ * operating system's voice. A modal of ours would be worse here than on the
+ * laptop: the city sheet is itself a `Modal`, and a `Modal` inside a `Modal` is
+ * the shape `AGENTS.md` records as behaving in the simulator and failing on a
+ * device.
+ *
+ * So the sheet that offered the act shows the question, the way the trip sheet
+ * already swaps to its rename and dates faces. **Where it sits, and how much of
+ * the sheet it replaces, is the caller's decision** — see `DESIGN.md`, *Asking
+ * Before Destroying*: what is being removed stays, whatever offers other acts
+ * goes.
+ *
+ * `accessibilityLiveRegion="assertive"` and an `alert` role, because the
+ * question arrives where a footer was rather than as a new screen. Without it a
+ * screen reader is told the controls changed and not what is being asked.
+ *
+ * The confirming control carries the wait. The act begins when the question is
+ * answered rather than when it was offered — which is what lets the pending
+ * state live here, on the control that starts the write, instead of being held
+ * by the screen because the alert sat outside every control that offered it.
+ */
+export function Question({
+  question,
+  consequence,
+  confirm,
+  waiting,
+  onConfirm,
+  onDecline,
+}: {
+  /** What will happen, in one line and in the product's voice. */
+  question: string
+  /** What it costs, where the cost lands out of sight. Omitted otherwise. */
+  consequence?: string
+  /** The confirming control's words. Names the act, never `OK`. */
+  confirm: string
+  /** The write is running. The control says so and cannot be fired again. */
+  waiting?: boolean
+  onConfirm: () => void
+  onDecline: () => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="assertive"
+      style={[
+        styles.question,
+        {
+          backgroundColor: theme.colour.dangerSurface,
+          borderColor: theme.colour.danger,
+        },
+      ]}
+    >
+      <Text style={[styles.questionText, { color: theme.colour.ink }]}>
+        {question}
+      </Text>
+      {consequence ? (
+        <Text style={[styles.consequence, { color: theme.colour.inkMuted }]}>
+          {consequence}
+        </Text>
+      ) : null}
+      {/*
+        The two controls are drawn here rather than through `Button`, because
+        neither of its tones is the pairing this needs and the laptop's is.
+        There, `Cancel` is the default tone — a filled surface with a strong
+        edge — and the confirm is danger text on nothing with a danger edge, an
+        outline the question's own stylesheet adds rather than the button
+        carrying it. `quiet` is transparent and `danger` fills, so asking for
+        either here gave a decline with no ground and a confirm with no edge.
+
+        Styling them at the question rather than widening `Button` keeps the
+        difference where it belongs: this is how a question looks, not a new
+        kind of button the rest of the application can reach for.
+      */}
+      <View style={styles.questionControls}>
+        <Pressable
+          onPress={() => {
+            if (!waiting) onDecline()
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          accessibilityState={{ disabled: Boolean(waiting) }}
+          style={[
+            styles.questionButton,
+            {
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.lineStrong,
+              opacity: waiting ? 0.5 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.questionButtonText, { color: theme.colour.ink }]}>
+            Cancel
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            if (!waiting) onConfirm()
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={confirm}
+          accessibilityState={{ disabled: Boolean(waiting) }}
+          style={[
+            styles.questionButton,
+            {
+              backgroundColor: 'transparent',
+              borderColor: theme.colour.danger,
+              opacity: waiting ? 0.5 : 1,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.questionButtonText, { color: theme.colour.danger }]}
+          >
+            {waiting ? `${confirm}…` : confirm}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
 export function FormNote({
   children,
   tone,
@@ -816,4 +944,46 @@ const styles = StyleSheet.create({
     padding: SPACE.sm + 2,
   },
   noteText: { ...role(TYPE.note) },
+  /*
+   * The question, drawn where a footer was.
+   *
+   * A contained block with its own padding, exactly as `FormNote` is — not a
+   * band bled out to the sheet's edges with negative side margins. That was the
+   * first shape and it was wrong: the bleed has to know its container's
+   * padding, and the three surfaces that hold a question do not agree about it
+   * — the sheets pad by `md`, the city sheet's own editor by nothing at all.
+   * The band then sat flush against the screen with its text on the edge.
+   *
+   * A block that pads itself needs to know nothing about where it is put, which
+   * is the property that makes it safe to put in a fourth place later.
+   */
+  question: {
+    marginTop: SPACE.xs,
+    padding: SPACE.sm + 2,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    gap: 2,
+  },
+  questionText: { ...role(TYPE.control), fontWeight: '700' },
+  /*
+   * `inkMuted`, never `inkFaint`. This carries the count of what is about to be
+   * unassigned, which is the one thing somebody needs in order to answer — the
+   * opposite of text deliberately hard to notice.
+   */
+  consequence: { ...role(TYPE.note) },
+  questionControls: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.xs },
+  /*
+   * Equal halves, and the words centred in each — the laptop's `.button` is a
+   * flex row that had to be told the same thing once its two were stretched.
+   */
+  questionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingVertical: 12,
+    paddingHorizontal: SPACE.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questionButtonText: { ...role(TYPE.control), fontWeight: '700' },
 })

@@ -12,11 +12,18 @@ import {
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { X } from 'lucide-react'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
 import { TypeChip } from '@/app/_components/pin'
-import { Button, overlayPanelClass } from '@/app/_components/ui'
+import {
+  Button,
+  overlayPanelClass,
+  Question,
+  notDimmed,
+  useDismissible,
+  useFocusReturn,
+} from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './marker-details.module.css'
@@ -122,6 +129,7 @@ export type ExtraAction = { label: string; onClick: () => void }
 function Details({
   marker,
   view,
+  pointKey,
   hidden,
   members,
   interest,
@@ -138,6 +146,14 @@ function Details({
 }: {
   marker: Marker
   view: MarkerView
+  /**
+   * Which point on the map this card was opened from.
+   *
+   * Carried so that focus can be given back to that pin when the card closes.
+   * The card cannot hold the button itself: selecting a marker redraws the
+   * marker layer, so the element pressed is gone by the time this closes.
+   */
+  pointKey: string
   /** The current filter is not drawing this place. See `HiddenNote`. */
   hidden: boolean
   members: readonly TripMember[]
@@ -172,10 +188,51 @@ function Details({
    * which would make somebody watch a pin they had just removed reappear.
    */
   const [removing, startRemove] = usePending()
+  /**
+   * Whether the question is standing in place of the footer.
+   *
+   * Held here rather than lifted, because it is about what this card is showing
+   * and nothing outside it needs to know. It is deliberately not reset when the
+   * write is refused: the refusal is reported and the question stays, so the
+   * person can answer it again without re-opening it.
+   */
+  const [asking, setAsking] = useState(false)
   const prices = formatPrices(marker)
 
+  /**
+   * The card is a read, so the way out costs nothing and there is no question
+   * standing between a press and dismissal.
+   *
+   * Nothing is dimmed behind it — it hangs over the map rather than claiming
+   * the screen — so the press that dismisses still reaches another control of
+   * the chrome, and never the map. That last part is why this borrows `Menu`'s
+   * dismisser rather than adding a listener: the reasoning about `pointerdown`
+   * and the click that follows it was written for panels beside the map, and
+   * this one is *on* it.
+   */
+  const panel = useRef<HTMLDivElement | null>(null)
+  useDismissible({
+    open: true,
+    onDismiss,
+    panel,
+    isDimmed: notDimmed,
+  })
+  useFocusReturn(panel, () =>
+    document.querySelector<HTMLElement>(
+      `[data-point="${CSS.escape(pointKey)}"]`,
+    ),
+  )
+
   return (
-    <div className={overlayPanelClass}>
+    <div
+      ref={panel}
+      role="dialog"
+      aria-label={marker.name}
+      // Focusable so that focus can be moved into it, and `-1` so it is not a
+      // stop on the way through the page — it is a destination, not a step.
+      tabIndex={-1}
+      className={overlayPanelClass}
+    >
       <div className={styles.head}>
         <TypeChip view={view} />
         <h2 className={styles.name}>{marker.name}</h2>
@@ -259,20 +316,29 @@ function Details({
         </Field>
       </div>
 
+      {/*
+        The question replaces the footer and nothing else, because this card
+        *is* the place being removed — seeing it is how somebody knows which
+        record they are answering about. The city panel replaces its whole body
+        for the opposite reason: what it holds is a list of other cities, each
+        with its own delete control.
+      */}
+      {asking ? (
+        <Question
+          question={`Remove “${marker.name}”?`}
+          // Said plainly, because it is true: there is no soft delete and no
+          // undo anywhere behind this.
+          consequence="This cannot be undone."
+          confirm="Remove"
+          waiting={removing}
+          onConfirm={() => startRemove(onDelete)}
+          onDecline={() => setAsking(false)}
+        />
+      ) : (
       <div className={styles.actions}>
         <Button onClick={onEdit}>Edit</Button>
-        <Button
-          tone="danger"
-          disabled={removing}
-          onClick={() => {
-            // Said plainly, because it is true: there is no soft delete and no
-            // undo anywhere behind this.
-            if (window.confirm(`Remove “${marker.name}”?\n\nThis cannot be undone.`)) {
-              startRemove(onDelete)
-            }
-          }}
-        >
-          {removing ? 'Removing…' : 'Remove'}
+        <Button tone="danger" onClick={() => setAsking(true)}>
+          Remove
         </Button>
 
         {extraAction ? (
@@ -289,6 +355,7 @@ function Details({
           </span>
         ) : null}
       </div>
+      )}
     </div>
   )
 }
@@ -445,6 +512,7 @@ export function MarkerDetails({
     <Details
       marker={marker}
       view={group.views[index]!}
+      pointKey={group.key}
       hidden={hidden}
       members={members}
       interest={interestFor(marker)}

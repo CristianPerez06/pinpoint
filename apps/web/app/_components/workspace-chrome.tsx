@@ -49,6 +49,8 @@ export type ChromeBindings = {
   onRevealArchived: TripBarLiveProps['onRevealArchived']
   onArchiveTrip: TripBarLiveProps['onArchive']
   onRestoreTrip: TripBarLiveProps['onRestore']
+  tripProblem: TripBarLiveProps['problem']
+  onDismissTripProblem: TripBarLiveProps['onDismissProblem']
   onInvite: TripBarLiveProps['onInvite']
   onShowPeople: TripBarLiveProps['onShowPeople']
 
@@ -150,6 +152,8 @@ export function WorkspaceChrome({
             onSelect={live.onSelectTrip}
             onRename={live.onRenameTrip}
             onSetDates={live.onSetTripDates}
+            problem={live.tripProblem}
+            onDismissProblem={live.onDismissTripProblem}
             otherView={live.otherView}
             archived={live.archivedTrips}
             onRevealArchived={live.onRevealArchived}

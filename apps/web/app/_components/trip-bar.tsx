@@ -139,6 +139,22 @@ export type TripBarLiveProps = {
   ) => Promise<{ field: string; message: string } | null>
   open: boolean
   onOpen: (open: boolean) => void
+  /**
+   * A refusal from a write this panel started, or null.
+   *
+   * Drawn **inside the panel**, not over the map behind it. `write-feedback`
+   * requires a refusal about the act to be shown beside the control where one
+   * is still on screen, and this panel is still on screen — it stays open so
+   * that the answer lands against the thing that asked. Sent to the map's note
+   * instead, it was covered by this panel below about 934px: measured at a
+   * 560px column, the only part of `Could not save that trip` still visible was
+   * its last three letters.
+   *
+   * The phone's sheet has taken a `problem` for as long as it has existed and
+   * draws it itself. This is the laptop catching up to it, under the same name.
+   */
+  problem: string | null
+  onDismissProblem: () => void
 }
 
 /**
@@ -169,6 +185,8 @@ function TripBarLive({
   onCreated,
   open,
   onOpen,
+  problem,
+  onDismissProblem,
 }: TripBarLiveProps) {
   const [view, setView] = useState<View>('root')
   const [name, setName] = useState(trip.name)
@@ -220,6 +238,22 @@ function TripBarLive({
       onOpen={setOpen}
       tone="quiet"
     >
+      {/*
+        Above whichever face is showing, because it is about the write that was
+        just attempted rather than about the face — and a refusal below the
+        fold of a panel that scrolls is a refusal nobody reads.
+      */}
+      {problem ? (
+        <button
+          type="button"
+          onClick={onDismissProblem}
+          aria-label="Dismiss this message"
+          className={styles.problem}
+        >
+          <FormError message={problem} />
+        </button>
+      ) : null}
+
       {view === 'root' ? (
         <>
           {/*

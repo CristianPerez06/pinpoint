@@ -34,6 +34,7 @@ import {
   FieldLabel,
   FormNote,
   PriceField,
+  Question,
   TextField,
 } from '@/components/ui'
 import { usePending } from '@/lib/use-pending'
@@ -261,6 +262,8 @@ export function MarkerFormSheet({
    * control that has nothing to do with what is happening.
    */
   const [saving, startSave] = usePending()
+  /** Whether the removal question is standing in place of its control. */
+  const [asking, setAsking] = useState(false)
   const [creatingCity, startCreateCity] = usePending()
 
   const chosenCity = cities.find((city) => city.id === cityId) ?? null
@@ -752,13 +755,29 @@ export function MarkerFormSheet({
             </Pressable>
           ) : null}
 
+          {/*
+            The question stands where the control was, inside the scroller,
+            because the form's own footer holds `Save place` — a different
+            write, which must not sit live beside a question about destroying
+            the record it would save.
+          */}
           {onDelete ? (
-            <Button
-              label={removing ? 'Removing…' : 'Remove this place'}
-              tone="danger"
-              disabled={removing}
-              onPress={onDelete}
-            />
+            asking ? (
+              <Question
+                question="Remove this place?"
+                consequence="This cannot be undone."
+                confirm="Remove"
+                waiting={removing}
+                onConfirm={onDelete}
+                onDecline={() => setAsking(false)}
+              />
+            ) : (
+              <Button
+                label="Remove this place"
+                tone="danger"
+                onPress={() => setAsking(true)}
+              />
+            )
           ) : null}
         </ScrollView>
 

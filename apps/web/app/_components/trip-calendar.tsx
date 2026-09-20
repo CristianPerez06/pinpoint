@@ -201,6 +201,16 @@ export function TripCalendar({
     members.find((member) => member.id === ownMemberId)?.displayName ?? 'Account'
 
   const [message, setMessage] = useState<string | null>(null)
+  /**
+   * A refusal from a write the trip panel started, kept apart from the note
+   * over the map.
+   *
+   * Two channels because they answer for two different places: the note speaks
+   * for writes that happen *on* the screen behind, and this speaks for writes
+   * started inside a panel that is still open in front of it. One state for
+   * both put the answer behind the thing that asked the question.
+   */
+  const [tripProblem, setTripProblem] = useState<string | null>(null)
   const [conflict, setConflict] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [openMarkerId, setOpenMarkerId] = useState<string | null>(null)
@@ -235,7 +245,7 @@ export function TripCalendar({
     trips,
     setTrips,
     setMembers,
-    report: setMessage,
+    report: setTripProblem,
     addressOfTrip: (tripId) => `/calendar?trip=${tripId}`,
     addressAfterArchive: '/',
   })
@@ -600,6 +610,8 @@ export function TripCalendar({
             onCreated={tripActions.onSelect}
             open={detour === 'trip'}
             onOpen={(open) => setDetour(open ? 'trip' : 'none')}
+            problem={tripProblem}
+            onDismissProblem={() => setTripProblem(null)}
           />
         ),
         account: (
@@ -653,6 +665,7 @@ export function TripCalendar({
         <div className={styles.panel}>
           <MarkerForm
             title="Edit place"
+            capturing={false}
             initial={{
               name: editing.name,
               note: editing.note,

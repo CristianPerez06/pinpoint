@@ -1,6 +1,14 @@
 'use client'
 
-import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from 'react'
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 
 import styles from './ui.module.css'
 
@@ -164,6 +172,282 @@ export function WaitingMenu({
  * open at a time, and that is a fact about the whole bar — no component can
  * enforce it about panels it cannot see.
  */
+/**
+ * Dismissing something raised over the workspace: a press outside, and Escape.
+ *
+ * Extracted from `Menu` when `workspace-chrome` widened past what is raised
+ * *from the chrome* to cover the two panels raised over the map. Every line
+ * below was written for the menus and carries its own reasoning; none of it is
+ * less true for a panel that sits on the map, and a second copy of it would be
+ * two contracts where the requirement asks for one.
+ *
+ * What differs between the callers is passed in rather than detected here. A
+ * menu hangs off a trigger and may dim the screen behind it at a phone width; a
+ * panel over the map has neither, so it supplies no trigger and is never
+ * dimmed.
+ */
+/**
+ * Nothing behind this is dimmed.
+ *
+ * Module scope so its identity survives a render, which is what keeps the
+ * listeners from being torn down and re-armed on every one of them.
+ */
+export const notDimmed = () => false
+
+/**
+ * Focus moves into a panel when it opens, and back where it was when it goes.
+ *
+ * For the panels raised over the map, which mount and unmount rather than
+ * toggling an `open` flag the way `Menu` does — so the effect's own lifetime is
+ * the panel's, and its cleanup is the moment to give focus back.
+ *
+ * The details card is opened by pressing a marker, and a marker is a real
+ * `<button>` on the map, so "whatever was focused" and "the pin that was
+ * pressed" are the same element. That is why this restores to what it found
+ * rather than being told what to go back to: it needs no opinion about which
+ * control opened the panel, and it is right for the ones opened from search as
+ * well.
+ *
+ * It does not steal focus from inside itself. A form autofocuses its first
+ * field, and moving focus to the panel root afterwards would put the caret
+ * nowhere and announce the container instead of the field.
+ */
+export function useFocusReturn(
+  panel: RefObject<HTMLElement | null>,
+  /**
+   * Where to give focus back, found again at the moment it is needed.
+   *
+   * A function rather than an element, because the element that opened a panel
+   * over the map does not survive until the panel closes: selecting a marker
+   * redraws the marker layer, so the button that was pressed is detached and
+   * replaced by an equal one. Looking it up on the way out finds the
+   * replacement; holding it finds a node no longer in the document, and
+   * focusing that silently drops focus to the body.
+   *
+   * Omitted, focus goes back to whatever held it when the panel opened, which
+   * is right for a panel opened from a control that stays put.
+   */
+  findOpener?: () => HTMLElement | null,
+) {
+  useEffect(() => {
+    const held = document.activeElement
+    const surface = panel.current
+    if (surface && !surface.contains(held)) surface.focus()
+    return () => {
+      /*
+       * Given back a frame later, not in the cleanup itself.
+       *
+       * Dismissing a panel opened from a pin is one render: the selection
+       * clears, this panel unmounts, and *then* the map's own effect redraws
+       * the marker layer. Looking for the pin inside the cleanup therefore runs
+       * before the pin it is looking for exists — the lookup finds nothing,
+       * focus is left on the body, and nothing about it is visible. A frame
+       * later the layer has been redrawn and the replacement is there.
+       *
+       * Only where nothing else has taken focus in the meantime. A frame is
+       * long enough for a person to have pressed something, and the way back
+       * should never pull focus off whatever they chose instead.
+       */
+      requestAnimationFrame(() => {
+        const settled = document.activeElement
+        if (settled !== null && settled !== document.body) return
+        const back = findOpener?.() ?? held
+        if (back instanceof HTMLElement && document.contains(back)) back.focus()
+      })
+    }
+    // `findOpener` is read only in the cleanup, so a fresh identity each render
+    // would tear this down and re-run it — taking focus back into the panel on
+    // every keystroke inside it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel])
+}
+
+export function useDismissible({
+  open,
+  onDismiss,
+  panel,
+  trigger,
+  isDimmed,
+}: {
+  open: boolean
+  onDismiss: () => void
+  /** What counts as inside. A press within it never dismisses. */
+  panel: RefObject<HTMLElement | null>
+  /**
+   * The control that opened it, where there is one.
+   *
+   * Excluded from the outside test because it toggles itself on click, and
+   * dismissing here as well would close and reopen on a single press.
+   */
+  trigger?: RefObject<HTMLElement | null>
+  /**
+   * Whether the screen behind is drawn as stepped back, asked now rather than
+   * read off a width. See the note inside about why the question is asked of
+   * the thing that answers it.
+   */
+  isDimmed: () => boolean
+}) {
+  useEffect(() => {
+    if (!open) return
+
+    /*
+      Outside is measured against the trigger and the panel, not against the
+      anchor that holds them.
+
+      Those used to be the same test, and at a phone width they stopped being.
+      The sheet's backdrop is drawn as the anchor's own `::after` — a
+      pseudo-element cannot be an event target, so a press on the backdrop
+      arrives reporting the *anchor* as its target, which the old test read as
+      "inside" and refused to dismiss. The backdrop covers the whole screen, so
+      the effect was that a sheet could not be dismissed by pressing away from
+      it at all, and the press was swallowed rather than falling through to
+      whatever was behind.
+
+      **Learn the shape of this one**: nothing about it is visible. The sheet is
+      drawn correctly, Escape still works, the control still toggles, and every
+      other menu in the chrome behaves — it is only the one gesture, on the one
+      shape, and a backdrop that looks exactly like it is doing its job.
+    */
+    /**
+     * Whether this press is spent on the dismissal alone.
+     *
+     * `workspace-chrome` — *Anything that opens can be dismissed without
+     * hunting* — splits this in two, and splits it on what is drawn rather than
+     * on a width:
+     *
+     * - Where the screen behind is dimmed, nothing beneath the press acts. The
+     *   dimming is a claim that the rest of the screen has stepped back, and a
+     *   screen drawn as stepped back should be stepped back. At a phone width
+     *   every menu here is a sheet with a scrim, and the whole toolbar under it
+     *   — `Drop pin` included, which is how this was found.
+     * - Where nothing is dimmed the panel hangs off its own control and makes
+     *   no such claim, so another control of the chrome still acts on the same
+     *   press: pressing the next trigger switches menus, which is what somebody
+     *   means by pressing it. The map is the exception at either width, because
+     *   it turns a press into a pin or a selection and there is no reading of
+     *   "I am closing this" that also means either of those.
+     *
+     * The dimming is read off the scrim itself rather than from a `matchMedia`
+     * repeating the stylesheet's breakpoint. A second copy of a width is a
+     * second copy to keep in agreement, and `NamePlaceholder` above already
+     * carries the scar from guessing one the stylesheet owned. This asks the
+     * question the requirement asks — is the screen dimmed, now — of the thing
+     * that answers it.
+     *
+     * The map is found by `.maplibregl-map`, which `trip-map.module.css` states
+     * is carried by the canvas element. The credit's own menu is a sibling of
+     * that element rather than a child, so it stays a control of the chrome and
+     * is not mistaken for the map it sits over.
+     */
+    const spent = (target: Node) => {
+      if (isDimmed()) return true
+      const element = target instanceof Element ? target : target.parentElement
+      return element?.closest('.maplibregl-map') != null
+    }
+
+    /**
+     * Take the click this press is about to become.
+     *
+     * Capture, so it lands before its target rather than after: a bubbling
+     * listener on `document` runs once the map and the buttons have already had
+     * the event, which is this same bug moved into a different phase.
+     *
+     * Armed here rather than inside the effect's own lifetime, because closing
+     * is what arms it — tying it to `open` would tear it down on the render
+     * that the dismissal causes, before the click it exists to catch arrives.
+     *
+     * It has to stand down again, because not every press becomes a click: a
+     * touch that turns into a scroll ends in `pointercancel`, and a secondary
+     * button ends in a context menu. One left armed would eat an unrelated
+     * click later on — this bug again, with a longer fuse and nothing to
+     * reproduce it from.
+     *
+     * **It stands down on a signal, never on a clock.** The first version
+     * released a task after `pointerup`, on the reasoning that `click` follows
+     * immediately. It does — for a press with no duration. A press somebody
+     * actually makes has a gap between going down and coming up, the click
+     * lands in a later task than the timer, and the swallower is gone before
+     * the thing it exists to catch arrives:
+     *
+     *     instant press:  pointerdown, pointerup, click, timer   → held
+     *     real press:     pointerdown, pointerup, timer, click   → released
+     *
+     * Every automated test passed because synthesised clicks dispatch the whole
+     * sequence in one task, which is exactly the shape that cannot show this.
+     *
+     * The next `pointerdown` is the honest signal. Nothing can release the
+     * swallower before its own click, because the only thing that releases it
+     * is a fresh press — and a fresh press *should*. It is registered in
+     * capture during a pointerdown that has already passed that phase, so it
+     * cannot hear the press that armed it.
+     *
+     * The residue: between a press that never became a click and the next
+     * press, a click raised by the keyboard would still be swallowed.
+     * `pointercancel` covers the common way into that state, and the rest is
+     * narrower than the failure it replaces.
+     */
+    const swallowNextClick = () => {
+      const armed = new AbortController()
+      const { signal } = armed
+      document.addEventListener(
+        'click',
+        (event) => {
+          event.stopPropagation()
+          event.preventDefault()
+          armed.abort()
+        },
+        { capture: true, signal },
+      )
+      document.addEventListener('pointerdown', () => armed.abort(), {
+        capture: true,
+        signal,
+      })
+      document.addEventListener('pointercancel', () => armed.abort(), {
+        capture: true,
+        signal,
+      })
+    }
+
+    const dismiss = (event: PointerEvent) => {
+      const target = event.target as Node
+      // The trigger toggles itself on click; dismissing here as well would
+      // close and reopen on one press.
+      if (trigger?.current?.contains(target)) return
+      if (panel.current?.contains(target)) return
+      if (spent(target)) {
+        /*
+          Say nothing was pressed, as well as doing nothing.
+
+          Swallowing only the click leaves the press looking answered: `.button`
+          above depresses on `:active` and runs a background transition, both of
+          which the browser applies on `mousedown`, long before anything here
+          knows the press is spent. The control sinks under the finger, springs
+          back, and nothing happens — which reads as a control that failed
+          rather than one that was never going to act.
+
+          `preventDefault` on the pointerdown suppresses the compatibility mouse
+          events, and `mousedown` is where both of those come from. `click` is
+          explicitly *not* suppressed by it, which is why the swallower below is
+          still needed rather than replaced.
+        */
+        event.preventDefault()
+        swallowNextClick()
+      }
+      onDismiss()
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onDismiss()
+    }
+
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open, onDismiss, panel, trigger, isDimmed])
+}
+
 export function Menu({
   label,
   children,
@@ -276,168 +560,18 @@ export function Menu({
    * is hit-tested. A press that dismisses therefore has to be *followed*, and
    * the click it is about to become taken out of the air.
    */
-  useEffect(() => {
-    if (!open) return
-
-    /*
-      Outside is measured against the trigger and the panel, not against the
-      anchor that holds them.
-
-      Those used to be the same test, and at a phone width they stopped being.
-      The sheet's backdrop is drawn as the anchor's own `::after` — a
-      pseudo-element cannot be an event target, so a press on the backdrop
-      arrives reporting the *anchor* as its target, which the old test read as
-      "inside" and refused to dismiss. The backdrop covers the whole screen, so
-      the effect was that a sheet could not be dismissed by pressing away from
-      it at all, and the press was swallowed rather than falling through to
-      whatever was behind.
-
-      **Learn the shape of this one**: nothing about it is visible. The sheet is
-      drawn correctly, Escape still works, the control still toggles, and every
-      other menu in the chrome behaves — it is only the one gesture, on the one
-      shape, and a backdrop that looks exactly like it is doing its job.
-    */
-    /**
-     * Whether this press is spent on the dismissal alone.
-     *
-     * `workspace-chrome` — *Anything that opens can be dismissed without
-     * hunting* — splits this in two, and splits it on what is drawn rather than
-     * on a width:
-     *
-     * - Where the screen behind is dimmed, nothing beneath the press acts. The
-     *   dimming is a claim that the rest of the screen has stepped back, and a
-     *   screen drawn as stepped back should be stepped back. At a phone width
-     *   every menu here is a sheet with a scrim, and the whole toolbar under it
-     *   — `Drop pin` included, which is how this was found.
-     * - Where nothing is dimmed the panel hangs off its own control and makes
-     *   no such claim, so another control of the chrome still acts on the same
-     *   press: pressing the next trigger switches menus, which is what somebody
-     *   means by pressing it. The map is the exception at either width, because
-     *   it turns a press into a pin or a selection and there is no reading of
-     *   "I am closing this" that also means either of those.
-     *
-     * The dimming is read off the scrim itself rather than from a `matchMedia`
-     * repeating the stylesheet's breakpoint. A second copy of a width is a
-     * second copy to keep in agreement, and `NamePlaceholder` above already
-     * carries the scar from guessing one the stylesheet owned. This asks the
-     * question the requirement asks — is the screen dimmed, now — of the thing
-     * that answers it.
-     *
-     * The map is found by `.maplibregl-map`, which `trip-map.module.css` states
-     * is carried by the canvas element. The credit's own menu is a sibling of
-     * that element rather than a child, so it stays a control of the chrome and
-     * is not mistaken for the map it sits over.
-     */
-    const spent = (target: Node) => {
-      const dimmed =
+  useDismissible({
+    open,
+    onDismiss: useCallback(() => onOpen(false), [onOpen]),
+    panel,
+    trigger,
+    isDimmed: useCallback(
+      () =>
         anchor.current !== null &&
-        getComputedStyle(anchor.current, '::after').content !== 'none'
-      if (dimmed) return true
-      const element = target instanceof Element ? target : target.parentElement
-      return element?.closest('.maplibregl-map') != null
-    }
-
-    /**
-     * Take the click this press is about to become.
-     *
-     * Capture, so it lands before its target rather than after: a bubbling
-     * listener on `document` runs once the map and the buttons have already had
-     * the event, which is this same bug moved into a different phase.
-     *
-     * Armed here rather than inside the effect's own lifetime, because closing
-     * is what arms it — tying it to `open` would tear it down on the render
-     * that the dismissal causes, before the click it exists to catch arrives.
-     *
-     * It has to stand down again, because not every press becomes a click: a
-     * touch that turns into a scroll ends in `pointercancel`, and a secondary
-     * button ends in a context menu. One left armed would eat an unrelated
-     * click later on — this bug again, with a longer fuse and nothing to
-     * reproduce it from.
-     *
-     * **It stands down on a signal, never on a clock.** The first version
-     * released a task after `pointerup`, on the reasoning that `click` follows
-     * immediately. It does — for a press with no duration. A press somebody
-     * actually makes has a gap between going down and coming up, the click
-     * lands in a later task than the timer, and the swallower is gone before
-     * the thing it exists to catch arrives:
-     *
-     *     instant press:  pointerdown, pointerup, click, timer   → held
-     *     real press:     pointerdown, pointerup, timer, click   → released
-     *
-     * Every automated test passed because synthesised clicks dispatch the whole
-     * sequence in one task, which is exactly the shape that cannot show this.
-     *
-     * The next `pointerdown` is the honest signal. Nothing can release the
-     * swallower before its own click, because the only thing that releases it
-     * is a fresh press — and a fresh press *should*. It is registered in
-     * capture during a pointerdown that has already passed that phase, so it
-     * cannot hear the press that armed it.
-     *
-     * The residue: between a press that never became a click and the next
-     * press, a click raised by the keyboard would still be swallowed.
-     * `pointercancel` covers the common way into that state, and the rest is
-     * narrower than the failure it replaces.
-     */
-    const swallowNextClick = () => {
-      const armed = new AbortController()
-      const { signal } = armed
-      document.addEventListener(
-        'click',
-        (event) => {
-          event.stopPropagation()
-          event.preventDefault()
-          armed.abort()
-        },
-        { capture: true, signal },
-      )
-      document.addEventListener('pointerdown', () => armed.abort(), {
-        capture: true,
-        signal,
-      })
-      document.addEventListener('pointercancel', () => armed.abort(), {
-        capture: true,
-        signal,
-      })
-    }
-
-    const dismiss = (event: PointerEvent) => {
-      const target = event.target as Node
-      // The trigger toggles itself on click; dismissing here as well would
-      // close and reopen on one press.
-      if (trigger.current?.contains(target)) return
-      if (panel.current?.contains(target)) return
-      if (spent(target)) {
-        /*
-          Say nothing was pressed, as well as doing nothing.
-
-          Swallowing only the click leaves the press looking answered: `.button`
-          above depresses on `:active` and runs a background transition, both of
-          which the browser applies on `mousedown`, long before anything here
-          knows the press is spent. The control sinks under the finger, springs
-          back, and nothing happens — which reads as a control that failed
-          rather than one that was never going to act.
-
-          `preventDefault` on the pointerdown suppresses the compatibility mouse
-          events, and `mousedown` is where both of those come from. `click` is
-          explicitly *not* suppressed by it, which is why the swallower below is
-          still needed rather than replaced.
-        */
-        event.preventDefault()
-        swallowNextClick()
-      }
-      onOpen(false)
-    }
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpen(false)
-    }
-
-    document.addEventListener('pointerdown', dismiss)
-    document.addEventListener('keydown', escape)
-    return () => {
-      document.removeEventListener('pointerdown', dismiss)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [open, onOpen])
+        getComputedStyle(anchor.current, '::after').content !== 'none',
+      [],
+    ),
+  })
 
   /**
    * Focus back to the trigger when the panel goes.
@@ -843,6 +977,72 @@ export function SelectField({
  * A refusal that belongs above the form rather than against a field — the
  * database said no, and no single input is to blame.
  */
+/**
+ * A question the product asks before it destroys something.
+ *
+ * **Not a dialog, and deliberately so.** There is no dialog in this system —
+ * `DESIGN.md` has panels over the map, detour panels hung off the control that
+ * opened them, and sheets on the phone. Adding a centred thing that takes the
+ * screen would be a second kind of layer a person has to learn, and on the
+ * phone it would put a modal inside the city sheet's own modal, which is the
+ * shape `AGENTS.md` records as behaving in the simulator and not on a device.
+ *
+ * So the panel that offered the act asks the question itself, the way the trip
+ * bar already swaps between its rename, dates and archive faces. This renders
+ * the question and its two controls; **where it sits, and how much of the panel
+ * it replaces, is the caller's decision** — see `DESIGN.md`, *Asking Before
+ * Destroying*: what is being removed stays, whatever offers other acts goes.
+ *
+ * `role="group"` with `aria-live="assertive"`, because the question appears
+ * where a footer was rather than arriving as a new region. Without the live
+ * region a screen reader is told only that the controls changed, which is the
+ * one thing a person who cannot see it does not need to know.
+ *
+ * The confirming control carries the wait. The act begins when the question is
+ * answered, not when it was offered — `window.confirm` blocked and returned a
+ * boolean, and nothing here can.
+ */
+export function Question({
+  question,
+  consequence,
+  confirm,
+  waiting,
+  onConfirm,
+  onDecline,
+}: {
+  /** What will happen, in one line and in the product's voice. */
+  question: string
+  /**
+   * What it costs, where the cost lands somewhere the person is not looking.
+   *
+   * Omitted where the act speaks for itself. Present for a city, whose places
+   * survive as unfiled and whose local prices do not — a count discovered
+   * afterwards arrived too late to inform the decision.
+   */
+  consequence?: string
+  /** The confirming control's words. Names the act, never `OK`. */
+  confirm: string
+  /** The write is running. The control says so and cannot be fired again. */
+  waiting?: boolean
+  onConfirm: () => void
+  onDecline: () => void
+}) {
+  return (
+    <div role="group" aria-live="assertive" className={styles.question}>
+      <p className={styles.questionText}>{question}</p>
+      {consequence ? <p className={styles.consequence}>{consequence}</p> : null}
+      <div className={styles.questionControls}>
+        <Button onClick={onDecline} disabled={waiting}>
+          Cancel
+        </Button>
+        <Button tone="danger" onClick={onConfirm} disabled={waiting}>
+          {waiting ? `${confirm}…` : confirm}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function FormError({ message }: { message: string }) {
   return (
     <p role="alert" className={styles.formError}>

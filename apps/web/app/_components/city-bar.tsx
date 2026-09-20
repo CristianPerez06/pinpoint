@@ -6,7 +6,7 @@ import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
-import { Button, Menu, TextField, WaitingMenu } from '@/app/_components/ui'
+import { Button, Menu, Question, TextField, WaitingMenu } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './city-bar.module.css'
@@ -435,22 +435,98 @@ function CityEditor({
   const busy = saving || removing
 
   /**
-   * Asked only when something would be lost. Changing or removing a currency
-   * that no place has used yet is just a save.
+   * Which question is standing, or none.
+   *
+   * Two acts here destroy something, and they ask the same way. One value
+   * rather than two flags because only one can ever stand: the editor shows
+   * the question *instead of* its fields, so there is nowhere for a second.
    */
-  function confirmCurrencyChange(): boolean {
-    if (currency === city.currency || city.currency === null || localCount === 0) return true
+  const [asking, setAsking] = useState<'currency' | 'remove' | null>(null)
+
+  /**
+   * Whether changing the currency would lose anything.
+   *
+   * Changing or removing a currency no place has used yet is just a save. The
+   * rule is what is lost, not what the act is called.
+   */
+  const currencyLoses =
+    currency !== city.currency && city.currency !== null && localCount > 0
+
+  function currencyQuestion(): string {
+    return currency === null
+      ? `Remove ${city.currency} from “${city.name}”?`
+      : `Change “${city.name}” to ${currency}?`
+  }
+
+  function currencyConsequence(): string {
     const places = localCount === 1 ? '1 place' : `${localCount} places`
-    const question =
-      currency === null
-        ? `Remove ${city.currency} from “${city.name}”?`
-        : `Change “${city.name}” to ${currency}?`
-    const why = `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${city.currency} price. ${
+    return `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${city.currency} price. ${
       localCount === 1 ? 'It' : 'They'
     } will lose it${currency === null ? '' : ', not have it converted'}. ${
       localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'
     }.`
-    return window.confirm(`${question}\n\n${why}`)
+  }
+
+  /**
+   * What removing this city costs, counted.
+   *
+   * The consequence lands on rows the person is not looking at, so the count is
+   * stated rather than left to be discovered.
+   */
+  function removalConsequence(): string {
+    const consequence =
+      markerCount === 0
+        ? 'It holds no places.'
+        : `${markerCount} ${markerCount === 1 ? 'place' : 'places'} will become unassigned. They are not deleted.`
+    // Unassigned is a city with no currency, so local prices go too.
+    const loss =
+      localCount === 0 || city.currency === null
+        ? ''
+        : ` ${localLoss(localCount, city.currency, markerCount === 1 ? 'It' : `${localCount} of them`)}`
+    return `${consequence}${loss}`
+  }
+
+  function save() {
+    startSave(async () => {
+      await onSave({ name: name.trim(), currency })
+      onClose()
+    })
+  }
+
+  /*
+    The question replaces the editor's body rather than merely swapping its
+    footer, which is what the place card does.
+
+    Two reasons. The fields above offer `Save`, a different write, and leaving
+    them live invites somebody to type into a record they are being asked to
+    destroy. And the removal consequence is the longest sentence in the product
+    — it wants the body's width rather than a band beneath it.
+  */
+  if (asking !== null) {
+    const removingCity = asking === 'remove'
+    return (
+      <div className={styles.editor}>
+        <Question
+          question={removingCity ? `Remove “${city.name}”?` : currencyQuestion()}
+          consequence={
+            removingCity ? removalConsequence() : currencyConsequence()
+          }
+          confirm={removingCity ? 'Remove city' : 'Save'}
+          waiting={busy}
+          onConfirm={() => {
+            if (!removingCity) {
+              save()
+              return
+            }
+            startRemove(async () => {
+              await onDelete()
+              onClose()
+            })
+          }}
+          onDecline={() => setAsking(null)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -472,11 +548,11 @@ function CityEditor({
               onClose()
               return
             }
-            if (!confirmCurrencyChange()) return
-            startSave(async () => {
-              await onSave({ name: name.trim(), currency })
-              onClose()
-            })
+            if (currencyLoses) {
+              setAsking('currency')
+              return
+            }
+            save()
           }}
           disabled={busy || name.trim() === ''}
         >
@@ -489,31 +565,9 @@ function CityEditor({
           <Button
             tone="danger"
             disabled={busy}
-            onClick={() => {
-              // The consequence lands on rows the person is not looking at, so
-              // the count is stated rather than left to be discovered.
-              const consequence =
-                markerCount === 0
-                  ? 'It holds no places.'
-                  : `${markerCount} ${markerCount === 1 ? 'place' : 'places'} will become unassigned. They are not deleted.`
-              // Unassigned is a city with no currency, so local prices go too.
-              const loss =
-                localCount === 0 || city.currency === null
-                  ? ''
-                  : ` ${localLoss(
-                      localCount,
-                      city.currency,
-                      markerCount === 1 ? 'It' : `${localCount} of them`,
-                    )}`
-              if (window.confirm(`Remove “${city.name}”?\n\n${consequence}${loss}`)) {
-                startRemove(async () => {
-                  await onDelete()
-                  onClose()
-                })
-              }
-            }}
+            onClick={() => setAsking('remove')}
           >
-            {removing ? 'Removing…' : 'Remove city'}
+            Remove city
           </Button>
         </span>
       </div>
