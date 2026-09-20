@@ -321,7 +321,7 @@ export function MarkerForm({
       />
 
       <TextField
-        label="Day (optional)"
+        label="Day"
         type="date"
         value={plannedOn}
         onChange={setPlannedOn}
@@ -409,7 +409,7 @@ export function MarkerForm({
                 value: local,
                 onChange: (value) =>
                   setLocalByCurrency((current) => ({ ...current, [currency]: value })),
-                hint: `${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                hint: `${currency} is ${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
                 error: fieldErrors.localPrice,
               }
         }

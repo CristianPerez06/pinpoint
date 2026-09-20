@@ -640,7 +640,14 @@ export function TextField({
 
 /**
  * A price in US dollars, with a `Free` toggle beside it — and, in a city with a
- * second currency, a second box under it for the price as it was seen there.
+ * second currency, a second box on the same row for the price as it was seen
+ * there.
+ *
+ * One bounded section labelled `Price`, drawn like the hours group beside it
+ * (#191). The currency code sits *on* each box rather than in a label above it,
+ * which is what lets both amounts share one label and one row. Because the
+ * label no longer names a currency, any message about one of the two amounts
+ * has to name it instead — see `local.error` and the caller.
  *
  * Free and a price are one value — a free place is a price of 0 — so only one
  * of them can ever be set. Turning Free on empties both boxes and greys them
@@ -650,7 +657,7 @@ export function TextField({
  * a way back to a price.
  *
  * The two amounts are independent. Nothing converts one into the other, which
- * is what the hint under the second box says.
+ * is what the hint under the row says.
  */
 export function PriceField({
   value,
@@ -686,14 +693,19 @@ export function PriceField({
   const localInvalid = local?.error !== undefined
   const id = useId()
   const localId = useId()
+  const labelId = useId()
 
   return (
-    <div className={styles.priceFields}>
-      <div className={styles.field}>
-        <label htmlFor={id} className={styles.label}>
-          Price (USD)
-        </label>
-        <div className={styles.priceRow}>
+    <div className={styles.priceFields} role="group" aria-labelledby={labelId}>
+      <span id={labelId} className={styles.label}>
+        Price
+      </span>
+
+      <div className={styles.priceRow}>
+        <div className={styles.money}>
+          <label htmlFor={id} className={styles.code}>
+            USD
+          </label>
           <input
             id={id}
             type="number"
@@ -703,40 +715,24 @@ export function PriceField({
             onFocus={() => {
               if (free) onFreeChange(false)
             }}
-            placeholder={free ? 'Free' : 'Leave blank if unknown'}
+            /*
+              No placeholder beyond `Free`. "Blank if unknown" does not fit a box
+              sized for an amount — it truncated to "Blank if unk…" on the phone
+              and in the narrow card — so what it said moved to the line beneath,
+              which is where this form says everything else of that kind.
+            */
+            placeholder={free ? 'Free' : ''}
             aria-invalid={invalid}
             data-free={free}
-            className={`${styles.control} ${styles.priceInput}`}
+            className={styles.amount}
           />
-          <button
-            type="button"
-            aria-pressed={free}
-            onClick={() => {
-              if (!free) {
-                onChange('')
-                local?.onChange('')
-              }
-              onFreeChange(!free)
-            }}
-            className={styles.freeToggle}
-          >
-            Free
-          </button>
         </div>
 
-        {invalid ? (
-          <span role="alert" className={styles.error}>
-            {error}
-          </span>
-        ) : null}
-      </div>
-
-      {local ? (
-        <div className={styles.field}>
-          <label htmlFor={localId} className={styles.label}>
-            {`Price (${local.currency})`}
-          </label>
-          <div className={styles.priceRow}>
+        {local ? (
+          <div className={styles.money} data-invalid={localInvalid}>
+            <label htmlFor={localId} className={styles.code}>
+              {local.currency}
+            </label>
             <input
               id={localId}
               type="number"
@@ -746,28 +742,56 @@ export function PriceField({
               onFocus={() => {
                 if (free) onFreeChange(false)
               }}
-              placeholder={free ? 'Free' : 'Leave blank if unknown'}
+              placeholder={free ? 'Free' : ''}
               aria-invalid={localInvalid}
               data-free={free}
-              className={`${styles.control} ${styles.priceInput}`}
+              className={styles.amount}
             />
-            {/*
-              Room the width of `Free`, so this box ends where the dollar box
-              ends and the two amounts read as a pair.
-            */}
-            <span aria-hidden="true" className={`${styles.freeToggle} ${styles.freeSpacer}`}>
-              Free
-            </span>
           </div>
-          {localInvalid ? (
-            <span role="alert" className={styles.error}>
-              {local.error}
-            </span>
-          ) : (
-            <span className={styles.hint}>{local.hint}</span>
-          )}
-        </div>
+        ) : null}
+
+        <button
+          type="button"
+          aria-pressed={free}
+          onClick={() => {
+            if (!free) {
+              onChange('')
+              local?.onChange('')
+            }
+            onFreeChange(!free)
+          }}
+          className={styles.freeToggle}
+        >
+          Free
+        </button>
+      </div>
+
+      {invalid ? (
+        <span role="alert" className={styles.error}>
+          {error}
+        </span>
       ) : null}
+
+      {local && localInvalid ? (
+        /*
+          Prefixed with the code, because the label no longer carries it. With
+          two amounts under one `Price` label, an unprefixed message does not
+          say which of them is being refused. Done here rather than at the call
+          site so neither app can forget it.
+        */
+        <span role="alert" className={styles.error}>
+          {`${local.currency}: ${local.error}`}
+        </span>
+      ) : null}
+
+      {/*
+        Always said, with or without a second currency: it is where the boxes'
+        placeholder used to say it. The currency sentence joins it when there is
+        a second amount to explain.
+      */}
+      <span className={styles.hint}>
+        {local ? `Leave an amount blank if you don't know it. ${local.hint}` : "Leave it blank if you don't know."}
+      </span>
 
       {warning ? (
         <span role="status" className={styles.priceWarning}>

@@ -238,24 +238,120 @@
  * The toggle is the interest choice pill: outlined when off, the accent wash
  * and accent ink when on — a pair both grounds define, so dark needs no rule.
  */
+/*
+ * One bounded section labelled `Price`, drawn like the hours group (#191).
+ * Outlined rather than filled, for the reason `hours-field.module.css` gives.
+ */
 .priceFields {
   display: grid;
-  gap: var(--pp-space-md);
+  gap: var(--pp-space-sm);
+  padding: 10px 12px 12px;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
 }
 
+/*
+ * The amounts and `Free`, on one row — and wrapping rather than shrinking when
+ * there is not room for all three.
+ *
+ * This is the failure recorded in `AGENTS.md` under the flex defaults, so it is
+ * worth being explicit. Measured inside this group at the card's narrow width
+ * (328px, which is what the card takes below a 1200px window), two amounts with
+ * a plain `flex: 1` left 43px of typable box each — about five digits, so a
+ * ¥120,000 hotel would not be readable. A `min-width` floor does not fix it:
+ * a flex item with one does not wrap, it *overflows* its container, which is
+ * how the search field came to be drawn underneath the drop button. A
+ * flex-basis does fix it, because an item too wide for the line drops to the
+ * next one. Measured after: 8 digits at 328px, `Free` on its own line there and
+ * on the row everywhere wider.
+ */
 .priceRow {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--pp-space-sm);
   align-items: stretch;
 }
 
-.priceInput {
+/* The box: a currency code and an amount, sharing one border. */
+.money {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1 1 116px;
+  min-width: 0;
+  padding: var(--pp-space-sm) 11px;
+  background: var(--pp-surface-muted);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-md);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.money:focus-within {
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.money[data-invalid='true'] {
+  border-color: var(--pp-danger);
+}
+
+/*
+ * The currency's code, on the box rather than in a label above it — which is
+ * what lets both amounts share one `Price` label and one row. It labels the
+ * input, so it is a `<label>`, not decoration.
+ */
+.code {
+  flex: none;
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: 0.06em;
+  color: var(--pp-ink-muted);
+  cursor: pointer;
+}
+
+.amount {
   flex: 1;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pp-ink);
+  font-family: inherit;
+  font-size: var(--pp-type-control-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.amount:focus {
+  outline: none;
+}
+
+/*
+ * No spinner. It appears on focus and hover, takes about 20px of a box that is
+ * now sized for an amount rather than for the card's full width, and steps a
+ * price by 1 — which nobody wants and which would silently edit a typed figure
+ * on a stray scroll. `type="number"` is kept for the numeric keyboard and the
+ * browser's own numeric parsing.
+ */
+.amount::-webkit-outer-spin-button,
+.amount::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.amount[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.amount::placeholder {
+  color: var(--pp-ink-muted);
 }
 
 /* Greyed rather than disabled: focusing it is one of the ways back to a price. */
-.priceInput[data-free='true'] {
+.amount[data-free='true'] {
   opacity: 0.5;
 }
 
@@ -275,13 +371,6 @@
 .freeToggle:hover {
   border-color: var(--pp-ink-faint);
   color: var(--pp-ink);
-}
-
-/* Holds the width of `Free` beside the second box, and draws nothing. */
-.freeSpacer {
-  visibility: hidden;
-  display: grid;
-  place-items: center;
 }
 
 /*

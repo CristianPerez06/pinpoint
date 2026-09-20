@@ -168,13 +168,13 @@ export function CreateTripForm({
         calendar opens on.
       */}
       <DayField
-        label="Start date (optional)"
+        label="Start date"
         value={startsOn}
         onChange={setStartsOn}
         error={fieldErrors.startsOn}
       />
       <DayField
-        label="End date (optional)"
+        label="End date"
         value={endsOn}
         onChange={setEndsOn}
         error={fieldErrors.endsOn}

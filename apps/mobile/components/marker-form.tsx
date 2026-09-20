@@ -675,7 +675,7 @@ export function MarkerFormSheet({
             on most trips, which is what `No day yet` says.
           */}
           <DayField
-            label="Day (optional)"
+            label="Day"
             value={plannedOn}
             onChange={setPlannedOn}
             error={fieldErrors.plannedOn}
@@ -716,7 +716,7 @@ export function MarkerFormSheet({
                     value: local,
                     onChange: (value) =>
                       setLocalByCurrency((current) => ({ ...current, [currency]: value })),
-                    hint: `${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                    hint: `${currency} is ${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
                     error: fieldErrors.localPrice,
                   }
             }

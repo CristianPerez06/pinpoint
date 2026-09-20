@@ -46,7 +46,7 @@ export function CurrencyField({
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={styles.label}>
-        Second currency (optional)
+        Second currency
       </label>
 
       {value !== null ? (
@@ -143,6 +143,15 @@ export function CurrencyField({
               )}
             </ul>
           ) : null}
+          {/*
+            The label used to carry `(optional)`. It no longer does — no label in
+            either form states that a field is optional — so the fact has to be
+            said here instead, where it was previously said nowhere but the
+            placeholder.
+          */}
+          <span className={styles.hint}>
+            Leave it as None if prices here are only in US dollars.
+          </span>
         </div>
       )}
     </div>

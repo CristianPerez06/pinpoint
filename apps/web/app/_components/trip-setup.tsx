@@ -145,14 +145,14 @@ export function CreateTripForm({
       */}
       <div className={styles.dates}>
         <TextField
-          label="Start date (optional)"
+          label="Start date"
           type="date"
           value={startsOn}
           onChange={setStartsOn}
           error={fieldErrors.startsOn}
         />
         <TextField
-          label="End date (optional)"
+          label="End date"
           type="date"
           value={endsOn}
           onChange={setEndsOn}

@@ -5,9 +5,22 @@
   control: something turned on, not something pressed once.
 */
 
+/*
+ * One bounded section, not four fields in a row (#191).
+ *
+ * A border rather than a fill. `surface-sunk` against `surface` measures 1.17:1
+ * on the light ground and 1.05:1 on the dark one — on dark the fill *is* the
+ * card, so it would do nothing there while looking deliberate here. `line` is
+ * 1.27:1 and carries the boundary on both grounds on its own. A fill would also
+ * force the time boxes onto a different background from every other field in
+ * this form, to stay visible against it.
+ */
 .field {
   display: grid;
   gap: var(--pp-space-sm);
+  padding: 10px 12px 12px;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-md);
 }
 
 .label {
@@ -18,10 +31,19 @@
   color: var(--pp-ink-muted);
 }
 
+/*
+ * Seven 34px circles on one line, at every width the card takes.
+ *
+ * The arithmetic is tight enough to write down, because the group's border cost
+ * it 24px. Measured in the running app at the narrow card, the row has 268px.
+ * At a 6px gap it needed 274 and wrapped, orphaning Sunday onto a second line.
+ * At 4px it needs 262 and has six to spare. Widening this group's padding, or
+ * the gap, takes the row with it.
+ */
 .days {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .day {

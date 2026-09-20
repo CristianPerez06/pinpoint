@@ -45,8 +45,8 @@ export function HoursField({
   const hint = rangeHint(draft.range)
 
   return (
-    <View style={styles.field}>
-      <FieldLabel>Hours (optional)</FieldLabel>
+    <View style={[styles.field, { borderColor: theme.colour.line }]}>
+      <FieldLabel>Hours</FieldLabel>
 
       <View style={styles.days}>
         {WEEK.map((day) => {
@@ -166,12 +166,30 @@ function TimeInput({
 }
 
 const styles = StyleSheet.create({
-  field: { gap: SPACE.sm },
   /*
-    Seven 44-point targets, the smallest a thumb reliably hits: 308 points, inside
-    the 343 a 375-point-wide phone leaves between its gutters. `space-between`
-    rather than a gap, so a wider phone spreads them instead of leaving the row
-    short on the right.
+    One bounded section, not four fields in a row (#191).
+
+    A border rather than a fill: `surfaceSunk` against `surface` measures 1.05:1
+    on the dark ground, which is to say it is the surface. `line` is 1.27:1 and
+    carries the boundary on both grounds. See the laptop's `hours-field.module.css`.
+
+    The horizontal padding is load-bearing and must not grow — see `days` below.
+  */
+  field: {
+    gap: SPACE.sm,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+  },
+  /*
+    Seven 44-point targets, the smallest a thumb reliably hits: 308 points.
+    A 375-point-wide phone leaves 343 between its gutters, and this group's own
+    12-point padding takes 24 of them — so the row has 319 and needs 308. Eleven
+    points spare. Widening this group's padding takes the day row with it.
+    `space-between` rather than a gap, so a wider phone spreads them instead of
+    leaving the row short on the right.
   */
   days: { flexDirection: 'row', justifyContent: 'space-between' },
   day: {
