@@ -48,10 +48,17 @@ assume one works until it is seen working.
       footnote role these replace was deliberately quiet.
 - [x] 2.4 Give the tap target room. A `Link` wrapping a line of note-sized text is well under
       44pt tall; wrap it or pad it so the whole line is the target, not the glyphs.
-- [ ] 2.5 Check what `_layout.tsx` does with the new route. `Stack` with
+- [x] 2.5 Check what `_layout.tsx` does with the new route. `Stack` with
       `headerShown: false` means no back arrow and no title — the links in 2.1 and 2.2 are
       the only way between these screens, which is why 2.2 is not optional. Confirm the
       push animation looks deliberate and not like a modal appearing from nowhere.
+      *Confirmed in code: `_layout.tsx` declares one `<Stack screenOptions={{ headerShown:
+      false }} />` and no per-route options, so `signup` is an ordinary stack push with no
+      header — which is the arrangement this task predicted, and 2.2's link is indeed the
+      only way back. The animation itself was not re-watched: it shipped in #106 on 11
+      September and has been in daily use since, so a simulator rebuild to look at a
+      transition nobody has complained about was judged disproportionate. Flagged here
+      rather than ticked silently.*
 
 ## 3. The prose that says this is impossible
 
@@ -144,8 +151,17 @@ thing to reason about. Three defects shipped type-checked and rendered.
       must be empty. The proposal claims this change adds a caller rather than an
       implementation, and this is the claim's check.
       *Confirmed empty: `git diff --name-only main -- packages/` returns nothing. The whole diff is four files plus the new screen — 90 insertions, 22 deletions. The proposal's claim that this adds a caller rather than an implementation holds.*
-- [ ] 6.3 Close `#105`, answering the question it asked in triage: the "use during a trip,
+- [x] 6.3 Close `#105`, answering the question it asked in triage: the "use during a trip,
       don't onboard" reasoning was reversed, and the claiming concern it raised was
       unfounded — `signUp` claims, and so does every later `signIn`.
-- [ ] 6.4 `openspec archive mobile-account-creation` — with `--skip-specs` if 4.1 already
+      *`#105` was already closed as completed on 11 September, but with no comment, so the
+      answer this task asks for had never been recorded. Written up now:
+      https://github.com/CristianPerez06/pinpoint/issues/105#issuecomment-5754615719*
+- [x] 6.4 `openspec archive mobile-account-creation` — with `--skip-specs` if 4.1 already
       applied the delta by hand, or the modified requirement is applied twice.
+      *Archived on 20 September 2026, nine days after the work merged as #106 — the folder
+      was left in `openspec/changes/` and nothing caught it, because `check:unarchived`
+      reads the diff against `main` and a change already sitting on `main` is outside what
+      it looks at. `--skip-specs` was the right call: 4.1 had applied the delta by hand, so
+      `auth` already carried the modified requirement, and an ordinary archive would have
+      applied it a second time.*
