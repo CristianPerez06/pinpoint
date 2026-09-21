@@ -1,4 +1,5 @@
 import {
+  type NewTrip,
   newTripSchema,
   type Trip,
   type TripPatch,
@@ -125,7 +126,7 @@ export const TRIP_SAVE_FAILED_MESSAGE = 'Could not save that trip.'
  */
 export async function createTrip(
   client: PinpointClient,
-  input: unknown,
+  input: NewTrip,
 ): Promise<WriteOutcome<Trip>> {
   const validated = validate(newTripSchema, input)
   if (!validated.ok) return validated.outcome
@@ -180,7 +181,7 @@ export async function createTrip(
 export async function updateTrip(
   client: PinpointClient,
   tripId: string,
-  patch: unknown,
+  patch: TripPatch,
 ): Promise<WriteOutcome<Trip>> {
   const validated = validate(tripPatchSchema, patch)
   if (!validated.ok) return validated.outcome

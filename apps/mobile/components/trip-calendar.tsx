@@ -8,6 +8,7 @@ import {
   groupUndatedByCity,
   type IsoDay,
   type Marker,
+  type MarkerFormValues,
   type MarkerInterest,
   markersOnDay,
   type Trip,
@@ -30,7 +31,7 @@ import { useMemo, useState } from 'react'
 
 import { CalendarScreen } from '@/components/calendar-screen'
 import { MarkerDetails, type Selection } from '@/components/marker-details'
-import { MarkerFormSheet, type MarkerFormValues } from '@/components/marker-form'
+import { MarkerFormSheet } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { TripSheet } from '@/components/trip-sheet'

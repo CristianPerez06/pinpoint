@@ -6,6 +6,7 @@ import type {
   FieldErrors,
   Marker,
   MarkerFilter,
+  MarkerFormValues,
   MarkerInterest,
   Trip,
   TripMember,
@@ -34,6 +35,7 @@ import {
   setMarkerVisited,
   updateCity,
   updateMarker,
+  type WriteOutcome,
   withdrawInterest,
 } from '@pinpoint/data'
 import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
@@ -53,10 +55,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { signedInAs } from '@/app/_components/account-menu'
 import { MarkerDetails } from '@/app/_components/marker-details'
-import {
-  MarkerForm,
-  type MarkerFormValues,
-} from '@/app/_components/marker-form'
+import { MarkerForm } from '@/app/_components/marker-form'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 import { MapOverlayNote } from '@/app/_components/states'
@@ -1107,26 +1106,48 @@ export function TripWorkspace({
     setMessage(null)
     setConflict(null)
 
-    const outcome =
-      panel.kind === 'edit'
-        ? await updateMarker(
-            supabase,
-            panel.marker.id,
-            {
-              ...values,
-              ...(draft ? { lng: draft.lng, lat: draft.lat } : {}),
-            },
-            // The version this edit was based on — captured when the form was
-            // opened, not read again now. Re-reading it here would make the
-            // check pass by construction and guarantee nothing.
-            panel.marker.updatedAt,
-          )
-        : await createMarker(supabase, {
-            ...values,
-            tripId: trip.id,
-            lng: draft?.lng,
-            lat: draft?.lat,
-          })
+    /*
+     * Two branches rather than one expression, so that creating can state what
+     * it needs.
+     *
+     * A new place needs the draft pin's position, and it used to be taken on
+     * trust — the position was passed as whatever `draft` happened to hold,
+     * which the compiler could not see might be nothing. `beginCreate` always
+     * sets a draft and `cancel` clears it along with the panel, so the two are
+     * in fact never apart; but they are separate state, because the pin stays
+     * draggable while the form is open, and nothing anywhere said they move
+     * together.
+     *
+     * Editing is deliberately unguarded in the same way it always was: a saved
+     * place already has a position, and an edit that did not move it has no
+     * draft at all.
+     */
+    let outcome: WriteOutcome<Marker>
+
+    if (panel.kind === 'edit') {
+      outcome = await updateMarker(
+        supabase,
+        panel.marker.id,
+        {
+          ...values,
+          ...(draft ? { lng: draft.lng, lat: draft.lat } : {}),
+        },
+        // The version this edit was based on — captured when the form was
+        // opened, not read again now. Re-reading it here would make the check
+        // pass by construction and guarantee nothing.
+        panel.marker.updatedAt,
+      )
+    } else {
+      // Nothing to save a place at. Nothing is written and the form keeps what
+      // was typed, which is what every other refusal here does too.
+      if (!draft) return
+      outcome = await createMarker(supabase, {
+        ...values,
+        tripId: trip.id,
+        lng: draft.lng,
+        lat: draft.lat,
+      })
+    }
 
     if (!outcome.ok) {
       // Everything typed, and the marker's position, survive a rejection.

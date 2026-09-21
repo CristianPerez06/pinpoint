@@ -99,7 +99,7 @@ function toUpdateRow(patch: CityPatch): CityUpdate {
  */
 export async function createCity(
   client: PinpointClient,
-  input: unknown,
+  input: NewCity,
 ): Promise<WriteOutcome<City>> {
   const validated = validate(newCitySchema, input)
   if (!validated.ok) return validated.outcome
@@ -124,7 +124,7 @@ export async function createCity(
 export async function updateCity(
   client: PinpointClient,
   cityId: string,
-  patch: unknown,
+  patch: CityPatch,
 ): Promise<WriteOutcome<City>> {
   const validated = validate(cityPatchSchema, patch)
   if (!validated.ok) return validated.outcome

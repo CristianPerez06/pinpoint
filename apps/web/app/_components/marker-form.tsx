@@ -4,9 +4,9 @@ import {
   type City,
   type CityNotice,
   type FieldErrors,
+  type MarkerFormValues,
   joinHours,
   localPriceClearedBy,
-  type OpeningHours,
   pricesFromDraft,
   splitHours,
 } from '@pinpoint/core'
@@ -44,22 +44,6 @@ import styles from './marker-form.module.css'
  * It owns no persistence. Every write is the parent's, so this file has no
  * client, no schema, and nothing to say about what a rejection means.
  */
-
-export interface MarkerFormValues {
-  name: string
-  note: string | null
-  cityId: string | null
-  type: string
-  link: string | null
-  price: number | null
-  /** In the second currency of the place's city, or null. See `@pinpoint/core`'s marker. */
-  localPrice: number | null
-  localCurrency: string | null
-  /** The day this place is planned for, `YYYY-MM-DD`, or null while undecided. */
-  plannedOn: string | null
-  /** The days it is open and when, or null while nobody has entered them. */
-  hours: OpeningHours | null
-}
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
 function absentIfBlank(value: string): string | null {

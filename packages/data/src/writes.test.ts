@@ -1,9 +1,27 @@
+import type { OpeningHours } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCity, updateCity } from './cities'
 import { inviteMember, MEMBER_DUPLICATE_MESSAGE } from './interest'
 import { createMarker, deleteMarker, updateMarker } from './markers'
+
+/**
+ * What a caller the compiler never saw would send.
+ *
+ * The writes name the fields they accept now, so the two applications cannot
+ * leave one out without failing to build. That check answers for the code in
+ * this repository and for nothing else, and the runtime one underneath it is
+ * what answers for everything else — a script, a stale client, a value that
+ * arrived as text. Several tests below exist to prove that second gate still
+ * holds, which means deliberately handing a write something the first would
+ * have caught.
+ *
+ * So the cast is the subject of those tests rather than a way around them, and
+ * naming it is what keeps it that way. A test that is not about the runtime
+ * gate should pass an ordinary typed value and let the compiler check it.
+ */
+const untyped = <T>(value: unknown) => value as T
 
 /**
  * A client that records what it was asked to write and answers with a fixed
@@ -116,6 +134,9 @@ const VALID_MARKER = {
   link: null,
   price: null,
   plannedOn: null,
+  hours: null,
+  localPrice: null,
+  localCurrency: null,
 }
 
 describe('createMarker', () => {
@@ -181,7 +202,7 @@ describe('createMarker', () => {
   })
 
   it('carries the hours a place was saved with, under the column name', async () => {
-    const hours = { tue: [['12:00', '23:00']], sat: [['12:00', '23:00']] }
+    const hours: OpeningHours = { tue: [['12:00', '23:00']], sat: [['12:00', '23:00']] }
     const { client, calls } = stubClient({ data: { ...MARKER_ROW, hours } })
 
     const outcome = await createMarker(client, { ...VALID_MARKER, hours })
@@ -201,10 +222,10 @@ describe('createMarker', () => {
   it('refuses hours that break the rules, naming the hours field', async () => {
     const { client, calls } = stubClient({ data: MARKER_ROW })
 
-    const outcome = await createMarker(client, {
-      ...VALID_MARKER,
-      hours: { mon: [['09:00', '']] },
-    })
+    const outcome = await createMarker(
+      client,
+      untyped({ ...VALID_MARKER, hours: { mon: [['09:00', '']] } }),
+    )
 
     expect(outcome.ok).toBe(false)
     expect(!outcome.ok && outcome.kind === 'invalid-input' && 'hours' in outcome.fieldErrors).toBe(true)
@@ -294,7 +315,7 @@ describe('updateMarker', () => {
 
   it('changes and clears the hours', async () => {
     const { client, calls } = stubClient({ data: MARKER_ROW })
-    const hours = { sat: [['10:00', '14:00']] }
+    const hours: OpeningHours = { sat: [['10:00', '14:00']] }
 
     await updateMarker(client, MARKER_ID, { hours }, VERSION)
     expect(calls.update).toHaveBeenCalledWith({ hours })
@@ -316,7 +337,7 @@ describe('updateMarker', () => {
     // could change it is an edit that could put the row out of reach.
     const { client, calls } = stubClient({ data: MARKER_ROW })
 
-    await updateMarker(client, MARKER_ID, { tripId: CITY_ID, name: 'Nishiki' }, VERSION)
+    await updateMarker(client, MARKER_ID, untyped({ tripId: CITY_ID, name: 'Nishiki' }), VERSION)
 
     expect(calls.update).toHaveBeenCalledWith({ name: 'Nishiki' })
   })
@@ -418,7 +439,7 @@ describe('createCity', () => {
   it('returns the stored row so the form can select it immediately', async () => {
     const { client } = stubClient({ data: CITY_ROW })
 
-    const outcome = await createCity(client, { tripId: TRIP_ID, name: 'Kyoto' })
+    const outcome = await createCity(client, { tripId: TRIP_ID, name: 'Kyoto', currency: null })
 
     if (!outcome.ok) throw new Error('unreachable')
     expect(outcome.data).toMatchObject({ id: CITY_ID, name: 'Kyoto' })
@@ -428,7 +449,7 @@ describe('createCity', () => {
     const { client, calls } = stubClient({ data: CITY_ROW })
 
     await createCity(client, { tripId: TRIP_ID, name: 'Kyoto', currency: 'JPY' })
-    await createCity(client, { tripId: TRIP_ID, name: 'Kyoto' })
+    await createCity(client, untyped({ tripId: TRIP_ID, name: 'Kyoto' }))
 
     expect(calls.insert).toHaveBeenNthCalledWith(1, {
       trip_id: TRIP_ID,
@@ -465,7 +486,7 @@ describe('updateCity', () => {
   it('refuses to move a city to another trip', async () => {
     const { client, calls } = stubClient({ data: CITY_ROW })
 
-    await updateCity(client, CITY_ID, { tripId: MARKER_ID, name: 'Osaka' })
+    await updateCity(client, CITY_ID, untyped({ tripId: MARKER_ID, name: 'Osaka' }))
 
     expect(calls.update).toHaveBeenCalledWith({ name: 'Osaka' })
   })

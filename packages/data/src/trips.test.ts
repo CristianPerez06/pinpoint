@@ -1,3 +1,4 @@
+import type { NewTrip } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -9,6 +10,14 @@ import {
   TRIPS_FAILED_MESSAGE,
   updateTrip,
 } from './trips'
+
+/**
+ * What a caller the compiler never saw would send. `createTrip` names the fields
+ * it accepts, so proving the runtime gate still refuses a bad one means handing
+ * it something the compiler would have caught. Its twin in `writes.test.ts`
+ * carries the longer reasoning; the stub clients are duplicated the same way.
+ */
+const untyped = <T>(value: unknown) => value as T
 
 function stubClient(response: { data?: unknown[] | null; error?: unknown }) {
   const result = {
@@ -188,6 +197,8 @@ describe('createTrip', () => {
     const outcome = await createTrip(client, {
       name: 'Japan',
       displayName: 'Cristian',
+      startsOn: null,
+      endsOn: null,
     })
 
     expect(outcome.ok).toBe(true)
@@ -208,7 +219,12 @@ describe('createTrip', () => {
       row: { data: ROW },
     })
 
-    await createTrip(client, { name: 'Japan', displayName: 'Cristian' })
+    await createTrip(client, {
+      name: 'Japan',
+      displayName: 'Cristian',
+      startsOn: null,
+      endsOn: null,
+    })
 
     // The function reads the address from the verified session. Passing one
     // would make creating a trip as somebody else a matter of typing.
@@ -265,7 +281,7 @@ describe('createTrip', () => {
   it('rejects a trip with no name for the creator', async () => {
     const { client, calls } = stubWriteClient({ rpc: { data: ROW.id } })
 
-    const outcome = await createTrip(client, { name: 'Japan' })
+    const outcome = await createTrip(client, untyped<NewTrip>({ name: 'Japan' }))
 
     expect(outcome.ok).toBe(false)
     if (outcome.ok) throw new Error('unreachable')
@@ -280,6 +296,8 @@ describe('createTrip', () => {
     const outcome = await createTrip(client, {
       name: 'Japan',
       displayName: 'Cristian',
+      startsOn: null,
+      endsOn: null,
     })
 
     expect(outcome).toEqual({
@@ -298,6 +316,8 @@ describe('createTrip', () => {
     const outcome = await createTrip(client, {
       name: 'Japan',
       displayName: 'Cristian',
+      startsOn: null,
+      endsOn: null,
     })
 
     expect(outcome.ok).toBe(false)

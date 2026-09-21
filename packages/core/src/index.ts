@@ -41,7 +41,7 @@ export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'
 
 export { markerSchema, markerPatchSchema, newMarkerSchema } from './marker'
-export type { Marker, MarkerPatch, NewMarker } from './marker'
+export type { Marker, MarkerFormValues, MarkerPatch, NewMarker } from './marker'
 
 export {
   describeDays,
