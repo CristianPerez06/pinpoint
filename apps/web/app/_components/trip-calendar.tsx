@@ -671,6 +671,7 @@ export function TripCalendar({
               localPrice: editing.localPrice,
               localCurrency: editing.localCurrency,
               plannedOn: editing.plannedOn,
+              plannedUntil: editing.plannedUntil,
               hours: editing.hours,
             }}
             cities={cities}

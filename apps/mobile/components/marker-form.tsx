@@ -203,6 +203,13 @@ export function MarkerFormSheet({
   const [note, setNote] = useState(initial.note ?? '')
   const [cityId, setCityId] = useState<string | null>(initial.cityId)
   const [plannedOn, setPlannedOn] = useState<IsoDay | null>(initial.plannedOn)
+  const [plannedUntil, setPlannedUntil] = useState<IsoDay | null>(initial.plannedUntil)
+  /**
+   * Whether the second date field is showing. See the laptop's form: seeded
+   * from the place so an edit opens with both fields, and put away by clearing
+   * the last day rather than by a control of its own.
+   */
+  const [extended, setExtended] = useState(initial.plannedUntil !== null)
   // Opened as the days and their one range, and turned back into a
   // week on saving — both by the same pair of functions the laptop uses.
   const [hours, setHours] = useState(() => splitHours(initial.hours))
@@ -348,6 +355,9 @@ export function MarkerFormSheet({
       note: absentIfBlank(note),
       cityId,
       plannedOn,
+      // A run with no beginning is not a run: clearing the day clears the last
+      // day with it, whatever is still held in the second field.
+      plannedUntil: plannedOn === null ? null : plannedUntil,
       // No day on is no hours, whatever was typed before the days went off.
       hours: joinHours(hours),
       type,
@@ -658,9 +668,48 @@ export function MarkerFormSheet({
           <DayField
             label="Day"
             value={plannedOn}
-            onChange={setPlannedOn}
+            onChange={(day) => {
+              setPlannedOn(day)
+              // Clearing the day clears the run and puts the field away — a
+              // last day with nothing to start from is not storable, and
+              // leaving it on screen would go on offering it.
+              if (day === null) {
+                setPlannedUntil(null)
+                setExtended(false)
+              }
+            }}
             error={fieldErrors.plannedOn}
           />
+
+          {/*
+            The offer, then the field — the laptop's arrangement in this
+            application's idiom. Nothing to extend before a day is chosen, so
+            neither appears until one is. Named for the days and not for a kind
+            of place: a rail pass or a festival has a run as readily as a hotel.
+          */}
+          {plannedOn !== null && !extended ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setExtended(true)}
+              style={styles.extendDay}
+            >
+              <Text style={[styles.extendDayText, { color: theme.colour.accentInk }]}>
+                + More than one day
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {plannedOn !== null && extended ? (
+            <DayField
+              label="Until"
+              value={plannedUntil}
+              onChange={(day) => {
+                setPlannedUntil(day)
+                if (day === null) setExtended(false)
+              }}
+              error={fieldErrors.plannedUntil}
+            />
+          ) : null}
 
           <HoursField draft={hours} onChange={setHours} error={fieldErrors.hours} />
 
@@ -920,6 +969,17 @@ const styles = StyleSheet.create({
   },
   error: { ...role(TYPE.note), paddingTop: SPACE.xs },
   row: { flexDirection: 'row', gap: SPACE.sm },
+  /*
+   * The offer to extend a place to a run of days.
+   *
+   * Aligned to the start and padded only vertically, so it reads as a line of
+   * text inside the day's group rather than as another field. No fill: the
+   * accent pair converges on the dark ground, so anything filled with `accent`
+   * has to letter itself in `inkOnAccent` — this fills with nothing and takes
+   * `accentInk` on the sheet's own surface.
+   */
+  extendDay: { alignSelf: 'flex-start', paddingVertical: SPACE.xs },
+  extendDayText: { ...role(TYPE.note), fontWeight: '700' },
   grow: { flex: 1 },
   adjust: {
     borderWidth: 1,

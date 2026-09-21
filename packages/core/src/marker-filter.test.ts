@@ -21,6 +21,7 @@ const place = (over: Partial<FilterableMarker> = {}): FilterableMarker => ({
   visited: false,
   type: 'place',
   plannedOn: null,
+  plannedUntil: null,
   cityId: 'city-kyoto',
   ...over,
 })
@@ -211,6 +212,40 @@ describe('matchesFilter — the day a place is planned for', () => {
   const thursday = place({ plannedOn: '2026-03-19' })
   const sunday = place({ plannedOn: '2026-03-22' })
   const someday = place({ plannedOn: null })
+
+  /*
+   * A hotel booked the 19th to the 22nd. The rule that a place matches when
+   * *any* of its days is chosen was written into this file before a place
+   * could carry more than one day, so that whatever added them would inherit
+   * it rather than decide it a second time. These are that inheritance.
+   */
+  const hotel = place({ plannedOn: '2026-03-19', plannedUntil: '2026-03-22' })
+
+  it('draws a place on the middle day of its run', () => {
+    expect(matchesFilter(hotel, [], onDays('2026-03-20'))).toBe(true)
+    expect(matchesFilter(hotel, [], onDays('2026-03-21'))).toBe(true)
+  })
+
+  it('draws a place on the first and last days of its run', () => {
+    expect(matchesFilter(hotel, [], onDays('2026-03-19'))).toBe(true)
+    expect(matchesFilter(hotel, [], onDays('2026-03-22'))).toBe(true)
+  })
+
+  it('does not draw it on a day outside its run', () => {
+    expect(matchesFilter(hotel, [], onDays('2026-03-23'))).toBe(false)
+  })
+
+  it('draws it when any one of several chosen days falls in its run', () => {
+    expect(matchesFilter(hotel, [], onDays('2026-03-01', '2026-03-21'))).toBe(true)
+  })
+
+  /*
+   * A run has chosen its days like any other place, so it is not waiting for
+   * one — the same boundary `groupMarkersByDay` keeps for the waiting pile.
+   */
+  it('does not count a place with a run among those waiting for a day', () => {
+    expect(matchesFilter(hotel, [], UNDATED)).toBe(false)
+  })
 
   it('narrows to one day', () => {
     const filter = onDays('2026-03-19')

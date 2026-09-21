@@ -4,6 +4,7 @@ import {
   describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
+  formatDayRange,
   formatPrices,
   UNFILED_CITY_WORDING,
   type Marker,
@@ -280,11 +281,22 @@ function Details({
         */}
         <Field label="City">{cityName ?? UNFILED_CITY_WORDING}</Field>
 
+        {/*
+          One day, or the run it covers.
+
+          `formatDayRange` rather than a second `formatDay`, so a stay reads as
+          the stretch it is — `3–6 Apr 2026` — and collapses the repeated month
+          the way the filter's week headings already do. It is only reached with
+          both ends present; with one it would word a half-open range, which is
+          a trip's dates and not a place's.
+        */}
         <Field label="Day">
           {marker.plannedOn === null ? (
             <Absent>{EMPTY_FIELD_WORDING.day}</Absent>
-          ) : (
+          ) : marker.plannedUntil === null ? (
             formatDay(marker.plannedOn)
+          ) : (
+            formatDayRange(marker.plannedOn, marker.plannedUntil)
           )}
         </Field>
 

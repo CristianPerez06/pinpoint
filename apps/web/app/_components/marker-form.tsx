@@ -156,6 +156,18 @@ export function MarkerForm({
       : {},
   )
   const [plannedOn, setPlannedOn] = useState(initial.plannedOn ?? '')
+  const [plannedUntil, setPlannedUntil] = useState(initial.plannedUntil ?? '')
+  /**
+   * Whether the second date field is showing.
+   *
+   * Seeded from the place, so editing one that already spans days opens with
+   * both fields rather than asking for the run to be declared again. Otherwise
+   * a place is one day and the form looks exactly as it did before runs
+   * existed — which is the point: almost every place is one day, and a second
+   * date field standing permanently under the first would be a field most
+   * places pass through empty.
+   */
+  const [extended, setExtended] = useState(initial.plannedUntil !== null)
   // Opened as the days and their one range, and turned back into a week on
   // saving — both by the same pair of functions the phone uses.
   const [hours, setHours] = useState(() => splitHours(initial.hours))
@@ -200,6 +212,9 @@ export function MarkerForm({
         // therefore a place going back to having no day — not a day of no
         // characters.
         plannedOn: absentIfBlank(plannedOn),
+        // A run with no beginning is not a run. Clearing the day clears the
+        // last day with it, whatever is still sitting in the second field.
+        plannedUntil: plannedOn === '' ? null : absentIfBlank(plannedUntil),
         // No day on is no hours, whatever was typed before the days went off.
         hours: joinHours(hours),
       }),
@@ -242,7 +257,8 @@ export function MarkerForm({
     cityId !== initial.cityId ||
     type !== initial.type ||
     absentIfBlank(link) !== (initial.link ?? null) ||
-    absentIfBlank(plannedOn) !== (initial.plannedOn ?? null)
+    absentIfBlank(plannedOn) !== (initial.plannedOn ?? null) ||
+    absentIfBlank(plannedUntil) !== (initial.plannedUntil ?? null)
 
   /**
    * Leaving, asked about where there is something to lose.
@@ -395,10 +411,55 @@ export function MarkerForm({
         label="Day"
         type="date"
         value={plannedOn}
-        onChange={setPlannedOn}
+        onChange={(value) => {
+          setPlannedOn(value)
+          // Clearing the day clears the run with it and puts the second field
+          // away: a last day with nothing to start from is not something the
+          // store will take, and leaving it on screen would offer it anyway.
+          if (value === '') {
+            setPlannedUntil('')
+            setExtended(false)
+          }
+        }}
         error={fieldErrors.plannedOn}
         hint="Which day of the trip you plan to go. Leave it blank to decide later."
       />
+
+      {/*
+        The offer, and then the field.
+
+        Nothing to extend until there is a day, so neither appears before one is
+        chosen. Named for the days rather than for a kind of place: a run of days
+        is a fact about days, and a rail pass or a festival has one as readily as
+        a hotel — `This is a stay` would have read as setting the type, which is
+        one of the eight a place can have.
+      */}
+      {plannedOn !== '' && !extended ? (
+        <button
+          type="button"
+          className={styles.extendDay}
+          onClick={() => setExtended(true)}
+        >
+          + More than one day
+        </button>
+      ) : null}
+
+      {plannedOn !== '' && extended ? (
+        <TextField
+          label="Until"
+          type="date"
+          value={plannedUntil}
+          // Emptying the field is the way back out, so there is one act rather
+          // than a separate control to find — and no question about what
+          // happens to a date typed into a field being hidden.
+          onChange={(value) => {
+            setPlannedUntil(value)
+            if (value === '') setExtended(false)
+          }}
+          error={fieldErrors.plannedUntil}
+          hint="The last day it is planned for. Clear it to go back to one day."
+        />
+      ) : null}
 
       {cityNotice ? (
         <div className={styles.cityNotice}>

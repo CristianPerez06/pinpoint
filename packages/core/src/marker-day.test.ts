@@ -12,6 +12,8 @@ import {
   groupMarkersByDay,
   groupUndatedByCity,
   markersOnDay,
+  runOfDays,
+  runPositionOf,
   todayAsDay,
 } from './marker-day'
 import type { City } from './city'
@@ -29,6 +31,7 @@ function marker(over: Partial<Marker> & { id: string }): Marker {
     link: null,
     price: null,
     plannedOn: null,
+    plannedUntil: null,
     visited: false,
     createdAt: '2026-08-02T12:00:00.000Z',
     updatedAt: '2026-08-02T12:00:00.000Z',
@@ -555,7 +558,11 @@ describe('calendarViewShown', () => {
 })
 
 describe('daysOffered', () => {
-  const dated = (day: string | null) => ({ plannedOn: day })
+  // A place on one day. `plannedUntil` is stated rather than left optional:
+  // the real shape always carries it, and an optional field here would let a
+  // column somebody forgot to map look fine.
+  const dated = (day: string | null) => ({ plannedOn: day, plannedUntil: null })
+  const run = (from: string, until: string) => ({ plannedOn: from, plannedUntil: until })
 
   it('offers every day a trip spans, including the ones nothing is planned for', () => {
     // An empty day has to be visible as an empty day. Offering only the days
@@ -640,5 +647,170 @@ describe('daysOffered', () => {
     ])
 
     expect(days).toEqual(['2026-03-19', '2026-03-20', '2026-03-22'])
+  })
+})
+
+/*
+ * A place planned for a run of days.
+ *
+ * `runOfDays` is the one place a marker fans out across days; everything else
+ * — the grouping, the counts, the day filter — reads what it produces. So the
+ * tolerance below is load-bearing rather than defensive decoration: a pair the
+ * write path would refuse must still render as *something*, because a row
+ * written by an older build or reached directly has to draw.
+ */
+describe('runOfDays', () => {
+  it('gives the one day a place planned for a single day is on', () => {
+    expect(runOfDays(marker({ id: 'a', plannedOn: '2026-04-03' }))).toEqual([
+      '2026-04-03',
+    ])
+  })
+
+  it('gives nothing for a place waiting for a day', () => {
+    expect(runOfDays(marker({ id: 'a' }))).toEqual([])
+  })
+
+  it('gives every day of a run, both ends included', () => {
+    const hotel = marker({
+      id: 'a',
+      plannedOn: '2026-04-03',
+      plannedUntil: '2026-04-06',
+    })
+    expect(runOfDays(hotel)).toEqual([
+      '2026-04-03',
+      '2026-04-04',
+      '2026-04-05',
+      '2026-04-06',
+    ])
+  })
+
+  it('walks a run across a month boundary', () => {
+    const run = marker({
+      id: 'a',
+      plannedOn: '2026-04-29',
+      plannedUntil: '2026-05-02',
+    })
+    expect(runOfDays(run)).toEqual([
+      '2026-04-29',
+      '2026-04-30',
+      '2026-05-01',
+      '2026-05-02',
+    ])
+  })
+
+  it('reads a last day before the first as the one day it is sure of', () => {
+    const broken = marker({
+      id: 'a',
+      plannedOn: '2026-04-06',
+      plannedUntil: '2026-04-03',
+    })
+    expect(runOfDays(broken)).toEqual(['2026-04-06'])
+  })
+
+  it('reads a run past the bound as the one day it is sure of', () => {
+    const slipped = marker({
+      id: 'a',
+      plannedOn: '2026-04-03',
+      plannedUntil: '2126-04-06',
+    })
+    expect(runOfDays(slipped)).toEqual(['2026-04-03'])
+  })
+})
+
+describe('runPositionOf', () => {
+  const hotel = marker({
+    id: 'a',
+    plannedOn: '2026-04-03',
+    plannedUntil: '2026-04-06',
+  })
+
+  it('counts the first day of a run as the first of however many', () => {
+    expect(runPositionOf(hotel, '2026-04-03')).toEqual({ index: 1, total: 4 })
+  })
+
+  it('counts a day in the middle', () => {
+    expect(runPositionOf(hotel, '2026-04-05')).toEqual({ index: 3, total: 4 })
+  })
+
+  it('counts the last day', () => {
+    expect(runPositionOf(hotel, '2026-04-06')).toEqual({ index: 4, total: 4 })
+  })
+
+  /* A place planned for one day has no run to place it in, and says nothing. */
+  it('gives nothing for a place planned for a single day', () => {
+    expect(runPositionOf(marker({ id: 'a', plannedOn: '2026-04-03' }), '2026-04-03')).toBe(
+      null,
+    )
+  })
+
+  it('gives nothing for a day the run does not cover', () => {
+    expect(runPositionOf(hotel, '2026-04-08')).toBe(null)
+  })
+
+  it('gives nothing for a place waiting for a day', () => {
+    expect(runPositionOf(marker({ id: 'a' }), '2026-04-03')).toBe(null)
+  })
+})
+
+describe('a run of days on the calendar', () => {
+  const hotel = marker({
+    id: 'hotel',
+    name: 'Hotel Kanra',
+    plannedOn: '2026-04-03',
+    plannedUntil: '2026-04-06',
+  })
+
+  it('puts one place on every day of its run', () => {
+    const grouped = groupMarkersByDay([hotel])
+    for (const day of ['2026-04-03', '2026-04-04', '2026-04-05', '2026-04-06']) {
+      expect(markersOnDay(grouped, day).map((each) => each.id)).toEqual(['hotel'])
+    }
+  })
+
+  it('does not put it on the day after its run ends', () => {
+    const grouped = groupMarkersByDay([hotel])
+    expect(markersOnDay(grouped, '2026-04-07')).toEqual([])
+  })
+
+  /*
+   * The count the calendar is built around. A place with a run has chosen its
+   * days like any other, so it is not waiting for one — and if this ever broke,
+   * somebody would believe they had finished arranging a trip they had not.
+   */
+  it('leaves the places waiting for a day untouched', () => {
+    const waiting = marker({ id: 'waiting' })
+    const grouped = groupMarkersByDay([hotel, waiting])
+    expect(grouped.undated.map((each) => each.id)).toEqual(['waiting'])
+  })
+
+  it('orders a run among the other places on a day by the same rule', () => {
+    const early = marker({ id: 'a', name: 'Arashiyama', plannedOn: '2026-04-04' })
+    const late = marker({ id: 'z', name: 'Zoo', plannedOn: '2026-04-04' })
+    const grouped = groupMarkersByDay([late, hotel, early])
+    expect(markersOnDay(grouped, '2026-04-04').map((each) => each.name)).toEqual([
+      'Arashiyama',
+      'Hotel Kanra',
+      'Zoo',
+    ])
+  })
+
+  /*
+   * Narrowing the map to the middle of a stay has to offer that day, or the
+   * filter would offer a day the place is on and then not draw it.
+   */
+  it('offers every day a run covers for narrowing', () => {
+    const days = daysOffered({ startsOn: null, endsOn: null }, [hotel])
+    expect(days).toEqual(['2026-04-03', '2026-04-04', '2026-04-05', '2026-04-06'])
+  })
+
+  it('offers the days of a run beside those of the trip, without repeats', () => {
+    const days = daysOffered({ startsOn: '2026-04-05', endsOn: '2026-04-07' }, [hotel])
+    expect(days).toEqual([
+      '2026-04-03',
+      '2026-04-04',
+      '2026-04-05',
+      '2026-04-06',
+      '2026-04-07',
+    ])
   })
 })
