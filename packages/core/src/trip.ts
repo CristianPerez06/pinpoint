@@ -8,7 +8,10 @@ import { tripMemberSchema } from './trip-member'
  */
 export const tripSchema = z.object({
   id: z.uuid(),
-  name: z.string().min(1).max(120),
+  name: z
+    .string()
+    .min(1, 'A trip needs a name.')
+    .max(120, 'A trip name can be 120 characters at most.'),
   /** Past trips stay readable but stop cluttering the list. */
   archived: z.boolean(),
   /**
@@ -26,8 +29,8 @@ export const tripSchema = z.object({
    * They constrain nothing. Nothing here or downstream may read them as a
    * boundary on what dates a marker may carry.
    */
-  startsOn: z.iso.date().nullable(),
-  endsOn: z.iso.date().nullable(),
+  startsOn: z.iso.date('A start date should look like 2026-04-03.').nullable(),
+  endsOn: z.iso.date('An end date should look like 2026-04-03.').nullable(),
   createdAt: z.iso.datetime(),
 })
 
@@ -60,6 +63,22 @@ const DATES_ORDERED = {
   message: 'The end date cannot be before the start date.',
   path: ['endsOn'],
 }
+
+/**
+ * The fields of a trip the surface already knows: none of them.
+ *
+ * A trip is made entirely of what somebody typed — its name, what they want to
+ * be called on it, and two dates they may skip. Nothing is taken from a map or
+ * from whatever screen the form was raised on, which is what makes it different
+ * from a place, a city or an invitation.
+ *
+ * Declared empty rather than left out, because the two are not the same thing.
+ * `refusal-messages.test.ts` reads these declarations to know which fields must
+ * answer in the product's own words, and an absent declaration would be
+ * indistinguishable from a record nobody has got to yet. This says it was
+ * considered and the answer is none.
+ */
+export const TRIP_SURFACE_FIELDS = [] as const
 
 /**
  * Fields a client supplies when creating a trip. The rest is assigned by the

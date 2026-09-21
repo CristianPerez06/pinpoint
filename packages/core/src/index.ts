@@ -29,6 +29,7 @@ export {
   formatRunPosition,
 } from './day-wording'
 
+export { CITY_NEEDS_A_NAME, cityNameTaken } from './city-wording'
 export { EMPTY_FIELD_WORDING, UNFILED_CITY_WORDING } from './empty-field-wording'
 export {
   TAKE_BACK_CONFIRM,
