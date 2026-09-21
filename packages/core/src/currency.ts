@@ -21,7 +21,7 @@ import { z } from 'zod'
  */
 export const currencyCodeSchema = z
   .string()
-  .regex(/^[A-Z]{3}$/)
+  .regex(/^[A-Z]{3}$/, 'A currency is a three-letter code, like JPY.')
   .refine((code) => code !== 'USD', { message: 'US dollars is already the first price.' })
 
 /**

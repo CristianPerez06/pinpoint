@@ -1,5 +1,5 @@
 import type { City, Marker } from '@pinpoint/core'
-import { localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
+import { CITY_NEEDS_A_NAME, cityNameTaken, localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
@@ -371,11 +371,11 @@ function CityCreator({
             disabled={creating}
             onPress={() => {
               if (trimmed === '') {
-                setError('Give the city a name.')
+                setError(CITY_NEEDS_A_NAME)
                 return
               }
               if (nameIsTaken()) {
-                setError(`This trip already has a city called ${trimmed}.`)
+                setError(cityNameTaken(trimmed))
                 return
               }
               setError(null)

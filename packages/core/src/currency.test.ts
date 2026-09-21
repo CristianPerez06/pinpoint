@@ -69,3 +69,19 @@ describe('currencyLabel', () => {
     expect(currencyLabel('HRK')).toBe('HRK')
   })
 })
+
+describe('a refused currency says what is wrong', () => {
+  const complain = (code: string) => {
+    const parsed = currencyCodeSchema.safeParse(code)
+    return parsed.success ? undefined : parsed.error.issues[0]?.message
+  }
+
+  it('something that is not a three-letter code', () => {
+    expect(complain('yen')).toBe('A currency is a three-letter code, like JPY.')
+  })
+
+  // Already written in our own voice before this change, and left as it was.
+  it('the currency every place already has', () => {
+    expect(complain('USD')).toBe('US dollars is already the first price.')
+  })
+})

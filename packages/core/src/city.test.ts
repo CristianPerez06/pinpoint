@@ -60,3 +60,25 @@ describe('city currency', () => {
     expect(cityPatchSchema.safeParse({ currency: 'USD' }).success).toBe(false)
   })
 })
+
+describe('a refused city says what is wrong', () => {
+  const complainAboutName = (name: string) => {
+    const parsed = newCitySchema.safeParse({
+      tripId: '00000000-0000-4000-8000-000000000000',
+      name,
+    })
+    return parsed.success
+      ? undefined
+      : parsed.error.issues.find((issue) => issue.path[0] === 'name')?.message
+  }
+
+  it('an empty name', () => {
+    expect(complainAboutName('')).toBe('A city needs a name.')
+  })
+
+  it('a name past its limit', () => {
+    expect(complainAboutName('x'.repeat(121))).toBe(
+      'A city name can be 120 characters at most.',
+    )
+  })
+})

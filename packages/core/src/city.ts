@@ -20,7 +20,10 @@ import { currencyCodeSchema } from './currency'
 export const citySchema = z.object({
   id: z.uuid(),
   tripId: z.uuid(),
-  name: z.string().min(1).max(120),
+  name: z
+    .string()
+    .min(1, 'A city needs a name.')
+    .max(120, 'A city name can be 120 characters at most.'),
   /**
    * An optional second currency beside US dollars, or null for none. Places
    * filed here can also hold a price in it. See `currency.ts`.
@@ -30,6 +33,16 @@ export const citySchema = z.object({
 })
 
 export type City = z.infer<typeof citySchema>
+
+/**
+ * The fields of a city the surface already knows. The trip is whichever one is
+ * open; a person types the name and picks the currency.
+ *
+ * Stated as the exclusions for the reason `MARKER_SURFACE_FIELDS` gives: every
+ * field not named here must carry a refusal message of its own, so a field
+ * added to a city joins that set without anybody remembering to say so.
+ */
+export const CITY_SURFACE_FIELDS = ['tripId'] as const
 
 export const newCitySchema = citySchema
   .pick({

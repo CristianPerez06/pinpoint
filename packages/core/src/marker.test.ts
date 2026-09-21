@@ -460,3 +460,80 @@ describe('a run of days', () => {
     expect(parsed.success && 'plannedUntil' in parsed.data).toBe(false)
   })
 })
+
+/*
+ * What each field says when it refuses, word for word.
+ *
+ * `refusal-messages.test.ts` asserts that every field a person fills in has a
+ * message and that it is a sentence; this asserts which sentence, so a reword
+ * is a deliberate act rather than something that happens while editing nearby.
+ */
+describe('a refused field says what is wrong', () => {
+  const complainAbout = (field: string, value: unknown): string | undefined => {
+    const parsed = newMarkerSchema.safeParse({ ...VALID, [field]: value })
+    return parsed.success
+      ? undefined
+      : parsed.error.issues.find((issue) => issue.path[0] === field)?.message
+  }
+
+  it('an empty name', () => {
+    expect(complainAbout('name', '')).toBe('A place needs a name.')
+  })
+
+  it('a name past its limit', () => {
+    expect(complainAbout('name', 'x'.repeat(201))).toBe(
+      'A name can be 200 characters at most.',
+    )
+  })
+
+  it('a note past its limit', () => {
+    expect(complainAbout('note', 'x'.repeat(2001))).toBe(
+      'A note can be 2,000 characters at most.',
+    )
+  })
+
+  it('something that is not a link', () => {
+    expect(complainAbout('link', 'kiyomizu-dera')).toBe(
+      'A link should look like https://example.com.',
+    )
+  })
+
+  // The case from #196: this said `Too small: expected number to be >=0`.
+  it('a dollar price below nothing', () => {
+    expect(complainAbout('price', -5)).toBe('A price cannot be less than nothing.')
+  })
+
+  /*
+   * And the one that made it noticeable, because the form prefixes it with the
+   * currency code — so the library's wording sat directly beside `JPY:`.
+   * `positive()` refuses 0 as well, which is why the sentence points at `Free`.
+   */
+  it('a local price below nothing', () => {
+    expect(complainAbout('localPrice', -5)).toBe(
+      'A price cannot be less than nothing. Turn on Free for a place that costs nothing.',
+    )
+    expect(complainAbout('localPrice', 0)).toBe(complainAbout('localPrice', -5))
+  })
+
+  it('a day that is not a day', () => {
+    expect(complainAbout('plannedOn', 'the third')).toBe(
+      'A day should look like 2026-04-03.',
+    )
+    expect(complainAbout('plannedUntil', 'later')).toBe(
+      'A last day should look like 2026-04-03.',
+    )
+  })
+
+  it('a city that is not one of the trip’s', () => {
+    expect(complainAbout('cityId', 'kyoto')).toBe('Choose a city from the list.')
+  })
+
+  /*
+   * Left as it was. AGENTS.md records that changing anything about
+   * `isMarkerType` retyped `Marker.type` and broke the data layer three
+   * packages away, so this change touched neither it nor its message.
+   */
+  it('a type the product does not have', () => {
+    expect(complainAbout('type', 'casino')).toBe('Unknown marker type.')
+  })
+})

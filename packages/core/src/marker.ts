@@ -23,16 +23,22 @@ export const markerSchema = z.object({
   id: z.uuid(),
   tripId: z.uuid(),
   /** Null means unassigned, which is a valid resting state, not a gap to fill. */
-  cityId: z.uuid().nullable(),
-  name: z.string().min(1).max(200),
-  note: z.string().max(2000).nullable(),
+  cityId: z.uuid('Choose a city from the list.').nullable(),
+  name: z
+    .string()
+    .min(1, 'A place needs a name.')
+    .max(200, 'A name can be 200 characters at most.'),
+  note: z.string().max(2000, 'A note can be 2,000 characters at most.').nullable(),
   lng: z.number().min(-180).max(180),
   lat: z.number().min(-90).max(90),
   type: markerTypeSchema,
   /** Where the place was found — the answer to "why did we save this?". */
-  link: z.url().max(2000).nullable(),
+  link: z
+    .url('A link should look like https://example.com.')
+    .max(2000, 'A link can be 2,000 characters at most.')
+    .nullable(),
   /** In US dollars, always. Zero is a free place; null is a price nobody has entered. */
-  price: z.number().nonnegative().nullable(),
+  price: z.number().nonnegative('A price cannot be less than nothing.').nullable(),
   /**
    * The price as it was seen in the second currency of the place's city — a
    * menu in yen — or null. Typed, never converted from `price` or into it.
@@ -42,7 +48,14 @@ export const markerSchema = z.object({
    * tell a yen amount from a won one and clear it when the city's currency
    * changes, the city is removed, or the place moves to another city.
    */
-  localPrice: z.number().positive().nullable(),
+  localPrice: z
+    .number()
+    // Covers 0 as well as a negative, because `positive()` refuses both. A
+    // place that costs nothing is `Free`, which is `price = 0` and no local
+    // amount at all — so the message names the control that says so rather
+    // than leaving somebody to guess why zero is not a price.
+    .positive('A price cannot be less than nothing. Turn on Free for a place that costs nothing.')
+    .nullable(),
   /** The currency `localPrice` is in. Set exactly when `localPrice` is. */
   localCurrency: currencyCodeSchema.nullable(),
   /**
@@ -63,7 +76,7 @@ export const markerSchema = z.object({
    * a boundary. A place dated a day either side of the trip is somebody's
    * decision, not an error.
    */
-  plannedOn: z.iso.date().nullable(),
+  plannedOn: z.iso.date('A day should look like 2026-04-03.').nullable(),
   /**
    * The last day of a run, or null for a place planned for a single day.
    *
@@ -85,7 +98,7 @@ export const markerSchema = z.object({
    * and render; `runOfDays` in `marker-day.ts` reads such a pair as a single
    * day rather than failing.
    */
-  plannedUntil: z.iso.date().nullable(),
+  plannedUntil: z.iso.date('A last day should look like 2026-04-03.').nullable(),
   /**
    * The days the place is open and at what times, or null while nobody has
    * entered them — which is never the same as closed. See `opening-hours.ts`.
@@ -122,8 +135,14 @@ export type Marker = z.infer<typeof markerSchema>
  * on creation and editable afterwards without anybody remembering to do both.
  * What each of the two does with `plannedOn` differs, and that is the only
  * reason this exists separately.
+ *
+ * Exported for `refusal-messages.test.ts`, which walks the fields a person can
+ * be shown a refusal about. It reads this rather than either schema below
+ * because both of those end in a transform, which leaves them pipes with no
+ * fields to walk — and both derive from this, so there is nothing the walk
+ * could miss by starting here.
  */
-const writableMarkerFields = markerSchema.pick({
+export const writableMarkerFields = markerSchema.pick({
   tripId: true,
   cityId: true,
   name: true,
@@ -318,13 +337,25 @@ export const markerPatchSchema = writableMarkerFields
 export type MarkerPatch = z.infer<typeof markerPatchSchema>
 
 /**
+ * The fields of a place the surface around the form already knows, as opposed
+ * to the ones a person fills in.
+ *
+ * The trip is whichever one is open, and the position arrives from the map or
+ * from a search result before the form is raised. Nobody types any of them, and
+ * a form holding them would be a second place they could be wrong.
+ *
+ * Stated as the exclusions rather than as the fields a person types, and the
+ * direction is the point. Every field not named here is one somebody can be
+ * shown a refusal about, so a field added to a place joins that set on its own —
+ * which is what `refusal-messages.test.ts` relies on to notice a new field that
+ * was given no message of its own. A list of the fields that need one would
+ * default a new field to needing nothing, which is the case the test exists for.
+ */
+export const MARKER_SURFACE_FIELDS = ['tripId', 'lng', 'lat'] as const
+
+/**
  * The fields of a place a person fills in, as opposed to the ones the surface
  * around them already knows.
- *
- * `tripId`, `lng` and `lat` are the three left out: the trip is whichever one is
- * open, and the position arrives from the map or from a search result before the
- * form is raised. Nobody types any of them, and a form holding them would be a
- * second place they could be wrong.
  *
  * Derived from `NewMarker` rather than written out, and that is the whole point
  * of it existing. Both applications build their capture form from this one list,
@@ -338,4 +369,4 @@ export type MarkerPatch = z.infer<typeof markerPatchSchema>
  * the schema *accepts* would mark the four defaulted fields optional and let a
  * form go on compiling with one of them dropped, which is the failure above.
  */
-export type MarkerFormValues = Omit<NewMarker, 'tripId' | 'lng' | 'lat'>
+export type MarkerFormValues = Omit<NewMarker, (typeof MARKER_SURFACE_FIELDS)[number]>

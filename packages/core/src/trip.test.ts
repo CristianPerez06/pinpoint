@@ -264,3 +264,58 @@ describe('tripPatchSchema', () => {
     expect(parsed.success && 'startsOn' in parsed.data).toBe(false)
   })
 })
+
+describe('a refused trip says what is wrong', () => {
+  const complainAbout = (field: string, value: unknown) => {
+    const parsed = newTripSchema.safeParse({
+      name: 'Japan 2026',
+      displayName: 'Sam',
+      [field]: value,
+    })
+    return parsed.success
+      ? undefined
+      : parsed.error.issues.find((issue) => issue.path[0] === field)?.message
+  }
+
+  it('an empty name', () => {
+    expect(complainAbout('name', '')).toBe('A trip needs a name.')
+  })
+
+  it('a name past its limit', () => {
+    expect(complainAbout('name', 'x'.repeat(121))).toBe(
+      'A trip name can be 120 characters at most.',
+    )
+  })
+
+  it('a date that is not a date', () => {
+    expect(complainAbout('startsOn', 'April')).toBe(
+      'A start date should look like 2026-04-03.',
+    )
+    expect(complainAbout('endsOn', 'later')).toBe(
+      'An end date should look like 2026-04-03.',
+    )
+  })
+
+  /*
+   * The name the creator is called on the trip they are making. The same rule
+   * serves the people sheet, where it is somebody else being named — which is
+   * why the sentence says neither "your name" nor "their name".
+   */
+  it('no name to be called by', () => {
+    expect(complainAbout('displayName', '')).toBe('Enter the name to show on this trip.')
+  })
+
+  // Already written in our own voice before this change, and left as it was.
+  it('an end before the start', () => {
+    const parsed = newTripSchema.safeParse({
+      name: 'Japan 2026',
+      displayName: 'Sam',
+      startsOn: '2026-04-10',
+      endsOn: '2026-04-03',
+    })
+    expect(parsed.success).toBe(false)
+    expect(!parsed.success && parsed.error.issues[0]?.message).toBe(
+      'The end date cannot be before the start date.',
+    )
+  })
+})
