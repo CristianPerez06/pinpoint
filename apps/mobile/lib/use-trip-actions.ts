@@ -1,5 +1,5 @@
 import type { FieldErrors, IsoDay, Trip, TripMember } from '@pinpoint/core'
-import { fetchTrips, inviteMember, updateTrip } from '@pinpoint/data'
+import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
 import { useState } from 'react'
 
 import { supabase } from '@/lib/supabase'
@@ -57,6 +57,11 @@ export interface TripActions {
     displayName: string,
     email: string,
   ) => Promise<{ field: string; message: string } | null>
+  /**
+   * Take back an invitation nobody has claimed. Resolves to a refusal in words,
+   * or null.
+   */
+  removeInvitation: (member: TripMember) => Promise<string | null>
 }
 
 export function useTripActions({
@@ -233,6 +238,26 @@ export function useTripActions({
     return null
   }
 
+  /**
+   * Take back an invitation nobody has claimed.
+   *
+   * Not optimistic, and the reason is the one refusal that matters: that person
+   * signed in while the sheet was open, so the row is a membership now and the
+   * delete matched nothing. Taking it off the list first would hide somebody
+   * who is genuinely on the trip.
+   */
+  async function removeInvitation(member: TripMember) {
+    const outcome = await removeMember(supabase, member.id)
+    if (!outcome.ok) {
+      return outcome.kind === 'invalid-input'
+        ? 'Could not take back that invitation.'
+        : outcome.message
+    }
+
+    members.set((rows) => rows.filter((each) => each.id !== member.id))
+    return null
+  }
+
   return {
     archived,
     renameTrip,
@@ -240,5 +265,6 @@ export function useTripActions({
     setTripArchived,
     revealArchived,
     invite,
+    removeInvitation,
   }
 }

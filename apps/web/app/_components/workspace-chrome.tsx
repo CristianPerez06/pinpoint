@@ -52,6 +52,7 @@ export type ChromeBindings = {
   tripProblem: TripBarLiveProps['problem']
   onDismissTripProblem: TripBarLiveProps['onDismissProblem']
   onInvite: TripBarLiveProps['onInvite']
+  onRemove: TripBarLiveProps['onRemove']
   onShowPeople: TripBarLiveProps['onShowPeople']
 
   cities: CityBarLiveProps['cities']
@@ -160,6 +161,7 @@ export function WorkspaceChrome({
             onArchive={live.onArchiveTrip}
             onRestore={live.onRestoreTrip}
             onInvite={live.onInvite}
+            onRemove={live.onRemove}
             onShowPeople={live.onShowPeople}
             onCreated={live.onSelectTrip}
             open={live.detour === 'trip'}

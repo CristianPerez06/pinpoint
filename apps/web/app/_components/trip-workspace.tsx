@@ -1285,6 +1285,7 @@ export function TripWorkspace({
         tripProblem,
         onDismissTripProblem: () => setTripProblem(null),
         onInvite: tripActions.onInvite,
+        onRemove: tripActions.onRemove,
         onShowPeople: () =>
           void refreshMembers(() => fetchTripMembers(supabase, trip.id)),
 

@@ -535,6 +535,7 @@ export function TripCalendar({
         members={members}
         ownMemberId={ownMemberId}
         onInvite={tripActions.invite}
+            onRemove={tripActions.removeInvitation}
       />
 
       <MenuSheet

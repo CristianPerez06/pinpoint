@@ -1,0 +1,78 @@
+-- ---------------------------------------------------------------------------
+-- Taking back an invitation nobody can claim.
+--
+-- Nothing is sent when somebody is invited. The address is the claim key, so an
+-- address typed wrongly produces a membership no account will ever match,
+-- sitting in the People list beside the person it was meant for. Both
+-- applications already show that this has happened and at what address — the
+-- note at the end of create_trip_and_invite.sql says why:
+--
+--   The database cannot fix a typo; it can only make sure the person who can
+--   fix it is looking at it.
+--
+-- They were looking at it and had nothing to fix it with. This is the fix, and
+-- it is deliberately the narrowest one that is not a workaround.
+--
+-- WHY THIS IS NOT THE DELETE POLICY THAT WAS REFUSED
+--
+-- The same file declined to add one, for a reason that still stands:
+--
+--   removing a member would cascade their recorded interest away, silently
+--   changing what the trip's filters match for everybody else.
+--
+-- That argument is about a membership an account has claimed. This policy
+-- cannot touch one. `user_id is null` is the whole difference: nobody has ever
+-- signed in as an unclaimed membership, so it cannot hold a marker_interest row
+-- to cascade — marker_interest is the only table in this schema that points at
+-- a member at all. Measured rather than assumed, on a rolled-back probe: with
+-- two claimed members holding interest, deleting the unclaimed row left both
+-- rows, every marker and every city untouched.
+--
+-- WHY A POLICY AND NOT A SECURITY DEFINER FUNCTION
+--
+-- `create_trip()` is a function because the membership an insert policy would
+-- resolve to is the one being created, and because a policy cannot express
+-- "unless this is the last member". Removing a member in general would need the
+-- same shape for the same second reason.
+--
+-- This does not, and the reason is worth stating rather than leaving to be
+-- rediscovered: **an unclaimed membership can never be a trip's last member.**
+-- create_trip() writes the trip and the creator's claimed membership in one
+-- block precisely so that "a trip always has at least one member" is structural,
+-- and that member is claimed by construction. So the rule a policy cannot
+-- express is a rule this write never needs, and what is left is an ordinary row
+-- predicate.
+--
+-- `is_trip_member` is SECURITY DEFINER so a policy on trip_members may consult
+-- trip_members without re-entering its own policy. That is what makes this a
+-- one-liner, the same way it made the insert policy for inviting one.
+-- ---------------------------------------------------------------------------
+
+create policy trip_members_delete_unclaimed on public.trip_members
+  for delete to authenticated
+  using (user_id is null and public.is_trip_member(trip_id));
+
+-- The grant that makes the policy above mean anything.
+--
+-- `20260921120000_data_api_grants.sql` granted `select, insert, update` on this
+-- table and deliberately not `delete`, because at that moment nothing could
+-- delete a membership. It also set the rule this line obeys: each grant names
+-- exactly the operations that table has policies for, so the grant reads as a
+-- summary of the table and a mismatched pair is visible.
+--
+-- The pair fails in opposite directions, which is why both are stated here in
+-- one file rather than left to agree from two. A policy with no grant is not a
+-- stricter policy — it is a dead one, refused before row-level security is ever
+-- consulted, with `permission denied for table trip_members`, which reads as a
+-- broken query rather than as a missing line.
+grant delete on public.trip_members to authenticated;
+
+-- Still absent, and still deliberately:
+--
+-- `trips` has no delete policy. Removing a trip is settled as archiving.
+--
+-- `trip_members` has no delete policy for a membership an account has claimed.
+-- Removing a member who has joined would cascade their recorded interest away,
+-- and what a trip's filters should then match is a product question nobody has
+-- answered. Leaving a trip yourself is the same write seen from the other side
+-- and is also unbuilt. Neither is a gap to be filled in passing.

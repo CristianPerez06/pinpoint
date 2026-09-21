@@ -597,6 +597,7 @@ export function TripCalendar({
             onArchive={tripActions.onArchive}
             onRestore={tripActions.onRestore}
             onInvite={tripActions.onInvite}
+            onRemove={tripActions.onRemove}
             onShowPeople={() =>
               void refreshMembers(() => fetchTripMembers(supabase, trip.id))
             }

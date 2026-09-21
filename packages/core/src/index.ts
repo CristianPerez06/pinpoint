@@ -29,6 +29,13 @@ export {
 } from './day-wording'
 
 export { EMPTY_FIELD_WORDING, UNFILED_CITY_WORDING } from './empty-field-wording'
+export {
+  TAKE_BACK_CONFIRM,
+  TAKE_BACK_DECLINE,
+  TAKE_BACK_LABEL,
+  takeBackConsequence,
+  takeBackQuestion,
+} from './invitation-wording'
 
 export { fieldErrorsOf } from './field-errors'
 export type { FieldErrors, ValidationIssue } from './field-errors'
