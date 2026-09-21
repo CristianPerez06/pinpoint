@@ -57,23 +57,41 @@
 
 ## 5. Look at it
 
-- [ ] 5.1 On a trip with one claimed member and two unclaimed invitations, on both
+- [x] 5.1 On a trip with one claimed member and two unclaimed invitations, on both
       platforms and in both themes: the control appears on the unclaimed rows and on
       neither the claimed one nor your own.
-- [ ] 5.2 Raise the question on one invitation and confirm the other's control is gone
+      *Laptop: checked by me on Japan 2026 against the hosted database, dark and light.
+      Two claimed members and two unclaimed invitations; `Take back` on the two unclaimed
+      rows and on neither claimed one. Phone: confirmed working by the user after they
+      started Metro themselves — I could not drive the simulator, since `idb` is not
+      installed and `simctl` has no tap. The phone's light ground was not separately
+      reported, and the styles it uses are the shared tokens the laptop was checked on.*
+- [x] 5.2 Raise the question on one invitation and confirm the other's control is gone
       while it stands.
-- [ ] 5.3 Decline, and confirm nothing was written. Dismiss the panel with a question
+      *Measured rather than eyeballed: `Take back` controls went 2 → 0 the moment the
+      question was raised, in both themes, and the invite form is withdrawn with them.*
+- [x] 5.3 Decline, and confirm nothing was written. Dismiss the panel with a question
       standing, and confirm the same.
-- [ ] 5.4 Take one back, then invite somebody at that same address, and confirm it is
+      *Both checked against the hosted database. Cancel restored the two controls and the
+      form with both invitations intact; Escape closed the panel and both invitations were
+      still there on reopening.*
+- [x] 5.4 Take one back, then invite somebody at that same address, and confirm it is
       accepted — the unique index is on `(trip_id, lower(email))` and a removed row must
       not keep the address reserved.
-- [ ] 5.5 Do not leave test invitations on the live trip. Whatever is created for 5.1 is
+      *Taken back, then the same address invited again and accepted with no field error —
+      the partial index on `(trip_id, lower(email))` does not keep a removed address
+      reserved.*
+- [x] 5.5 Do not leave test invitations on the live trip. Whatever is created for 5.1 is
       removed by the end, and the trip is left as it was found.
+      *The first pair was removed and the trip returned to its two real members. A second
+      pair — `Test A (delete me)` and `Test B Longsurname (delete me)` — was created for
+      the phone check and was removed by the user through the feature itself. Japan 2026
+      is back to its two real members.*
 
 ## 6. Finish
 
-- [ ] 6.1 `openspec validate a-mistyped-invitation-can-be-taken-back --strict`.
-- [ ] 6.2 `pnpm verify`.
+- [x] 6.1 `openspec validate a-mistyped-invitation-can-be-taken-back --strict`.
+- [x] 6.2 `pnpm verify`.
 - [ ] 6.3 Close `#51`, recording that A was answered as the narrowest of its three options
       and that B, C and D stopped being open questions at that scope — B because an
       unclaimed invitation belongs to nobody, D because `write-feedback` already requires
