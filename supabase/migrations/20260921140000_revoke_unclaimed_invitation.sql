@@ -52,6 +52,21 @@ create policy trip_members_delete_unclaimed on public.trip_members
   for delete to authenticated
   using (user_id is null and public.is_trip_member(trip_id));
 
+-- The grant that makes the policy above mean anything.
+--
+-- `20260921120000_data_api_grants.sql` granted `select, insert, update` on this
+-- table and deliberately not `delete`, because at that moment nothing could
+-- delete a membership. It also set the rule this line obeys: each grant names
+-- exactly the operations that table has policies for, so the grant reads as a
+-- summary of the table and a mismatched pair is visible.
+--
+-- The pair fails in opposite directions, which is why both are stated here in
+-- one file rather than left to agree from two. A policy with no grant is not a
+-- stricter policy — it is a dead one, refused before row-level security is ever
+-- consulted, with `permission denied for table trip_members`, which reads as a
+-- broken query rather than as a missing line.
+grant delete on public.trip_members to authenticated;
+
 -- Still absent, and still deliberately:
 --
 -- `trips` has no delete policy. Removing a trip is settled as archiving.
