@@ -144,13 +144,17 @@ jobs:
       - name: Check every icon is still the mark
         run: pnpm check:icons
 
-      # A migration that creates a table and forgets row level security ships a
-      # table any signed-in account can read and write in full — the browser
-      # holds a key that reaches the database directly. Nothing else catches it:
-      # the app works, the tests pass, and the only symptom is data being
-      # available to people who should not have it.
-      - name: Check row level security on every table
-        run: pnpm check:rls
+      # Every table this repository creates has to be protected and reachable,
+      # and the two fail in opposite directions. A migration that forgets row
+      # level security ships a table any signed-in account can read and write in
+      # full — the browser holds a key that reaches the database directly — and
+      # nothing else catches it: the app works, the tests pass, and the only
+      # symptom is data being available to people who should not have it. A
+      # migration that forgets the grant ships a table nobody can reach, which
+      # hid for eight migrations because the hosted database was covering for
+      # the repository.
+      - name: Check every table is protected and reachable
+        run: pnpm check:tables
 
       # Two versions of a dually-bundled runtime crash the bundle in ways that
       # look unrelated to dependencies. The rule, and why react-dom is excluded,
