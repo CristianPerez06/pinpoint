@@ -197,6 +197,21 @@ placeholders.
   re-enter its own policy and recurse. The initial schema says this about the
   select policy; it applies to every policy on that table, and it is why the
   invite policy is a one-liner rather than a problem.
+- **Row-level security says which rows; the grant says whether the table can be
+  addressed at all, and a table needs both.** They are a pair, stated in the same
+  migration, and they fail in opposite directions: no policies and the table is open
+  to everyone, no grant and it is closed to everyone. Every read of an ungranted table
+  fails with `permission denied for table <name>`, which reads as a broken query, a
+  wrong client or an expired session, and is none of those. **Learn the shape of this
+  one**: no migration in this repository granted a table until
+  `20260921120000_data_api_grants.sql`, and nobody met it for eight migrations, because
+  the hosted project was created while Supabase still granted every new table
+  automatically. The repository described a database that could not be read, and the
+  only database that disagreed was a local one nobody starts. Supabase stopped issuing
+  that grant for tables created from 30 October 2026, so a new table now has to say so
+  itself. `pnpm check:tables` fails on a table that is created and never granted, and
+  refuses `grant … on all tables in schema public`, which would satisfy it without
+  naming anything and put the permission right back where no file mentions it.
 - **Centring the camera on a point is how to hide it, once anything covers the map.**
   A map with a sheet over its lower half is not being looked at whole, so the middle
   of the *view* — which is what `center` means to both renderers — is behind the
