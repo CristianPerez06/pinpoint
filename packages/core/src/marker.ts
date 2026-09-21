@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
 import { currencyCodeSchema } from './currency'
+// The bound is stated once, in the module that owns day arithmetic, and again
+// by the database's own check. Not a third time here.
+import { MAX_RUN_DAYS } from './marker-day'
 import { markerTypeSchema } from './marker-type'
 import { openingHoursSchema } from './opening-hours'
 
@@ -62,6 +65,28 @@ export const markerSchema = z.object({
    */
   plannedOn: z.iso.date().nullable(),
   /**
+   * The last day of a run, or null for a place planned for a single day.
+   *
+   * Where it is set, the place is planned for every day from `plannedOn`
+   * through this one, both included — a hotel booked the 3rd to the 6th is one
+   * place on four days, rather than four places or one that disappears after
+   * the first night.
+   *
+   * Null is the ordinary state and means one day, not "unknown": every place
+   * saved before runs existed has it, and none of them needs migrating.
+   *
+   * **Never equal to `plannedOn`.** A single day has one representation, and
+   * the write path normalises an equal pair to null so that nothing reading a
+   * day has to handle two. The database refuses the pair outright as a backstop.
+   *
+   * Not validated against `plannedOn` here — that is `newMarkerSchema` and
+   * `markerPatchSchema`'s job, below, because reads and writes want different
+   * strictness. A stored pair that somehow breaks the rules must still parse
+   * and render; `runOfDays` in `marker-day.ts` reads such a pair as a single
+   * day rather than failing.
+   */
+  plannedUntil: z.iso.date().nullable(),
+  /**
    * The days the place is open and at what times, or null while nobody has
    * entered them — which is never the same as closed. See `opening-hours.ts`.
    */
@@ -111,8 +136,91 @@ const writableMarkerFields = markerSchema.pick({
   localPrice: true,
   localCurrency: true,
   plannedOn: true,
+  plannedUntil: true,
   hours: true,
 })
+
+/**
+ * A last day needs a first one, must fall after it, and may not run longer than
+ * a year.
+ *
+ * Beside `localPriceComesWithCurrency` because it is the same shape of problem:
+ * a pair the database refuses, said first in the client's own voice and naming
+ * the field somebody can see.
+ *
+ * Reads `undefined` as "not mentioned", which is what an absent key means in a
+ * patch. A form that sends both keys every time — which both of ours do — never
+ * reaches that branch; a caller patching only the last day of a place whose
+ * first day is already stored does, and is told to send both rather than being
+ * silently allowed to write a run with no beginning.
+ */
+function runOfDaysIsValid(
+  value: { plannedOn?: string | null; plannedUntil?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  const until = value.plannedUntil
+  if (until === undefined || until === null) return
+
+  const from = value.plannedOn
+  if (from === undefined || from === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['plannedUntil'],
+      message: 'A last day needs a day to start from.',
+    })
+    return
+  }
+
+  // `YYYY-MM-DD` compares chronologically as text, which is why these are
+  // strings — see `marker-day.ts`.
+  if (until <= from) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['plannedUntil'],
+      message: 'The last day must fall after the day.',
+    })
+    return
+  }
+
+  if (daysApart(from, until) > MAX_RUN_DAYS) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['plannedUntil'],
+      message: 'A place cannot be planned for more than a year. Check the year.',
+    })
+  }
+}
+
+/**
+ * Whole days between two `YYYY-MM-DD` strings.
+ *
+ * Through `Date.UTC` on the parts rather than by parsing the string: both ends
+ * are read the same way, so the difference is exact and carries none of the
+ * zone behaviour of `new Date('2026-04-03')`. Nothing here is displayed, so UTC
+ * is safe — it is arithmetic on two labels, not a moment.
+ */
+function daysApart(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number)
+  const [ty, tm, td] = to.split('-').map(Number)
+  return (Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000
+}
+
+/**
+ * A last day equal to the first is recorded as absent.
+ *
+ * Runs before the refinement above, so "the 3rd to the 3rd" is a place planned
+ * for one day rather than a refusal — a person who sets a run and then pulls it
+ * back to a single day has said something ordinary, and the form should take it.
+ * Only a pair that cannot be read as one day is refused.
+ */
+function collapseSingleDay<T extends { plannedOn?: string | null; plannedUntil?: string | null }>(
+  value: T,
+): T {
+  if (value.plannedUntil != null && value.plannedUntil === value.plannedOn) {
+    return { ...value, plannedUntil: null }
+  }
+  return value
+}
 
 /**
  * A local price and its currency come as a pair. The database refuses one
@@ -162,13 +270,21 @@ function localPriceComesWithCurrency(
  */
 export const newMarkerSchema = writableMarkerFields.extend({
   plannedOn: markerSchema.shape.plannedOn.default(null),
+  // And again: a client that cannot express a run of days is a client whose
+  // places are each planned for one day, which is nearly all of them.
+  plannedUntil: markerSchema.shape.plannedUntil.default(null),
   // Defaulted for the same reason as `plannedOn`: a client that cannot express
   // hours yet is a client whose places have none, not one whose saves fail.
   hours: markerSchema.shape.hours.default(null),
   // And again: a client that predates local prices is one whose places have none.
   localPrice: markerSchema.shape.localPrice.default(null),
   localCurrency: markerSchema.shape.localCurrency.default(null),
-}).superRefine(localPriceComesWithCurrency)
+})
+  // Collapse before refining, so "the 3rd to the 3rd" is one day rather than a
+  // refusal. The order is the decision; reversed, it would reject it.
+  .transform(collapseSingleDay)
+  .superRefine(localPriceComesWithCurrency)
+  .superRefine(runOfDaysIsValid)
 
 export type NewMarker = z.infer<typeof newMarkerSchema>
 
@@ -195,7 +311,9 @@ export type NewMarker = z.infer<typeof newMarkerSchema>
 export const markerPatchSchema = writableMarkerFields
   .omit({ tripId: true })
   .partial()
+  .transform(collapseSingleDay)
   .superRefine(localPriceComesWithCurrency)
+  .superRefine(runOfDaysIsValid)
 
 export type MarkerPatch = z.infer<typeof markerPatchSchema>
 

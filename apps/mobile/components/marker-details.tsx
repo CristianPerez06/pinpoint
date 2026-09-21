@@ -2,6 +2,7 @@ import {
   describeHours,
   EMPTY_FIELD_WORDING,
   formatDay,
+  formatDayRange,
   UNFILED_CITY_WORDING,
   formatPrices,
   type Marker,
@@ -578,10 +579,18 @@ export function MarkerDetails({
       />
 
       {/* The day, where the laptop's card carries it: after what was decided
-          about the place and before what was written about it. */}
+          about the place and before what was written about it. A place planned
+          for a run reads as the stretch it covers, from the same shared wording
+          the laptop uses. */}
       <Field
         label="Day"
-        value={marker.plannedOn === null ? null : formatDay(marker.plannedOn)}
+        value={
+          marker.plannedOn === null
+            ? null
+            : marker.plannedUntil === null
+              ? formatDay(marker.plannedOn)
+              : formatDayRange(marker.plannedOn, marker.plannedUntil)
+        }
         absent={EMPTY_FIELD_WORDING.day}
       />
 

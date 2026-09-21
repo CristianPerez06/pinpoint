@@ -218,6 +218,7 @@ function valuesOf(marker: Marker): MarkerFormValues {
     localPrice: marker.localPrice,
     localCurrency: marker.localCurrency,
     plannedOn: marker.plannedOn,
+    plannedUntil: marker.plannedUntil,
     hours: marker.hours,
   }
 }
@@ -1030,6 +1031,7 @@ export function TripWorkspace({
         localPrice: null,
         localCurrency: null,
         plannedOn: null,
+        plannedUntil: null,
         hours: null,
         ...initial,
       },

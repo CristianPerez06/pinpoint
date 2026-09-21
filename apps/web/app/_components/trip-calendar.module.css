@@ -802,3 +802,33 @@ button.pickerInput {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/*
+ * The name, and beneath it where this day falls in a place's run.
+ *
+ * A column so the run sits under the name rather than beside it. `min-width: 0`
+ * is what lets `.placeName` ellipsise inside it — without it the flex item
+ * refuses to shrink below its content and the long name pushes the row wide
+ * instead of being cut.
+ */
+.placeBody {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/*
+ * `Day 2 of 4`.
+ *
+ * Secondary to the name and never beside it: anything on the row's right is
+ * `flex: 0 0 auto` and takes its width out of the name, which at phone width
+ * costs a long name most of itself — and costs it twice on a place that is both
+ * visited and part of a run.
+ */
+.placeRun {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+  font-variant-numeric: tabular-nums;
+}

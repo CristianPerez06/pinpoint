@@ -121,6 +121,7 @@ export type Database = {
           name: string
           note: string | null
           planned_on: string | null
+          planned_until: string | null
           price: number | null
           trip_id: string
           type: string
@@ -140,6 +141,7 @@ export type Database = {
           name: string
           note?: string | null
           planned_on?: string | null
+          planned_until?: string | null
           price?: number | null
           trip_id: string
           type?: string
@@ -159,6 +161,7 @@ export type Database = {
           name?: string
           note?: string | null
           planned_on?: string | null
+          planned_until?: string | null
           price?: number | null
           trip_id?: string
           type?: string

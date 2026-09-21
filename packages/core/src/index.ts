@@ -26,6 +26,7 @@ export {
   formatDayNumeric,
   formatDayRange,
   formatDayShort,
+  formatRunPosition,
 } from './day-wording'
 
 export { EMPTY_FIELD_WORDING, UNFILED_CITY_WORDING } from './empty-field-wording'
@@ -118,9 +119,17 @@ export {
   groupMarkersByDay,
   groupUndatedByCity,
   markersOnDay,
+  runOfDays,
+  runPositionOf,
   todayAsDay,
 } from './marker-day'
-export type { CalendarView, IsoDay, MarkersByDay, WaitingGroup } from './marker-day'
+export type {
+  CalendarView,
+  IsoDay,
+  MarkersByDay,
+  RunPosition,
+  WaitingGroup,
+} from './marker-day'
 
 // Only the write-side rule lives here. The type list, its icons, its families,
 // and `markerTypeOf` are presentation and live in `@pinpoint/map` — import them

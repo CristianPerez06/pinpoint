@@ -16,6 +16,7 @@ const VALID = {
   localPrice: null,
   localCurrency: null,
   plannedOn: null,
+  plannedUntil: null,
   hours: null,
   visited: false,
   createdAt: '2026-08-02T12:00:00.000Z',
@@ -330,5 +331,132 @@ describe('markerPatchSchema and local prices', () => {
 
   it('refuses half a pair', () => {
     expect(markerPatchSchema.safeParse({ localPrice: 3800 }).success).toBe(false)
+  })
+})
+
+/*
+ * A place planned for a run of days.
+ *
+ * The rules are stated twice on purpose — here, in the client's own voice and
+ * naming a field somebody can see, and again as a check constraint on the
+ * table. These tests are the first statement; the migration's rolled-back probe
+ * is the second.
+ */
+describe('a run of days', () => {
+  const NEW = {
+    tripId: VALID.tripId,
+    cityId: VALID.cityId,
+    name: VALID.name,
+    note: null,
+    lng: VALID.lng,
+    lat: VALID.lat,
+    type: VALID.type,
+    link: null,
+    price: null,
+  }
+
+  it('accepts a place planned from one day to a later one', () => {
+    const parsed = newMarkerSchema.safeParse({
+      ...NEW,
+      plannedOn: '2026-04-03',
+      plannedUntil: '2026-04-06',
+    })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.plannedUntil).toBe('2026-04-06')
+  })
+
+  it('treats a run left out as a place planned for one day', () => {
+    const parsed = newMarkerSchema.safeParse({ ...NEW, plannedOn: '2026-04-03' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.plannedUntil).toBe(null)
+  })
+
+  /*
+   * A single day has one representation. Storing "the 3rd to the 3rd" would
+   * mean every reader of a day had to handle two, for ever — so the pair is
+   * collapsed rather than refused: somebody pulling a run back to one day has
+   * said something ordinary and the form should take it.
+   */
+  it('records a last day equal to the day as no run at all', () => {
+    const parsed = newMarkerSchema.safeParse({
+      ...NEW,
+      plannedOn: '2026-04-03',
+      plannedUntil: '2026-04-03',
+    })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && parsed.data.plannedOn).toBe('2026-04-03')
+    expect(parsed.success && parsed.data.plannedUntil).toBe(null)
+  })
+
+  it('refuses a last day falling before the day, naming the field', () => {
+    const parsed = newMarkerSchema.safeParse({
+      ...NEW,
+      plannedOn: '2026-04-06',
+      plannedUntil: '2026-04-03',
+    })
+    expect(parsed.success).toBe(false)
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual([
+      'plannedUntil',
+    ])
+  })
+
+  it('refuses a last day with no day to start from', () => {
+    const parsed = newMarkerSchema.safeParse({ ...NEW, plannedUntil: '2026-04-06' })
+    expect(parsed.success).toBe(false)
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual([
+      'plannedUntil',
+    ])
+  })
+
+  it('accepts a run of exactly a year', () => {
+    const parsed = newMarkerSchema.safeParse({
+      ...NEW,
+      plannedOn: '2026-04-03',
+      plannedUntil: '2027-04-03', // 365 days
+    })
+    expect(parsed.success).toBe(true)
+  })
+
+  /*
+   * The typo this bound exists for: a slipped year turns three nights into a
+   * run of some thirty-six thousand days. Refused where it is typed, rather
+   * than quietly shortened somewhere it would read as the calendar losing rows.
+   */
+  it('refuses a run longer than a year', () => {
+    const parsed = newMarkerSchema.safeParse({
+      ...NEW,
+      plannedOn: '2026-04-03',
+      plannedUntil: '2126-04-06',
+    })
+    expect(parsed.success).toBe(false)
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual([
+      'plannedUntil',
+    ])
+  })
+
+  it('lets an edit set and clear a run', () => {
+    const set = markerPatchSchema.safeParse({
+      plannedOn: '2026-04-03',
+      plannedUntil: '2026-04-06',
+    })
+    expect(set.success && set.data.plannedUntil).toBe('2026-04-06')
+
+    const cleared = markerPatchSchema.safeParse({
+      plannedOn: '2026-04-03',
+      plannedUntil: null,
+    })
+    expect(cleared.success && cleared.data.plannedUntil).toBe(null)
+  })
+
+  /*
+   * An absent key means "leave this alone" in a patch, so an edit that mentions
+   * neither date must not be read as clearing them — the defect the file warns
+   * about for `plannedOn`, which would clear a run on every edit from anything
+   * that did not mention one.
+   */
+  it('leaves a run alone in a patch that does not mention it', () => {
+    const parsed = markerPatchSchema.safeParse({ name: 'Renamed' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.success && 'plannedUntil' in parsed.data).toBe(false)
   })
 })

@@ -6,8 +6,11 @@ import {
   formatDay,
   formatDayFull,
   formatDayShort,
+  formatRunPosition,
   type IsoDay,
   type Marker,
+  type RunPosition,
+  runPositionOf,
   type WaitingGroup,
 } from '@pinpoint/core'
 import { markerView } from '@pinpoint/map'
@@ -540,7 +543,14 @@ function DayColumn({
       ) : (
         <ul className={styles.list}>
           {markers.map((marker) => (
-            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
+            <PlaceRow
+              key={marker.id}
+              marker={marker}
+              // Which day of how many, for *this* column's day — the same place
+              // reads `Day 2 of 4` here and `Day 3 of 4` in the next column.
+              run={runPositionOf(marker, day)}
+              onOpen={onOpen}
+            />
           ))}
         </ul>
       )}
@@ -581,16 +591,33 @@ function WaitingDayColumn({
 
 function PlaceRow({
   marker,
+  run,
   onOpen,
 }: {
   marker: Marker
+  run?: RunPosition | null
   onOpen: (marker: Marker) => void
 }) {
   return (
     <li>
       <button type="button" onClick={() => onOpen(marker)} className={styles.place}>
         <TypeChip view={markerView(marker)} size={26} />
-        <span className={styles.placeName}>{marker.name}</span>
+        {/*
+          The name and, beneath it, where this day falls in the place's run.
+
+          Beneath rather than beside: the pills on the right are `flex: 0 0 auto`
+          against a name that is `flex: 1 1 auto` and ellipsises, so anything
+          added there takes its width out of the name. At phone width a long
+          name loses most of itself, and worst exactly where this feature is
+          used — a hotel halfway through a stay is commonly also visited, so the
+          row would carry two pills and the name would give way to both.
+        */}
+        <span className={styles.placeBody}>
+          <span className={styles.placeName}>{marker.name}</span>
+          {run ? (
+            <span className={styles.placeRun}>{formatRunPosition(run)}</span>
+          ) : null}
+        </span>
         {/* Visited is said in words as well as drawn, because a signal that
             survives only in styling does not survive a screen reader. */}
         {marker.visited ? (

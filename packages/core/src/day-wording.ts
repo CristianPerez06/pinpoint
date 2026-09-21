@@ -211,3 +211,27 @@ function worded(day: IsoDay, format: Intl.DateTimeFormatOptions): string {
     return day
   }
 }
+
+/**
+ * Where a place sits inside its run of days: `Day 2 of 4`.
+ *
+ * Shared for the reason at the top of this file rather than worded twice: both
+ * applications want this exact string, and a stay reading `Day 2 of 4` on the
+ * laptop and `Night 1 of 3` on the phone is an evening somebody loses.
+ *
+ * **Days, not nights, and that is a decision rather than an oversight.** A
+ * booking is quoted in nights — the 3rd to the 6th is three nights and four
+ * days — but the form asks which days a place is planned for rather than a
+ * check-in and a check-out, so the days entered are the days shown and nothing
+ * is converted. Nights would also be untrue of every run that is not somewhere
+ * you sleep: a rail pass, a festival, a park pass.
+ *
+ * No locale and no `Intl` here, so none of the fallbacks above apply — this is
+ * two integers and a word.
+ */
+export function formatRunPosition(position: {
+  readonly index: number
+  readonly total: number
+}): string {
+  return `Day ${position.index} of ${position.total}`
+}

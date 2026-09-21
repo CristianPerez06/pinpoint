@@ -134,6 +134,7 @@ const VALID_MARKER = {
   link: null,
   price: null,
   plannedOn: null,
+  plannedUntil: null,
   hours: null,
   localPrice: null,
   localCurrency: null,

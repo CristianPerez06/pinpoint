@@ -3,8 +3,11 @@ import {
   type CalendarView,
   formatDay,
   formatDayFull,
+  formatRunPosition,
   type IsoDay,
   type Marker,
+  type RunPosition,
+  runPositionOf,
   type WaitingGroup,
 } from '@pinpoint/core'
 import { markerView } from '@pinpoint/map'
@@ -649,7 +652,13 @@ function DayCard({
           </Text>
         ) : (
           markers.map((marker) => (
-            <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
+            <PlaceRow
+              key={marker.id}
+              marker={marker}
+              // Which day of how many, for this card's day.
+              run={day ? runPositionOf(marker, day) : null}
+              onOpen={onOpen}
+            />
           ))
         )}
       </ScrollView>
@@ -659,30 +668,51 @@ function DayCard({
 
 function PlaceRow({
   marker,
+  run,
   onOpen,
 }: {
   marker: Marker
+  run?: RunPosition | null
   onOpen: (marker: Marker) => void
 }) {
   const theme = useTheme()
   const view = markerView(marker)
 
+  // Everything the row says, in the order it is drawn — so what is heard is
+  // what is seen rather than a second description that drifts from it.
+  const label = [marker.name, run ? formatRunPosition(run) : null, marker.visited ? 'visited' : null]
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <Pressable
       onPress={() => onOpen(marker)}
       accessibilityRole="button"
-      accessibilityLabel={
-        marker.visited ? `${marker.name}, visited` : marker.name
-      }
+      accessibilityLabel={label}
       style={styles.place}
     >
       <TypeChip view={view} size={26} />
+      {/*
+        The name and, beneath it, where this day falls in the place's run.
+
+        Beneath rather than beside: `VISITED` is `flex: 0 0 auto` against a name
+        that is `flex: 1` and truncates to one line, so anything else on the
+        right takes its width out of the name — worst on a phone, and worst of
+        all on a hotel halfway through a stay, which is commonly visited too.
+      */}
+      <View style={styles.placeBody}>
       <Text
         style={[styles.placeName, { color: theme.colour.ink }]}
         numberOfLines={1}
       >
         {marker.name}
       </Text>
+        {run ? (
+          <Text style={[styles.placeRun, { color: theme.colour.inkMuted }]}>
+            {formatRunPosition(run)}
+          </Text>
+        ) : null}
+      </View>
       {/* Visited is said in words as well as drawn, because a signal carried
           only by styling does not survive a screen reader. */}
       {marker.visited ? (
@@ -848,7 +878,16 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.xs + 2,
     paddingHorizontal: SPACE.sm,
   },
-  placeName: { ...role(TYPE.rowName), flex: 1, minWidth: 0 },
+  /*
+   * The name and, under it, where this day falls in a place's run.
+   *
+   * `flex: 1, minWidth: 0` moves onto the body: it is what lets the name
+   * truncate instead of pushing the row wide, and the name is now a child of
+   * this rather than of the row.
+   */
+  placeBody: { flex: 1, minWidth: 0 },
+  placeName: { ...role(TYPE.rowName) },
+  placeRun: { ...role(TYPE.note) },
   /* The boxes the waiting forms stand in, without the type the text carries. */
   placeNameBox: { flex: 1, minWidth: 0 },
   cityNameBox: {

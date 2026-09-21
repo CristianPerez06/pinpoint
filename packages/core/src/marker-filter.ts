@@ -1,6 +1,6 @@
 import { markerTypeOf } from '@pinpoint/map'
 
-import type { IsoDay } from './marker-day'
+import { type IsoDay, runOfDays } from './marker-day'
 import type { MarkerInterest } from './marker-interest'
 
 /**
@@ -116,6 +116,7 @@ export interface FilterableMarker {
   readonly visited: boolean
   readonly type: string
   readonly plannedOn: IsoDay | null
+  readonly plannedUntil: IsoDay | null
   readonly cityId: string | null
 }
 
@@ -290,13 +291,16 @@ function matchesKind(marker: { readonly type: string }, filter: KindFilter): boo
  * can be asked for together — which is the whole reason the days are a set
  * rather than a stretch between two dates.
  *
- * A place planned for several days matches when any one of them is chosen. No
- * place can carry more than one day yet; the rule is here so that whatever adds
- * that inherits it rather than deciding it a second time, and the shape below
- * is what makes inheriting it a one-line change.
+ * A place planned for several days matches when any one of them is chosen. That
+ * rule was written here before a place could carry more than one day, so that
+ * whatever added them would inherit it rather than decide it a second time —
+ * and it was: `runOfDays` below is the whole of that inheritance.
  */
 function matchesDay(
-  marker: { readonly plannedOn: IsoDay | null },
+  marker: {
+    readonly plannedOn: IsoDay | null
+    readonly plannedUntil: IsoDay | null
+  },
   filter: DayFilter,
 ): boolean {
   switch (filter.kind) {
@@ -307,9 +311,11 @@ function matchesDay(
       // cannot answer would empty the map.
       if (filter.days.length === 0) return true
       if (marker.plannedOn == null) return false
-      return filter.days.includes(marker.plannedOn)
+      return runOfDays(marker).some((day) => filter.days.includes(day))
     }
     case 'undated':
+      // Still the first day alone: a place waiting for a day is one with no
+      // day at all, and a run has chosen its days like any other place.
       return marker.plannedOn == null
   }
 }

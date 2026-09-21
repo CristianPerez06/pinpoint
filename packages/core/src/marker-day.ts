@@ -71,15 +71,92 @@ export function groupMarkersByDay(markers: readonly Marker[]): MarkersByDay {
       undated.push(marker)
       continue
     }
-    const day = days.get(marker.plannedOn)
-    if (day) day.push(marker)
-    else days.set(marker.plannedOn, [marker])
+    // A place planned for a run belongs on every day of it. This is the one
+    // place a marker fans out across days, deliberately: everything downstream
+    // — the counts, the ordering, what a day holds — reads the map this builds
+    // and needs no knowledge of runs at all.
+    for (const day of runOfDays(marker)) {
+      const places = days.get(day)
+      if (places) places.push(marker)
+      else days.set(day, [marker])
+    }
   }
 
   for (const places of days.values()) places.sort(byNameThenId)
   undated.sort(byNameThenId)
 
   return { days, undated }
+}
+
+/**
+ * How long a run may be, which is what makes walking one safe.
+ *
+ * The database refuses a longer one (`markers_planned_run_valid`), so this is
+ * the second statement of one bound rather than a guess. It is repeated here
+ * because this function must terminate on a row the database never saw — one
+ * from a fixture, a test, or a client that reached the data layer directly.
+ */
+export const MAX_RUN_DAYS = 365
+
+/**
+ * Every day a place is planned for: one day, or all the days of its run.
+ *
+ * **Tolerant on purpose.** A pair that breaks the rules the write path enforces
+ * — a last day before the first, or one absurdly far out — is read as the
+ * single day `plannedOn`, rather than throwing or producing a list nobody can
+ * draw. This is the same stance `markers.ts` takes on a marker's `type`: a
+ * value written by an older build, or by something that bypassed validation,
+ * must still render. Reads tolerate what writes refuse.
+ */
+export function runOfDays(marker: {
+  readonly plannedOn: IsoDay | null
+  readonly plannedUntil: IsoDay | null
+}): readonly IsoDay[] {
+  const { plannedOn, plannedUntil } = marker
+  if (plannedOn == null) return []
+  if (plannedUntil == null || plannedUntil <= plannedOn) return [plannedOn]
+
+  const days: IsoDay[] = []
+  let day = plannedOn
+  while (day <= plannedUntil && days.length <= MAX_RUN_DAYS) {
+    days.push(day)
+    day = addDays(day, 1)
+  }
+  // Past the bound the pair says more about a bad write than about a place, so
+  // it is read as the one day we are certain of rather than truncated — a run
+  // cut off partway would put the place on some of its days and not others,
+  // which reads as the calendar losing rows.
+  return days.length > MAX_RUN_DAYS ? [plannedOn] : days
+}
+
+/** Where a place sits inside its run, for the day being read. */
+export interface RunPosition {
+  /** Which day of the run this is, counting from 1. */
+  readonly index: number
+  /** How many days the run holds. */
+  readonly total: number
+}
+
+/**
+ * Which day of how many a place is on, for one day — or null where the place is
+ * planned for a single day and there is no run to place it in.
+ *
+ * Here rather than in either application because both word it from this one
+ * answer, so a laptop and a phone cannot come to disagree about how far through
+ * a stay somebody is. The wording itself belongs to each application; this
+ * package draws nothing.
+ */
+export function runPositionOf(
+  marker: {
+    readonly plannedOn: IsoDay | null
+    readonly plannedUntil: IsoDay | null
+  },
+  day: IsoDay,
+): RunPosition | null {
+  const days = runOfDays(marker)
+  if (days.length < 2) return null
+  const index = days.indexOf(day)
+  return index === -1 ? null : { index: index + 1, total: days.length }
 }
 
 /** One city's share of the places waiting for a day. */
@@ -228,7 +305,10 @@ const MAX_SPANNED_DAYS = 400
 
 export function daysOffered(
   trip: { readonly startsOn: IsoDay | null; readonly endsOn: IsoDay | null },
-  markers: readonly { readonly plannedOn: IsoDay | null }[],
+  markers: readonly {
+    readonly plannedOn: IsoDay | null
+    readonly plannedUntil: IsoDay | null
+  }[],
 ): readonly IsoDay[] {
   const days = new Set<IsoDay>()
 
@@ -249,8 +329,10 @@ export function daysOffered(
     if (trip.endsOn != null) days.add(trip.endsOn)
   }
 
+  // Every day of a run, not only its first — otherwise narrowing the map to
+  // the middle of a stay would offer a day the place is on but not draw it.
   for (const marker of markers) {
-    if (marker.plannedOn != null) days.add(marker.plannedOn)
+    for (const day of runOfDays(marker)) days.add(day)
   }
 
   // `YYYY-MM-DD` sorts chronologically as text, which is the other reason these
