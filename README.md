@@ -208,7 +208,7 @@ pnpm check:cycles  # workspace dependency graph
 pnpm check:specs   # OpenSpec specs and active changes
 pnpm check:tokens  # the derived token files are current
 pnpm check:fonts   # both apps bundle the same typeface
-pnpm check:rls     # every table has row level security enabled
+pnpm check:tables  # every table is protected by RLS and reachable by the apps
 ```
 
 The last three exist because their failures are silent. A hand-edit to a generated

@@ -63,7 +63,7 @@ Change: `openspec/changes/<name>/`
       each one app, and the packages are a separate CI step)
 - [ ] Package tests pass (`pnpm test`)
 - [ ] Web production build passes (`pnpm build`)
-- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:rls`,
+- [ ] `pnpm check:cycles`, `pnpm check:tokens`, `pnpm check:fonts`, `pnpm check:tables`,
       `pnpm check:icons`, `pnpm check:specs`, `pnpm check:duplicate-deps`,
       `pnpm check:openspec-workflows` and `pnpm check:unarchived` pass
 - [ ] If I touched dependencies: `pnpm-lock.yaml` is updated and committed
