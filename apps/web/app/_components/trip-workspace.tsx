@@ -51,6 +51,7 @@ import {
 import { type ReadonlyURLSearchParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { signedInAs } from '@/app/_components/account-menu'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import {
   MarkerForm,
@@ -298,15 +299,8 @@ export function TripWorkspace({
    * it, and the next navigation resolves it properly.
    */
   const trip = trips.find((each) => each.id === initialTrip.id) ?? initialTrip
-  /**
-   * What to call the reader on the account control.
-   *
-   * Their member name when their account matches one, and `Account` when it
-   * does not — which is ordinary rather than broken, since a member row exists
-   * before the account does.
-   */
-  const youAre =
-    members.find((member) => member.id === ownMemberId)?.displayName ?? 'Account'
+  /** Who the account control names, derived where the control is defined. */
+  const you = signedInAs(members, ownMemberId)
   /**
    * Unfiltered, and not persisted anywhere.
    *
@@ -1333,7 +1327,7 @@ export function TripWorkspace({
 
         panelOpen: panel.kind !== 'none',
 
-        youAre,
+        you,
 
         detour,
         onDetour: setDetour,

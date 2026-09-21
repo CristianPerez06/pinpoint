@@ -36,7 +36,7 @@ import {
   useSyncExternalStore,
 } from 'react'
 
-import { AccountMenu } from '@/app/_components/account-menu'
+import { AccountMenu, signedInAs } from '@/app/_components/account-menu'
 import { CalendarScreen } from '@/app/_components/calendar-screen'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm, type MarkerFormValues } from '@/app/_components/marker-form'
@@ -190,15 +190,8 @@ export function TripCalendar({
    */
   const trip = trips.find((each) => each.id === initialTrip.id) ?? initialTrip
 
-  /**
-   * What to call the reader on the account control.
-   *
-   * Their member name when their account matches one, and `Account` when it does
-   * not — which is ordinary rather than broken, since a member row exists before
-   * the account does.
-   */
-  const youAre =
-    members.find((member) => member.id === ownMemberId)?.displayName ?? 'Account'
+  /** Who the account control names, derived where the control is defined. */
+  const you = signedInAs(members, ownMemberId)
 
   const [message, setMessage] = useState<string | null>(null)
   /**
@@ -616,7 +609,7 @@ export function TripCalendar({
         ),
         account: (
           <AccountMenu
-            youAre={youAre}
+            you={you}
             open={detour === 'account'}
             onOpen={(open) => setDetour(open ? 'account' : 'none')}
           />

@@ -21,11 +21,55 @@ import styles from './account-menu.module.css'
  * holding `Sign out` agree about it on the day they are written and not
  * afterwards. Moved rather than rewritten, both of its states with it.
  */
+/**
+ * Who the reader is, as this menu needs them: a name and an address, together.
+ *
+ * One value rather than two props, because a name without an address is exactly
+ * the state this control must not be able to be in — it is the defect `#115`
+ * was filed for, and two strings put it one forgotten argument away. Structural
+ * rather than `TripMember`, so the menu depends on the two fields it draws
+ * rather than on the shape of a database row.
+ */
+export type SignedInAs = { displayName: string; email: string }
+
 export type AccountMenuLiveProps = {
-  /** What to call the reader: their member name, or `Account` when none matches. */
-  youAre: string
+  /** The reader's membership on the trip being viewed, or `null` if none matches. */
+  you: SignedInAs | null
   open: boolean
   onOpen: (open: boolean) => void
+}
+
+/**
+ * The reader's own member row, or `null`.
+ *
+ * Here rather than in each screen because it was written twice — once in
+ * `trip-workspace.tsx` and once in `trip-calendar.tsx`, the same line under the
+ * same comment. `AccountMenu` was pulled out of the chrome so that two screens
+ * could not draw two different menus; this is the other half of that, so they
+ * cannot hand one menu two different answers to "who is this".
+ *
+ * `ownMemberOf` in `@pinpoint/data` answers the same question from an account
+ * id. This one answers it from a member id, which is what both screens hold.
+ */
+export function signedInAs<T extends SignedInAs & { id: string }>(
+  members: readonly T[],
+  ownMemberId: string | null,
+): T | null {
+  return members.find((member) => member.id === ownMemberId) ?? null
+}
+
+/**
+ * What to call the reader when no member row matches their account.
+ *
+ * **This cannot happen, and the word is kept because it costs nothing.** A trip
+ * is readable only by an account a member row on it points at, so reading the
+ * trip and matching no member row are mutually exclusive — probed against the
+ * policies rather than argued from them, in this change's `proposal.md`. The
+ * previous comment here called the state ordinary, which invited the fix `#115`
+ * asked for: naming the account instead. There is nothing to name it in.
+ */
+function nameOf(you: SignedInAs | null | undefined): string {
+  return you?.displayName ?? 'Account'
 }
 
 /**
@@ -48,10 +92,22 @@ export function AccountMenu(props: AccountMenuProps) {
       disabled={live === null}
       label={
         <>
+          {/*
+            The name, or a bar standing where it will go.
+
+            The bar is `8ch`: nobody's name, and closest to everybody's. It
+            matched the name exactly while the name was a flat `13ch`. The name
+            is sized to its content now, between a floor of `5ch` and that same
+            ceiling, so a bar pinned to the ceiling would be wider than almost
+            every name it stands in for and would visibly collapse when the real
+            one arrived. Eight sits near the middle of that range, so the step is
+            small whichever way it goes — and no width avoids a step, because the
+            width is the thing being waited for.
+          */}
           {live ? (
-            <span className={styles.you}>{live.youAre}</span>
+            <span className={styles.you}>{nameOf(live.you)}</span>
           ) : (
-            <NamePlaceholder className={styles.you} measure="13ch" />
+            <NamePlaceholder className={styles.you} measure="8ch" />
           )}
           {/*
             The same menu, named by a glyph once the header has no room to spell
@@ -88,9 +144,24 @@ export function AccountMenu(props: AccountMenuProps) {
       */}
       <span className={styles.identity}>
         <span className={styles.initials} aria-hidden>
-          {initialsOf(live?.youAre ?? '')}
+          {initialsOf(nameOf(live?.you))}
         </span>
-        <span className={styles.identityName}>{live?.youAre}</span>
+        {/*
+          The name, and the address under it.
+
+          The address is the half that answers the question. A display name
+          belongs to a membership rather than to an account — the same person is
+          `Cris` on one trip and `Cristian` on another, and two people on one
+          trip can be called the same thing — so the name narrows and the
+          address settles. The phone's menu has read this way since it existed;
+          this one showed the name alone until `#115`.
+        */}
+        <span className={styles.identityWho}>
+          <span className={styles.identityName}>{nameOf(live?.you)}</span>
+          {live?.you ? (
+            <span className={styles.identityEmail}>{live.you.email}</span>
+          ) : null}
+        </span>
       </span>
 
       <hr className={styles.identityRule} />
