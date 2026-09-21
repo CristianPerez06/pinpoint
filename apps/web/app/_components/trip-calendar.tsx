@@ -10,6 +10,7 @@ import {
   groupUndatedByCity,
   type IsoDay,
   type Marker,
+  type MarkerFormValues,
   type MarkerInterest,
   markersOnDay,
   type Trip,
@@ -39,7 +40,7 @@ import {
 import { AccountMenu, signedInAs } from '@/app/_components/account-menu'
 import { CalendarScreen } from '@/app/_components/calendar-screen'
 import { MarkerDetails } from '@/app/_components/marker-details'
-import { MarkerForm, type MarkerFormValues } from '@/app/_components/marker-form'
+import { MarkerForm } from '@/app/_components/marker-form'
 import { TripBar } from '@/app/_components/trip-bar'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'

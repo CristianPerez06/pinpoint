@@ -195,7 +195,7 @@ function toUpdateRow(patch: MarkerPatch): MarkerUpdate {
  */
 export async function createMarker(
   client: PinpointClient,
-  input: unknown,
+  input: NewMarker,
 ): Promise<WriteOutcome<Marker>> {
   const validated = validate(newMarkerSchema, input)
   if (!validated.ok) return validated.outcome
@@ -232,7 +232,7 @@ export const MARKER_CONFLICT_MESSAGE =
 export async function updateMarker(
   client: PinpointClient,
   markerId: string,
-  patch: unknown,
+  patch: MarkerPatch,
   expectedUpdatedAt: string,
 ): Promise<WriteOutcome<Marker>> {
   const validated = validate(markerPatchSchema, patch)

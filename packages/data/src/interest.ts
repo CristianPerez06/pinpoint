@@ -1,6 +1,8 @@
 import {
   type MarkerInterest,
+  type NewMarkerInterest,
   newMarkerInterestSchema,
+  type NewTripMember,
   newTripMemberSchema,
   type TripMember,
 } from '@pinpoint/core'
@@ -129,7 +131,7 @@ export const MEMBER_DUPLICATE_MESSAGE =
  */
 export async function inviteMember(
   client: PinpointClient,
-  input: unknown,
+  input: NewTripMember,
 ): Promise<WriteOutcome<TripMember>> {
   const validated = validate(newTripMemberSchema, input)
   if (!validated.ok) return validated.outcome
@@ -237,7 +239,7 @@ export function ownMemberOf(
  */
 export async function recordInterest(
   client: PinpointClient,
-  input: unknown,
+  input: NewMarkerInterest,
 ): Promise<WriteOutcome<MarkerInterest>> {
   const validated = validate(newMarkerInterestSchema, input)
   if (!validated.ok) return validated.outcome

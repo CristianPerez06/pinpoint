@@ -4,6 +4,7 @@ import type {
   FieldErrors,
   Marker,
   MarkerFilter,
+  MarkerFormValues,
   MarkerInterest,
   Trip,
   TripMember,
@@ -64,11 +65,7 @@ import {
 
 import { CitySheet } from '@/components/city-sheet'
 import { FilterSheet } from '@/components/filter-sheet'
-import {
-  MarkerFormSheet,
-  type MarkerFormValues,
-  openingHeight,
-} from '@/components/marker-form'
+import { MarkerFormSheet, openingHeight } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'

@@ -3,9 +3,9 @@ import {
   type CityNotice,
   type FieldErrors,
   type IsoDay,
+  type MarkerFormValues,
   joinHours,
   localPriceClearedBy,
-  type OpeningHours,
   pricesFromDraft,
   splitHours,
 } from '@pinpoint/core'
@@ -89,28 +89,6 @@ export function openingHeight(windowHeight: number): number {
 
 /** How far a drag must travel before it counts as reaching for the other height. */
 const SNAP_THRESHOLD = 60
-
-export interface MarkerFormValues {
-  name: string
-  note: string | null
-  cityId: string | null
-  type: string
-  link: string | null
-  price: number | null
-  /** In the second currency of the place's city, or null. See `@pinpoint/core`'s marker. */
-  localPrice: number | null
-  localCurrency: string | null
-  /**
-   * The day this place is planned for, or null for one still waiting.
-   *
-   * Beside the city rather than under it: `markers` states that a day and a city
-   * are two groupings of one set of places, neither inside the other, so this is
-   * a sibling of `cityId` here exactly as it is in the database.
-   */
-  plannedOn: IsoDay | null
-  /** The days it is open and when, or null while nobody has entered them. */
-  hours: OpeningHours | null
-}
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
 function absentIfBlank(value: string): string | null {

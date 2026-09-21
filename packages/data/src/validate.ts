@@ -22,6 +22,14 @@ export interface Validatable<T> {
  * newer version of the app must still render, so a read resolves what it cannot
  * recognise and carries on — but a write is the moment a bad value would be
  * created, and it is the only place stopping one costs nothing.
+ *
+ * Every write also names the fields it accepts, and that does not make this
+ * redundant. The two answer different questions: the parameter type asks whether
+ * a caller in this repository was written correctly, and is checked once, before
+ * anything runs; this asks whether a value is allowed, and is checked every time,
+ * for callers the compiler never saw. Deleting either leaves a real gap — without
+ * the type a form and a schema drift apart until somebody taps Save, and without
+ * this a value that never passed through a compiler reaches the database.
  */
 export function validate<T>(
   schema: Validatable<T>,

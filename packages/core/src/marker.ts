@@ -148,9 +148,17 @@ function localPriceComesWithCurrency(
  * whose places have no day, which is the ordinary case rather than a caller
  * being careless, and the failure it prevents is not hypothetical: requiring the
  * key made every save from the phone fail validation the moment this field was
- * added, in the window before the phone had a control. The type system could not
- * say so, because `createMarker` takes `unknown`. A test is what said so instead,
- * and it is still the only thing that would.
+ * added, in the window before the phone had a control.
+ *
+ * What has changed since is who the four defaults answer for. `createMarker`
+ * names `NewMarker` now rather than taking `unknown`, so neither application can
+ * reach them: both are typechecked against this schema and must supply every
+ * field, and leaving one out stops the build instead of the save. The defaults
+ * are for the caller the compiler never sees — a script, a test, anything
+ * reaching the data layer from outside — which is the population they were
+ * always written for. Deleting them would take the runtime gate with them and
+ * leave the build as the only thing checking, which is the mistake in the other
+ * direction.
  */
 export const newMarkerSchema = writableMarkerFields.extend({
   plannedOn: markerSchema.shape.plannedOn.default(null),
@@ -190,3 +198,26 @@ export const markerPatchSchema = writableMarkerFields
   .superRefine(localPriceComesWithCurrency)
 
 export type MarkerPatch = z.infer<typeof markerPatchSchema>
+
+/**
+ * The fields of a place a person fills in, as opposed to the ones the surface
+ * around them already knows.
+ *
+ * `tripId`, `lng` and `lat` are the three left out: the trip is whichever one is
+ * open, and the position arrives from the map or from a search result before the
+ * form is raised. Nobody types any of them, and a form holding them would be a
+ * second place they could be wrong.
+ *
+ * Derived from `NewMarker` rather than written out, and that is the whole point
+ * of it existing. Both applications build their capture form from this one list,
+ * so a field added to a marker is a field both of them stop compiling without —
+ * in the change that adds it, rather than in whichever application somebody
+ * remembered. Written out by hand it was two lists, and the day a field reached
+ * only one of them every save from the phone was refused.
+ *
+ * Note which type it derives from: `NewMarker` is what the schema produces,
+ * after its defaults have been applied, so every field is present here. The type
+ * the schema *accepts* would mark the four defaulted fields optional and let a
+ * form go on compiling with one of them dropped, which is the failure above.
+ */
+export type MarkerFormValues = Omit<NewMarker, 'tripId' | 'lng' | 'lat'>
