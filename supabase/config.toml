@@ -406,8 +406,25 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 # pg-delta is the schema diff engine for db diff / db pull / db remote commit.
 # Set enabled = false to fall back to the legacy migra engine.
+#
+# Off deliberately, and the reason is `db push` rather than any of those three.
+# With it on, a push applies the migrations and then caches a "migrations
+# catalog", which it builds by pulling a Docker image. On a machine with no
+# Docker daemon running that cache fails, and the failure is *caught* — six
+# lines of Docker's own red output and a nine-attempt pull warning are printed,
+# and then the push reports the success it already had. The command works and
+# reads as though it did not, which is worse than either. See #205.
+#
+# Nothing here filters that output; this stops it being produced. The catalog is
+# the whole of what `enabled` buys a push — the CLI skips the step outright when
+# it is off — so a genuine failure is reported exactly as it was before.
+#
+# The cost is that `supabase db diff` / `db pull` fall back to migra. No script
+# in package.json runs either one, migrations here are written by hand, and both
+# commands need Docker whichever engine they use. Turn this back on if that
+# changes; pushing then wants Docker running, which by then it will be.
 [experimental.pgdelta]
-enabled = true
+enabled = false
 # Directory under `supabase/` where declarative files are written.
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
