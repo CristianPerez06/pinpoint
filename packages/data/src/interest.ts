@@ -9,6 +9,7 @@ import type { PinpointClient } from '@pinpoint/supabase'
 import { failed, readyOrEmpty, type SettledQueryState } from './query-state'
 import { validate } from './validate'
 import {
+  conflicted,
   invalidInput,
   rejected,
   type WriteOutcome,
@@ -164,6 +165,45 @@ export async function inviteMember(
     userId: data.user_id,
     createdAt: data.created_at,
   })
+}
+
+export const MEMBER_REMOVE_FAILED_MESSAGE = 'Could not take back that invitation.'
+export const MEMBER_ALREADY_CLAIMED_MESSAGE =
+  'They joined while this list was open, so their invitation is a membership now and was not taken back.'
+
+/**
+ * Take back an invitation nobody has claimed.
+ *
+ * Deliberately narrower than removing a member, and the narrowness is the
+ * database's rather than this function's. The delete policy matches only a row
+ * whose `user_id` is null, so a membership somebody has claimed is not reachable
+ * from here however it is called — which is why nothing below checks for it.
+ * Restating the rule here would state it a second time in a place that cannot
+ * enforce it, the same reason `recordInterest` does not check whose member it is
+ * writing.
+ *
+ * `.select()` is what makes the row count knowable. Without it a delete that
+ * matched nothing is indistinguishable from one that worked, and the case where
+ * that happens is not exotic: the invitation is claimed the moment that person
+ * signs in, which can be while somebody is looking at the list deciding. Saying
+ * "done" there would tell them the opposite of what happened, so it is a
+ * conflict — the row moved underneath the write — and the message says which row
+ * and why rather than that something went wrong.
+ */
+export async function removeMember(
+  client: PinpointClient,
+  memberId: string,
+): Promise<WriteOutcome<string>> {
+  const { data, error } = await client
+    .from('trip_members')
+    .delete()
+    .eq('id', memberId)
+    .select('id')
+
+  if (error) return rejected(MEMBER_REMOVE_FAILED_MESSAGE)
+  if (!data || data.length === 0) return conflicted(MEMBER_ALREADY_CLAIMED_MESSAGE)
+
+  return wrote(memberId)
 }
 
 /**

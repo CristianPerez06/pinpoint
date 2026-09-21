@@ -44,12 +44,58 @@
   gap: var(--pp-space-xs);
 }
 
+/*
+ * A row now, with the name and address stacked in a column beside whatever the
+ * row offers.
+ *
+ * `min-width: 0` on the column rather than here: this is a grid item of a
+ * 320px panel, and an address is easily wider than that. A flex or grid item's
+ * floor is its own content unless it is told otherwise, which is what put this
+ * same panel's rows 96px outside it in #200.
+ */
 .person {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  min-width: 0;
   padding-bottom: var(--pp-space-xs);
   border-bottom: 1px solid var(--pp-line);
+}
+
+.who {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/*
+ * Taking back an invitation, offered only on a row nobody has claimed.
+ *
+ * Quiet until the row is under the pointer or the control has focus, the way a
+ * row's own actions are elsewhere. It says `Take back` rather than `Remove`
+ * because it undoes a typo; the wording is in `@pinpoint/core` so the phone
+ * cannot drift from it.
+ */
+.takeBack {
+  flex: none;
+  padding: 3px var(--pp-space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-ink-muted);
+  font-family: inherit;
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.person:hover .takeBack,
+.takeBack:focus-visible {
+  border-color: var(--pp-line-strong);
+  color: var(--pp-danger);
 }
 
 .personName {

@@ -3,6 +3,10 @@
 import {
   type FieldErrors,
   formatDayRange,
+  TAKE_BACK_CONFIRM,
+  TAKE_BACK_LABEL,
+  takeBackConsequence,
+  takeBackQuestion,
   type Trip,
   type TripMember,
 } from '@pinpoint/core'
@@ -10,7 +14,14 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { CreateTripForm } from '@/app/_components/trip-setup'
-import { Button, FormError, Menu, TextField, WaitingMenu } from '@/app/_components/ui'
+import {
+  Button,
+  FormError,
+  Menu,
+  Question,
+  TextField,
+  WaitingMenu,
+} from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
 import styles from './trip-bar.module.css'
@@ -137,6 +148,14 @@ export type TripBarLiveProps = {
     displayName: string,
     email: string,
   ) => Promise<{ field: string; message: string } | null>
+  /**
+   * Take back an invitation nobody has claimed.
+   *
+   * Resolves to a refusal in words, or null. The one that matters is not a
+   * failure at all: that person signed in while the list was open, so their
+   * invitation is a membership now and the delete matched nothing.
+   */
+  onRemove: (member: TripMember) => Promise<string | null>
   open: boolean
   onOpen: (open: boolean) => void
   /**
@@ -181,6 +200,7 @@ function TripBarLive({
   onArchive,
   onRestore,
   onInvite,
+  onRemove,
   onShowPeople,
   onCreated,
   open,
@@ -486,6 +506,7 @@ function TripBarLive({
         <People
           members={members}
           onInvite={onInvite}
+          onRemove={onRemove}
           onClose={() => setView('root')}
         />
       ) : null}
@@ -598,6 +619,7 @@ function ArchivedRow({
 function People({
   members,
   onInvite,
+  onRemove,
   onClose,
 }: {
   members: readonly TripMember[]
@@ -605,6 +627,15 @@ function People({
     displayName: string,
     email: string,
   ) => Promise<{ field: string; message: string } | null>
+  /**
+   * Take back an unclaimed invitation. Resolves to a refusal in words, or null.
+   *
+   * Only ever called with a member whose `userId` is null — the control is not
+   * drawn on any other row. The database enforces that independently, which is
+   * what makes a claim landing mid-decision a refusal rather than a silent
+   * success.
+   */
+  onRemove: (member: TripMember) => Promise<string | null>
   onClose: () => void
 }) {
   const [displayName, setDisplayName] = useState('')
@@ -612,6 +643,10 @@ function People({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<string | null>(null)
   const [adding, startInvite] = usePending()
+  /** Which invitation is being asked about, or null. The row, not its id, so
+   *  the question can name the person and the address without a second lookup. */
+  const [asking, setAsking] = useState<TripMember | null>(null)
+  const [removing, startRemove] = usePending()
 
   function invite() {
     setErrors({})
@@ -635,16 +670,66 @@ function People({
       <ul className={styles.people}>
         {members.map((member) => (
           <li key={member.id} className={styles.person}>
-            <span className={styles.personName}>{member.displayName}</span>
-            {member.userId === null ? (
-              <span className={styles.pending}>
-                not joined yet · {member.email}
-              </span>
+            <span className={styles.who}>
+              <span className={styles.personName}>{member.displayName}</span>
+              {member.userId === null ? (
+                <span className={styles.pending}>
+                  not joined yet · {member.email}
+                </span>
+              ) : null}
+            </span>
+            {/*
+              Only on a row that has not been claimed, and only while nothing
+              is being asked.
+
+              The second condition is the rule rather than tidiness: no control
+              offering to destroy another record may stand beside a standing
+              question. A trip with one mistyped address never shows this; a
+              trip with two is the difference between a careful panel and a
+              dangerous one.
+            */}
+            {member.userId === null && asking === null ? (
+              <button
+                type="button"
+                className={styles.takeBack}
+                onClick={() => {
+                  setMessage(null)
+                  setAsking(member)
+                }}
+              >
+                {TAKE_BACK_LABEL}
+              </button>
             ) : null}
           </li>
         ))}
       </ul>
 
+      {/*
+        While a question stands the panel is about that one act.
+
+        The invite form is not destructive, so nothing requires hiding it — but
+        the city editor already settled the shape for this, and for the same
+        reason: fields left live beside a question invite somebody to start a
+        different write in a surface that is waiting on an answer.
+      */}
+      {asking !== null ? (
+        <Question
+          question={takeBackQuestion(asking.displayName)}
+          consequence={takeBackConsequence(asking.email)}
+          confirm={TAKE_BACK_CONFIRM}
+          waiting={removing}
+          onConfirm={() => {
+            const member = asking
+            startRemove(async () => {
+              const problem = await onRemove(member)
+              setAsking(null)
+              if (problem) setMessage(problem)
+            })
+          }}
+          onDecline={() => setAsking(null)}
+        />
+      ) : (
+        <>
       <p className={styles.hint}>
         Adding somebody puts them on the trip straight away. Nothing is sent —
         tell them yourself, and the trip appears when they sign in with this
@@ -667,8 +752,6 @@ function People({
         type="email"
       />
 
-      {message ? <FormError message={message} /> : null}
-
       <div className={styles.actions}>
         <Button
           tone="primary"
@@ -681,6 +764,16 @@ function People({
           Back
         </Button>
       </div>
+        </>
+      )}
+
+      {/*
+        Below whichever of the two the panel is showing, because it is about the
+        write that was just attempted rather than about the form. A refusal from
+        taking back an invitation lands here too — most often the one saying
+        that person has joined since the list was opened.
+      */}
+      {message ? <FormError message={message} /> : null}
     </>
   )
 }

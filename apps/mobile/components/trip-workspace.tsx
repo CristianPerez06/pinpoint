@@ -1107,6 +1107,7 @@ export function TripWorkspace({
             members={members}
             ownMemberId={ownMemberId}
             onInvite={tripActions.invite}
+            onRemove={tripActions.removeInvitation}
           />
 
           <CitySheet

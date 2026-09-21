@@ -1,7 +1,7 @@
 'use client'
 
 import type { FieldErrors, Trip, TripMember } from '@pinpoint/core'
-import { fetchTrips, inviteMember, updateTrip } from '@pinpoint/data'
+import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
 import { useRouter } from 'next/navigation'
 import { type Dispatch, type SetStateAction, useState } from 'react'
 
@@ -60,6 +60,7 @@ export type TripActions = Pick<
   | 'onArchive'
   | 'onRestore'
   | 'onInvite'
+  | 'onRemove'
 >
 
 export function useTripActions({
@@ -356,6 +357,25 @@ export function useTripActions({
     return null
   }
 
+  /**
+   * Take back an invitation nobody has claimed.
+   *
+   * Returns a refusal in words, or null. Not optimistic: the row is taken out of
+   * the list only once the database has confirmed it, because the one refusal
+   * that matters here means the row is still real. That person signed in while
+   * the list was open, their invitation is a membership now, and removing it
+   * from the list first would hide somebody who is genuinely on the trip.
+   */
+  async function removeInvitation(member: TripMember) {
+    const outcome = await removeMember(supabase, member.id)
+    if (!outcome.ok) return outcome.kind === 'invalid-input'
+      ? 'Could not take back that invitation.'
+      : outcome.message
+
+    setMembers((current) => current.filter((each) => each.id !== member.id))
+    return null
+  }
+
   return {
     onSelect: selectTrip,
     onRename: renameTrip,
@@ -365,6 +385,7 @@ export function useTripActions({
     onArchive: archiveAndLeave,
     onRestore: restoreTrip,
     onInvite: invite,
+    onRemove: removeInvitation,
   }
 }
 

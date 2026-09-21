@@ -140,3 +140,9 @@ create policy trip_members_insert_member on public.trip_members
 -- rather than deleting, and is a later change; removing a member would cascade
 -- their recorded interest away, silently changing what the trip's filters match
 -- for everybody else. Neither is a gap to be filled in passing.
+--
+-- (Since amended in 20260921120000_revoke_unclaimed_invitation.sql, which adds
+-- a delete policy on trip_members for the one case this paragraph does not
+-- reach: a membership `user_id is null`, which no account has claimed and which
+-- therefore has no recorded interest to cascade. The reasoning above is
+-- unchanged and still governs a membership that has been claimed.)

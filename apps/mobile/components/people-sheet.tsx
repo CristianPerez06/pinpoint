@@ -1,5 +1,11 @@
-import type { TripMember } from '@pinpoint/core'
-import { SPACE, TYPE } from '@pinpoint/tokens'
+import {
+  TAKE_BACK_CONFIRM,
+  TAKE_BACK_LABEL,
+  takeBackConsequence,
+  takeBackQuestion,
+  type TripMember,
+} from '@pinpoint/core'
+import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -13,7 +19,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Button, FormNote, TextField } from '@/components/ui'
+import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -46,6 +52,7 @@ export function PeopleSheet({
   members,
   ownMemberId,
   onInvite,
+  onRemove,
 }: {
   open: boolean
   onClose: () => void
@@ -57,6 +64,11 @@ export function PeopleSheet({
     displayName: string,
     email: string,
   ) => Promise<{ field: string; message: string } | null>
+  /**
+   * Take back an invitation nobody has claimed. Resolves to a refusal in words,
+   * or null. Only ever called with a row whose `userId` is null.
+   */
+  onRemove: (member: TripMember) => Promise<string | null>
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -76,6 +88,10 @@ export function PeopleSheet({
    * already on the trip, which is a true sentence and a baffling one.
    */
   const [adding, startInvite] = usePending()
+  /** Which invitation is being asked about, or null. The row rather than its id,
+   *  so the question can name the person and the address without a second look. */
+  const [asking, setAsking] = useState<TripMember | null>(null)
+  const [removing, startRemove] = usePending()
 
   function invite() {
     setErrors({})
@@ -154,23 +170,84 @@ export function PeopleSheet({
                   key={member.id}
                   style={[styles.person, { borderColor: theme.colour.line }]}
                 >
-                  <Text style={[styles.personName, { color: theme.colour.ink }]}>
-                    {member.id === ownMemberId ? 'You' : member.displayName}
-                  </Text>
-                  {member.userId === null ? (
-                    <Text style={[styles.pending, { color: theme.colour.inkMuted }]}>
-                      not joined yet · {member.email}
+                  <View style={styles.who}>
+                    <Text style={[styles.personName, { color: theme.colour.ink }]}>
+                      {member.id === ownMemberId ? 'You' : member.displayName}
                     </Text>
+                    {member.userId === null ? (
+                      <Text style={[styles.pending, { color: theme.colour.inkMuted }]}>
+                        not joined yet · {member.email}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {/*
+                    Only on a row nobody has claimed, and only while nothing is
+                    being asked. The second condition is the rule rather than
+                    tidiness: no control offering to destroy another record may
+                    stand beside a standing question.
+
+                    Always drawn rather than revealed, unlike the laptop's — a
+                    phone has no hover to reveal it with.
+                  */}
+                  {member.userId === null && asking === null ? (
+                    <Pressable
+                      onPress={() => {
+                        setMessage(null)
+                        setAsking(member)
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${TAKE_BACK_LABEL} ${member.displayName}'s invitation`}
+                      hitSlop={6}
+                      style={[
+                        styles.takeBack,
+                        { borderColor: theme.colour.lineStrong },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.takeBackText, { color: theme.colour.danger }]}
+                      >
+                        {TAKE_BACK_LABEL}
+                      </Text>
+                    </Pressable>
                   ) : null}
                 </View>
               ))}
 
+              {asking !== null ? (
+                <Question
+                  question={takeBackQuestion(asking.displayName)}
+                  consequence={takeBackConsequence(asking.email)}
+                  confirm={TAKE_BACK_CONFIRM}
+                  waiting={removing}
+                  onConfirm={() => {
+                    const member = asking
+                    startRemove(async () => {
+                      const problem = await onRemove(member)
+                      setAsking(null)
+                      if (problem) setMessage(problem)
+                    })
+                  }}
+                  onDecline={() => setAsking(null)}
+                />
+              ) : null}
+
+              {/*
+                While a question stands the sheet is about that one act.
+
+                Nothing requires hiding an invite form — it destroys nothing —
+                but the city sheet already settled the shape, and for the same
+                reason: fields left live beside a question invite somebody to
+                start a different write in a surface waiting on an answer.
+              */}
+              {asking === null ? (
               <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
                 Adding somebody puts them on the trip straight away. Nothing is sent
                 — tell them yourself, and the trip appears when they sign in with
                 this address.
               </Text>
+              ) : null}
 
+              {asking === null ? (
               <View style={styles.form}>
                 <TextField
                   label="Name"
@@ -200,6 +277,7 @@ export function PeopleSheet({
                   onPress={invite}
                 />
               </View>
+              ) : null}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -225,8 +303,29 @@ const styles = StyleSheet.create({
   title: { ...role(TYPE.title), flex: 1 },
   done: { paddingVertical: SPACE.xs, paddingHorizontal: SPACE.sm },
   doneText: { ...role(TYPE.control), fontWeight: '700' },
-  person: { paddingVertical: 11, borderBottomWidth: 1, gap: 1 },
+  // A row now, with the name and address stacked beside whatever it offers.
+  person: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+  },
+  // `minWidth: 0` so a long address is cut rather than pushing the control off
+  // the sheet. `flex: 1` so it takes what is left after the control.
+  who: { flex: 1, minWidth: 0, gap: 1 },
   personName: { ...role(TYPE.rowName) },
+  // Always drawn, because a phone has no hover to reveal it with. Outlined
+  // rather than filled: it is the quieter of the two danger tones, and the
+  // confirming control in the question is the louder one.
+  takeBack: {
+    flexShrink: 0,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  takeBackText: { ...role(TYPE.note), fontWeight: '700' },
   // Muted rather than alarming: an invitation not yet acted on is the ordinary
   // state of one. What it must do is show the address, because a mistyped one is
   // indistinguishable from a correct one until it is read.
