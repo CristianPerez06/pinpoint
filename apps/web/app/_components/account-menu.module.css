@@ -10,23 +10,45 @@
  */
 
 /*
- * Fixed like the rest of the bar, though this one is anchored right and so
- * moves nothing but itself. It is here for the chevron: without a reserved
- * width that glyph sits at a different place on every account, and it is the
- * one part of this control anybody aims at.
+ * As wide as the name, between a floor and a ceiling.
+ *
+ * This was a flat `width: 13ch`, reserving room so the chevron beside it sat in
+ * the same place whatever the account was called. That reserved room is space
+ * spent on the longest name anybody might have, charged to everybody who has a
+ * shorter one — `Cristian` is eight characters paying for thirteen, and the gap
+ * reads as the control being loose rather than as alignment.
+ *
+ * What the ceiling still does is the half worth keeping: past it a long name is
+ * cut rather than pushing the bar around. The floor keeps a short name — `Al`,
+ * `Jo` — from shrinking the target to almost nothing and pulling the chevron in
+ * against the lettering.
+ *
+ * What it gives up is the chevron's fixed position across accounts. That was
+ * only ever visible to somebody watching two different accounts, or switching
+ * to a trip that calls them something else; within one trip the name does not
+ * change, so the glyph does not move while anybody is looking at it.
  */
 .you {
   display: block;
-  width: 13ch;
+  min-width: 5ch;
+  max-width: 13ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
 }
 
-/* Who is signed in, at the top of the menu about them. */
+/* Who is signed in, at the top of the menu about them.
+ *
+ * `min-width: 0` because this is a grid item of a panel that is 320px wide, and
+ * a grid item's floor is its own content unless it is told otherwise — so an
+ * address longer than the panel widens the row and overflows it rather than
+ * being cut. Measured at 607px inside a 320px panel before this line existed.
+ * The same default put the trip menu's rows outside this same panel in #200;
+ * the inner column needs it too, and neither one is sufficient alone. */
 .identity {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 11px;
   padding: 3px var(--pp-space-sm) var(--pp-space-xs);
@@ -47,6 +69,19 @@
   font-weight: 700;
 }
 
+/* The name over the address.
+ *
+ * `min-width: 0` is what keeps the panel its own width. A flex item's floor is
+ * its content unless it is told otherwise, so without this an address longer
+ * than the panel pushes the panel wider rather than being cut — the same
+ * default that put the trip menu's rows 96px outside their panel in #200. */
+.identityWho {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .identityName {
   min-width: 0;
   overflow: hidden;
@@ -54,6 +89,18 @@
   white-space: nowrap;
   font-size: var(--pp-type-row-name-size);
   font-weight: var(--pp-type-row-name-weight);
+}
+
+/* Quieter than the name, and truncating for the same reason. The phone's menu
+   pairs these two at the same two weights. */
+.identityEmail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-note-size);
+  font-weight: var(--pp-type-note-weight);
 }
 
 .identityRule {

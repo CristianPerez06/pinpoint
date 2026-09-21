@@ -96,7 +96,7 @@ export type ChromeBindings = {
   /** Something is open over the map, so the bar yields the bottom edge to it. */
   panelOpen: boolean
 
-  youAre: AccountMenuLiveProps['youAre']
+  you: AccountMenuLiveProps['you']
 
   detour: DetourPanel
   onDetour: (panel: DetourPanel) => void
@@ -396,7 +396,7 @@ export function WorkspaceChrome({
       account={
         live ? (
           <AccountMenu
-            youAre={live.youAre}
+            you={live.you}
             open={live.detour === 'account'}
             onOpen={(open) => live.onDetour(open ? 'account' : 'none')}
           />
