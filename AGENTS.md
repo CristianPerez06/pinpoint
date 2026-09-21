@@ -184,6 +184,25 @@ placeholders.
   the name in iOS's "Open in …?" prompt: `pinpoint` is the old build, `Pinpoint` the
   current one. `xcrun simctl listapps booted | grep -i pinpoint` settles it, and the
   stale one comes off with `xcrun simctl uninstall booted com.pinpoint.app`.
+- **`expo prebuild` is run from `apps/mobile`, and running it at the root succeeds.**
+  That is the whole problem: it does not fail, it does the wrong thing quietly. The
+  Expo CLI installs into the nearest `package.json`, and at the root of a pnpm
+  workspace that is the workspace root — so it adds `expo`, `react` and
+  `react-native` to the root manifest as `dependencies`, rewrites `pnpm-lock.yaml`,
+  writes a root `ios/` whose app icon is Expo's blank default because there is no
+  config there naming one, and leaves `apps/mobile/ios` untouched, so the build you
+  were trying to make was not made either. **Learn the shape of this one**: there is
+  no error, and the largest artefact is invisible — `.gitignore` is an unscoped
+  `ios/`, so the root folder never appears in `git status`. What does appear is a
+  manifest and lockfile diff in whatever branch happens to be checked out, which
+  reads as somebody else's mess. It has happened twice; the second time it was found
+  three hours later while reviewing an unrelated change.
+  `.github/scripts/check-root-prebuild.mjs` now fails on any of the three marks it
+  leaves, from `preinstall` (so it stops the install Expo itself runs, on the machine
+  that did it), from `pnpm verify`, and in CI. Note what it deliberately does not
+  check: the lockfile having changed, which is the loudest symptom and the worst
+  test, because that happens legitimately whenever anyone touches a dependency. The
+  right command is `pnpm --filter mobile exec expo prebuild`.
 - **A write that cannot resolve to an existing membership goes through a
   `SECURITY DEFINER` function, not a widened policy.** Creating a trip is the only
   such case: the membership an insert policy would resolve to is the one being

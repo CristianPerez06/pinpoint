@@ -179,6 +179,22 @@ jobs:
       - name: Check dependency graph
         run: node .github/scripts/check-cycles.mjs
 
+      # `expo prebuild` belongs in apps/mobile. Run at the root it does not fail
+      # — Expo installs into the nearest package.json, which in a pnpm workspace
+      # is the workspace root — and it adds the app's dependencies there, churns
+      # the lockfile, writes a root ios/ with a blank icon, and leaves
+      # apps/mobile/ios untouched. It has happened twice. The root ios/ never
+      # shows in `git status` because .gitignore is an unscoped `ios/`, so the
+      # only trace is an unexplained manifest diff in whatever branch is checked
+      # out; the second time it was found three hours later, reviewing something
+      # else. A root `preinstall` catches the install Expo itself runs, which is
+      # where it is caught on the machine that did it. This step is what catches
+      # a marker that reached a pull request anyway — an install with nothing to
+      # do runs no lifecycle script, so `preinstall` alone would let a leftover
+      # root ios/ through.
+      - name: Check the root was not treated as an app
+        run: pnpm check:root-prebuild
+
       # Which workflows OpenSpec generates is a global, per-machine setting
       # whose default profile includes `explore` — so `openspec update` puts
       # back the agent instructions #117 and #130 deliberately removed, on any
