@@ -2,7 +2,7 @@
 # Runs on every PR targeting main and every push to main.
 #
 # Jobs run in parallel:
-#   quality          eslint + tsc --noEmit for both apps
+#   quality          eslint + tsc --noEmit for both apps, eslint for packages/
 #   web-build        next build with placeholder config
 #   packages-test    vitest for the shared packages
 #   workspace-health lockfile freshness + duplicate runtime deps + graph cycles
@@ -49,6 +49,9 @@ jobs:
 
       - name: Lint mobile
         run: pnpm --filter mobile lint
+
+      - name: Lint packages
+        run: pnpm lint:packages
 
       - name: Typecheck web
         run: pnpm --filter web typecheck

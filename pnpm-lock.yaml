@@ -11,9 +11,15 @@ importers:
       '@fission-ai/openspec':
         specifier: ^1.13.0
         version: 1.13.0(@types/node@24.13.3)
+      eslint:
+        specifier: ^9
+        version: 9.39.5(supports-color@8.1.1)
       supabase:
         specifier: ^2.111.0
         version: 2.111.0
+      typescript-eslint:
+        specifier: ^8.65.0
+        version: 8.65.0(eslint@9.39.5(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
 
   apps/mobile:
     dependencies:

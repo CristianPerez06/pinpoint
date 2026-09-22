@@ -1,6 +1,26 @@
 import coreWebVitals from 'eslint-config-next/core-web-vitals'
 import typescript from 'eslint-config-next/typescript'
 
+/**
+ * Adds type information to the parser without which `restrict-template-expressions`
+ * and `restrict-plus-operands` below cannot run at all. `projectService` finds the
+ * tsconfig that owns each file rather than enumerating projects by hand, so nothing
+ * here rots when a file moves.
+ */
+const typeAware = {
+  files: ['**/*.ts', '**/*.tsx'],
+  languageOptions: {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+  rules: {
+    '@typescript-eslint/restrict-template-expressions': 'error',
+    '@typescript-eslint/restrict-plus-operands': 'error',
+  },
+}
+
 const config = [
   {
     ignores: [
@@ -23,6 +43,7 @@ const config = [
   },
   ...coreWebVitals,
   ...typescript,
+  typeAware,
 ]
 
 export default config
