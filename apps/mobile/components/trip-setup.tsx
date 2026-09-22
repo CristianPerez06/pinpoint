@@ -1,6 +1,7 @@
 import type { FieldErrors, IsoDay } from '@pinpoint/core'
 import { createTrip } from '@pinpoint/data'
 import { SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -89,6 +90,18 @@ export function TripSetup({ onCreated }: { onCreated: (tripId: string) => void }
 }
 
 /**
+ * A field's refusal, in words, and nothing when there is no refusal.
+ *
+ * The language is still named at the call — this only carries the `undefined`
+ * through, which is the part four fields would otherwise each spell out. Named
+ * apart from `@pinpoint/core`'s `refusal`, which goes the other way: that one
+ * puts a name into a schema's message slot, this takes one out.
+ */
+function refusalWords(error: Message | undefined): string | undefined {
+  return error === undefined ? undefined : say(ENGLISH_LANGUAGE, error)
+}
+
+/**
  * The two questions, and nothing around them.
  *
  * Split out because there are two ways in and they are not the same screen. The
@@ -129,7 +142,7 @@ export function CreateTripForm({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else setMessage(outcome.message)
+      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
       return
     }
 
@@ -142,7 +155,7 @@ export function CreateTripForm({
         label="What is the trip called?"
         value={name}
         onChange={setName}
-        error={fieldErrors.name}
+        error={refusalWords(fieldErrors.name)}
         placeholder="Japan 2026"
       />
 
@@ -156,7 +169,7 @@ export function CreateTripForm({
         label="What should we call you on it?"
         value={displayName}
         onChange={setDisplayName}
-        error={fieldErrors.displayName}
+        error={refusalWords(fieldErrors.displayName)}
         placeholder="Your name, as the others would say it"
       />
 
@@ -171,13 +184,13 @@ export function CreateTripForm({
         label="Start date"
         value={startsOn}
         onChange={setStartsOn}
-        error={fieldErrors.startsOn}
+        error={refusalWords(fieldErrors.startsOn)}
       />
       <DayField
         label="End date"
         value={endsOn}
         onChange={setEndsOn}
-        error={fieldErrors.endsOn}
+        error={refusalWords(fieldErrors.endsOn)}
       />
 
       {message ? <FormNote tone="danger">{message}</FormNote> : null}

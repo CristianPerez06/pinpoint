@@ -1,3 +1,5 @@
+import { message, type Message } from '@pinpoint/wording'
+
 /**
  * What the product says when somebody takes back an invitation.
  *
@@ -16,13 +18,13 @@
 
 /** The control on an unclaimed row. Not `Remove`: this undoes a typo, it does
  *  not eject a person. */
-export const TAKE_BACK_LABEL = 'Take back'
+export const TAKE_BACK_LABEL = message('member.takeBackLabel')
 
 /** The confirming control, which restates the act rather than saying `Yes`. */
-export const TAKE_BACK_CONFIRM = 'Take it back'
+export const TAKE_BACK_CONFIRM = message('member.takeBackConfirm')
 
 /** Declining. The same word both applications already use to decline. */
-export const TAKE_BACK_DECLINE = 'Cancel'
+export const TAKE_BACK_DECLINE = message('member.takeBackDecline')
 
 /**
  * The question, naming the person.
@@ -30,8 +32,8 @@ export const TAKE_BACK_DECLINE = 'Cancel'
  * A possessive rather than "this invitation", because a list can hold several
  * and "this" names none of them.
  */
-export function takeBackQuestion(displayName: string): string {
-  return `Take back ${displayName}'s invitation?`
+export function takeBackQuestion(displayName: string): Message {
+  return message('member.takeBackQuestion', { name: displayName })
 }
 
 /**
@@ -47,6 +49,6 @@ export function takeBackQuestion(displayName: string): string {
  * typo can be corrected by inviting again. Without it somebody may reasonably
  * fear that taking it back burns the address.
  */
-export function takeBackConsequence(email: string): string {
-  return `${email} comes off the trip. Nothing else changes, and you can invite that address again.`
+export function takeBackConsequence(email: string): Message {
+  return message('member.takeBackConsequence', { email })
 }

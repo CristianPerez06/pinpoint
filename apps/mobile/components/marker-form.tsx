@@ -11,6 +11,7 @@ import {
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Animated,
@@ -27,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CurrencyField } from '@/components/currency-field'
 import { HoursField } from '@/components/hours-field'
-import { MarkerGlyph } from '@/components/marker-icon'
+import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import {
   Button,
   DayField,
@@ -89,6 +90,21 @@ export function openingHeight(windowHeight: number): number {
 
 /** How far a drag must travel before it counts as reaching for the other height. */
 const SNAP_THRESHOLD = 60
+
+/**
+ * A field's refusal, in words, and nothing when there is no refusal.
+ *
+ * `FieldErrors` names a message rather than holding a sentence, and this form
+ * draws eight of them into controls that take a string. The language is still
+ * named at every call — this only carries the `undefined`, which is the part
+ * that would otherwise be written out eight times with nothing to gain.
+ *
+ * Not `refusal`: `@pinpoint/core` already has one, and it goes the other way —
+ * it puts a name *into* a schema's message slot, where this takes one out.
+ */
+function refusalWords(error: Message | undefined): string | undefined {
+  return error === undefined ? undefined : say(ENGLISH_LANGUAGE, error)
+}
 
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
 function absentIfBlank(value: string): string | null {
@@ -481,7 +497,7 @@ export function MarkerFormSheet({
             label="Name"
             value={name}
             onChange={setName}
-            error={fieldErrors.name}
+            error={refusalWords(fieldErrors.name)}
             placeholder="What is this place called?"
           />
 
@@ -507,7 +523,7 @@ export function MarkerFormSheet({
                     onPress={() => setType(definition.id)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: chosen }}
-                    accessibilityLabel={definition.label}
+                    accessibilityLabel={say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
                     style={[
                       styles.type,
                       {
@@ -542,7 +558,7 @@ export function MarkerFormSheet({
                       style={[styles.typeLabel, { color: theme.colour.ink }]}
                       numberOfLines={1}
                     >
-                      {definition.label}
+                      {say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
                     </Text>
                   </Pressable>
                 )
@@ -553,7 +569,7 @@ export function MarkerFormSheet({
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.colour.danger }]}
               >
-                {fieldErrors.type}
+                {say(ENGLISH_LANGUAGE, fieldErrors.type)}
               </Text>
             ) : null}
           </View>
@@ -596,7 +612,7 @@ export function MarkerFormSheet({
                 ]}
               >
                 <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  {cityNotice.message}
+                  {say(ENGLISH_LANGUAGE, cityNotice.message)}
                 </Text>
                 {cityNotice.offer && !newCity ? (
                   <View style={styles.row}>
@@ -613,7 +629,7 @@ export function MarkerFormSheet({
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.colour.danger }]}
               >
-                {fieldErrors.cityId}
+                {say(ENGLISH_LANGUAGE, fieldErrors.cityId)}
               </Text>
             ) : null}
           </View>
@@ -678,7 +694,7 @@ export function MarkerFormSheet({
                 setExtended(false)
               }
             }}
-            error={fieldErrors.plannedOn}
+            error={refusalWords(fieldErrors.plannedOn)}
           />
 
           {/*
@@ -707,17 +723,21 @@ export function MarkerFormSheet({
                 setPlannedUntil(day)
                 if (day === null) setExtended(false)
               }}
-              error={fieldErrors.plannedUntil}
+              error={refusalWords(fieldErrors.plannedUntil)}
             />
           ) : null}
 
-          <HoursField draft={hours} onChange={setHours} error={fieldErrors.hours} />
+          <HoursField
+            draft={hours}
+            onChange={setHours}
+            error={refusalWords(fieldErrors.hours)}
+          />
 
           <TextField
             label="Note"
             value={note}
             onChange={setNote}
-            error={fieldErrors.note}
+            error={refusalWords(fieldErrors.note)}
             placeholder="Why is this worth going to?"
             multiline
           />
@@ -726,7 +746,7 @@ export function MarkerFormSheet({
             label="Link"
             value={link}
             onChange={setLink}
-            error={fieldErrors.link}
+            error={refusalWords(fieldErrors.link)}
             placeholder="https://…"
             keyboardType="url"
             autoCapitalize="none"
@@ -737,7 +757,7 @@ export function MarkerFormSheet({
             onChange={setPrice}
             free={free}
             onFreeChange={setFree}
-            error={fieldErrors.price}
+            error={refusalWords(fieldErrors.price)}
             local={
               currency === null || chosenCity === null
                 ? undefined
@@ -747,7 +767,7 @@ export function MarkerFormSheet({
                     onChange: (value) =>
                       setLocalByCurrency((current) => ({ ...current, [currency]: value })),
                     hint: `${currency} is ${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
-                    error: fieldErrors.localPrice,
+                    error: refusalWords(fieldErrors.localPrice),
                   }
             }
             warning={

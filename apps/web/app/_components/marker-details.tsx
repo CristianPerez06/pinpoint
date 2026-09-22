@@ -12,10 +12,12 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { X } from 'lucide-react'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
+import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { TypeChip } from '@/app/_components/pin'
 import {
   Button,
@@ -87,9 +89,14 @@ function ControlField({ label, children }: { label: string; children: ReactNode 
   )
 }
 
-/** Says what is missing, in the words both cards share. */
-function Absent({ children }: { children: string }) {
-  return <span className={styles.absent}>{children}</span>
+/**
+ * Says what is missing, in the words both cards share.
+ *
+ * Takes the name rather than the sentence — `EMPTY_FIELD_WORDING` reports one
+ * per field — and resolves it here, which is the span it is drawn in.
+ */
+function Absent({ children }: { children: Message }) {
+  return <span className={styles.absent}>{say(ENGLISH_LANGUAGE, children)}</span>
 }
 
 /**
@@ -245,7 +252,7 @@ function Details({
           className={`${styles.tag} ${styles.tagFamily}`}
           style={{ backgroundColor: `var(--pp-pin-${view.type})` }}
         >
-          {view.typeLabel}
+          {say(ENGLISH_LANGUAGE, markerTypeMessage(view.typeId))}
         </span>
         {/* `USD 25 · JPY 3,800`, either alone, or `Free`; no pill for neither.
             One shared helper, so the phone and the laptop cannot disagree. */}
@@ -279,7 +286,9 @@ function Details({
           that has not been supplied; a place filed under nothing has an answer,
           and it is `Unassigned`. See `UNFILED_CITY_WORDING`.
         */}
-        <Field label="City">{cityName ?? UNFILED_CITY_WORDING}</Field>
+        <Field label="City">
+          {cityName ?? say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
+        </Field>
 
         {/*
           One day, or the run it covers.
@@ -435,7 +444,9 @@ function Chooser({
             >
               <TypeChip view={group.views[index]!} size={26} />
               <span>{marker.name}</span>
-              <span className={styles.choiceType}>{group.views[index]!.typeLabel}</span>
+              <span className={styles.choiceType}>
+                {say(ENGLISH_LANGUAGE, markerTypeMessage(group.views[index]!.typeId))}
+              </span>
             </button>
           </li>
         ))}

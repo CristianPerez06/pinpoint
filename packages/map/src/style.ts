@@ -68,22 +68,22 @@ export const ATTRIBUTION = '© OpenMapTiles © OpenStreetMap contributors'
 export const MAP_CREDITS = [
   {
     name: 'OpenStreetMap',
-    role: 'The map data, contributed by its community.',
+    role: 'credit.openstreetmap',
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
     name: 'OpenMapTiles',
-    role: 'The schema the data is packed into.',
+    role: 'credit.openmaptiles',
     url: 'https://openmaptiles.org/',
   },
   {
     name: 'OpenFreeMap',
-    role: 'Serves the tiles, at no cost and without an account.',
+    role: 'credit.openfreemap',
     url: 'https://openfreemap.org/',
   },
   {
     name: 'MapLibre',
-    role: 'Draws the map on the screen.',
+    role: 'credit.maplibre',
     url: 'https://maplibre.org/',
   },
 ] as const satisfies readonly MapCredit[]
@@ -91,7 +91,12 @@ export const MAP_CREDITS = [
 /** One thing the map is built out of. */
 export interface MapCredit {
   name: string
-  /** What it does, in one line a person who is not a cartographer can read. */
+  /**
+   * Names what it does, in one line a person who is not a cartographer can
+   * read. A name, not the line — resolved by each application, like a marker
+   * type's. The name beside it is a proper noun and stays as it is, and so
+   * does `ATTRIBUTION`, which is the licence condition rather than our prose.
+   */
   role: string
   url: string
 }

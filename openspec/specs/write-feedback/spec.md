@@ -179,9 +179,17 @@ Each application SHALL have somewhere for a refusal that belongs to no open form
 shown. An application without one has handlers whose failure branch writes into state
 that nothing renders, which reads as reporting and is not.
 
-The wording of a refusal about a field SHALL be shared by both applications rather than
-written beside either form, so that the same mistake is answered the same way on the
-phone and on the laptop.
+A refusal about a field SHALL be reported as a **name** drawn from one shared source, and
+both applications SHALL resolve that name to the same sentence, so that the same mistake
+is answered the same way on the phone and on the laptop. The name SHALL be what the
+refusal carries; the sentence SHALL be resolved where it is drawn.
+
+Stated as a shared name rather than a shared sentence because the sharing and the language
+are two different things, and holding one sentence achieves the first by assuming the
+second. Both messages answering a refused city name were written twice on the same day and
+had already drifted — one application quoting the name and the other not — which is why
+this is shared at all; a shared name keeps exactly that, while leaving the words somewhere
+a language can be chosen.
 
 #### Scenario: A refusal with no form open
 
@@ -223,7 +231,14 @@ phone and on the laptop.
 #### Scenario: The same mistake on the other platform
 
 - **WHEN** the same value is refused on the phone and on the laptop
-- **THEN** both say the same thing
+- **THEN** both resolve the same name
+- **AND** both say the same thing
+
+#### Scenario: A refusal crossing out of shared code
+
+- **WHEN** a shared write refuses a value a person entered
+- **THEN** what it reports names the refusal
+- **AND** it carries no sentence written for a person
 
 #### Scenario: A rolled-back optimistic write
 

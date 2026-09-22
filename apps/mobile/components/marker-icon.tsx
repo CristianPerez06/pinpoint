@@ -1,4 +1,5 @@
-import type { MarkerIconName } from '@pinpoint/map'
+import type { MarkerIconName, MarkerType } from '@pinpoint/map'
+import { message, type Message, type MessageKey } from '@pinpoint/wording'
 /*
  * Imported one icon at a time, from the subpath rather than the package root.
  *
@@ -57,6 +58,51 @@ const GLYPHS: Record<MarkerIconName, LucideIcon> = {
   'shopping-bag': ShoppingBag,
   bed: Bed,
   train: TrainFront,
+}
+
+/**
+ * Which catalogue entry names each type, on this platform.
+ *
+ * The same shape as `GLYPHS` above, and here for the same reason: the shared
+ * package names a type and stops there, so an application resolves the name
+ * into whatever it can actually show — a glyph in one record, a word in this
+ * one. Being exhaustive over `MarkerType` is the whole point; a ninth type
+ * added without a word beside it fails to typecheck here rather than drawing a
+ * blank tag where `Temple` should be.
+ *
+ * Every key is written out in full rather than assembled from the identifier.
+ * `markerType.${id}` would typecheck and would be invisible to the check that
+ * reads this repository looking for which entries are used, which is what lets
+ * that check report an unused entry with any confidence.
+ */
+const TYPE_NAMES: Record<MarkerType, MessageKey> = {
+  place: 'markerType.place',
+  temple: 'markerType.temple',
+  culture: 'markerType.culture',
+  nature: 'markerType.nature',
+  food: 'markerType.food',
+  shopping: 'markerType.shopping',
+  stay: 'markerType.stay',
+  transport: 'markerType.transport',
+}
+
+/**
+ * What to say for a type. A name, and deliberately not the words.
+ *
+ * Takes the resolved `MarkerType` rather than a `MarkerView`'s `typeId`, which
+ * is a `string` — the two hold the same value, and taking the narrow one is
+ * what keeps the record above exhaustively checked instead of needing a cast at
+ * every call site.
+ *
+ * It stops at the name rather than resolving. This is imported by four files,
+ * so resolving here would be one helper quietly answering "which language" for
+ * most of the application — which is the single thing `say` takes a language
+ * argument to prevent, and it would make the change that adds a second one edit
+ * a signature and every call rather than a value. The web application's
+ * `markerTypeMessage` stops in the same place, for the same reason.
+ */
+export function markerTypeMessage(type: MarkerType): Message {
+  return message(TYPE_NAMES[type])
 }
 
 /**

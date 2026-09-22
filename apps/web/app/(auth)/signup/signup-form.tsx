@@ -1,5 +1,6 @@
 'use client'
 
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useActionState } from 'react'
 
@@ -9,6 +10,9 @@ import styles from '../auth.module.css'
 
 const INITIAL: AuthFormState = {}
 
+/** The action reports names; this is the screen, so this is where they become words. */
+const words = (refusal: Message) => say(ENGLISH_LANGUAGE, refusal)
+
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUpAction, INITIAL)
 
@@ -16,7 +20,7 @@ export function SignupForm() {
     <form action={action} className={styles.form}>
       {state.formError ? (
         <p role="alert" className={styles.formError}>
-          {state.formError}
+          {words(state.formError)}
         </p>
       ) : null}
 
@@ -32,7 +36,7 @@ export function SignupForm() {
           aria-describedby={state.fieldErrors?.email ? 'email-error' : undefined}
         />
         {state.fieldErrors?.email ? (
-          <span id="email-error" className={styles.fieldError}>{state.fieldErrors.email}</span>
+          <span id="email-error" className={styles.fieldError}>{words(state.fieldErrors.email)}</span>
         ) : null}
       </p>
 
@@ -50,7 +54,7 @@ export function SignupForm() {
           }
         />
         {state.fieldErrors?.password ? (
-          <span id="password-error" className={styles.fieldError}>{state.fieldErrors.password}</span>
+          <span id="password-error" className={styles.fieldError}>{words(state.fieldErrors.password)}</span>
         ) : null}
       </p>
 
@@ -68,7 +72,7 @@ export function SignupForm() {
           }
         />
         {state.fieldErrors?.confirmPassword ? (
-          <span id="confirm-error" className={styles.fieldError}>{state.fieldErrors.confirmPassword}</span>
+          <span id="confirm-error" className={styles.fieldError}>{words(state.fieldErrors.confirmPassword)}</span>
         ) : null}
       </p>
 

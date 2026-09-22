@@ -1,3 +1,5 @@
+import { authFailureMessage } from '@pinpoint/supabase'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -100,7 +102,16 @@ describe('signIn', () => {
 
     expect(outcome).toMatchObject({ ok: false, kind: 'rejected', failure: 'generic' })
     if (outcome.ok || outcome.kind !== 'rejected') throw new Error('unreachable')
-    expect(outcome.message).not.toContain('raw service text')
+    /*
+     * The outcome carries the failure and nothing else now, so the service's
+     * own text has nowhere left to ride along — which is a stronger guarantee
+     * than the assertion it replaces, and is asserted as such rather than
+     * being left to the shape.
+     */
+    expect(Object.keys(outcome)).toEqual(['ok', 'kind', 'failure'])
+    expect(say(ENGLISH_LANGUAGE, authFailureMessage(outcome.failure))).not.toContain(
+      'raw service text',
+    )
   })
 })
 

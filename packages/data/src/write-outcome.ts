@@ -1,4 +1,5 @@
 import type { FieldErrors } from '@pinpoint/core'
+import type { Message } from '@pinpoint/wording'
 
 /**
  * What a write of trip data produced.
@@ -20,7 +21,7 @@ import type { FieldErrors } from '@pinpoint/core'
 export type WriteOutcome<T> =
   | { ok: true; data: T }
   | { ok: false; kind: 'invalid-input'; fieldErrors: FieldErrors }
-  | { ok: false; kind: 'rejected'; message: string }
+  | { ok: false; kind: 'rejected'; reason: Message }
   /**
    * Somebody else changed the row while this edit was being written.
    *
@@ -32,7 +33,7 @@ export type WriteOutcome<T> =
    * you typed, you may not do this, and somebody else changed it while you were
    * working. Only the third is nobody's mistake.
    */
-  | { ok: false; kind: 'conflict'; message: string }
+  | { ok: false; kind: 'conflict'; reason: Message }
 
 export function wrote<T>(data: T): WriteOutcome<T> {
   return { ok: true, data }
@@ -43,15 +44,18 @@ export function invalidInput<T>(fieldErrors: FieldErrors): WriteOutcome<T> {
 }
 
 /**
- * A refusal the person has to be told about, in words written for them.
+ * A refusal the person has to be told about, named rather than written out.
  *
  * The database's own error text never reaches here. It is written for whoever
  * reads logs, it frequently names a constraint, and it is occasionally a
  * description of the schema — none of which helps somebody looking at a form
  * that will not submit.
+ *
+ * What it takes is a name, because this package has no idea who is reading. The
+ * sentence is resolved by whichever application draws it.
  */
-export function rejected<T>(message: string): WriteOutcome<T> {
-  return { ok: false, kind: 'rejected', message }
+export function rejected<T>(reason: Message): WriteOutcome<T> {
+  return { ok: false, kind: 'rejected', reason }
 }
 
 /**
@@ -62,6 +66,6 @@ export function rejected<T>(message: string): WriteOutcome<T> {
  * cannot — and which version is right is a question about a trip rather than
  * about data.
  */
-export function conflicted<T>(message: string): WriteOutcome<T> {
-  return { ok: false, kind: 'conflict', message }
+export function conflicted<T>(reason: Message): WriteOutcome<T> {
+  return { ok: false, kind: 'conflict', reason }
 }

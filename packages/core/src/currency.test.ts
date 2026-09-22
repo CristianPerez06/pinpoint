@@ -77,11 +77,11 @@ describe('a refused currency says what is wrong', () => {
   }
 
   it('something that is not a three-letter code', () => {
-    expect(complain('yen')).toBe('A currency is a three-letter code, like JPY.')
+    expect(complain('yen')).toBe('currency.malformed')
   })
 
   // Already written in our own voice before this change, and left as it was.
   it('the currency every place already has', () => {
-    expect(complain('USD')).toBe('US dollars is already the first price.')
+    expect(complain('USD')).toBe('currency.alreadyDollars')
   })
 })

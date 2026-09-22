@@ -5,6 +5,7 @@ import {
   type Trip,
 } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import Archive from 'lucide-react-native/icons/archive'
 import ArchiveRestore from 'lucide-react-native/icons/archive-restore'
 import Check from 'lucide-react-native/icons/check'
@@ -371,13 +372,18 @@ export function TripSheet({
                     label="Start date"
                     value={startsOn}
                     onChange={setStartsOn}
-                    error={dateErrors.startsOn}
+                    error={
+                      dateErrors.startsOn &&
+                      say(ENGLISH_LANGUAGE, dateErrors.startsOn)
+                    }
                   />
                   <DayField
                     label="End date"
                     value={endsOn}
                     onChange={setEndsOn}
-                    error={dateErrors.endsOn}
+                    error={
+                      dateErrors.endsOn && say(ENGLISH_LANGUAGE, dateErrors.endsOn)
+                    }
                   />
                   <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
                     Both are optional. They decide which day the calendar opens on

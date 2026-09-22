@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { refusal } from './field-errors'
 import { tripMemberSchema } from './trip-member'
 
 /**
@@ -10,8 +11,8 @@ export const tripSchema = z.object({
   id: z.uuid(),
   name: z
     .string()
-    .min(1, 'A trip needs a name.')
-    .max(120, 'A trip name can be 120 characters at most.'),
+    .min(1, refusal('trip.needsName'))
+    .max(120, refusal('trip.nameTooLong')),
   /** Past trips stay readable but stop cluttering the list. */
   archived: z.boolean(),
   /**
@@ -29,8 +30,8 @@ export const tripSchema = z.object({
    * They constrain nothing. Nothing here or downstream may read them as a
    * boundary on what dates a marker may carry.
    */
-  startsOn: z.iso.date('A start date should look like 2026-04-03.').nullable(),
-  endsOn: z.iso.date('An end date should look like 2026-04-03.').nullable(),
+  startsOn: z.iso.date(refusal('trip.startMalformed')).nullable(),
+  endsOn: z.iso.date(refusal('trip.endMalformed')).nullable(),
   createdAt: z.iso.datetime(),
 })
 
@@ -60,7 +61,7 @@ function endsOnOrAfterStart(value: {
 }
 
 const DATES_ORDERED = {
-  message: 'The end date cannot be before the start date.',
+  message: refusal('trip.endBeforeStart'),
   path: ['endsOn'],
 }
 

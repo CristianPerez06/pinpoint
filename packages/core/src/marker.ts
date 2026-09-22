@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { currencyCodeSchema } from './currency'
+import { refusal } from './field-errors'
 // The bound is stated once, in the module that owns day arithmetic, and again
 // by the database's own check. Not a third time here.
 import { MAX_RUN_DAYS } from './marker-day'
@@ -23,22 +24,22 @@ export const markerSchema = z.object({
   id: z.uuid(),
   tripId: z.uuid(),
   /** Null means unassigned, which is a valid resting state, not a gap to fill. */
-  cityId: z.uuid('Choose a city from the list.').nullable(),
+  cityId: z.uuid(refusal('place.cityNotOnList')).nullable(),
   name: z
     .string()
-    .min(1, 'A place needs a name.')
-    .max(200, 'A name can be 200 characters at most.'),
-  note: z.string().max(2000, 'A note can be 2,000 characters at most.').nullable(),
+    .min(1, refusal('place.needsName'))
+    .max(200, refusal('place.nameTooLong')),
+  note: z.string().max(2000, refusal('place.noteTooLong')).nullable(),
   lng: z.number().min(-180).max(180),
   lat: z.number().min(-90).max(90),
   type: markerTypeSchema,
   /** Where the place was found — the answer to "why did we save this?". */
   link: z
-    .url('A link should look like https://example.com.')
-    .max(2000, 'A link can be 2,000 characters at most.')
+    .url(refusal('place.linkMalformed'))
+    .max(2000, refusal('place.linkTooLong'))
     .nullable(),
   /** In US dollars, always. Zero is a free place; null is a price nobody has entered. */
-  price: z.number().nonnegative('A price cannot be less than nothing.').nullable(),
+  price: z.number().nonnegative(refusal('place.priceNegative')).nullable(),
   /**
    * The price as it was seen in the second currency of the place's city — a
    * menu in yen — or null. Typed, never converted from `price` or into it.
@@ -54,7 +55,7 @@ export const markerSchema = z.object({
     // place that costs nothing is `Free`, which is `price = 0` and no local
     // amount at all — so the message names the control that says so rather
     // than leaving somebody to guess why zero is not a price.
-    .positive('A price cannot be less than nothing. Turn on Free for a place that costs nothing.')
+    .positive(refusal('place.priceNegativeWithFree'))
     .nullable(),
   /** The currency `localPrice` is in. Set exactly when `localPrice` is. */
   localCurrency: currencyCodeSchema.nullable(),
@@ -76,7 +77,7 @@ export const markerSchema = z.object({
    * a boundary. A place dated a day either side of the trip is somebody's
    * decision, not an error.
    */
-  plannedOn: z.iso.date('A day should look like 2026-04-03.').nullable(),
+  plannedOn: z.iso.date(refusal('place.dayMalformed')).nullable(),
   /**
    * The last day of a run, or null for a place planned for a single day.
    *
@@ -98,7 +99,7 @@ export const markerSchema = z.object({
    * and render; `runOfDays` in `marker-day.ts` reads such a pair as a single
    * day rather than failing.
    */
-  plannedUntil: z.iso.date('A last day should look like 2026-04-03.').nullable(),
+  plannedUntil: z.iso.date(refusal('place.lastDayMalformed')).nullable(),
   /**
    * The days the place is open and at what times, or null while nobody has
    * entered them — which is never the same as closed. See `opening-hours.ts`.
@@ -185,7 +186,7 @@ function runOfDaysIsValid(
     ctx.addIssue({
       code: 'custom',
       path: ['plannedUntil'],
-      message: 'A last day needs a day to start from.',
+      message: refusal('place.lastDayNeedsFirst'),
     })
     return
   }
@@ -196,7 +197,7 @@ function runOfDaysIsValid(
     ctx.addIssue({
       code: 'custom',
       path: ['plannedUntil'],
-      message: 'The last day must fall after the day.',
+      message: refusal('place.lastDayBeforeFirst'),
     })
     return
   }
@@ -205,7 +206,7 @@ function runOfDaysIsValid(
     ctx.addIssue({
       code: 'custom',
       path: ['plannedUntil'],
-      message: 'A place cannot be planned for more than a year. Check the year.',
+      message: refusal('place.spanTooLong'),
     })
   }
 }
@@ -255,7 +256,7 @@ function localPriceComesWithCurrency(
     ctx.addIssue({
       code: 'custom',
       path: ['localPrice'],
-      message: 'A local price needs the currency it is in.',
+      message: refusal('place.localPriceNeedsCurrency'),
     })
   }
 }

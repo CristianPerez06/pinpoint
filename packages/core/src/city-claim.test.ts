@@ -1,3 +1,4 @@
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,6 +7,15 @@ import {
   cityNoticeFor,
   type FiledPlace,
 } from './city-claim'
+
+/**
+ * A notice hands over a name and the city beside it; these assert the words.
+ *
+ * Which is the point of the shape: `Kyoto` is checked as something placed into
+ * the sentence rather than as part of it, so a language that puts the city
+ * somewhere else in the sentence still has a city to put there.
+ */
+const words = (m: Message) => say(ENGLISH_LANGUAGE, m)
 
 /*
  * Positions are built by walking north from a city's own centre, because the
@@ -265,7 +275,7 @@ describe('cityNoticeFor', () => {
   it('names a city other than the one being worked in', () => {
     const notice = cityNoticeFor(KYOTO_CLAIM, TOKYO.id)
 
-    expect(notice?.message).toContain('Kyoto')
+    expect(words(notice!.message)).toContain('Kyoto')
     expect(notice?.offer).toBeNull()
   })
 
@@ -281,7 +291,7 @@ describe('cityNoticeFor', () => {
       KYOTO.id,
     )
 
-    expect(notice?.message).toContain('Kyoto, Nara and Tokyo')
+    expect(words(notice!.message)).toContain('Kyoto, Nara and Tokyo')
     expect(notice?.offer).toBeNull()
   })
 
@@ -289,7 +299,7 @@ describe('cityNoticeFor', () => {
     const notice = cityNoticeFor({ kind: 'none', offer: 'Nara' }, KYOTO.id)
 
     expect(notice?.offer).toBe('Nara')
-    expect(notice?.message).toContain('Nara')
+    expect(words(notice!.message)).toContain('Nara')
   })
 
   it('offers nothing to create when nothing named the city', () => {
@@ -297,6 +307,6 @@ describe('cityNoticeFor', () => {
     const notice = cityNoticeFor({ kind: 'none', offer: null }, KYOTO.id)
 
     expect(notice?.offer).toBeNull()
-    expect(notice?.message).toContain('unassigned')
+    expect(words(notice!.message)).toContain('unassigned')
   })
 })

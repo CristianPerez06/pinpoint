@@ -73,12 +73,12 @@ describe('a refused city says what is wrong', () => {
   }
 
   it('an empty name', () => {
-    expect(complainAboutName('')).toBe('A city needs a name.')
+    expect(complainAboutName('')).toBe('city.needsName')
   })
 
   it('a name past its limit', () => {
     expect(complainAboutName('x'.repeat(121))).toBe(
-      'A city name can be 120 characters at most.',
+      'city.nameTooLong',
     )
   })
 })

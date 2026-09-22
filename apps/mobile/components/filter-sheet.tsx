@@ -11,6 +11,7 @@ import {
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import { type ReactNode, useState } from 'react'
 import {
@@ -24,6 +25,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { markerTypeMessage } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -244,8 +246,8 @@ export function FilterSheet({
     kinds.length === 0
       ? 'Any kind'
       : wordList(
-          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map(
-            (type) => type.label,
+          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
+            say(ENGLISH_LANGUAGE, markerTypeMessage(type.id)),
           ),
         )
 
@@ -374,7 +376,7 @@ export function FilterSheet({
               {MARKER_TYPES.map((type) => (
                 <Option
                   key={type.id}
-                  label={type.label}
+                  label={say(ENGLISH_LANGUAGE, markerTypeMessage(type.id))}
                   swatch={theme.markerType[type.id]}
                   checked={kinds.includes(type.id)}
                   onPress={() => toggleKind(type.id)}

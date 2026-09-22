@@ -29,6 +29,7 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useCallback,
@@ -73,16 +74,25 @@ import styles from './trip-calendar.module.css'
 /**
  * A refusal in words, whatever kind it was.
  *
- * `invalid-input` carries fields rather than a sentence, and every caller below
- * is a write with nothing to type into — a toggle, a delete — so there is no
- * field for one to land on. Naming that case here is what stops each of them
- * reading `.message` off an outcome that has none.
+ * `invalid-input` carries fields rather than a refusal of its own, and every
+ * caller below is a write with nothing to type into — a toggle, a delete — so
+ * there is no field for one to land on. Naming that case here is what stops
+ * each of them reading a `reason` off an outcome that has none.
+ *
+ * The other two carry a name, resolved here. The fallback is already words
+ * because it is this screen's own, and there is nothing above this to hand a
+ * name to: what comes out goes straight into the line the screen shows.
  */
 function refusalMessage(
-  outcome: { kind: 'invalid-input' } | { kind: 'rejected'; message: string } | { kind: 'conflict'; message: string },
+  outcome:
+    | { kind: 'invalid-input' }
+    | { kind: 'rejected'; reason: Message }
+    | { kind: 'conflict'; reason: Message },
   fallback: string,
 ): string {
-  return outcome.kind === 'invalid-input' ? fallback : outcome.message
+  return outcome.kind === 'invalid-input'
+    ? fallback
+    : say(ENGLISH_LANGUAGE, outcome.reason)
 }
 
 /**
@@ -469,8 +479,9 @@ export function TripCalendar({
     if (!outcome.ok) {
       // Everything typed survives a refusal, whichever kind it was.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict') setConflict(outcome.message)
-      else setMessage(outcome.message)
+      else if (outcome.kind === 'conflict')
+        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
+      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
       return
     }
 

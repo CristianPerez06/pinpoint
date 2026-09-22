@@ -6,6 +6,7 @@ import {
   newCitySchema,
 } from '@pinpoint/core'
 import type { Database, PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 
 import { failed, readyOrEmpty, type SettledQueryState } from './query-state'
 import { validate } from './validate'
@@ -40,10 +41,6 @@ function toCity(row: CityRow): City {
   }
 }
 
-export const CITIES_FAILED_MESSAGE = 'Could not load this trip’s cities.'
-export const CITY_SAVE_FAILED_MESSAGE = 'Could not save this city.'
-export const CITY_DELETE_FAILED_MESSAGE = 'Could not remove this city.'
-
 /**
  * Every city on one trip, oldest first.
  *
@@ -63,7 +60,7 @@ export async function fetchTripCities(
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
 
-  if (error || !data) return failed(CITIES_FAILED_MESSAGE)
+  if (error || !data) return failed(message('city.loadFailed'))
 
   return readyOrEmpty(data.map(toCity))
 }
@@ -110,7 +107,7 @@ export async function createCity(
     .select(CITY_COLUMNS)
     .single()
 
-  if (error || !data) return rejected(CITY_SAVE_FAILED_MESSAGE)
+  if (error || !data) return rejected(message('city.saveFailed'))
 
   return wrote(toCity(data))
 }
@@ -136,7 +133,7 @@ export async function updateCity(
     .select(CITY_COLUMNS)
     .single()
 
-  if (error || !data) return rejected(CITY_SAVE_FAILED_MESSAGE)
+  if (error || !data) return rejected(message('city.saveFailed'))
 
   return wrote(toCity(data))
 }
@@ -156,7 +153,7 @@ export async function deleteCity(
 ): Promise<WriteOutcome<string>> {
   const { error } = await client.from('cities').delete().eq('id', cityId)
 
-  if (error) return rejected(CITY_DELETE_FAILED_MESSAGE)
+  if (error) return rejected(message('city.deleteFailed'))
 
   return wrote(cityId)
 }

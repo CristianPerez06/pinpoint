@@ -9,6 +9,7 @@ import {
   WEEK,
   WEEKDAY_WORDING,
 } from '@pinpoint/core'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { useId } from 'react'
 
 import styles from './hours-field.module.css'
@@ -31,7 +32,8 @@ export function HoursField({
 }: {
   draft: HoursDraft
   onChange: (draft: HoursDraft) => void
-  error?: string
+  /** A name, like every other field's refusal; resolved where it is drawn. */
+  error?: Message
 }) {
   const labelId = useId()
   const [open, close] = draft.range
@@ -85,7 +87,7 @@ export function HoursField({
 
       {error ? (
         <span role="alert" className={styles.error}>
-          {error}
+          {say(ENGLISH_LANGUAGE, error)}
         </span>
       ) : null}
     </div>

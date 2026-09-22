@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { currencyCodeSchema } from './currency'
+import { refusal } from './field-errors'
 
 /**
  * A coarse grouping of markers within a trip — the spreadsheet tab.
@@ -22,8 +23,8 @@ export const citySchema = z.object({
   tripId: z.uuid(),
   name: z
     .string()
-    .min(1, 'A city needs a name.')
-    .max(120, 'A city name can be 120 characters at most.'),
+    .min(1, refusal('city.needsName'))
+    .max(120, refusal('city.nameTooLong')),
   /**
    * An optional second currency beside US dollars, or null for none. Places
    * filed here can also hold a price in it. See `currency.ts`.

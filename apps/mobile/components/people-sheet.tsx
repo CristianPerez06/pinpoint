@@ -6,6 +6,7 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -196,7 +197,10 @@ export function PeopleSheet({
                         setAsking(member)
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel={`${TAKE_BACK_LABEL} ${member.displayName}'s invitation`}
+                      accessibilityLabel={
+                        `${say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)} ` +
+                        `${member.displayName}'s invitation`
+                      }
                       hitSlop={6}
                       style={[
                         styles.takeBack,
@@ -206,7 +210,7 @@ export function PeopleSheet({
                       <Text
                         style={[styles.takeBackText, { color: theme.colour.danger }]}
                       >
-                        {TAKE_BACK_LABEL}
+                        {say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -215,9 +219,9 @@ export function PeopleSheet({
 
               {asking !== null ? (
                 <Question
-                  question={takeBackQuestion(asking.displayName)}
-                  consequence={takeBackConsequence(asking.email)}
-                  confirm={TAKE_BACK_CONFIRM}
+                  question={say(ENGLISH_LANGUAGE, takeBackQuestion(asking.displayName))}
+                  consequence={say(ENGLISH_LANGUAGE, takeBackConsequence(asking.email))}
+                  confirm={say(ENGLISH_LANGUAGE, TAKE_BACK_CONFIRM)}
                   waiting={removing}
                   onConfirm={() => {
                     const member = asking

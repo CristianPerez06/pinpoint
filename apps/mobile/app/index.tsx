@@ -1,4 +1,5 @@
 import { fetchTrips } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Redirect } from 'expo-router'
 
 import { FailedState } from '@/components/states'
@@ -76,7 +77,7 @@ export default function Index() {
 
   if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
-    return <FailedState message={trips.state.message} />
+    return <FailedState message={say(ENGLISH_LANGUAGE, trips.state.reason)} />
   }
 
   // No longer a dead end: this is where a first trip is made, and where somebody

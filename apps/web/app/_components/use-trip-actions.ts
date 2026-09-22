@@ -2,6 +2,7 @@
 
 import type { FieldErrors, Trip, TripMember } from '@pinpoint/core'
 import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
 import { useRouter } from 'next/navigation'
 import { type Dispatch, type SetStateAction, useState } from 'react'
 
@@ -126,7 +127,9 @@ export function useTripActions({
     if (!outcome.ok) {
       setTrips(previous)
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not rename this trip.',
       )
       return
     }
@@ -162,7 +165,9 @@ export function useTripActions({
       setTrips(previous)
       if (outcome.kind === 'invalid-input') return outcome.fieldErrors
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save these dates.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save these dates.',
       )
       return {}
     }
@@ -189,7 +194,7 @@ export function useTripActions({
 
     const state = await fetchTrips(supabase, { includeArchived: true })
     if (state.status === 'failed') {
-      report(state.message)
+      report(say(ENGLISH_LANGUAGE, state.reason))
       return false
     }
 
@@ -228,7 +233,9 @@ export function useTripActions({
     if (!outcome.ok) {
       setTrips(previous)
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not archive this trip.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not archive this trip.',
       )
       return false
     }
@@ -318,7 +325,9 @@ export function useTripActions({
     if (!outcome.ok) {
       setTrips(previousTrips)
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not restore this trip.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not restore this trip.',
       )
       return
     }
@@ -333,7 +342,8 @@ export function useTripActions({
    *
    * Returns the offending field rather than reporting here, because the form
    * that called it is the thing that has to mark it up — a duplicate address is
-   * a fact about the email box, not about the trip.
+   * a fact about the email box, not about the trip. The refusal travels as a
+   * name: the form puts it on a field, and a field draws its own words.
    */
   async function invite(displayName: string, email: string) {
     const outcome = await inviteMember(supabase, {
@@ -344,13 +354,16 @@ export function useTripActions({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') {
-        const [field, message] = Object.entries(outcome.fieldErrors)[0] ?? [
+        // A field error with no field is not supposed to happen — every schema
+        // here paths its issues — so the fallback names the generic refusal
+        // rather than inventing a sentence for a case nothing produces.
+        const [field, reason] = Object.entries(outcome.fieldErrors)[0] ?? [
           '_',
-          'Could not add that person.',
+          message('member.inviteFailed'),
         ]
-        return { field, message }
+        return { field, reason }
       }
-      return { field: '_', message: outcome.message }
+      return { field: '_', reason: outcome.reason }
     }
 
     setMembers((current) => [...current, outcome.data])
@@ -360,7 +373,7 @@ export function useTripActions({
   /**
    * Take back an invitation nobody has claimed.
    *
-   * Returns a refusal in words, or null. Not optimistic: the row is taken out of
+   * Returns a named refusal, or null. Not optimistic: the row is taken out of
    * the list only once the database has confirmed it, because the one refusal
    * that matters here means the row is still real. That person signed in while
    * the list was open, their invitation is a membership now, and removing it
@@ -369,8 +382,8 @@ export function useTripActions({
   async function removeInvitation(member: TripMember) {
     const outcome = await removeMember(supabase, member.id)
     if (!outcome.ok) return outcome.kind === 'invalid-input'
-      ? 'Could not take back that invitation.'
-      : outcome.message
+      ? message('member.removeFailed')
+      : outcome.reason
 
     setMembers((current) => current.filter((each) => each.id !== member.id))
     return null

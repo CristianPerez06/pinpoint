@@ -71,7 +71,7 @@ describe('openingHoursSchema', () => {
   it('refuses a missing time', () => {
     const result = openingHoursSchema.safeParse({ fri: [['09:00', '']] })
     expect(result.success).toBe(false)
-    expect(result.error?.issues[0]?.message).toBe('Enter both times.')
+    expect(result.error?.issues[0]?.message).toBe('hours.needsBothTimes')
   })
 
   it('refuses a time that is not a time', () => {

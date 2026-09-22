@@ -18,16 +18,16 @@ describe('a refused invitation says what is wrong', () => {
   }
 
   it('an address that is not one', () => {
-    expect(complainAbout('email', 'sam at example')).toBe('Enter a valid email address.')
+    expect(complainAbout('email', 'sam at example')).toBe('email.invalid')
   })
 
   it('nobody to invite', () => {
-    expect(complainAbout('displayName', '')).toBe('Enter the name to show on this trip.')
+    expect(complainAbout('displayName', '')).toBe('member.needsDisplayName')
   })
 
   it('a name past its limit', () => {
     expect(complainAbout('displayName', 'x'.repeat(61))).toBe(
-      'A name can be 60 characters at most.',
+      'member.displayNameTooLong',
     )
   })
 })

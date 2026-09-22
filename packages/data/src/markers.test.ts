@@ -1,7 +1,8 @@
 import type { PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchTripMarkers, MARKERS_FAILED_MESSAGE } from './markers'
+import { fetchTripMarkers } from './markers'
 
 /**
  * A client that records the query it was handed and answers with a fixed
@@ -118,10 +119,12 @@ describe('fetchTripMarkers', () => {
 
     expect(state.status).toBe('failed')
     if (state.status !== 'failed') throw new Error('unreachable')
-    expect(state.message).toBe(MARKERS_FAILED_MESSAGE)
+    expect(state.reason).toEqual(message('place.loadFailed'))
     // The database's own words are for whoever reads logs, not for whoever is
-    // looking at a map that will not load.
-    expect(state.message).not.toContain('connection reset')
+    // looking at a map that will not load. There is no sentence here at all to
+    // leak into now — what crosses is a name this repository owns — so the
+    // check is over everything the outcome carries.
+    expect(JSON.stringify(state.reason)).not.toContain('connection reset')
   })
 
   it('keeps a marker whose stored type is unknown', async () => {

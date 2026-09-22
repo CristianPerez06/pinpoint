@@ -130,6 +130,14 @@ jobs:
       - name: Check derived tokens are current
         run: pnpm check:tokens
 
+      # Both halves of this fail silently and in opposite directions. A name
+      # with no sentence behind it draws nothing where a sentence belongs, on
+      # whichever screen happens to reach it; a sentence nothing resolves is
+      # kept correct and eventually translated for a screen that stopped
+      # asking. Neither is visible to a build, a typecheck or a lint.
+      - name: Check every named message resolves, and every sentence is used
+        run: pnpm check:wording
+
       # A missing or mismatched font file is silent on both platforms: the face
       # falls back to a system one, every measurement on the screen changes, and
       # no build, typecheck or lint has anything to say about it.

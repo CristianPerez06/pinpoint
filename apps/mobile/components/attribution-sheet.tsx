@@ -1,5 +1,6 @@
 import { MAP_CREDITS } from '@pinpoint/map'
 import { SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
 import ExternalLink from 'lucide-react-native/icons/external-link'
 import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -58,38 +59,51 @@ export function AttributionSheet({
             </Text>
           </View>
 
-          {MAP_CREDITS.map((credit) => (
-            <Pressable
-              key={credit.url}
-              /*
-                Opening a browser is the whole point of a credit — a name with no
-                way to reach the project behind it is a worse answer than the one
-                the licence asks for. A refusal is swallowed rather than surfaced:
-                the sheet has already said the names, which is the part that
-                matters, and a device with no browser is not a state this has
-                anything useful to say about.
-              */
-              onPress={() => void Linking.openURL(credit.url).catch(() => {})}
-              accessibilityRole="link"
-              accessibilityLabel={`${credit.name}. ${credit.role}`}
-              accessibilityHint="Opens in your browser"
-              style={styles.row}
-            >
-              <View style={styles.what}>
-                <Text style={[styles.name, { color: theme.colour.ink }]}>
-                  {credit.name}
-                </Text>
-                <Text style={[styles.role, { color: theme.colour.inkMuted }]}>
-                  {credit.role}
-                </Text>
-              </View>
-              <ExternalLink
-                size={16}
-                color={theme.colour.inkMuted}
-                strokeWidth={2}
-              />
-            </Pressable>
-          ))}
+          {MAP_CREDITS.map((credit) => {
+            /*
+              What the project does, in words. `role` names a catalogue entry
+              rather than holding the line — the name and the address beside it
+              are proper nouns and stay exactly as they are, as does the
+              attribution line itself.
+
+              Resolved once for the row, because the sentence is drawn twice:
+              once to read and once for the label a screen reader announces.
+            */
+            const does = say(ENGLISH_LANGUAGE, message(credit.role))
+
+            return (
+              <Pressable
+                key={credit.url}
+                /*
+                  Opening a browser is the whole point of a credit — a name with no
+                  way to reach the project behind it is a worse answer than the one
+                  the licence asks for. A refusal is swallowed rather than surfaced:
+                  the sheet has already said the names, which is the part that
+                  matters, and a device with no browser is not a state this has
+                  anything useful to say about.
+                */
+                onPress={() => void Linking.openURL(credit.url).catch(() => {})}
+                accessibilityRole="link"
+                accessibilityLabel={`${credit.name}. ${does}`}
+                accessibilityHint="Opens in your browser"
+                style={styles.row}
+              >
+                <View style={styles.what}>
+                  <Text style={[styles.name, { color: theme.colour.ink }]}>
+                    {credit.name}
+                  </Text>
+                  <Text style={[styles.role, { color: theme.colour.inkMuted }]}>
+                    {does}
+                  </Text>
+                </View>
+                <ExternalLink
+                  size={16}
+                  color={theme.colour.inkMuted}
+                  strokeWidth={2}
+                />
+              </Pressable>
+            )
+          })}
         </View>
       </Pressable>
     </Modal>

@@ -11,12 +11,14 @@ import {
   splitHours,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
 import { HoursField } from '@/app/_components/hours-field'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
+import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { usePending } from '@/lib/use-pending'
 import {
   Button,
@@ -354,6 +356,7 @@ export function MarkerForm({
         <div className={styles.types} role="group" aria-label="Type">
           {MARKER_TYPES.map((definition) => {
             const chosen = definition.id === type
+            const name = say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))
 
             return (
               <button
@@ -362,7 +365,7 @@ export function MarkerForm({
                 className={styles.type}
                 aria-pressed={chosen}
                 onClick={() => setType(definition.id)}
-                title={definition.label}
+                title={name}
               >
                 <span
                   className={styles.typeChip}
@@ -375,14 +378,14 @@ export function MarkerForm({
                 >
                   <MarkerGlyph icon={definition.icon} size={15} />
                 </span>
-                {definition.label}
+                {name}
               </button>
             )
           })}
         </div>
         {fieldErrors.type ? (
           <span role="alert" className={styles.typeError}>
-            {fieldErrors.type}
+            {say(ENGLISH_LANGUAGE, fieldErrors.type)}
           </span>
         ) : null}
       </div>
@@ -464,7 +467,7 @@ export function MarkerForm({
       {cityNotice ? (
         <div className={styles.cityNotice}>
           <p role="status" className={styles.cityNoticeText}>
-            {cityNotice.message}
+            {say(ENGLISH_LANGUAGE, cityNotice.message)}
           </p>
           {cityNotice.offer && !newCity ? (
             <Button

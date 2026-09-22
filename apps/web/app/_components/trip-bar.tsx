@@ -10,6 +10,7 @@ import {
   type Trip,
   type TripMember,
 } from '@pinpoint/core'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -147,15 +148,15 @@ export type TripBarLiveProps = {
   onInvite: (
     displayName: string,
     email: string,
-  ) => Promise<{ field: string; message: string } | null>
+  ) => Promise<{ field: string; reason: Message } | null>
   /**
    * Take back an invitation nobody has claimed.
    *
-   * Resolves to a refusal in words, or null. The one that matters is not a
+   * Resolves to a named refusal, or null. The one that matters is not a
    * failure at all: that person signed in while the list was open, so their
    * invitation is a membership now and the delete matched nothing.
    */
-  onRemove: (member: TripMember) => Promise<string | null>
+  onRemove: (member: TripMember) => Promise<Message | null>
   open: boolean
   onOpen: (open: boolean) => void
   /**
@@ -626,22 +627,22 @@ function People({
   onInvite: (
     displayName: string,
     email: string,
-  ) => Promise<{ field: string; message: string } | null>
+  ) => Promise<{ field: string; reason: Message } | null>
   /**
-   * Take back an unclaimed invitation. Resolves to a refusal in words, or null.
+   * Take back an unclaimed invitation. Resolves to a named refusal, or null.
    *
    * Only ever called with a member whose `userId` is null — the control is not
    * drawn on any other row. The database enforces that independently, which is
    * what makes a claim landing mid-decision a refusal rather than a silent
    * success.
    */
-  onRemove: (member: TripMember) => Promise<string | null>
+  onRemove: (member: TripMember) => Promise<Message | null>
   onClose: () => void
 }) {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [message, setMessage] = useState<string | null>(null)
+  const [errors, setErrors] = useState<Record<string, Message>>({})
+  const [message, setMessage] = useState<Message | null>(null)
   const [adding, startInvite] = usePending()
   /** Which invitation is being asked about, or null. The row, not its id, so
    *  the question can name the person and the address without a second lookup. */
@@ -655,8 +656,8 @@ function People({
     startInvite(async () => {
       const problem = await onInvite(displayName.trim(), email.trim())
       if (problem) {
-        if (problem.field === '_') setMessage(problem.message)
-        else setErrors({ [problem.field]: problem.message })
+        if (problem.field === '_') setMessage(problem.reason)
+        else setErrors({ [problem.field]: problem.reason })
         return
       }
 
@@ -697,7 +698,7 @@ function People({
                   setAsking(member)
                 }}
               >
-                {TAKE_BACK_LABEL}
+                {say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)}
               </button>
             ) : null}
           </li>
@@ -714,9 +715,9 @@ function People({
       */}
       {asking !== null ? (
         <Question
-          question={takeBackQuestion(asking.displayName)}
-          consequence={takeBackConsequence(asking.email)}
-          confirm={TAKE_BACK_CONFIRM}
+          question={say(ENGLISH_LANGUAGE, takeBackQuestion(asking.displayName))}
+          consequence={say(ENGLISH_LANGUAGE, takeBackConsequence(asking.email))}
+          confirm={say(ENGLISH_LANGUAGE, TAKE_BACK_CONFIRM)}
           waiting={removing}
           onConfirm={() => {
             const member = asking
@@ -773,7 +774,7 @@ function People({
         taking back an invitation lands here too — most often the one saying
         that person has joined since the list was opened.
       */}
-      {message ? <FormError message={message} /> : null}
+      {message ? <FormError message={say(ENGLISH_LANGUAGE, message)} /> : null}
     </>
   )
 }

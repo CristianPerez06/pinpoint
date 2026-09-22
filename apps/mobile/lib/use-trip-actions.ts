@@ -1,5 +1,6 @@
 import type { FieldErrors, IsoDay, Trip, TripMember } from '@pinpoint/core'
 import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { useState } from 'react'
 
 import { supabase } from '@/lib/supabase'
@@ -102,7 +103,9 @@ export function useTripActions({
     if (!outcome.ok) {
       trips.set(() => previous)
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not rename this trip.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not rename this trip.',
       )
       return
     }
@@ -138,7 +141,9 @@ export function useTripActions({
       trips.set(() => previous)
       if (outcome.kind === 'invalid-input') return outcome.fieldErrors
       report(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save these dates.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save these dates.',
       )
       return {}
     }
@@ -174,7 +179,7 @@ export function useTripActions({
     if (!outcome.ok) {
       report(
         outcome.kind === 'rejected'
-          ? outcome.message
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
           : value
             ? 'Could not archive this trip.'
             : 'Could not restore this trip.',
@@ -202,7 +207,7 @@ export function useTripActions({
 
     const state = await fetchTrips(supabase, { includeArchived: true })
     if (state.status === 'failed') {
-      report(state.message)
+      report(say(ENGLISH_LANGUAGE, state.reason))
       return
     }
     const all = state.status === 'ready' ? state.data : []
@@ -225,13 +230,15 @@ export function useTripActions({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') {
-        const [field, message] = Object.entries(outcome.fieldErrors)[0] ?? [
-          '_',
-          'Could not add that person.',
-        ]
-        return { field, message }
+        // Taken apart rather than defaulted in one expression: the fallback is
+        // a sentence and what it stands in for is a named message, so the two
+        // branches cannot share a shape and have to resolve separately.
+        const refused = Object.entries(outcome.fieldErrors)[0]
+        return refused === undefined
+          ? { field: '_', message: 'Could not add that person.' }
+          : { field: refused[0], message: say(ENGLISH_LANGUAGE, refused[1]) }
       }
-      return { field: '_', message: outcome.message }
+      return { field: '_', message: say(ENGLISH_LANGUAGE, outcome.reason) }
     }
 
     members.set((rows) => [...rows, outcome.data])
@@ -251,7 +258,7 @@ export function useTripActions({
     if (!outcome.ok) {
       return outcome.kind === 'invalid-input'
         ? 'Could not take back that invitation.'
-        : outcome.message
+        : say(ENGLISH_LANGUAGE, outcome.reason)
     }
 
     members.set((rows) => rows.filter((each) => each.id !== member.id))

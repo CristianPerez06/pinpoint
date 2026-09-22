@@ -7,9 +7,11 @@ import {
   searchPlaces,
 } from '@pinpoint/geocode'
 import { markerTypeOf } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { type CSSProperties, useEffect, useState } from 'react'
 
 import { MarkerGlyph } from '@/app/_components/marker-icon'
+import { markerTypeMessage } from '@/app/_components/marker-type-name'
 
 import styles from './place-search.module.css'
 
@@ -257,7 +259,8 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
             /* Never phrased as "no matches". Rephrasing a query at a service
                that is down is a way to spend five minutes learning nothing. */
             <Note role="alert" tone="danger">
-              {result.message} You can still add a place by dropping a pin.
+              {say(ENGLISH_LANGUAGE, result.reason)} You can still add a place by
+              dropping a pin.
             </Note>
           ) : result?.status === 'empty' ? (
             <Note role="status">No matches. Try fewer words, or drop a pin.</Note>
@@ -435,7 +438,7 @@ function Glyph({ candidate }: { candidate: PlaceCandidate }) {
       className={styles.glyph}
       style={{ backgroundColor: `var(--pp-pin-${definition.id})` }}
       aria-hidden
-      title={definition.label}
+      title={say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
     >
       <MarkerGlyph icon={definition.icon} size={14} />
     </span>

@@ -1,5 +1,6 @@
 'use client'
 
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import {
   type ReactNode,
   type RefObject,
@@ -706,6 +707,11 @@ export function Button({
  * The error sits against the field rather than above the form because that is
  * the whole reason writes return errors keyed by field name: a form that says
  * "something is wrong" makes the person hunt for it.
+ *
+ * The refusal arrives as a **name** and is resolved here, which is the line
+ * where it is actually drawn. Every field in this file takes it the same way,
+ * so no form has to remember to resolve one on the way in — and none of them
+ * can hold a sentence in state long enough for it to be the wrong language.
  */
 export function TextField({
   label,
@@ -721,7 +727,7 @@ export function TextField({
   label: string
   value: string
   onChange: (value: string) => void
-  error?: string
+  error?: Message
   placeholder?: string
   /**
    * `date` renders the browser's own date control, which anchors its picker to
@@ -763,7 +769,7 @@ export function TextField({
 
       {invalid ? (
         <span role="alert" className={styles.error}>
-          {error}
+          {say(ENGLISH_LANGUAGE, error)}
         </span>
       ) : hint ? (
         <span className={styles.hint}>{hint}</span>
@@ -806,7 +812,7 @@ export function PriceField({
   onChange: (value: string) => void
   free: boolean
   onFreeChange: (free: boolean) => void
-  error?: string
+  error?: Message
   /** The second box, present only when the chosen city has a second currency. */
   local?: {
     currency: string
@@ -814,7 +820,7 @@ export function PriceField({
     onChange: (value: string) => void
     /** `Tokyo's currency. …` — which city the currency comes from. */
     hint: string
-    error?: string
+    error?: Message
   }
   /**
    * A saved local amount that saving will clear, said under the boxes. Present
@@ -902,11 +908,11 @@ export function PriceField({
 
       {invalid ? (
         <span role="alert" className={styles.error}>
-          {error}
+          {say(ENGLISH_LANGUAGE, error)}
         </span>
       ) : null}
 
-      {local && localInvalid ? (
+      {local?.error !== undefined ? (
         /*
           Prefixed with the code, because the label no longer carries it. With
           two amounts under one `Price` label, an unprefixed message does not
@@ -914,7 +920,7 @@ export function PriceField({
           site so neither app can forget it.
         */
         <span role="alert" className={styles.error}>
-          {`${local.currency}: ${local.error}`}
+          {`${local.currency}: ${say(ENGLISH_LANGUAGE, local.error)}`}
         </span>
       ) : null}
 
@@ -947,7 +953,7 @@ export function SelectField({
   value: string
   onChange: (value: string) => void
   options: readonly { value: string; label: string }[]
-  error?: string
+  error?: Message
 }) {
   return (
     <label className={styles.field}>
@@ -966,7 +972,7 @@ export function SelectField({
       </select>
       {error === undefined ? null : (
         <span role="alert" className={styles.error}>
-          {error}
+          {say(ENGLISH_LANGUAGE, error)}
         </span>
       )}
     </label>

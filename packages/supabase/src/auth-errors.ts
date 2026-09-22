@@ -1,3 +1,5 @@
+import { message, type Message, type MessageKey } from '@pinpoint/wording'
+
 /**
  * Authentication failures, named by us rather than by the service.
  *
@@ -13,14 +15,24 @@
  * not classified should say less, not more.
  */
 
-export type AuthFailure =
-  | 'invalid-credentials'
-  | 'email-taken'
-  | 'weak-password'
-  | 'email-not-confirmed'
-  | 'rate-limited'
-  | 'signup-disabled'
-  | 'generic'
+/**
+ * Every failure this maps to, as a list so it can be walked.
+ *
+ * A list rather than a bare union because `auth-errors.test.ts` checks that
+ * each one resolves to something, and a union cannot be iterated. The type is
+ * derived from it, so the two cannot come apart.
+ */
+export const AUTH_FAILURES = [
+  'invalid-credentials',
+  'email-taken',
+  'weak-password',
+  'email-not-confirmed',
+  'rate-limited',
+  'signup-disabled',
+  'generic',
+] as const
+
+export type AuthFailure = (typeof AUTH_FAILURES)[number]
 
 /** Supabase error code to our identifier. Unlisted codes fall through. */
 const BY_CODE: Record<string, AuthFailure> = {
@@ -47,22 +59,28 @@ export function authFailureOf(error: CodedError | null | undefined): AuthFailure
 }
 
 /**
- * The text shown for each failure.
+ * What each failure is called, so an application can say it.
+ *
+ * This was already the right shape with one language in it: a record from a
+ * code to the thing shown. What changes is that the value is a **name** now,
+ * and the sentence sits in `@pinpoint/wording` beside every other sentence.
  *
  * `invalid-credentials` deliberately does not distinguish a wrong password from
  * an unregistered address — saying which would confirm to anyone asking that an
- * account exists.
+ * account exists. That is a property of the sentence behind the name, and the
+ * comment lives here because this is where somebody would think to change it.
  */
-export const AUTH_FAILURE_MESSAGES: Record<AuthFailure, string> = {
-  'invalid-credentials': 'That email and password do not match an account.',
-  'email-taken': 'There is already an account with that email address.',
-  'weak-password': 'That password is too weak. Try a longer one.',
-  'email-not-confirmed': 'That account has not been confirmed yet.',
-  'rate-limited': 'Too many attempts. Wait a moment and try again.',
-  'signup-disabled': 'New accounts are not being accepted right now.',
-  generic: 'Something went wrong. Try again.',
+const BY_FAILURE: Record<AuthFailure, MessageKey> = {
+  'invalid-credentials': 'auth.invalidCredentials',
+  'email-taken': 'auth.emailTaken',
+  'weak-password': 'auth.weakPassword',
+  'email-not-confirmed': 'auth.emailNotConfirmed',
+  'rate-limited': 'auth.rateLimited',
+  'signup-disabled': 'auth.signupDisabled',
+  generic: 'auth.generic',
 }
 
-export function authFailureMessage(failure: AuthFailure): string {
-  return AUTH_FAILURE_MESSAGES[failure]
+/** The failure, named as something to say. Resolved by whoever draws it. */
+export function authFailureMessage(failure: AuthFailure): Message {
+  return message(BY_FAILURE[failure])
 }

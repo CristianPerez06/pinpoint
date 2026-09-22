@@ -115,9 +115,22 @@ export const MARKER_ICONS = [
 
 export type MarkerIconName = (typeof MARKER_ICONS)[number]
 
+/**
+ * A type: an identifier, an icon's name, and nothing that can be drawn.
+ *
+ * **There is deliberately no label.** What a type is called is words somebody
+ * reads, and this package held the only ones it had — which is exactly the
+ * value a screen could draw as it stood, and exactly why it stayed English.
+ * The words live in `@pinpoint/wording` under `markerType.<id>`, resolved by
+ * each application from the identifier, the same way the icon already is.
+ *
+ * Nothing is added here to point at them: the identifier *is* the key. `icon`
+ * needs a name of its own because it differs from the type — `temple` draws
+ * `landmark` — and a label would not, so a second name for the same thing
+ * would only be a second thing to keep in step.
+ */
 export interface MarkerTypeDefinition {
   readonly id: MarkerType
-  readonly label: string
   /**
    * Names an icon; is not one. Resolved by each application against its own
    * icon set — see `MARKER_ICONS`.
@@ -149,14 +162,14 @@ export const FALLBACK_MARKER_TYPE = 'place' satisfies MarkerType
  * the recessive slate follows.
  */
 export const MARKER_TYPES: readonly MarkerTypeDefinition[] = [
-  { id: 'place', label: 'Place', icon: 'pin' },
-  { id: 'temple', label: 'Temple', icon: 'landmark' },
-  { id: 'culture', label: 'Culture', icon: 'castle' },
-  { id: 'nature', label: 'Nature', icon: 'trees' },
-  { id: 'food', label: 'Food', icon: 'utensils' },
-  { id: 'shopping', label: 'Shopping', icon: 'shopping-bag' },
-  { id: 'stay', label: 'Stay', icon: 'bed' },
-  { id: 'transport', label: 'Transport', icon: 'train' },
+  { id: 'place', icon: 'pin' },
+  { id: 'temple', icon: 'landmark' },
+  { id: 'culture', icon: 'castle' },
+  { id: 'nature', icon: 'trees' },
+  { id: 'food', icon: 'utensils' },
+  { id: 'shopping', icon: 'shopping-bag' },
+  { id: 'stay', icon: 'bed' },
+  { id: 'transport', icon: 'train' },
 ] as const
 
 /* Keyed by `string`, not by `MarkerType`. Every caller arrives with an

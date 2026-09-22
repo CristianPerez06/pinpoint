@@ -145,6 +145,18 @@ directly; each application SHALL map the identifier to an icon from its own
 platform's icon set. Identifiers SHALL be stable, because they are the contract
 between the shared type list and two separate icon mappings.
 
+**The same SHALL hold for what a type is called.** The shared type list SHALL NOT hold
+the words a person reads for a type; each application SHALL resolve the type's own
+identifier to those words, exactly as it resolves the icon. A type SHALL therefore be
+three things in the shared list — an identifier, a colour, and an icon's name — and
+nothing in it SHALL be showable without an application resolving it first.
+
+Rationale: the name was the one value in that list that a screen could draw as it
+stood, and being drawable as it stands is what made it English. The type list is the
+single source of what a type *is*; what it is called is a different question with a
+different answer per language, and the identifier is already the contract that joins
+them.
+
 The icon SHALL reinforce what the colour already says and SHALL NOT be the only
 channel separating one type from another. A person SHALL be able to tell any two
 types apart without resolving a glyph.
@@ -196,6 +208,17 @@ carrying it is genuinely unclassified rather than merely unspecific.
 - **THEN** each type carries a name identifying its icon
 - **AND** nothing in the shared package can be rendered as an icon without an
   application resolving it first
+
+#### Scenario: A type's name is inspected in the shared package
+
+- **WHEN** the shared type list is read
+- **THEN** it holds no words a person reads for any type
+
+#### Scenario: A type is named on screen
+
+- **WHEN** either application shows what a marker's type is called
+- **THEN** it resolves the type's identifier to those words
+- **AND** both applications show the same words for the same type
 
 ### Requirement: A retired type identifier resolves to the type that replaced it
 

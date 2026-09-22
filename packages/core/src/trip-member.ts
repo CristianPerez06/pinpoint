@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { refusal } from './field-errors'
 
 /**
  * A person on a trip.
@@ -25,12 +26,12 @@ export const tripMemberSchema = z.object({
    */
   displayName: z
     .string()
-    .min(1, 'Enter the name to show on this trip.')
-    .max(60, 'A name can be 60 characters at most.'),
+    .min(1, refusal('member.needsDisplayName'))
+    .max(60, refusal('member.displayNameTooLong')),
   // Word for word what the sign-in screen says for the same mistake. One error
   // with two answers is how a product starts sounding like several; the test in
   // `refusal-messages.test.ts` fails if these two drift apart.
-  email: z.email('Enter a valid email address.'),
+  email: z.email(refusal('email.invalid')),
   userId: z.uuid().nullable(),
   createdAt: z.iso.datetime(),
 })

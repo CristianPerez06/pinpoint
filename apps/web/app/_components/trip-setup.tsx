@@ -2,6 +2,7 @@
 
 import type { FieldErrors } from '@pinpoint/core'
 import { createTrip } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
@@ -81,7 +82,7 @@ export function CreateTripForm({
   const [endsOn, setEndsOn] = useState('')
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
 
   async function create() {
     setBusy(true)
@@ -101,7 +102,7 @@ export function CreateTripForm({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else setMessage(outcome.message)
+      else setMessage(outcome.reason)
       return
     }
 
@@ -160,7 +161,7 @@ export function CreateTripForm({
         />
       </div>
 
-      {message ? <FormError message={message} /> : null}
+      {message ? <FormError message={say(ENGLISH_LANGUAGE, message)} /> : null}
 
       <Button
         tone="primary"

@@ -6,10 +6,11 @@ import {
   MARKER_SELECTED_SCALE,
   RADIUS,
 } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
-import { MarkerGlyph } from '@/components/marker-icon'
+import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { useTheme } from '@/lib/theme'
 
 /**
@@ -152,7 +153,9 @@ export function Pin({
     <View
       style={{ width, height }}
       accessibilityLabel={
-        count > 1 ? `${count} places here` : `${view.label} (${view.typeLabel})`
+        count > 1
+          ? `${count} places here`
+          : `${view.label} (${say(ENGLISH_LANGUAGE, markerTypeMessage(view.type))})`
       }
     >
       {/* The viewBox stays the unscaled box, so the path, the ring and the
