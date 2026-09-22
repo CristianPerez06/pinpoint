@@ -7,6 +7,7 @@ import {
   openingHoursOf,
 } from '@pinpoint/core'
 import type { Database, PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 
 import {
   failed,
@@ -83,8 +84,6 @@ function toMarker(row: MarkerRow): Marker {
   }
 }
 
-export const MARKERS_FAILED_MESSAGE = 'Could not load the places on this trip.'
-
 /**
  * Every marker of one trip, oldest first.
  *
@@ -116,14 +115,11 @@ export async function fetchTripMarkers(
 
   // The database error text is not shown to anyone: it is written for whoever
   // is reading logs, not for whoever is looking at a map that will not load.
-  if (error) return failed(MARKERS_FAILED_MESSAGE)
-  if (!data) return failed(MARKERS_FAILED_MESSAGE)
+  if (error) return failed(message('place.loadFailed'))
+  if (!data) return failed(message('place.loadFailed'))
 
   return readyOrEmpty(data.map(toMarker))
 }
-
-export const MARKER_SAVE_FAILED_MESSAGE = 'Could not save this place.'
-export const MARKER_DELETE_FAILED_MESSAGE = 'Could not remove this place.'
 
 type MarkerInsert = Database['public']['Tables']['markers']['Insert']
 type MarkerUpdate = Database['public']['Tables']['markers']['Update']
@@ -210,13 +206,10 @@ export async function createMarker(
     .select(MARKER_COLUMNS)
     .single()
 
-  if (error || !data) return rejected(MARKER_SAVE_FAILED_MESSAGE)
+  if (error || !data) return rejected(message('place.saveFailed'))
 
   return wrote(toMarker(data))
 }
-
-export const MARKER_CONFLICT_MESSAGE =
-  'Somebody else changed this place while you were editing it. Nothing you typed has been lost — open it again to see their version.'
 
 /**
  * Change a place that already exists.
@@ -269,10 +262,10 @@ export async function updateMarker(
       .eq('id', markerId)
       .maybeSingle()
 
-    if (current) return conflicted(MARKER_CONFLICT_MESSAGE)
+    if (current) return conflicted(message('place.conflict'))
   }
 
-  return rejected(MARKER_SAVE_FAILED_MESSAGE)
+  return rejected(message('place.saveFailed'))
 }
 
 /**
@@ -291,7 +284,7 @@ export async function deleteMarker(
 ): Promise<WriteOutcome<string>> {
   const { error } = await client.from('markers').delete().eq('id', markerId)
 
-  if (error) return rejected(MARKER_DELETE_FAILED_MESSAGE)
+  if (error) return rejected(message('place.deleteFailed'))
 
   return wrote(markerId)
 }

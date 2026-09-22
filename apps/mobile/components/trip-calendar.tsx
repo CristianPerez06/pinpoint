@@ -26,6 +26,7 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
@@ -231,8 +232,9 @@ export function TripCalendar({
     if (!outcome.ok) {
       // Everything entered survives a refusal, whichever kind it was.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict') setConflict(outcome.message)
-      else setProblem(outcome.message)
+      else if (outcome.kind === 'conflict')
+        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
+      else setProblem(say(ENGLISH_LANGUAGE, outcome.reason))
       return
     }
 
@@ -261,7 +263,9 @@ export function TripCalendar({
     setRemovingId(null)
     if (!outcome.ok) {
       setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not remove that place.',
       )
       return
     }
@@ -283,7 +287,7 @@ export function TripCalendar({
       markerQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? outcome.message
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
           : 'Could not change whether this place is visited.',
       )
     }
@@ -314,7 +318,11 @@ export function TripCalendar({
     })
     if (!outcome.ok) {
       interestQuery.set(() => previous)
-      setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
+      setProblem(
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
+      )
     }
   }
 
@@ -333,7 +341,11 @@ export function TripCalendar({
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
       interestQuery.set(() => previous)
-      setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
+      setProblem(
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
+      )
     }
   }
 

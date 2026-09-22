@@ -7,6 +7,7 @@ import {
   fetchTrips,
   ownMemberOf,
 } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Suspense } from 'react'
 
 import { CalendarScreen } from '@/app/_components/calendar-screen'
@@ -53,7 +54,7 @@ export default async function CalendarPage({
   if (trips.status === 'failed') {
     return (
       <Shell>
-        <FailedState message={trips.message} />
+        <FailedState message={say(ENGLISH_LANGUAGE, trips.reason)} />
       </Shell>
     )
   }

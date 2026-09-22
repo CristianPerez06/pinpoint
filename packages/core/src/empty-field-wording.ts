@@ -1,3 +1,5 @@
+import { message, type Message } from '@pinpoint/wording'
+
 /**
  * What an empty field on a place's card says.
  *
@@ -15,11 +17,11 @@
  * without one simply has no pill.
  */
 export const EMPTY_FIELD_WORDING = {
-  day: 'No day yet',
-  note: 'No note yet',
-  link: 'No link yet',
-  hours: 'No hours yet',
-} as const
+  day: message('empty.day'),
+  note: message('empty.note'),
+  link: message('empty.link'),
+  hours: message('empty.hours'),
+} as const satisfies Record<string, Message>
 
 /**
  * What the card calls a place filed under no city.
@@ -36,4 +38,4 @@ export const EMPTY_FIELD_WORDING = {
  * is the row in the city control that gathers them. A third name for one idea
  * is how a person ends up wondering whether they are the same thing.
  */
-export const UNFILED_CITY_WORDING = 'Unassigned'
+export const UNFILED_CITY_WORDING = message('empty.city')

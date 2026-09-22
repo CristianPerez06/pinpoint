@@ -1,6 +1,7 @@
 import type { City, Marker } from '@pinpoint/core'
 import { CITY_NEEDS_A_NAME, cityNameTaken, localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
 import Check from 'lucide-react-native/icons/check'
@@ -328,7 +329,9 @@ function CityCreator({
 }) {
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // Held as the named message rather than as the sentence, so the one place
+  // this sheet turns a refusal into words is the place it draws it.
+  const [error, setError] = useState<Message | null>(null)
   const [creating, startCreate] = usePending()
 
   const trimmed = name.trim()
@@ -355,7 +358,7 @@ function CityCreator({
           setName(next)
           setError(null)
         }}
-        error={error ?? undefined}
+        error={error === null ? undefined : say(ENGLISH_LANGUAGE, error)}
       />
       <CurrencyField
         value={currency}

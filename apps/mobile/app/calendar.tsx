@@ -1,4 +1,5 @@
 import { fetchTrips } from '@pinpoint/data'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Redirect, useLocalSearchParams } from 'expo-router'
 
 import { CalendarScreen } from '@/components/calendar-screen'
@@ -56,7 +57,7 @@ export default function CalendarRoute() {
 
   if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
-    return <FailedState message={trips.state.message} />
+    return <FailedState message={say(ENGLISH_LANGUAGE, trips.state.reason)} />
   }
 
   /*

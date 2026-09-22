@@ -1,13 +1,11 @@
 import type { NewTrip } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
   createTrip,
   fetchTrips,
-  TRIP_CREATE_FAILED_MESSAGE,
-  TRIP_SAVE_FAILED_MESSAGE,
-  TRIPS_FAILED_MESSAGE,
   updateTrip,
 } from './trips'
 
@@ -82,7 +80,7 @@ describe('fetchTrips', () => {
 
     expect(await fetchTrips(client)).toEqual({
       status: 'failed',
-      message: TRIPS_FAILED_MESSAGE,
+      reason: message('trip.loadFailed'),
     })
   })
 
@@ -303,7 +301,7 @@ describe('createTrip', () => {
     expect(outcome).toEqual({
       ok: false,
       kind: 'rejected',
-      message: TRIP_CREATE_FAILED_MESSAGE,
+      reason: message('trip.createFailed'),
     })
   })
 
@@ -430,7 +428,7 @@ describe('updateTrip', () => {
     expect(outcome).toEqual({
       ok: false,
       kind: 'rejected',
-      message: TRIP_SAVE_FAILED_MESSAGE,
+      reason: message('trip.saveFailed'),
     })
   })
 })

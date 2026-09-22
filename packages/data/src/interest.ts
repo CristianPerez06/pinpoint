@@ -7,6 +7,7 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 
 import { failed, readyOrEmpty, type SettledQueryState } from './query-state'
 import { validate } from './validate'
@@ -46,11 +47,6 @@ function toInterest(row: InterestRow): MarkerInterest {
   }
 }
 
-export const INTEREST_FAILED_MESSAGE = 'Could not load who wants to go where.'
-export const INTEREST_SAVE_FAILED_MESSAGE = 'Could not save that.'
-export const MEMBERS_FAILED_MESSAGE = 'Could not load the people on this trip.'
-export const VISITED_FAILED_MESSAGE = 'Could not change whether this place is visited.'
-
 /**
  * Every interest record on one trip.
  *
@@ -68,7 +64,7 @@ export async function fetchTripInterest(
     .select(`${INTEREST_COLUMNS}, markers!inner(trip_id)`)
     .eq('markers.trip_id', tripId)
 
-  if (error || !data) return failed(INTEREST_FAILED_MESSAGE)
+  if (error || !data) return failed(message('interest.loadFailed'))
 
   return readyOrEmpty(data.map(toInterest))
 }
@@ -91,7 +87,7 @@ export async function fetchTripMembers(
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
 
-  if (error || !data) return failed(MEMBERS_FAILED_MESSAGE)
+  if (error || !data) return failed(message('member.loadFailed'))
 
   return readyOrEmpty(
     data.map((row) => ({
@@ -104,10 +100,6 @@ export async function fetchTripMembers(
     })),
   )
 }
-
-export const MEMBER_INVITE_FAILED_MESSAGE = 'Could not add that person.'
-export const MEMBER_DUPLICATE_MESSAGE =
-  'Somebody with that email address is already on this trip.'
 
 /**
  * Add somebody to a trip.
@@ -152,12 +144,12 @@ export async function inviteMember(
     // for the reason `conflict` is its own outcome: a string is not a contract
     // and the first reword breaks the branch in silence.
     if (error.code === '23505') {
-      return invalidInput({ email: MEMBER_DUPLICATE_MESSAGE })
+      return invalidInput({ email: message('member.duplicate') })
     }
-    return rejected(MEMBER_INVITE_FAILED_MESSAGE)
+    return rejected(message('member.inviteFailed'))
   }
 
-  if (!data) return rejected(MEMBER_INVITE_FAILED_MESSAGE)
+  if (!data) return rejected(message('member.inviteFailed'))
 
   return wrote({
     id: data.id,
@@ -168,10 +160,6 @@ export async function inviteMember(
     createdAt: data.created_at,
   })
 }
-
-export const MEMBER_REMOVE_FAILED_MESSAGE = 'Could not take back that invitation.'
-export const MEMBER_ALREADY_CLAIMED_MESSAGE =
-  'They joined while this list was open, so their invitation is a membership now and was not taken back.'
 
 /**
  * Take back an invitation nobody has claimed.
@@ -202,8 +190,8 @@ export async function removeMember(
     .eq('id', memberId)
     .select('id')
 
-  if (error) return rejected(MEMBER_REMOVE_FAILED_MESSAGE)
-  if (!data || data.length === 0) return conflicted(MEMBER_ALREADY_CLAIMED_MESSAGE)
+  if (error) return rejected(message('member.removeFailed'))
+  if (!data || data.length === 0) return conflicted(message('member.alreadyClaimed'))
 
   return wrote(memberId)
 }
@@ -255,7 +243,7 @@ export async function recordInterest(
     .select(INTEREST_COLUMNS)
     .single()
 
-  if (error || !data) return rejected(INTEREST_SAVE_FAILED_MESSAGE)
+  if (error || !data) return rejected(message('interest.saveFailed'))
 
   return wrote(toInterest(data))
 }
@@ -278,7 +266,7 @@ export async function withdrawInterest(
     .eq('marker_id', markerId)
     .eq('member_id', memberId)
 
-  if (error) return rejected(INTEREST_SAVE_FAILED_MESSAGE)
+  if (error) return rejected(message('interest.saveFailed'))
 
   return wrote({ markerId, memberId })
 }
@@ -304,7 +292,7 @@ export async function setMarkerVisited(
     .update({ visited })
     .eq('id', markerId)
 
-  if (error) return rejected(VISITED_FAILED_MESSAGE)
+  if (error) return rejected(message('visited.saveFailed'))
 
   return wrote({ markerId, visited })
 }

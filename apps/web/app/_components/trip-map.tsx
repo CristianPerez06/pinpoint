@@ -18,6 +18,7 @@ import {
   type MarkerGroup,
   type StyleDocument,
 } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
 import { RefreshCw } from 'lucide-react'
 // Named imports, not a default: maplibre-gl v6 has no default export, and the
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
@@ -32,6 +33,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { DraftPin, Pin } from '@/app/_components/pin'
 import { Menu } from '@/app/_components/ui'
 import { themedBasemap } from '@/lib/basemap'
@@ -715,7 +717,7 @@ export function TripMap({
         'aria-label',
         group.count > 1
           ? `${group.count} places here`
-          : `${group.view.label} (${group.view.typeLabel})`,
+          : `${group.view.label} (${say(ENGLISH_LANGUAGE, markerTypeMessage(group.view.typeId))})`,
       )
 
       element.addEventListener('click', (event) => {
@@ -937,8 +939,16 @@ export function TripMap({
               rel="noreferrer noopener"
               className={styles.creditRow}
             >
+              {/*
+                The name is a proper noun and is printed as it stands. What the
+                project *does* is our own line, so the shared package names it
+                and this resolves it — `role` already holds the catalogue name,
+                written out beside the project in `@pinpoint/map`.
+              */}
               <span className={styles.creditName}>{credit.name}</span>
-              <span className={styles.creditRole}>{credit.role}</span>
+              <span className={styles.creditRole}>
+                {say(ENGLISH_LANGUAGE, message(credit.role))}
+              </span>
             </a>
           ))}
         </Menu>

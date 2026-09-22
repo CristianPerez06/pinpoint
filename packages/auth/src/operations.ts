@@ -1,6 +1,5 @@
 import { fieldErrorsOf, signInSchema, signUpSchema } from '@pinpoint/core'
 import {
-  authFailureMessage,
   authFailureOf,
   type PinpointClient,
 } from '@pinpoint/supabase'
@@ -57,7 +56,7 @@ export async function signIn(
 
   if (error) {
     const failure = authFailureOf(error)
-    return rejected(failure, authFailureMessage(failure))
+    return rejected(failure)
   }
 
   // Claiming lives here rather than in each application, so that every
@@ -83,7 +82,7 @@ export async function signUp(
 
   if (error) {
     const failure = authFailureOf(error)
-    return rejected(failure, authFailureMessage(failure))
+    return rejected(failure)
   }
 
   // With email confirmation enabled Supabase does not report a duplicate as an
@@ -93,7 +92,7 @@ export async function signUp(
   // dashboard toggle and this check is what stops that toggle from silently
   // turning a duplicate sign-up into an apparent success.
   if (data.user && data.user.identities?.length === 0) {
-    return rejected('email-taken', authFailureMessage('email-taken'))
+    return rejected('email-taken')
   }
 
   // Same reasoning as `signIn`. Email confirmation is off, so sign-up leaves the
@@ -110,7 +109,7 @@ export async function signOut(client: PinpointClient): Promise<AuthOutcome> {
 
   if (error) {
     const failure = authFailureOf(error)
-    return rejected(failure, authFailureMessage(failure))
+    return rejected(failure)
   }
 
   return succeeded

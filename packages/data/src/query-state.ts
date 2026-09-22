@@ -1,3 +1,5 @@
+import type { Message } from '@pinpoint/wording'
+
 /**
  * What a read of trip data is currently doing, or what it produced.
  *
@@ -22,7 +24,7 @@ export type QueryState<T> =
   | { status: 'loading' }
   | { status: 'ready'; data: T }
   | { status: 'empty' }
-  | { status: 'failed'; message: string }
+  | { status: 'failed'; reason: Message }
 
 /**
  * What a query function can return. `loading` is a state a caller holds before
@@ -62,8 +64,14 @@ export function empty(): SettledQueryState<never> {
   return { status: 'empty' }
 }
 
-export function failed(message: string): SettledQueryState<never> {
-  return { status: 'failed', message }
+/**
+ * A read that did not produce anything, named rather than written out.
+ *
+ * The name, not the sentence, for the same reason `rejected` takes one: which
+ * language somebody reads is not a fact a read can know.
+ */
+export function failed(reason: Message): SettledQueryState<never> {
+  return { status: 'failed', reason }
 }
 
 /**

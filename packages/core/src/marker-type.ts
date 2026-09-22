@@ -1,5 +1,6 @@
 import { isMarkerType } from '@pinpoint/map'
 import { z } from 'zod'
+import { refusal } from './field-errors'
 
 /**
  * Validation for a marker's type. The types themselves — their icons, their
@@ -24,4 +25,4 @@ import { z } from 'zod'
  */
 export const markerTypeSchema = z
   .string()
-  .refine(isMarkerType, 'Unknown marker type.')
+  .refine(isMarkerType, refusal('place.typeUnknown'))

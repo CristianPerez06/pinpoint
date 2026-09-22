@@ -1,7 +1,8 @@
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 
 import {
-  AUTH_FAILURE_MESSAGES,
+  AUTH_FAILURES,
   authFailureMessage,
   authFailureOf,
   GENERIC_AUTH_FAILURE,
@@ -31,19 +32,27 @@ describe('authFailureOf', () => {
 })
 
 describe('authFailureMessage', () => {
-  it('has a message for every failure', () => {
-    for (const [failure, message] of Object.entries(AUTH_FAILURE_MESSAGES)) {
-      expect(message.length).toBeGreaterThan(0)
-      expect(authFailureMessage(failure as keyof typeof AUTH_FAILURE_MESSAGES)).toBe(
-        message,
-      )
+  it('names something the catalogue can say, for every failure', () => {
+    for (const failure of AUTH_FAILURES) {
+      const said = say(ENGLISH_LANGUAGE, authFailureMessage(failure))
+      expect(said.length, `${failure} resolves to nothing`).toBeGreaterThan(0)
     }
   })
 
+  /*
+   * Resolved before it is read, because what must not leak is the sentence.
+   *
+   * This package hands over a name now, and a name cannot reveal anything to
+   * anybody — so asserting against the name would pass whatever the sentence
+   * said. The check has to go one step further along than the code does.
+   */
   it('does not reveal whether an account exists on a failed sign-in', () => {
-    const message = authFailureMessage(authFailureOf({ code: 'invalid_credentials' }))
-    expect(message.toLowerCase()).not.toContain('no account')
-    expect(message.toLowerCase()).not.toContain('not registered')
-    expect(message.toLowerCase()).not.toContain('wrong password')
+    const said = say(
+      ENGLISH_LANGUAGE,
+      authFailureMessage(authFailureOf({ code: 'invalid_credentials' })),
+    ).toLowerCase()
+    expect(said).not.toContain('no account')
+    expect(said).not.toContain('not registered')
+    expect(said).not.toContain('wrong password')
   })
 })

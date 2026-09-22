@@ -1,5 +1,5 @@
 export {
-  AUTH_FAILURE_MESSAGES,
+  AUTH_FAILURES,
   authFailureMessage,
   authFailureOf,
   GENERIC_AUTH_FAILURE,

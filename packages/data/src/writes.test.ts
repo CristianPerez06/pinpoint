@@ -1,9 +1,10 @@
 import type { OpeningHours } from '@pinpoint/core'
 import type { PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCity, updateCity } from './cities'
-import { inviteMember, MEMBER_DUPLICATE_MESSAGE } from './interest'
+import { inviteMember } from './interest'
 import { createMarker, deleteMarker, updateMarker } from './markers'
 
 /**
@@ -282,8 +283,8 @@ describe('createMarker', () => {
     if (outcome.ok || outcome.kind !== 'rejected') {
       throw new Error('expected a rejection')
     }
-    expect(outcome.message).not.toContain('row-level security')
-    expect(outcome.message).not.toContain('markers')
+    expect(outcome.reason).toEqual(message('place.saveFailed'))
+    expect(JSON.stringify(outcome.reason)).not.toContain('row-level security')
   })
 })
 
@@ -554,7 +555,7 @@ describe('inviteMember', () => {
     expect(outcome).toEqual({
       ok: false,
       kind: 'invalid-input',
-      fieldErrors: { email: MEMBER_DUPLICATE_MESSAGE },
+      fieldErrors: { email: message('member.duplicate') },
     })
   })
 

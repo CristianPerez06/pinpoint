@@ -2,6 +2,7 @@
 
 import type { City, Marker } from '@pinpoint/core'
 import { CITY_NEEDS_A_NAME, cityNameTaken, localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
+import type { Message } from '@pinpoint/wording'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 
@@ -316,7 +317,7 @@ function CityCreator({
 }) {
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Message | null>(null)
   const [creating, startCreate] = usePending()
 
   const trimmed = name.trim()

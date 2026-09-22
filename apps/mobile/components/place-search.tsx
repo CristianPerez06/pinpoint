@@ -6,6 +6,7 @@ import {
 } from '@pinpoint/geocode'
 import { markerTypeOf } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
   AccessibilityInfo,
@@ -303,7 +304,8 @@ export function PlaceSearchScreen({
                 /* Never phrased as "no matches". Rephrasing a query at a service
                    that is down is a way to spend five minutes learning nothing. */
                 <Note tone="danger">
-                  {result.message} You can still add a place by dropping a pin.
+                  {say(ENGLISH_LANGUAGE, result.reason)} You can still add a place by
+                  dropping a pin.
                 </Note>
               ) : result?.status === 'empty' ? (
                 <Note>No matches. Try fewer words, or drop a pin.</Note>

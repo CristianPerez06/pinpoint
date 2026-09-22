@@ -1,3 +1,4 @@
+import { message, type Message } from '@pinpoint/wording'
 import { distanceKm } from '@pinpoint/map'
 
 /**
@@ -198,11 +199,18 @@ export function cityClaiming<C extends NamedCity>(
  * only what is true and the field is left empty.
  */
 export interface CityNotice {
-  readonly message: string
+  readonly message: Message
   readonly offer: string | null
 }
 
-/** `a`, `a and b`, `a, b and c`. */
+/**
+ * `a`, `a and b`, `a, b and c`.
+ *
+ * Stays here, and joins the names before they are handed over as one value.
+ * How a list is joined is language-specific and this one is English's — which
+ * is a thing the change adding a second language has to answer, and not
+ * something to guess at now.
+ */
 function listed(names: readonly string[]): string {
   if (names.length <= 1) return names[0] ?? ''
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
@@ -235,15 +243,15 @@ export function cityNoticeFor<C extends NamedCity>(
     case 'one':
       if (claim.city.id === workingIn) return null
       return {
-        message: `Filed under ${claim.city.name}, which is where this place is.`,
+        message: message('cityClaim.filedUnder', { city: claim.city.name }),
         offer: null,
       }
 
     case 'several':
       return {
-        message: `More than one city is near enough to hold this: ${listed(
-          claim.cities.map((city) => city.name),
-        )}. Choose one.`,
+        message: message('cityClaim.several', {
+          cities: listed(claim.cities.map((city) => city.name)),
+        }),
         offer: null,
       }
 
@@ -251,8 +259,8 @@ export function cityNoticeFor<C extends NamedCity>(
       return {
         message:
           claim.offer === null
-            ? 'Not near any city on this trip. Choose one, or leave it unassigned.'
-            : `Not near any city on this trip. This place is in ${claim.offer}.`,
+            ? message('cityClaim.none')
+            : message('cityClaim.noneButNamed', { place: claim.offer }),
         offer: claim.offer,
       }
   }

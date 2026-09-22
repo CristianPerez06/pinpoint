@@ -278,21 +278,21 @@ describe('a refused trip says what is wrong', () => {
   }
 
   it('an empty name', () => {
-    expect(complainAbout('name', '')).toBe('A trip needs a name.')
+    expect(complainAbout('name', '')).toBe('trip.needsName')
   })
 
   it('a name past its limit', () => {
     expect(complainAbout('name', 'x'.repeat(121))).toBe(
-      'A trip name can be 120 characters at most.',
+      'trip.nameTooLong',
     )
   })
 
   it('a date that is not a date', () => {
     expect(complainAbout('startsOn', 'April')).toBe(
-      'A start date should look like 2026-04-03.',
+      'trip.startMalformed',
     )
     expect(complainAbout('endsOn', 'later')).toBe(
-      'An end date should look like 2026-04-03.',
+      'trip.endMalformed',
     )
   })
 
@@ -302,7 +302,7 @@ describe('a refused trip says what is wrong', () => {
    * why the sentence says neither "your name" nor "their name".
    */
   it('no name to be called by', () => {
-    expect(complainAbout('displayName', '')).toBe('Enter the name to show on this trip.')
+    expect(complainAbout('displayName', '')).toBe('member.needsDisplayName')
   })
 
   // Already written in our own voice before this change, and left as it was.
@@ -315,7 +315,7 @@ describe('a refused trip says what is wrong', () => {
     })
     expect(parsed.success).toBe(false)
     expect(!parsed.success && parsed.error.issues[0]?.message).toBe(
-      'The end date cannot be before the start date.',
+      'trip.endBeforeStart',
     )
   })
 })

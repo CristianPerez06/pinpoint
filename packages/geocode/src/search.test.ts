@@ -46,7 +46,7 @@ describe('searchPlaces', () => {
 
   it('reports failure when the service refuses', async () => {
     const result = await searchPlaces(respondWith(null, false, 503), 'ramen')
-    expect(result).toEqual({ status: 'failed', message: SEARCH_FAILED_MESSAGE })
+    expect(result).toEqual({ status: 'failed', reason: SEARCH_FAILED_MESSAGE })
   })
 
   it('reports failure when the request throws', async () => {

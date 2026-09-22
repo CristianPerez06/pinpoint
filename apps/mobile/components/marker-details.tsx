@@ -12,6 +12,7 @@ import {
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
 import X from 'lucide-react-native/icons/x'
@@ -28,7 +29,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { InterestRows, VisitedToggle } from '@/components/interest'
-import { MarkerGlyph } from '@/components/marker-icon'
+import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { Question } from '@/components/ui'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -516,7 +517,7 @@ export function MarkerDetails({
                 {marker.name}
               </Text>
               <Text style={[styles.choiceType, { color: theme.colour.inkMuted }]}>
-                {group.views[i]!.typeLabel}
+                {say(ENGLISH_LANGUAGE, markerTypeMessage(group.views[i]!.type))}
               </Text>
             </Pressable>
           ))}
@@ -574,8 +575,8 @@ export function MarkerDetails({
       */}
       <Field
         label="City"
-        value={cityNameOf(marker) ?? UNFILED_CITY_WORDING}
-        absent={UNFILED_CITY_WORDING}
+        value={cityNameOf(marker) ?? say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
+        absent={say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
       />
 
       {/* The day, where the laptop's card carries it: after what was decided
@@ -591,25 +592,29 @@ export function MarkerDetails({
               ? formatDay(marker.plannedOn)
               : formatDayRange(marker.plannedOn, marker.plannedUntil)
         }
-        absent={EMPTY_FIELD_WORDING.day}
+        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.day)}
       />
 
       <View style={styles.field}>
         <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>Hours</Text>
         {marker.hours === null ? (
           <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
-            {EMPTY_FIELD_WORDING.hours}
+            {say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.hours)}
           </Text>
         ) : (
           <HoursLines hours={marker.hours} />
         )}
       </View>
 
-      <Field label="Note" value={marker.note} absent={EMPTY_FIELD_WORDING.note} />
+      <Field
+        label="Note"
+        value={marker.note}
+        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.note)}
+      />
       <Field
         label="Link"
         value={marker.link}
-        absent={EMPTY_FIELD_WORDING.link}
+        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.link)}
         isLink
       />
 
@@ -715,7 +720,7 @@ export function MarkerDetails({
           style={[styles.tag, { backgroundColor: theme.markerType[view.type] }]}
         >
           <Text style={[styles.tagText, { color: theme.markerForeground }]}>
-            {view.typeLabel}
+            {say(ENGLISH_LANGUAGE, markerTypeMessage(view.type))}
           </Text>
         </View>
         {prices === null ? null : (

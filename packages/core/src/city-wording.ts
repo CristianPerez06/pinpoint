@@ -1,3 +1,5 @@
+import { message, type Message } from '@pinpoint/wording'
+
 /**
  * What the product says when creating a city is refused.
  *
@@ -17,14 +19,16 @@
 
 /** An empty name. `citySchema` says the same thing in its own words for
  *  anything reaching the data layer without passing through a form. */
-export const CITY_NEEDS_A_NAME = 'Give the city a name.'
+export const CITY_NEEDS_A_NAME = message('city.nameEmpty')
 
 /**
  * A name the trip already holds, naming it.
  *
  * Quoted because the name is somebody's text dropped into the middle of a
- * sentence, and a trip may well hold a city called `Kyoto Day 2`.
+ * sentence, and a trip may well hold a city called `Kyoto Day 2`. The name
+ * rides beside the sentence rather than being joined into it, because where
+ * it sits inside the sentence is not the same in every language.
  */
-export function cityNameTaken(name: string): string {
-  return `This trip already has a city called “${name}”.`
+export function cityNameTaken(name: string): Message {
+  return message('city.nameTaken', { name })
 }

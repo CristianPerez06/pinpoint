@@ -21,6 +21,7 @@
     "@pinpoint/map": "workspace:*",
     "@pinpoint/supabase": "workspace:*",
     "@pinpoint/tokens": "workspace:*",
+    "@pinpoint/wording": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "expo": "~57.0.14",

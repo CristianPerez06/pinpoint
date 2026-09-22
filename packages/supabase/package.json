@@ -14,6 +14,7 @@
   },
   "comment": "Depends only on the isomorphic client. Platform session persistence (cookies on web, secure storage on native) is wired by each app and deliberately does not live here.",
   "dependencies": {
+    "@pinpoint/wording": "workspace:*",
     "@supabase/supabase-js": "^2"
   },
   "devDependencies": {

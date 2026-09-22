@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { refusal } from './field-errors'
 
 /**
  * The days a place is open, and at what times (#176).
@@ -86,29 +87,32 @@ export const openingHoursSchema = z
   .strict()
   .superRefine((hours, ctx) => {
     const open = WEEK.filter((day) => hours[day] !== undefined)
-    const say = (message: string) => ctx.addIssue({ code: 'custom', message })
+    // Takes a name, not a sentence — `refusal` is what checks it. Named
+    // `refuse` rather than `say` because `say` is what resolves a name into
+    // words, which happens in an application and never here.
+    const refuse = (message: string) => ctx.addIssue({ code: 'custom', message })
 
     if (open.length === 0) {
-      say('Pick at least one day it opens.')
+      refuse(refusal('hours.needsADay'))
       return
     }
 
     if (open.some((day) => hours[day]!.length !== 1)) {
-      say('Every open day needs one set of hours.')
+      refuse(refusal('hours.needsOneRange'))
       return
     }
 
     const [first, ...rest] = open.map((day) => hours[day]![0]!)
     if (rest.some(([o, c]) => o !== first![0] || c !== first![1])) {
-      say('Every open day needs the same hours.')
+      refuse(refusal('hours.rangesDiffer'))
       return
     }
 
     const [o, c] = first!
     if (o === '' || c === '') {
-      say('Enter both times.')
+      refuse(refusal('hours.needsBothTimes'))
     } else if (!TIME.test(o) || !TIME.test(c)) {
-      say('Write the times like 09:00.')
+      refuse(refusal('hours.timeMalformed'))
     }
   })
 

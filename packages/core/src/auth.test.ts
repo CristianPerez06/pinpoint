@@ -1,6 +1,7 @@
+import { ENGLISH } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 
-import { signInSchema, signUpSchema } from './auth'
+import { MIN_PASSWORD_LENGTH, signInSchema, signUpSchema } from './auth'
 
 const fieldsWithErrors = (result: { error?: { issues: { path: PropertyKey[] }[] } }) =>
   new Set(result.error?.issues.map((issue) => String(issue.path[0])) ?? [])
@@ -70,5 +71,18 @@ describe('signInSchema', () => {
     const result = signInSchema.safeParse({ email: 'nope', password: 'x' })
     expect(result.success).toBe(false)
     expect(fieldsWithErrors(result)).toContain('email')
+  })
+})
+
+describe('the shortest password allowed', () => {
+  /*
+   * The rule and the sentence are in two files now, and nothing but this holds
+   * them together. Raising `MIN_PASSWORD_LENGTH` without rewording
+   * `password.tooShort` would refuse a nine-character password while telling
+   * somebody eight was enough — a form that cannot be satisfied by doing what
+   * it says.
+   */
+  it('is the number the refusal names', () => {
+    expect(ENGLISH['password.tooShort']).toContain(String(MIN_PASSWORD_LENGTH))
   })
 })

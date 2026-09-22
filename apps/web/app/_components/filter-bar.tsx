@@ -13,10 +13,12 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
+import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { Menu, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 
 import styles from './filter-bar.module.css'
@@ -292,8 +294,8 @@ function FilterBarLive({
     kinds.length === 0
       ? 'Any kind'
       : wordList(
-          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map(
-            (type) => type.label,
+          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
+            say(ENGLISH_LANGUAGE, markerTypeMessage(type.id)),
           ),
         )
 
@@ -461,7 +463,7 @@ function FilterBarLive({
                 className={styles.swatch}
                 style={{ background: `var(--pp-pin-${type.id})` }}
               />
-              <span>{type.label}</span>
+              <span>{say(ENGLISH_LANGUAGE, markerTypeMessage(type.id))}</span>
             </label>
           ))}
         </>,

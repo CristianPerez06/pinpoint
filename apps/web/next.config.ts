@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     '@pinpoint/map',
     '@pinpoint/supabase',
     '@pinpoint/tokens',
+    '@pinpoint/wording',
   ],
 }
 

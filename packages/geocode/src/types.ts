@@ -1,3 +1,5 @@
+import type { Message } from '@pinpoint/wording'
+
 /**
  * A place the geocoder offered, reduced to what it takes to become a marker.
  *
@@ -79,7 +81,7 @@ export type SearchResult =
   | { status: 'ready'; candidates: readonly PlaceCandidate[] }
   | { status: 'empty' }
   | { status: 'aborted' }
-  | { status: 'failed'; message: string }
+  | { status: 'failed'; reason: Message }
 
 /**
  * The part of `fetch` this package uses, described structurally.

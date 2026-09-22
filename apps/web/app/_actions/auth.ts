@@ -1,6 +1,8 @@
 'use server'
 
 import { signIn, signOut, signUp } from '@pinpoint/auth'
+import { authFailureMessage } from '@pinpoint/supabase'
+import type { Message } from '@pinpoint/wording'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -18,9 +20,18 @@ import { createClient } from '@/lib/supabase/server'
  * `signIn` and `signUp`, so that no application can authenticate without it.
  */
 
+/**
+ * What the form gets back, carried as names rather than sentences.
+ *
+ * These cross the server/client boundary, and a `Message` is a plain
+ * `{ key, values? }` object, so it serialises like any other action result.
+ * Resolving here would work too, and would be wrong: this runs on the server,
+ * which is the one place that has no idea who is reading. The form resolves it
+ * where it draws it, which is also where a language will be known.
+ */
 export interface AuthFormState {
-  fieldErrors?: Record<string, string>
-  formError?: string
+  fieldErrors?: Record<string, Message>
+  formError?: Message
 }
 
 const EMPTY: AuthFormState = {}
@@ -29,7 +40,7 @@ function stateFrom(outcome: Awaited<ReturnType<typeof signIn>>): AuthFormState {
   if (outcome.ok) return EMPTY
   return outcome.kind === 'invalid-input'
     ? { fieldErrors: outcome.fieldErrors }
-    : { formError: outcome.message }
+    : { formError: authFailureMessage(outcome.failure) }
 }
 
 export async function signInAction(

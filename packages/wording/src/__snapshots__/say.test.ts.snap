@@ -1,0 +1,188 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the English catalogue > says what it says 1`] = `
+"email.invalid
+  Enter a valid email address.
+password.missing
+  Enter your password.
+password.tooShort
+  Use at least 8 characters.
+password.needsLetter
+  Include at least one letter.
+password.needsNumber
+  Include at least one number.
+password.repeatMissing
+  Repeat your password.
+password.mismatch
+  Both passwords must match.
+auth.invalidCredentials
+  That email and password do not match an account.
+auth.emailTaken
+  There is already an account with that email address.
+auth.weakPassword
+  That password is too weak. Try a longer one.
+auth.emailNotConfirmed
+  That account has not been confirmed yet.
+auth.rateLimited
+  Too many attempts. Wait a moment and try again.
+auth.signupDisabled
+  New accounts are not being accepted right now.
+auth.generic
+  Something went wrong. Try again.
+trip.needsName
+  A trip needs a name.
+trip.nameTooLong
+  A trip name can be 120 characters at most.
+trip.startMalformed
+  A start date should look like 2026-04-03.
+trip.endMalformed
+  An end date should look like 2026-04-03.
+trip.endBeforeStart
+  The end date cannot be before the start date.
+trip.loadFailed
+  Could not load your trips.
+trip.createFailed
+  Could not create that trip.
+trip.saveFailed
+  Could not save that trip.
+city.needsName
+  A city needs a name.
+city.nameTooLong
+  A city name can be 120 characters at most.
+city.nameEmpty
+  Give the city a name.
+city.nameTaken
+  This trip already has a city called “{name}”.
+city.loadFailed
+  Could not load this trip’s cities.
+city.saveFailed
+  Could not save this city.
+city.deleteFailed
+  Could not remove this city.
+cityClaim.filedUnder
+  Filed under {city}, which is where this place is.
+cityClaim.several
+  More than one city is near enough to hold this: {cities}. Choose one.
+cityClaim.none
+  Not near any city on this trip. Choose one, or leave it unassigned.
+cityClaim.noneButNamed
+  Not near any city on this trip. This place is in {place}.
+place.needsName
+  A place needs a name.
+place.nameTooLong
+  A name can be 200 characters at most.
+place.noteTooLong
+  A note can be 2,000 characters at most.
+place.linkMalformed
+  A link should look like https://example.com.
+place.linkTooLong
+  A link can be 2,000 characters at most.
+place.cityNotOnList
+  Choose a city from the list.
+place.priceNegative
+  A price cannot be less than nothing.
+place.priceNegativeWithFree
+  A price cannot be less than nothing. Turn on Free for a place that costs nothing.
+place.localPriceNeedsCurrency
+  A local price needs the currency it is in.
+place.dayMalformed
+  A day should look like 2026-04-03.
+place.lastDayMalformed
+  A last day should look like 2026-04-03.
+place.lastDayNeedsFirst
+  A last day needs a day to start from.
+place.lastDayBeforeFirst
+  The last day must fall after the day.
+place.spanTooLong
+  A place cannot be planned for more than a year. Check the year.
+place.loadFailed
+  Could not load the places on this trip.
+place.saveFailed
+  Could not save this place.
+place.deleteFailed
+  Could not remove this place.
+place.conflict
+  Somebody else changed this place while you were editing it. Nothing you typed has been lost — open it again to see their version.
+place.typeUnknown
+  Unknown marker type.
+hours.needsADay
+  Pick at least one day it opens.
+hours.needsOneRange
+  Every open day needs one set of hours.
+hours.rangesDiffer
+  Every open day needs the same hours.
+hours.needsBothTimes
+  Enter both times.
+hours.timeMalformed
+  Write the times like 09:00.
+currency.malformed
+  A currency is a three-letter code, like JPY.
+currency.alreadyDollars
+  US dollars is already the first price.
+member.needsDisplayName
+  Enter the name to show on this trip.
+member.displayNameTooLong
+  A name can be 60 characters at most.
+member.loadFailed
+  Could not load the people on this trip.
+member.inviteFailed
+  Could not add that person.
+member.duplicate
+  Somebody with that email address is already on this trip.
+member.removeFailed
+  Could not take back that invitation.
+member.alreadyClaimed
+  They joined while this list was open, so their invitation is a membership now and was not taken back.
+member.takeBackLabel
+  Take back
+member.takeBackConfirm
+  Take it back
+member.takeBackDecline
+  Cancel
+member.takeBackQuestion
+  Take back {name}'s invitation?
+member.takeBackConsequence
+  {email} comes off the trip. Nothing else changes, and you can invite that address again.
+interest.loadFailed
+  Could not load who wants to go where.
+interest.saveFailed
+  Could not save that.
+visited.saveFailed
+  Could not change whether this place is visited.
+empty.day
+  No day yet
+empty.note
+  No note yet
+empty.link
+  No link yet
+empty.hours
+  No hours yet
+empty.city
+  Unassigned
+search.unavailable
+  Place search is unavailable right now.
+credit.openstreetmap
+  The map data, contributed by its community.
+credit.openmaptiles
+  The schema the data is packed into.
+credit.openfreemap
+  Serves the tiles, at no cost and without an account.
+credit.maplibre
+  Draws the map on the screen.
+markerType.place
+  Place
+markerType.temple
+  Temple
+markerType.culture
+  Culture
+markerType.nature
+  Nature
+markerType.food
+  Food
+markerType.shopping
+  Shopping
+markerType.stay
+  Stay
+markerType.transport
+  Transport"
+`;

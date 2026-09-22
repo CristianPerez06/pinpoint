@@ -45,6 +45,7 @@ import {
   markersAt,
 } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import {
   type ReactNode,
@@ -533,7 +534,11 @@ export function TripWorkspace({
     })
     if (!outcome.ok) {
       interestQuery.set(() => previous)
-      setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
+      setProblem(
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
+      )
     }
   }
 
@@ -553,7 +558,11 @@ export function TripWorkspace({
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
       interestQuery.set(() => previous)
-      setProblem(outcome.kind === 'rejected' ? outcome.message : 'Could not save that.')
+      setProblem(
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
+      )
     }
   }
 
@@ -570,7 +579,7 @@ export function TripWorkspace({
       markerQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? outcome.message
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
           : 'Could not change whether this place is visited.',
       )
     }
@@ -791,8 +800,9 @@ export function TripWorkspace({
       // Everything typed, and the marker's position, survive a rejection.
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict') setConflict(outcome.message)
-      else setFormMessage(outcome.message)
+      else if (outcome.kind === 'conflict')
+        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
+      else setFormMessage(say(ENGLISH_LANGUAGE, outcome.reason))
       // The panel is left exactly as it was, so nothing typed is lost and the
       // map keeps showing what is actually stored.
       return
@@ -884,7 +894,9 @@ export function TripWorkspace({
     setRemovingId(null)
     if (!outcome.ok) {
       setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not remove that place.',
       )
       return
     }
@@ -907,7 +919,9 @@ export function TripWorkspace({
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
     if (!outcome.ok) {
       setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not create that city.',
       )
       return null
     }
@@ -945,7 +959,9 @@ export function TripWorkspace({
     if (!outcome.ok) {
       cityQuery.set(() => previous)
       setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that city.',
       )
       return
     }
@@ -974,7 +990,9 @@ export function TripWorkspace({
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
       setProblem(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not remove that city.',
       )
       return
     }
@@ -1279,7 +1297,9 @@ export function TripWorkspace({
         }
         loading={markerQuery.state.status === 'loading'}
         failed={
-          markerQuery.state.status === 'failed' ? markerQuery.state.message : null
+          markerQuery.state.status === 'failed'
+            ? say(ENGLISH_LANGUAGE, markerQuery.state.reason)
+            : null
         }
         total={held.length}
         visible={visible}

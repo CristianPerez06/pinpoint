@@ -88,9 +88,22 @@ export interface MarkerView {
   type: MarkerType
   /** The marker's own name. Not drawn permanently beside the pin; see the spec. */
   label: string
-  /** The resolved type, for a detail view that wants to say "Temple". */
+  /**
+   * The resolved type, for a detail view that wants to say "Temple".
+   *
+   * The identifier and not the word. This used to carry `typeLabel` beside it
+   * — the English — which is the one value this package produced that a screen
+   * could print as it stood.
+   *
+   * Each application holds an exhaustive record from a type to a name in
+   * `@pinpoint/wording`, exactly as it already holds one from an icon's name to
+   * a glyph. Exhaustive rather than assembled, so a type added without a
+   * sentence beside it fails to typecheck in both applications instead of
+   * drawing a pin with nothing written next to it. Index that record with
+   * `type` above, which is already narrowed; this field is the same value as a
+   * plain string.
+   */
   typeId: string
-  typeLabel: string
   /**
    * The drawn box, and which point of it sits on `lng`/`lat`.
    *
@@ -162,7 +175,6 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     type: type.id,
     label: marker.name,
     typeId: type.id,
-    typeLabel: type.label,
     size: { width: MARKER_SIZE.width, height: MARKER_SIZE.height },
     anchor: { x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y },
     visited: marker.visited === true,

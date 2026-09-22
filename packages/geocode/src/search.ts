@@ -1,8 +1,9 @@
+import { message } from '@pinpoint/wording'
 import { toCandidates } from './parse'
 import { buildSearchUrl, type SearchOptions } from './request'
 import type { Fetcher, SearchResult } from './types'
 
-export const SEARCH_FAILED_MESSAGE = 'Place search is unavailable right now.'
+export const SEARCH_FAILED_MESSAGE = message('search.unavailable')
 
 /**
  * Was this rejection the caller cancelling, or the network failing?
@@ -56,17 +57,17 @@ export async function searchPlaces(
     })
   } catch (error) {
     if (wasAborted(error, signal)) return { status: 'aborted' }
-    return { status: 'failed', message: SEARCH_FAILED_MESSAGE }
+    return { status: 'failed', reason: SEARCH_FAILED_MESSAGE }
   }
 
-  if (!response.ok) return { status: 'failed', message: SEARCH_FAILED_MESSAGE }
+  if (!response.ok) return { status: 'failed', reason: SEARCH_FAILED_MESSAGE }
 
   let payload: unknown
   try {
     payload = await response.json()
   } catch (error) {
     if (wasAborted(error, signal)) return { status: 'aborted' }
-    return { status: 'failed', message: SEARCH_FAILED_MESSAGE }
+    return { status: 'failed', reason: SEARCH_FAILED_MESSAGE }
   }
 
   // The bias was already used to build the request; it is carried on so each

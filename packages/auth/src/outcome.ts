@@ -15,7 +15,7 @@ import type { AuthFailure } from '@pinpoint/supabase'
 export type AuthOutcome =
   | { ok: true }
   | { ok: false; kind: 'invalid-input'; fieldErrors: FieldErrors }
-  | { ok: false; kind: 'rejected'; failure: AuthFailure; message: string }
+  | { ok: false; kind: 'rejected'; failure: AuthFailure }
 
 /**
  * Re-exported rather than defined here. It moved into `@pinpoint/core` when
@@ -29,8 +29,16 @@ export function invalidInput(fieldErrors: FieldErrors): AuthOutcome {
   return { ok: false, kind: 'invalid-input', fieldErrors }
 }
 
-export function rejected(failure: AuthFailure, message: string): AuthOutcome {
-  return { ok: false, kind: 'rejected', failure, message }
+/**
+ * A refusal, carried as the failure and nothing else.
+ *
+ * It used to carry the sentence beside the code, so a caller could use either.
+ * The sentence is gone: `authFailureMessage` turns the failure into a name
+ * wherever somebody is about to draw it, and carrying a second representation
+ * of the same fact is how the two come to disagree.
+ */
+export function rejected(failure: AuthFailure): AuthOutcome {
+  return { ok: false, kind: 'rejected', failure }
 }
 
 export const succeeded: AuthOutcome = { ok: true }

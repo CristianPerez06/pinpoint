@@ -1,5 +1,6 @@
 'use client'
 
+import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useActionState } from 'react'
 
@@ -9,6 +10,9 @@ import styles from '../auth.module.css'
 
 const INITIAL: AuthFormState = {}
 
+/** The action reports names; this is the screen, so this is where they become words. */
+const words = (refusal: Message) => say(ENGLISH_LANGUAGE, refusal)
+
 export function LoginForm() {
   const [state, action, pending] = useActionState(signInAction, INITIAL)
 
@@ -16,7 +20,7 @@ export function LoginForm() {
     <form action={action} className={styles.form}>
       {state.formError ? (
         <p role="alert" className={styles.formError}>
-          {state.formError}
+          {words(state.formError)}
         </p>
       ) : null}
 
@@ -36,7 +40,7 @@ export function LoginForm() {
         />
         {state.fieldErrors?.email ? (
           <span id="email-error" className={styles.fieldError}>
-            {state.fieldErrors.email}
+            {words(state.fieldErrors.email)}
           </span>
         ) : null}
       </p>
@@ -59,7 +63,7 @@ export function LoginForm() {
         />
         {state.fieldErrors?.password ? (
           <span id="password-error" className={styles.fieldError}>
-            {state.fieldErrors.password}
+            {words(state.fieldErrors.password)}
           </span>
         ) : null}
       </p>

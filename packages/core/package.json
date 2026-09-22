@@ -12,9 +12,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "comment": "Depends on @pinpoint/map for the marker type identifiers only. A marker's icon and colour family are presentation and live there beside the descriptor function; what stays here is the write-side rule. The direction is safe because @pinpoint/map declares no workspace dependencies — check:cycles enforces that it stays that way.",
+  "comment": "Depends on @pinpoint/map for the marker type identifiers only. A marker's icon and colour family are presentation and live there beside the descriptor function; what stays here is the write-side rule. The direction is safe because @pinpoint/map depends only on @pinpoint/tokens, which depends on nothing — so it can never reach back here, and check:cycles enforces that it stays that way. It used to say map declares no workspace dependencies at all, which was simply untrue and would have read as permission to add one.",
   "dependencies": {
     "@pinpoint/map": "workspace:*",
+    "@pinpoint/wording": "workspace:*",
     "zod": "^4"
   },
   "devDependencies": {

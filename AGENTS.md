@@ -1,7 +1,7 @@
 # pinpoint
 
 pnpm workspaces monorepo. Two apps — `apps/web` (Next.js App Router) and `apps/mobile`
-(Expo) — over seven shared packages.
+(Expo) — over eight shared packages.
 
 The canonical rules live in `openspec/specs/`. This file is the short version an agent
 needs before touching anything.
@@ -90,10 +90,16 @@ rather than copying it across.
 
 ## The portability boundary
 
-`@pinpoint/map` **declares no runtime dependencies**, and that is load-bearing rather
-than incidental. Web renders with `maplibre-gl` and native with
+`@pinpoint/map` **declares no runtime dependency outside the workspace**, and that is
+load-bearing rather than incidental. Web renders with `maplibre-gl` and native with
 `@maplibre/maplibre-react-native` — different packages with similar APIs. A shared
 package can import neither.
+
+Read that boundary precisely, because it has been written down loosely and a rule that
+is not true is a rule somebody widens. It depends on `@pinpoint/tokens`, which itself
+declares nothing — so the property being protected is **no third-party dependency**, not
+an empty `dependencies` field. A workspace package of platform-neutral literals is not
+the kind of dependency this is guarding against; a renderer is.
 
 So map behaviour is expressed as **data and pure functions**: style references, camera
 derivation, marker geometry. Each app binds that to its own renderer. If code you want
@@ -422,11 +428,41 @@ modules, never `src/generated/`** — `pnpm check:tokens` regenerates and fails 
 the diff. A value the host resolves (`var()`, `color-mix()`, `currentColor`) is
 rejected by the script, because native cannot render it.
 
+## Words
+
+Every sentence the product says to a person lives once in `@pinpoint/wording`, under a
+short name — `place.saveFailed`, `city.nameTaken`, `markerType.temple`. It is the same
+cut `@pinpoint/tokens` makes for colour: one source of values, two applications drawing
+them in their own idiom, and **nothing rendered crosses between them**. That package
+declares no dependencies and exports no component.
+
+**No package under `packages/` returns a sentence.** A shared read, write or refusal
+hands over a name and the values to place into it; the application resolves it where it
+draws it, with `say(ENGLISH_LANGUAGE, message)`. The language is passed at every call
+site on purpose — there is one today, and taking it as an argument now is what keeps the
+change that adds a second one to replacing a value rather than a signature.
+
+A name is always **written out**, never assembled: `` message(`markerType.${id}`) `` is
+refused by `pnpm check:wording`, because a name built at runtime cannot be read by a
+check that reads text — and one such call stops that check being able to answer either of
+its questions, so every unused sentence then looks used and every missing one looks fine.
+Where a set each needs a name, use an exhaustive record, as both applications do for a
+marker type beside the record mapping its icon.
+
+`pnpm check:wording` fails on a name with no sentence and on a sentence nothing resolves.
+What is **not** in there: anything a person typed, the tile attribution, and values
+formatted from stored data — a day, a price, a currency's name — which are worded by the
+capabilities that define them and come under this when they gain a second language.
+
 ## Attribution
 
 Tiles come from OpenFreeMap over OpenStreetMap data. Visible attribution is required
 wherever the map renders. MapLibre shows it by default and it can be removed without
 warning — don't.
+
+`ATTRIBUTION` in `@pinpoint/map` is the licence line and has a fixed form; it is not a
+named sentence and is never translated. The four `MAP_CREDITS` roles beside it are our
+own prose and are named like anything else.
 
 ## Workflow
 

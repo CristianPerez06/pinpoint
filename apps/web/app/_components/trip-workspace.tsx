@@ -50,6 +50,7 @@ import {
   type MarkerGroup,
   type Rect,
 } from '@pinpoint/map'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { type ReadonlyURLSearchParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -896,7 +897,9 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setInterest(previous)
       setMessage(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save that.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
       )
     }
   }
@@ -918,7 +921,9 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setInterest(previous)
       setMessage(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save that.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that.',
       )
     }
   }
@@ -936,7 +941,7 @@ export function TripWorkspace({
       setMarkers(previous)
       setMessage(
         outcome.kind === 'rejected'
-          ? outcome.message
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
           : 'Could not change whether this place is visited.',
       )
     }
@@ -1155,8 +1160,8 @@ export function TripWorkspace({
       // Everything typed, and the marker's position, survive a rejection.
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict') setConflict(outcome.message)
-      else setMessage(outcome.message)
+      else if (outcome.kind === 'conflict') setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
+      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
       // Nothing is written to `markers` on any of these paths, so the map keeps
       // showing what is stored while the form keeps what was typed.
       return
@@ -1176,7 +1181,11 @@ export function TripWorkspace({
 
     const outcome = await deleteMarker(supabase, marker.id)
     if (!outcome.ok) {
-      setMessage(outcome.kind === 'rejected' ? outcome.message : 'Could not remove that place.')
+      setMessage(
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not remove that place.',
+      )
       return
     }
     setMarkers((current) => current.filter((each) => each.id !== marker.id))
@@ -1196,7 +1205,9 @@ export function TripWorkspace({
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
     if (!outcome.ok) {
       setMessage(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not create that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not create that city.',
       )
       return null
     }
@@ -1234,7 +1245,9 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setCities(previous)
       setMessage(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not save that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not save that city.',
       )
       return
     }
@@ -1272,7 +1285,9 @@ export function TripWorkspace({
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
       setMessage(
-        outcome.kind === 'rejected' ? outcome.message : 'Could not remove that city.',
+        outcome.kind === 'rejected'
+          ? say(ENGLISH_LANGUAGE, outcome.reason)
+          : 'Could not remove that city.',
       )
       return
     }

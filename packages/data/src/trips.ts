@@ -6,6 +6,7 @@ import {
   tripPatchSchema,
 } from '@pinpoint/core'
 import type { Database, PinpointClient } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 
 import {
   failed,
@@ -61,8 +62,6 @@ function toTripColumns(patch: TripPatch): TripUpdate {
   return columns
 }
 
-export const TRIPS_FAILED_MESSAGE = 'Could not load your trips.'
-
 /**
  * The trips this account is on, oldest first.
  *
@@ -98,13 +97,10 @@ export async function fetchTrips(
     // more here, because the first row of this list is the trip the map draws.
     .order('id', { ascending: true })
 
-  if (error || !data) return failed(TRIPS_FAILED_MESSAGE)
+  if (error || !data) return failed(message('trip.loadFailed'))
 
   return readyOrEmpty(data.map(toTrip))
 }
-
-export const TRIP_CREATE_FAILED_MESSAGE = 'Could not create that trip.'
-export const TRIP_SAVE_FAILED_MESSAGE = 'Could not save that trip.'
 
 /**
  * Make a trip, and become its first member.
@@ -144,7 +140,7 @@ export async function createTrip(
 
   // Null rather than an error is what the function returns when there is no
   // session, so it has to be treated as a refusal rather than as success.
-  if (error || !tripId) return rejected(TRIP_CREATE_FAILED_MESSAGE)
+  if (error || !tripId) return rejected(message('trip.createFailed'))
 
   // Read back rather than assembled here. The row carries `created_at` and
   // `archived` from the database, and constructing them locally would be
@@ -155,7 +151,7 @@ export async function createTrip(
     .eq('id', tripId)
     .single()
 
-  if (readError || !data) return rejected(TRIP_CREATE_FAILED_MESSAGE)
+  if (readError || !data) return rejected(message('trip.createFailed'))
 
   return wrote(toTrip(data))
 }
@@ -193,7 +189,7 @@ export async function updateTrip(
     .select(TRIP_COLUMNS)
     .single()
 
-  if (error || !data) return rejected(TRIP_SAVE_FAILED_MESSAGE)
+  if (error || !data) return rejected(message('trip.saveFailed'))
 
   return wrote(toTrip(data))
 }

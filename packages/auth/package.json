@@ -15,7 +15,8 @@
   "comment": "Authentication operations, shared by both apps. Every function takes an already-constructed client rather than building one, so this package never touches cookies, secure storage, or any other API that resolves on only one platform. Adding a runtime dependency beyond the two workspace packages is a signal the code belongs in an app instead — see openspec/specs/monorepo-structure.",
   "dependencies": {
     "@pinpoint/core": "workspace:*",
-    "@pinpoint/supabase": "workspace:*"
+    "@pinpoint/supabase": "workspace:*",
+    "@pinpoint/wording": "workspace:*"
   },
   "devDependencies": {
     "typescript": "~6.0.3",

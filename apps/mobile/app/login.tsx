@@ -1,5 +1,8 @@
 import { signIn } from '@pinpoint/auth'
+import type { FieldErrors } from '@pinpoint/core'
+import { authFailureMessage } from '@pinpoint/supabase'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -37,7 +40,7 @@ export default function LoginScreen() {
   const { session, loading } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const theme = useTheme()
@@ -62,7 +65,7 @@ export default function LoginScreen() {
       if (outcome.kind === 'invalid-input') {
         setFieldErrors(outcome.fieldErrors)
       } else {
-        setFormError(outcome.message)
+        setFormError(say(ENGLISH_LANGUAGE, authFailureMessage(outcome.failure)))
       }
     }
     // On success the auth state listener swaps the tree; no navigation here.
@@ -147,7 +150,7 @@ export default function LoginScreen() {
             />
             {fieldErrors.email ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {fieldErrors.email}
+                {say(ENGLISH_LANGUAGE, fieldErrors.email)}
               </Text>
             ) : null}
           </View>
@@ -166,7 +169,7 @@ export default function LoginScreen() {
             />
             {fieldErrors.password ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {fieldErrors.password}
+                {say(ENGLISH_LANGUAGE, fieldErrors.password)}
               </Text>
             ) : null}
           </View>

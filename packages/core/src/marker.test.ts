@@ -477,30 +477,30 @@ describe('a refused field says what is wrong', () => {
   }
 
   it('an empty name', () => {
-    expect(complainAbout('name', '')).toBe('A place needs a name.')
+    expect(complainAbout('name', '')).toBe('place.needsName')
   })
 
   it('a name past its limit', () => {
     expect(complainAbout('name', 'x'.repeat(201))).toBe(
-      'A name can be 200 characters at most.',
+      'place.nameTooLong',
     )
   })
 
   it('a note past its limit', () => {
     expect(complainAbout('note', 'x'.repeat(2001))).toBe(
-      'A note can be 2,000 characters at most.',
+      'place.noteTooLong',
     )
   })
 
   it('something that is not a link', () => {
     expect(complainAbout('link', 'kiyomizu-dera')).toBe(
-      'A link should look like https://example.com.',
+      'place.linkMalformed',
     )
   })
 
   // The case from #196: this said `Too small: expected number to be >=0`.
   it('a dollar price below nothing', () => {
-    expect(complainAbout('price', -5)).toBe('A price cannot be less than nothing.')
+    expect(complainAbout('price', -5)).toBe('place.priceNegative')
   })
 
   /*
@@ -510,22 +510,22 @@ describe('a refused field says what is wrong', () => {
    */
   it('a local price below nothing', () => {
     expect(complainAbout('localPrice', -5)).toBe(
-      'A price cannot be less than nothing. Turn on Free for a place that costs nothing.',
+      'place.priceNegativeWithFree',
     )
     expect(complainAbout('localPrice', 0)).toBe(complainAbout('localPrice', -5))
   })
 
   it('a day that is not a day', () => {
     expect(complainAbout('plannedOn', 'the third')).toBe(
-      'A day should look like 2026-04-03.',
+      'place.dayMalformed',
     )
     expect(complainAbout('plannedUntil', 'later')).toBe(
-      'A last day should look like 2026-04-03.',
+      'place.lastDayMalformed',
     )
   })
 
   it('a city that is not one of the trip’s', () => {
-    expect(complainAbout('cityId', 'kyoto')).toBe('Choose a city from the list.')
+    expect(complainAbout('cityId', 'kyoto')).toBe('place.cityNotOnList')
   })
 
   /*
@@ -534,6 +534,6 @@ describe('a refused field says what is wrong', () => {
    * packages away, so this change touched neither it nor its message.
    */
   it('a type the product does not have', () => {
-    expect(complainAbout('type', 'casino')).toBe('Unknown marker type.')
+    expect(complainAbout('type', 'casino')).toBe('place.typeUnknown')
   })
 })

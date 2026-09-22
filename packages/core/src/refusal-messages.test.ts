@@ -1,3 +1,4 @@
+import { ENGLISH, ENGLISH_LANGUAGE, message, say, type MessageKey } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
@@ -158,7 +159,17 @@ describe('every field a person fills in answers in our own words', () => {
   })
 })
 
-describe('every message is a sentence', () => {
+/**
+ * What a schema's message slot holds is a **name**, and the name resolves.
+ *
+ * This used to assert directly that the slot held a sentence. It cannot any
+ * more — the slot holds `trip.needsName` — but the thing it was protecting is
+ * unchanged and is now checked one step further along: the name is one the
+ * catalogue knows, and what the catalogue has behind it is a sentence somebody
+ * wrote. A key that is a typo fails here as loudly as an unwritten rule does
+ * above, which is the failure the old assertion could not have seen at all.
+ */
+describe('every message is a name, and every name is a sentence', () => {
   const everyMessage = RECORDS.flatMap((record) =>
     personFacingFields(record).flatMap(([field, schema]) =>
       statedRules(schema)
@@ -169,8 +180,16 @@ describe('every message is a sentence', () => {
 
   for (const { where, said } of everyMessage) {
     it(where, () => {
-      expect(said, `${where} does not end in a full stop`).toMatch(/\.$/)
-      expect(said[0], `${where} does not begin with a capital`).toBe(said[0].toUpperCase())
+      expect(
+        Object.prototype.hasOwnProperty.call(ENGLISH, said),
+        `${where} names "${said}", which the catalogue does not hold`,
+      ).toBe(true)
+
+      const sentence = say(ENGLISH_LANGUAGE, message(said as MessageKey))
+      expect(sentence, `${where} does not end in a full stop`).toMatch(/\.$/)
+      expect(sentence[0], `${where} does not begin with a capital`).toBe(
+        sentence[0].toUpperCase(),
+      )
     })
   }
 })
@@ -296,10 +315,16 @@ describe('a rule about the whole record answers the same way', () => {
       expect(result.success, `${what} was accepted, so it says nothing`).toBe(false)
       const said = result.success ? [] : result.error.issues.map((issue) => issue.message)
       expect(said.length).toBeGreaterThan(0)
-      for (const message of said) {
-        expect(message, `"${message}" does not end in a full stop`).toMatch(/\.$/)
-        expect(message[0], `"${message}" does not begin with a capital`).toBe(
-          message[0].toUpperCase(),
+      // Each issue names a message; the sentence is one step further along.
+      for (const named of said) {
+        expect(
+          Object.prototype.hasOwnProperty.call(ENGLISH, named),
+          `"${named}" is not a name the catalogue holds`,
+        ).toBe(true)
+        const sentence = say(ENGLISH_LANGUAGE, message(named as MessageKey))
+        expect(sentence, `"${sentence}" does not end in a full stop`).toMatch(/\.$/)
+        expect(sentence[0], `"${sentence}" does not begin with a capital`).toBe(
+          sentence[0].toUpperCase(),
         )
       }
     })
