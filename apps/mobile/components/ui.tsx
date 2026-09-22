@@ -7,6 +7,7 @@ import {
   todayAsDay,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker'
@@ -24,6 +25,7 @@ import {
   type TextInputProps,
 } from 'react-native'
 
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
@@ -145,6 +147,15 @@ export function TextField({
  * The toggle is the interest choice pill (`interest.tsx`), and at least 44
  * points tall, the smallest target a thumb reliably hits.
  */
+/**
+ * The first price's currency, as its code.
+ *
+ * A code rather than words: it reads the same in every language, exactly as
+ * the second box's code beside it does. What a screen reader hears is spelled
+ * out, and that is resolved.
+ */
+const DOLLARS = 'USD'
+
 export function PriceField({
   value,
   onChange,
@@ -176,6 +187,7 @@ export function PriceField({
   warning?: string | null
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   /*
     A code and an amount sharing one border. The code labels the field for
@@ -213,7 +225,7 @@ export function PriceField({
             the narrow card — so what it said moved to the line beneath, which
             is where this form says everything else of that kind.
           */
-          placeholder={free ? 'Free' : ''}
+          placeholder={free ? say(message('price.free')) : ''}
           placeholderTextColor={theme.colour.inkMuted}
           keyboardType="decimal-pad"
           accessibilityLabel={spoken}
@@ -225,14 +237,14 @@ export function PriceField({
 
   return (
     <View style={[styles.priceFields, { borderColor: theme.colour.line }]}>
-      <FieldLabel>Price</FieldLabel>
+      <FieldLabel>{say(message('priceField.label'))}</FieldLabel>
 
       <View style={styles.priceRow}>
-        {box('USD', 'Price in US dollars', value, onChange, error !== undefined)}
+        {box(DOLLARS, say(message('priceField.inDollars')), value, onChange, error !== undefined)}
         {local
           ? box(
               local.currency,
-              `Price in ${local.currency}`,
+              say(message('priceField.inCurrency', { currency: local.currency })),
               local.value,
               local.onChange,
               local.error !== undefined,
@@ -262,7 +274,7 @@ export function PriceField({
               { color: free ? theme.colour.accentInk : theme.colour.ink },
             ]}
           >
-            Free
+            {say(message('price.free'))}
           </Text>
         </Pressable>
       </View>
@@ -281,7 +293,7 @@ export function PriceField({
           site so neither app can forget it.
         */
         <Text accessibilityRole="alert" style={[styles.error, { color: theme.colour.danger }]}>
-          {`${local.currency}: ${local.error}`}
+          {local.currency}: {local.error}
         </Text>
       ) : null}
 
@@ -291,9 +303,13 @@ export function PriceField({
         a second amount to explain.
       */}
       <Text style={[styles.error, { color: theme.colour.inkMuted }]}>
-        {local
-          ? `Leave an amount blank if you don't know it. ${local.hint}`
-          : "Leave it blank if you don't know."}
+        {local ? (
+          <>
+            {say(message('priceField.blankHintEither'))} {local.hint}
+          </>
+        ) : (
+          say(message('priceField.blankHint'))
+        )}
       </Text>
 
       {warning ? (
@@ -416,6 +432,8 @@ export function DayField({
 }) {
   const theme = useTheme()
   const mode = useThemeMode()
+  const language = useLanguage()
+  const say = useSay()
 
   /*
    * What the picker stands on while there is no day. Today, and deliberately not
@@ -486,8 +504,8 @@ export function DayField({
             waiting
               ? label
               : value === null
-                ? `${label}, no day yet`
-                : `${label}, ${formatDay(value)}`
+                ? say(message('dayField.spokenEmpty', { label }))
+                : say(message('dayField.spokenDay', { label, day: formatDay(language, value) }))
           }
           style={[
             styles.dayValue,
@@ -523,7 +541,7 @@ export function DayField({
                 },
               ]}
             >
-              {value === null ? 'No day yet' : formatDayNumeric(value)}
+              {value === null ? say(message('empty.day')) : formatDayNumeric(value)}
             </Text>
           )}
           <Calendar
@@ -542,12 +560,12 @@ export function DayField({
           <Pressable
             onPress={() => onChange(null)}
             accessibilityRole="button"
-            accessibilityLabel={`Clear ${label.toLowerCase()}`}
+            accessibilityLabel={say(message('dayField.clear', { label }))}
             hitSlop={8}
             style={styles.dayClear}
           >
             <Text style={[styles.dayClearText, { color: theme.colour.inkMuted }]}>
-              Clear
+              {say(message('common.clear'))}
             </Text>
           </Pressable>
         ) : null}
@@ -574,7 +592,7 @@ export function DayField({
           <Pressable
             style={styles.dayBackdrop}
             onPress={() => setPicking(false)}
-            accessibilityLabel="Close"
+            accessibilityLabel={say(message('common.close'))}
           >
             {/* Swallows presses, so a tap on the calendar's own chrome does not
                 dismiss through the backdrop underneath it. */}
@@ -711,6 +729,7 @@ export function Question({
   onDecline: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <View
@@ -751,7 +770,7 @@ export function Question({
             if (!waiting) onDecline()
           }}
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
+          accessibilityLabel={say(message('common.cancel'))}
           accessibilityState={{ disabled: Boolean(waiting) }}
           style={[
             styles.questionButton,
@@ -763,7 +782,7 @@ export function Question({
           ]}
         >
           <Text style={[styles.questionButtonText, { color: theme.colour.ink }]}>
-            Cancel
+            {say(message('common.cancel'))}
           </Text>
         </Pressable>
 

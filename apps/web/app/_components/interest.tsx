@@ -1,6 +1,9 @@
 'use client'
 
 import { type InterestState, interestStateOf, type MarkerInterest, type TripMember } from '@pinpoint/core'
+import { message, type Message } from '@pinpoint/wording'
+
+import { useSay } from '@/app/_components/language'
 
 import styles from './interest.module.css'
 
@@ -17,17 +20,17 @@ import styles from './interest.module.css'
  * that cannot work.
  */
 
-const STATE_LABEL: Record<InterestState, string> = {
-  interested: 'Wants to go',
-  'not-interested': 'Not for them',
-  undecided: 'Undecided',
+const STATE_LABEL: Record<InterestState, Message> = {
+  interested: message('interest.wantsToGo'),
+  'not-interested': message('interest.notForThem'),
+  undecided: message('interest.undecided'),
 }
 
 /** The reader's own row says "you", because "Cristian: not for them" reads oddly to Cristian. */
-const OWN_STATE_LABEL: Record<InterestState, string> = {
-  interested: 'You want to go',
-  'not-interested': 'Not for you',
-  undecided: 'You have not said',
+const OWN_STATE_LABEL: Record<InterestState, Message> = {
+  interested: message('interest.youWantToGo'),
+  'not-interested': message('interest.notForYou'),
+  undecided: message('interest.youHaveNotSaid'),
 }
 
 /**
@@ -59,6 +62,7 @@ export function InterestRows({
   onRecord: (interested: boolean) => void
   onWithdraw: () => void
 }) {
+  const say = useSay()
   return (
     <ul className={styles.rows}>
       {members.map((member) => {
@@ -69,12 +73,12 @@ export function InterestRows({
 
         return (
           <li key={member.id} className={styles.row}>
-            <span className={styles.who}>{isOwn ? 'You' : member.displayName}</span>
+            <span className={styles.who}>{isOwn ? say(message('interest.you')) : member.displayName}</span>
 
             {isOwn ? (
               <span className={styles.choices}>
                 <Choice
-                  label="Want to go"
+                  label={say(message('interest.wantToGo'))}
                   active={state === 'interested'}
                   // Pressing the active choice takes it back rather than doing
                   // nothing. Withdrawing has to be reachable, and a third button
@@ -84,7 +88,7 @@ export function InterestRows({
                   }
                 />
                 <Choice
-                  label="Not for me"
+                  label={say(message('interest.notForMe'))}
                   active={state === 'not-interested'}
                   onClick={() =>
                     state === 'not-interested' ? onWithdraw() : onRecord(false)
@@ -93,13 +97,13 @@ export function InterestRows({
               </span>
             ) : (
               <span className={`${styles.state} ${STATE_CLASS[state]}`}>
-                {STATE_LABEL[state]}
+                {say(STATE_LABEL[state])}
               </span>
             )}
 
             {isOwn ? (
               <span className={`${styles.ownState} ${STATE_CLASS[state]}`}>
-                {OWN_STATE_LABEL[state]}
+                {say(OWN_STATE_LABEL[state])}
               </span>
             ) : null}
           </li>
@@ -143,6 +147,7 @@ export function VisitedToggle({
   visited: boolean
   onChange: (visited: boolean) => void
 }) {
+  const say = useSay()
   return (
     <button
       type="button"
@@ -150,7 +155,7 @@ export function VisitedToggle({
       aria-pressed={visited}
       className={`${styles.visited} ${visited ? styles.visitedOn : ''}`}
     >
-      {visited ? '✓ Visited' : 'Mark visited'}
+      {say(visited ? message('visited.on') : message('visited.mark'))}
     </button>
   )
 }

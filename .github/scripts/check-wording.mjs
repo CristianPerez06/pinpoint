@@ -48,6 +48,17 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 /** Where the sentences live. Everything else is a consumer. */
 export const CATALOGUE = 'packages/wording/src/english.ts'
 
+/**
+ * The other languages' copies of the same names.
+ *
+ * Exempt from being read as consumers, because every one of them spells out
+ * every name — read as usage, a second catalogue would make every sentence look
+ * resolved and this check would pass a repository with nothing using anything.
+ * That they hold the same names as English is the compiler's job, through the
+ * `Catalogue` type they are declared as, and is not repeated here.
+ */
+export const TRANSLATIONS = ['packages/wording/src/spanish.ts']
+
 /** Where names may be used. The catalogue itself is read separately. */
 export const SEARCHED = ['apps', 'packages', '.github/scripts']
 
@@ -76,6 +87,7 @@ function isDeliberatelyRefused(source, index) {
 function isExempt(path) {
   // The catalogue declares the names; it does not consume them.
   if (path === CATALOGUE) return true
+  if (TRANSLATIONS.includes(path)) return true
   // This check's own source and test quote names as examples.
   if (path.endsWith('check-wording.mjs')) return true
   if (path.endsWith('check-wording.test.mjs')) return true

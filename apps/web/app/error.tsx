@@ -1,7 +1,9 @@
 'use client'
 
+import { message } from '@pinpoint/wording'
 import { useEffect } from 'react'
 
+import { useSay } from '@/app/_components/language'
 import { FailedState } from '@/app/_components/states'
 
 import styles from './page.module.css'
@@ -24,6 +26,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const say = useSay()
+
   useEffect(() => {
     // Nowhere to send this yet. Without the log the digest is the only trace,
     // and a digest alone cannot be debugged.
@@ -32,9 +36,9 @@ export default function Error({
 
   return (
     <div className={styles.boundary}>
-      <FailedState message="Something went wrong loading the map.">
+      <FailedState message={message('error.mapFailed')}>
         <button type="button" onClick={reset} className={styles.retry}>
-          Try again
+          {say(message('common.tryAgain'))}
         </button>
       </FailedState>
     </div>

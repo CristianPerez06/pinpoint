@@ -1,7 +1,10 @@
 'use client'
 
+import { message } from '@pinpoint/wording'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+
+import { useSay } from '@/app/_components/language'
 
 import styles from './settings.module.css'
 
@@ -26,6 +29,7 @@ import styles from './settings.module.css'
  */
 export function BackToMap() {
   const router = useRouter()
+  const say = useSay()
 
   return (
     <button
@@ -40,7 +44,7 @@ export function BackToMap() {
       className={styles.back}
     >
       <ArrowLeft aria-hidden className={styles.backGlyph} />
-      Back to the map
+      {say(message('common.backToMap'))}
     </button>
   )
 }

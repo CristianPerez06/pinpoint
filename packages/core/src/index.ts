@@ -26,6 +26,7 @@ export {
   formatDayNumeric,
   formatDayRange,
   formatDayShort,
+  formatDayStretch,
   formatRunPosition,
 } from './day-wording'
 
@@ -69,6 +70,7 @@ export type {
 
 export {
   CURRENCIES,
+  currenciesIn,
   currencyCodeSchema,
   currencyLabel,
   currencyName,
@@ -76,6 +78,8 @@ export {
 } from './currency'
 
 export { formatMoney, formatPrice, formatPrices } from './price'
+
+export { formatDistance } from './distance'
 
 export { localPriceClearedBy, localPricesUnder, pricesFromDraft } from './price-draft'
 export type { DraftedPrices, PriceDraft } from './price-draft'

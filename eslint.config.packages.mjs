@@ -1,5 +1,7 @@
 import tseslint from 'typescript-eslint'
 
+import words from './eslint.words.cjs'
+
 /**
  * The eight packages under `packages/` have no framework — no React, no Next,
  * no Expo — so they need no rules beyond these two, and one configuration
@@ -29,6 +31,10 @@ export default [
     rules: {
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/restrict-plus-operands': 'error',
+      // Nothing under `packages/` draws, so this finds nothing today. It is on
+      // so a component added to a package is checked from its first line —
+      // see `eslint.words.cjs`.
+      ...words.wordsRulesWithoutReact,
     },
   },
 ]

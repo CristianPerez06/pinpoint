@@ -1,7 +1,9 @@
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message, type Message } from '@pinpoint/wording'
 import type { ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -36,8 +38,17 @@ const styles = StyleSheet.create({
   failedText: { ...role(TYPE.body), fontWeight: '600', textAlign: 'center' },
 })
 
-export function LoadingState({ what = 'the map' }: { what?: string }) {
+export function LoadingState({
+  label = message('loading.map'),
+}: {
+  /**
+   * What is being waited for, as the whole sentence rather than a noun dropped
+   * into one — `Loading {what}…` holds together in English only.
+   */
+  label?: Message
+}) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <View style={styles.panel}>
@@ -46,7 +57,7 @@ export function LoadingState({ what = 'the map' }: { what?: string }) {
           from a stalled one, and this is the state most often mistaken for
           emptiness. */}
       <Text style={[styles.muted, { color: theme.colour.inkMuted }]}>
-        Loading {what}…
+        {say(label)}
       </Text>
     </View>
   )

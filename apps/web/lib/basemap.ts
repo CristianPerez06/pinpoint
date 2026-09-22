@@ -2,6 +2,21 @@
 
 import { styleUrl, themeStyle, type StyleDocument } from '@pinpoint/map'
 import type { ThemeMode } from '@pinpoint/tokens'
+import { message, type Message } from '@pinpoint/wording'
+
+/**
+ * A style fetch that failed for a reason worth telling the person.
+ *
+ * It carries a name rather than a sentence because the reason is drawn inside
+ * one, and a sentence fixed at the moment of failure would stay in that
+ * language after the person changed it. `Error.message` is left to developers.
+ */
+export class BasemapFailure extends Error {
+  constructor(readonly reason: Message) {
+    super('the map style could not be fetched')
+    this.name = 'BasemapFailure'
+  }
+}
 
 /**
  * Fetching the style document, so the shared transformation can repaint it.
@@ -26,7 +41,7 @@ function fetchStyleDocument(): Promise<StyleDocument> {
   cached ??= fetch(styleUrl())
     .then((response) => {
       if (!response.ok) {
-        throw new Error(`the tile service answered ${response.status}`)
+        throw new BasemapFailure(message('map.styleRefused', { status: response.status }))
       }
       return response.json() as Promise<StyleDocument>
     })

@@ -36,8 +36,8 @@ const TYPE_NAMES: Record<MarkerType, MessageKey> = {
  *
  * It stops at the name deliberately — resolving here would be one helper that
  * quietly answers the language question for the whole application, which is
- * the one thing `say` takes an argument to prevent. Call sites pass
- * `ENGLISH_LANGUAGE` themselves, as they do everywhere else.
+ * the one thing `say` takes an argument to prevent. Call sites resolve it in
+ * the language in force, as they do everywhere else.
  *
  * Takes the stored identifier, which is unconstrained text — `MarkerView`
  * carries it as `string` on purpose, because a row written by an older build

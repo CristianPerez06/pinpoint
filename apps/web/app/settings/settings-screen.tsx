@@ -1,13 +1,19 @@
+'use client'
+
+import { message } from '@pinpoint/wording'
 import type { ReactNode } from 'react'
 
+import { useSay } from '@/app/_components/language'
 import { NamePlaceholder } from '@/app/_components/ui'
 
 import { Appearance } from './appearance'
 import { BackToMap } from './back'
+import { Language } from './language'
 import styles from './settings.module.css'
 
 /**
- * Settings: the account, and the ground everything is drawn on.
+ * Settings: the account, the ground everything is drawn on, and the language
+ * it is written in.
  *
  * Drawn from the account — or from nothing yet. The page renders it with the
  * signed-in address and `loading.tsx` renders it with `null`, so the screen a
@@ -28,6 +34,13 @@ import styles from './settings.module.css'
  * import from `@pinpoint/data`, something trip-scoped has been put on an
  * account-scoped screen.
  *
+ * WHY THIS IS A CLIENT COMPONENT
+ *
+ * Its words follow the language, and the language can change while the screen
+ * is open — from this screen, in fact. Resolved here they follow the provider's
+ * state in the same render as the control that changed it, rather than waiting
+ * on the route's refresh to bring back words the server wrote.
+ *
  * WHY THERE ARE SECTIONS WITH ONE THING IN THEM
  *
  * Account carries an address and no controls yet; the password form that
@@ -45,26 +58,35 @@ export function SettingsScreen({
    */
   accountRow: ReactNode
 }) {
+  const say = useSay()
+
   return (
     <main className={styles.screen}>
       <div className={styles.sheet}>
         <header className={styles.header}>
           <BackToMap />
-          <h1 className={styles.title}>Settings</h1>
+          <h1 className={styles.title}>{say(message('common.settings'))}</h1>
         </header>
 
         <section className={styles.section} aria-labelledby="settings-account">
           <h2 id="settings-account" className={styles.sectionTitle}>
-            Account
+            {say(message('account.label'))}
           </h2>
           {accountRow}
         </section>
 
         <section className={styles.section} aria-labelledby="settings-appearance">
           <h2 id="settings-appearance" className={styles.sectionTitle}>
-            Appearance
+            {say(message('settings.appearance'))}
           </h2>
           <Appearance />
+        </section>
+
+        <section className={styles.section} aria-labelledby="settings-language">
+          <h2 id="settings-language" className={styles.sectionTitle}>
+            {say(message('settings.language'))}
+          </h2>
+          <Language />
         </section>
       </div>
     </main>
@@ -87,14 +109,16 @@ export function AccountRow({
   // and the address is a drawn bar. Nothing here may write "No address on this
   // account" before that is known — it is a claim, and false for as long as the
   // account has not been read.
+  const say = useSay()
+
   return (
     <div className={styles.row} aria-busy={account ? undefined : true}>
       {account ? null : (
         <p role="status" className={styles.visuallyHidden}>
-          Loading your account
+          {say(message('settings.loadingAccount'))}
         </p>
       )}
-      <span className={styles.rowLabel}>Signed in as</span>
+      <span className={styles.rowLabel}>{say(message('settings.signedInAs'))}</span>
       {/*
         The address, and deliberately no name.
 
@@ -107,7 +131,7 @@ export function AccountRow({
       */}
       <span className={styles.rowValue}>
         {account ? (
-          (account.email ?? 'No address on this account')
+          (account.email ?? say(message('settings.noAddress')))
         ) : (
           <NamePlaceholder className={styles.addressPlaceholder} measure="22ch" />
         )}

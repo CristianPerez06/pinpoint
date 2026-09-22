@@ -1,6 +1,8 @@
 import coreWebVitals from 'eslint-config-next/core-web-vitals'
 import typescript from 'eslint-config-next/typescript'
 
+import words from '../../eslint.words.cjs'
+
 /**
  * Adds type information to the parser without which `restrict-template-expressions`
  * and `restrict-plus-operands` below cannot run at all. `projectService` finds the
@@ -44,6 +46,11 @@ const config = [
   ...coreWebVitals,
   ...typescript,
   typeAware,
+  /**
+   * Words a person reads are not written into a component. The rules and what
+   * they permit are stated once, in `eslint.words.cjs`, for both applications.
+   */
+  { files: ['**/*.tsx'], rules: words.wordsRules },
 ]
 
 export default config

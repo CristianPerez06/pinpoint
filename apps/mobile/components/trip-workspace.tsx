@@ -45,7 +45,7 @@ import {
   markersAt,
 } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import {
   type ReactNode,
@@ -81,6 +81,7 @@ import {
   WaitingMap,
   WorkspaceChrome,
 } from '@/components/workspace-chrome'
+import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -215,6 +216,7 @@ export function TripWorkspace({
   userId: string
 }) {
   const theme = useTheme()
+  const say = useSay()
   const router = useRouter()
   const windowHeight = useWindowDimensions().height
 
@@ -291,7 +293,7 @@ export function TripWorkspace({
     if (!everythingArrived) {
       // What was on screen is still on screen — the read leaves the rows alone
       // when it fails, so this is news rather than a replacement for the trip.
-      setProblem('Could not read the trip again. Check your connection.')
+      setProblem(message('map.rereadFailed'))
     }
   }
 
@@ -311,7 +313,7 @@ export function TripWorkspace({
    * marker save — while leaving both live during their own. Every pending state
    * now lives in the control that starts the write.
    */
-  const [problem, setProblem] = useState<string | null>(null)
+  const [problem, setProblem] = useState<Message | null>(null)
 
   /*
    * Everything the trip's own sheet does, shared with the calendar.
@@ -364,7 +366,7 @@ export function TripWorkspace({
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [sight, setSight] = useState<Sight>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [formMessage, setFormMessage] = useState<string | null>(null)
+  const [formMessage, setFormMessage] = useState<Message | null>(null)
   /**
    * Somebody else changed this place while it was being edited.
    *
@@ -374,7 +376,7 @@ export function TripWorkspace({
    * their version, then decide. Sharing one channel would make the two
    * indistinguishable exactly where the difference matters.
    */
-  const [conflict, setConflict] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<Message | null>(null)
 
   /**
    * The city a place was last filed under on this device.
@@ -443,8 +445,8 @@ export function TripWorkspace({
    */
   const selectionName =
     selectedCityId === UNASSIGNED_CITY
-      ? 'Unassigned'
-      : (selectedCity?.name ?? 'All places')
+      ? say(message('city.unassigned'))
+      : (selectedCity?.name ?? say(message('city.allPlaces')))
 
   /**
    * The markers, under whatever name the rest of this file knows them by.
@@ -536,8 +538,8 @@ export function TripWorkspace({
       interestQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
@@ -560,8 +562,8 @@ export function TripWorkspace({
       interestQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
@@ -579,8 +581,8 @@ export function TripWorkspace({
       markerQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not change whether this place is visited.',
+          ? outcome.reason
+          : message('visited.saveFailed'),
       )
     }
   }
@@ -801,8 +803,8 @@ export function TripWorkspace({
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
       else if (outcome.kind === 'conflict')
-        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
-      else setFormMessage(say(ENGLISH_LANGUAGE, outcome.reason))
+        setConflict(outcome.reason)
+      else setFormMessage(outcome.reason)
       // The panel is left exactly as it was, so nothing typed is lost and the
       // map keeps showing what is actually stored.
       return
@@ -846,7 +848,7 @@ export function TripWorkspace({
       detailsOpeningHeight(windowHeight),
     )
     mapRef.current?.openMarkers(group.key, [marker.id], {
-      label: '← Back to Calendar',
+      label: say(message('map.backToCalendar')),
       onPress: () => {
         mapRef.current?.closeDetails()
         router.push({
@@ -895,8 +897,8 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not remove that place.',
+          ? outcome.reason
+          : message('calendar.removeFailed'),
       )
       return
     }
@@ -920,8 +922,8 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not create that city.',
+          ? outcome.reason
+          : message('placeForm.createCityFailed'),
       )
       return null
     }
@@ -960,8 +962,8 @@ export function TripWorkspace({
       cityQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that city.',
+          ? outcome.reason
+          : message('map.saveCityFailed'),
       )
       return
     }
@@ -991,8 +993,8 @@ export function TripWorkspace({
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not remove that city.',
+          ? outcome.reason
+          : message('map.removeCityFailed'),
       )
       return
     }
@@ -1035,7 +1037,7 @@ export function TripWorkspace({
         // different marker is opened. Without it, editing one place after
         // another would show the first one's values in the second one's form.
         key={panel.kind === 'edit' ? panel.marker.id : 'create'}
-        title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
+        title={say(message(panel.kind === 'edit' ? 'map.editPlaceTitle' : 'map.savePlaceTitle'))}
         initial={panel.initial}
         cities={cities}
         // Editing never carries one: the rule guesses where a place is filed as
@@ -1043,8 +1045,8 @@ export function TripWorkspace({
         // be the form arguing with a decision already made.
         cityNotice={panel.kind === 'create' ? panel.cityNotice : null}
         fieldErrors={fieldErrors}
-        message={formMessage}
-        notice={conflict}
+        message={formMessage && say(formMessage)}
+        notice={conflict && say(conflict)}
         onSubmit={save}
         onCancel={cancelPanel}
         onAdjustPosition={adjustPosition}
@@ -1063,10 +1065,11 @@ export function TripWorkspace({
         onOpenMenu: () => setMenuOpen(true),
         cityName: selectionName,
         wholeTrip: selectedCityId === null,
-        cityHint:
+        cityHint: say(
           selectedCityId === null
-            ? 'All places. Choose a city to work on'
-            : `${selectionName}. Change which city you are working on`,
+            ? message('map.cityHintAll')
+            : message('map.cityHint', { name: selectionName }),
+        ),
         onOpenCities: () => showSheet(setCitiesOpen, true, cityQuery.refetch),
       }}
       overlays={
@@ -1098,7 +1101,7 @@ export function TripWorkspace({
               same camera — which is what the chrome requires of a screen somebody
               returns from.
             */
-            otherView={{ name: 'Calendar', onPress: () => router.push('/calendar') }}
+            otherView={{ name: say(message('map.otherViewCalendar')), onPress: () => router.push('/calendar') }}
             onCreated={onCreated}
             onSetArchived={(tripId, value) => void tripActions.setTripArchived(tripId, value)}
             onOpenPeople={() => {
@@ -1257,12 +1260,12 @@ export function TripWorkspace({
             <Pressable
               onPress={cancelSight}
               accessibilityRole="button"
-              accessibilityLabel="Cancel"
+              accessibilityLabel={say(message('common.cancel'))}
               hitSlop={6}
               style={[styles.pill, { borderColor: theme.colour.lineStrong }]}
             >
               <Text style={[styles.filterText, { color: theme.colour.ink }]}>
-                Cancel
+                {say(message('common.cancel'))}
               </Text>
             </Pressable>
 
@@ -1270,13 +1273,13 @@ export function TripWorkspace({
               style={[styles.sightHint, { color: theme.colour.inkMuted }]}
               numberOfLines={2}
             >
-              Move the map to put the place under the ring.
+              {say(message('map.sightHint'))}
             </Text>
 
             <Pressable
               onPress={confirmSight}
               accessibilityRole="button"
-              accessibilityLabel="Use this spot"
+              accessibilityLabel={say(message('map.useSpot'))}
               hitSlop={6}
               style={[
                 styles.pill,
@@ -1290,7 +1293,7 @@ export function TripWorkspace({
                 style={[styles.clearText, { color: theme.colour.accentInk }]}
                 numberOfLines={1}
               >
-                Use this spot
+                {say(message('map.useSpot'))}
               </Text>
             </Pressable>
           </View>
@@ -1298,7 +1301,7 @@ export function TripWorkspace({
         loading={markerQuery.state.status === 'loading'}
         failed={
           markerQuery.state.status === 'failed'
-            ? say(ENGLISH_LANGUAGE, markerQuery.state.reason)
+            ? say(markerQuery.state.reason)
             : null
         }
         total={held.length}
@@ -1351,7 +1354,7 @@ export function TripWorkspace({
           described has already been put back. */}
       {problem !== null ? (
         <Pressable onPress={() => setProblem(null)} accessibilityRole="button">
-          <MarkersOverlayNote tone="danger">{problem}</MarkersOverlayNote>
+          <MarkersOverlayNote tone="danger">{say(problem)}</MarkersOverlayNote>
         </Pressable>
       ) : null}
     </WorkspaceChrome>
@@ -1445,6 +1448,7 @@ function Body({
   /** Handed on to the map, which owns the bottom edge. */
   bottomRow: ReactNode
 }) {
+  const say = useSay()
   /**
    * Whether the map has anything on it worth looking at, as the map reports it.
    *
@@ -1494,13 +1498,12 @@ function Body({
       />
 
       {total === 0 ? (
-        <MarkersOverlayNote>No places saved on this trip yet.</MarkersOverlayNote>
+        <MarkersOverlayNote>{say(message('map.noPlacesYet'))}</MarkersOverlayNote>
       ) : null}
 
       {total > 0 && visible.length === 0 ? (
         <MarkersOverlayNote onPress={onClearFilter}>
-          No places match this filter. The trip still has {total}
-          {total === 1 ? ' place' : ' places'} — tap to clear.
+          {say(message('map.noMatchesTap', { count: total }))}
         </MarkersOverlayNote>
       ) : null}
 
@@ -1526,8 +1529,7 @@ function Body({
       */}
       {narrowed && visible.length > 0 && !somethingToLookAt ? (
         <MarkersOverlayNote onPress={onShowMatches}>
-          {visible.length} {visible.length === 1 ? 'place matches' : 'places match'}, none
-          of them in view — tap to show {visible.length === 1 ? 'it' : 'them'}.
+          {say(message('map.matchesOutOfViewTap', { count: visible.length }))}
         </MarkersOverlayNote>
       ) : null}
     </>

@@ -1,20 +1,21 @@
 'use client'
 
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useActionState } from 'react'
 
 import { type AuthFormState, signInAction } from '@/app/_actions/auth'
+import { useSay } from '@/app/_components/language'
 
 import styles from '../auth.module.css'
 
 const INITIAL: AuthFormState = {}
 
-/** The action reports names; this is the screen, so this is where they become words. */
-const words = (refusal: Message) => say(ENGLISH_LANGUAGE, refusal)
-
 export function LoginForm() {
   const [state, action, pending] = useActionState(signInAction, INITIAL)
+  // The action reports names; this is the screen, so this is where they become
+  // words — in the language in force now, not the one the action ran in.
+  const words = useSay()
 
   return (
     <form action={action} className={styles.form}>
@@ -26,7 +27,7 @@ export function LoginForm() {
 
       <p className={styles.field}>
         <label htmlFor="email" className={styles.label}>
-          Email
+          {words(message('auth.email'))}
         </label>
         <input
           id="email"
@@ -47,7 +48,7 @@ export function LoginForm() {
 
       <p className={styles.field}>
         <label htmlFor="password" className={styles.label}>
-          Password
+          {words(message('auth.password'))}
         </label>
         <input
           id="password"
@@ -69,11 +70,12 @@ export function LoginForm() {
       </p>
 
       <button type="submit" disabled={pending} className={styles.submit}>
-        {pending ? 'Signing in…' : 'Sign in'}
+        {pending ? words(message('auth.signingIn')) : words(message('auth.signIn'))}
       </button>
 
       <p className={styles.alternative}>
-        No account yet? <Link href="/signup">Create one</Link>
+        {words(message('auth.noAccountYet'))}{' '}
+        <Link href="/signup">{words(message('auth.createOne'))}</Link>
       </p>
     </form>
   )

@@ -4,9 +4,10 @@ import {
   type SearchBias,
   type SearchResult,
 } from '@pinpoint/geocode'
+import { formatDistance } from '@pinpoint/core'
 import { markerTypeOf } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
   AccessibilityInfo,
@@ -21,6 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
@@ -69,15 +71,10 @@ const QUIET_PERIOD_MS = 300
 const FAR_AWAY_KM = 100
 
 /**
- * A distance, at a precision that suits its size.
- *
- * Under 10 km a tenth matters, because that is the difference between the right
- * temple and the one across the river. At four figures it is noise.
+ * The back chevron. A glyph rather than a word — the control's name is its
+ * `accessibilityLabel` — so it is named here rather than written into the tree.
  */
-function formatDistance(km: number): string {
-  if (km < 10) return `${km.toFixed(1)} km`
-  return `${Math.round(km).toLocaleString('en')} km`
-}
+const BACK_GLYPH = '‹'
 
 /**
  * `fetch` wrapped rather than handed over directly.
@@ -111,6 +108,7 @@ export function PlaceSearchScreen({
   biasRef: { current: () => SearchBias | undefined }
 }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
 
   const [query, setQuery] = useState('')
@@ -192,8 +190,8 @@ export function PlaceSearchScreen({
   useEffect(() => {
     if (!asking) return
     if (Platform.OS !== 'ios') return
-    AccessibilityInfo.announceForAccessibility('Searching for places')
-  }, [asking])
+    AccessibilityInfo.announceForAccessibility(say(message('search.announceSearching')))
+  }, [asking, say])
 
   // Closing forgets what was typed. Search is a way into capture rather than a
   // place, so returning to a stale query and a stale list would be offering
@@ -245,19 +243,19 @@ export function PlaceSearchScreen({
           <Pressable
             onPress={close}
             accessibilityRole="button"
-            accessibilityLabel="Close search"
+            accessibilityLabel={say(message('map.closeSearch'))}
             hitSlop={10}
             style={styles.back}
           >
-            <Text style={[styles.backGlyph, { color: theme.colour.ink }]}>‹</Text>
+            <Text style={[styles.backGlyph, { color: theme.colour.ink }]}>{BACK_GLYPH}</Text>
           </Pressable>
 
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search for a place…"
+            placeholder={say(message('search.placeholder'))}
             placeholderTextColor={theme.colour.inkMuted}
-            accessibilityLabel="Search for a place"
+            accessibilityLabel={say(message('search.label'))}
             autoFocus
             autoCorrect={false}
             returnKeyType="search"
@@ -280,11 +278,7 @@ export function PlaceSearchScreen({
             the wait.
           */}
           {trimmed === '' ? (
-            <Note>
-              Search for somewhere by name. If it cannot be found — and small,
-              new, or locally-named places often cannot — close this and drop a
-              pin instead.
-            </Note>
+            <Note>{say(message('search.intro'))}</Note>
           ) : (
             <>
               {/*
@@ -296,7 +290,7 @@ export function PlaceSearchScreen({
               */}
               {asking ? (
                 <View style={styles.searching} accessibilityLiveRegion="polite">
-                  <Note>Searching…</Note>
+                  <Note>{say(message('search.searching'))}</Note>
                 </View>
               ) : null}
 
@@ -304,11 +298,10 @@ export function PlaceSearchScreen({
                 /* Never phrased as "no matches". Rephrasing a query at a service
                    that is down is a way to spend five minutes learning nothing. */
                 <Note tone="danger">
-                  {say(ENGLISH_LANGUAGE, result.reason)} You can still add a place by
-                  dropping a pin.
+                  {say(message('search.failed', { reason: say(result.reason) }))}
                 </Note>
               ) : result?.status === 'empty' ? (
-                <Note>No matches. Try fewer words, or drop a pin.</Note>
+                <Note>{say(message('search.empty'))}</Note>
               ) : candidates.length === 0 ? (
                 /*
                   Only once something has been asked. The screen has no panel to
@@ -356,6 +349,8 @@ function Candidate({
   onPress: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
+  const language = useLanguage()
   const definition = markerTypeOf(candidate.typeGuess)
   const far = candidate.distanceKm !== null && candidate.distanceKm > FAR_AWAY_KM
 
@@ -417,7 +412,7 @@ function Candidate({
             },
           ]}
         >
-          {formatDistance(candidate.distanceKm)}
+          {say(formatDistance(language, candidate.distanceKm))}
         </Text>
       )}
     </Pressable>

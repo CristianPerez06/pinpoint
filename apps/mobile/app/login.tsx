@@ -2,7 +2,7 @@ import { signIn } from '@pinpoint/auth'
 import type { FieldErrors } from '@pinpoint/core'
 import { authFailureMessage } from '@pinpoint/supabase'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -17,6 +17,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useSay } from '@/lib/language'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
@@ -41,10 +42,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [formError, setFormError] = useState<string | null>(null)
+  // A name rather than a sentence, so a change of language redraws it.
+  const [formError, setFormError] = useState<Message | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const say = useSay()
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
   // `!submitting` holds the redirect until `signIn` has fully resolved, claim
@@ -65,7 +68,7 @@ export default function LoginScreen() {
       if (outcome.kind === 'invalid-input') {
         setFieldErrors(outcome.fieldErrors)
       } else {
-        setFormError(say(ENGLISH_LANGUAGE, authFailureMessage(outcome.failure)))
+        setFormError(authFailureMessage(outcome.failure))
       }
     }
     // On success the auth state listener swaps the tree; no navigation here.
@@ -117,10 +120,14 @@ export default function LoginScreen() {
         >
           <View style={styles.wordmark}>
             <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-            <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
+            <Text style={[styles.brand, { color: theme.colour.ink }]}>
+              {say(message('app.name'))}
+            </Text>
           </View>
 
-          <Text style={[styles.title, { color: theme.colour.ink }]}>Sign in</Text>
+          <Text style={[styles.title, { color: theme.colour.ink }]}>
+            {say(message('auth.signIn'))}
+          </Text>
 
           {formError ? (
             <Text
@@ -133,12 +140,14 @@ export default function LoginScreen() {
                 },
               ]}
             >
-              {formError}
+              {say(formError)}
             </Text>
           ) : null}
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>Email</Text>
+            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
+              {say(message('auth.email'))}
+            </Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -150,14 +159,14 @@ export default function LoginScreen() {
             />
             {fieldErrors.email ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {say(ENGLISH_LANGUAGE, fieldErrors.email)}
+                {say(fieldErrors.email)}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-              Password
+              {say(message('auth.password'))}
             </Text>
             <TextInput
               value={password}
@@ -169,7 +178,7 @@ export default function LoginScreen() {
             />
             {fieldErrors.password ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {say(ENGLISH_LANGUAGE, fieldErrors.password)}
+                {say(fieldErrors.password)}
               </Text>
             ) : null}
           </View>
@@ -186,7 +195,7 @@ export default function LoginScreen() {
             {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
                 pair chosen against the accent on each ground. */}
             <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
-              {submitting ? 'Signing in…' : 'Sign in'}
+              {submitting ? say(message('auth.signingIn')) : say(message('auth.signIn'))}
             </Text>
           </Pressable>
 
@@ -194,9 +203,11 @@ export default function LoginScreen() {
               is about 17pt tall on its own, and there is no hover on this platform
               to reveal that the words are a control. The accent is what says so. */}
           <Link href="/signup" style={styles.alternative}>
-            <Text style={{ color: theme.colour.inkMuted }}>No account yet? </Text>
+            <Text style={{ color: theme.colour.inkMuted }}>
+              {say(message('auth.noAccountYet'))}{' '}
+            </Text>
             <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
-              Create one
+              {say(message('auth.createOne'))}
             </Text>
           </Link>
         </View>

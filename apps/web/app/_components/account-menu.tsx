@@ -1,9 +1,11 @@
 'use client'
 
+import { message } from '@pinpoint/wording'
 import { LogOut, Menu as Menu2, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 import { signOutAction } from '@/app/_actions/auth'
+import { useSay } from '@/app/_components/language'
 import { iconOnlyLabelClass, Menu, NamePlaceholder } from '@/app/_components/ui'
 
 import styles from './account-menu.module.css'
@@ -68,8 +70,8 @@ export function signedInAs<T extends SignedInAs & { id: string }>(
  * previous comment here called the state ordinary, which invited the fix `#115`
  * asked for: naming the account instead. There is nothing to name it in.
  */
-function nameOf(you: SignedInAs | null | undefined): string {
-  return you?.displayName ?? 'Account'
+function nameOf(you: SignedInAs | null | undefined, account: string): string {
+  return you?.displayName ?? account
 }
 
 /**
@@ -85,10 +87,12 @@ export type AccountMenuProps =
 
 export function AccountMenu(props: AccountMenuProps) {
   const live = props.waiting === true ? null : props
+  const say = useSay()
+  const account = say(message('account.label'))
 
   return (
     <Menu
-      name="Account"
+      name={account}
       disabled={live === null}
       label={
         <>
@@ -105,7 +109,7 @@ export function AccountMenu(props: AccountMenuProps) {
             width is the thing being waited for.
           */}
           {live ? (
-            <span className={styles.you}>{nameOf(live.you)}</span>
+            <span className={styles.you}>{nameOf(live.you, account)}</span>
           ) : (
             <NamePlaceholder className={styles.you} measure="8ch" />
           )}
@@ -144,7 +148,7 @@ export function AccountMenu(props: AccountMenuProps) {
       */}
       <span className={styles.identity}>
         <span className={styles.initials} aria-hidden>
-          {initialsOf(nameOf(live?.you))}
+          {initialsOf(nameOf(live?.you, account))}
         </span>
         {/*
           The name, and the address under it.
@@ -157,7 +161,7 @@ export function AccountMenu(props: AccountMenuProps) {
           this one showed the name alone until `#115`.
         */}
         <span className={styles.identityWho}>
-          <span className={styles.identityName}>{nameOf(live?.you)}</span>
+          <span className={styles.identityName}>{nameOf(live?.you, account)}</span>
           {live?.you ? (
             <span className={styles.identityEmail}>{live.you.email}</span>
           ) : null}
@@ -207,13 +211,13 @@ export function AccountMenu(props: AccountMenuProps) {
       */}
       <Link href="/settings" className={styles.menuRow}>
         <Settings aria-hidden className={styles.menuRowGlyph} />
-        Settings
+        {say(message('common.settings'))}
       </Link>
 
       <form action={signOutAction}>
         <button type="submit" className={styles.signOut}>
           <LogOut aria-hidden className={styles.menuRowGlyph} />
-          Sign out
+          {say(message('account.signOut'))}
         </button>
       </form>
     </Menu>

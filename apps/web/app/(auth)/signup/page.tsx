@@ -1,4 +1,7 @@
+import { message } from '@pinpoint/wording'
+
 import { redirectIfAuthenticated } from '@/lib/auth/guards'
+import { serverSay } from '@/lib/language'
 
 import styles from '../auth.module.css'
 import { SignupForm } from './signup-form'
@@ -19,23 +22,23 @@ import { SignupForm } from './signup-form'
  */
 export default async function SignupPage() {
   await redirectIfAuthenticated()
+  const say = await serverSay()
 
   return (
     <main className={styles.screen}>
       <div className={styles.card}>
         <span className={styles.wordmark}>
           <span className={styles.dot} aria-hidden />
-          pinpoint
+          {say(message('app.name'))}
         </span>
-        <h1 className={styles.title}>Create an account</h1>
+        <h1 className={styles.title}>{say(message('auth.createAnAccount'))}</h1>
         {/* The same sentence the phone's sign-up screen shows, word for word.
             It has to work for both people who reach it: somebody invited must
             use the invited address or the trip will not be there, and somebody
             signing up cold should not be left hunting for an invitation they
             never got. */}
         <p className={styles.subtitle}>
-          If you were invited, use the address the invitation went to — it is what
-          links you to your trip.
+          {say(message('auth.invitedHint'))}
         </p>
         <SignupForm />
       </div>

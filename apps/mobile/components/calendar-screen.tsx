@@ -12,6 +12,7 @@ import {
 } from '@pinpoint/core'
 import { markerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message, type Message } from '@pinpoint/wording'
 // Deep imports, not the package root — see marker-icon.tsx. One value import of
 // the barrel pulls all 1767 icons and crashes Hermes.
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
@@ -24,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { TypeChip } from '@/components/marker-details'
 import { DayField, FormNote, NamePlaceholder } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -70,7 +72,7 @@ export type CalendarBindings = {
   onBack: () => void
   day: IsoDay
   onGoToDay: (day: IsoDay) => void
-  problem: string | null
+  problem: Message | null
   onDismissProblem: () => void
 }
 
@@ -102,6 +104,8 @@ export function CalendarScreen({
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const say = useSay()
+  const language = useLanguage()
 
   /**
    * Which of the two views is shown.
@@ -148,7 +152,9 @@ export function CalendarScreen({
             onPress={live?.onOpenTrips}
             accessibilityRole="button"
             accessibilityLabel={
-              live ? `${live.tripName}. Switch or manage trips` : 'Trip'
+              live
+                ? say(message('calendar.tripButton', { name: live.tripName }))
+                : say(message('calendar.tripButtonWaiting'))
             }
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
@@ -173,7 +179,7 @@ export function CalendarScreen({
           <Pressable
             onPress={live?.onOpenMenu}
             accessibilityRole="button"
-            accessibilityLabel="Menu"
+            accessibilityLabel={say(message('calendar.menu'))}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={8}
             style={styles.menuButton}
@@ -206,7 +212,7 @@ export function CalendarScreen({
           <Pressable
             onPress={live?.onBack}
             accessibilityRole="button"
-            accessibilityLabel="Back to the map"
+            accessibilityLabel={say(message('common.backToMap'))}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
             style={[
@@ -230,7 +236,7 @@ export function CalendarScreen({
                 { color: live ? theme.colour.ink : theme.colour.inkMuted },
               ]}
             >
-              Back to the map
+              {say(message('common.backToMap'))}
             </Text>
           </Pressable>
         </View>
@@ -258,15 +264,19 @@ export function CalendarScreen({
             direction="previous"
             label={
               live
-                ? `Previous day, ${formatDayFull(addDays(live.day, -1))}`
-                : 'Previous day'
+                ? say(
+                    message('calendar.previousDayTo', {
+                      day: formatDayFull(language, addDays(live.day, -1)),
+                    }),
+                  )
+                : say(message('calendar.previousDay'))
             }
             onPress={live ? () => live.onGoToDay(addDays(live.day, -1)) : null}
           />
 
           <View style={styles.picker}>
             <DayField
-              label="Day"
+              label={say(message('calendar.dayField'))}
               value={live ? live.day : null}
               // The day being read is always a day: there is no "no day" to be on,
               // so this field cannot be cleared and an emptied value cannot arrive.
@@ -283,8 +293,12 @@ export function CalendarScreen({
             direction="next"
             label={
               live
-                ? `Next day, ${formatDayFull(addDays(live.day, 1))}`
-                : 'Next day'
+                ? say(
+                    message('calendar.nextDayTo', {
+                      day: formatDayFull(language, addDays(live.day, 1)),
+                    }),
+                  )
+                : say(message('calendar.nextDay'))
             }
             onPress={live ? () => live.onGoToDay(addDays(live.day, 1)) : null}
           />
@@ -295,10 +309,10 @@ export function CalendarScreen({
         <Pressable
           onPress={live.onDismissProblem}
           accessibilityRole="button"
-          accessibilityHint="Dismisses this message"
+          accessibilityHint={say(message('common.dismissesMessage'))}
           style={styles.problem}
         >
-          <FormNote tone="danger">{live.problem}</FormNote>
+          <FormNote tone="danger">{say(live.problem)}</FormNote>
         </Pressable>
       ) : null}
 
@@ -321,7 +335,7 @@ export function CalendarScreen({
       */}
       <View
         accessible={lists === null}
-        accessibilityLabel={lists === null ? 'Loading the calendar' : undefined}
+        accessibilityLabel={lists === null ? say(message('calendar.loading')) : undefined}
         accessibilityState={lists === null ? { busy: true } : undefined}
         style={[
           styles.body,
@@ -417,19 +431,26 @@ function ViewTabs({
   waitingCount: number | null
 }) {
   const theme = useTheme()
+  const say = useSay()
 
-  function tab(value: CalendarView, label: string, count?: number | null) {
+  /**
+   * One tab. `spoken` is its whole name aloud where that says more than the
+   * label — the count, once there is one — written out whole in the catalogue
+   * rather than joined here.
+   */
+  function tab(
+    value: CalendarView,
+    label: string,
+    count?: number | null,
+    spoken?: string,
+  ) {
     const selected = view === value
     return (
       <Pressable
         onPress={() => onChange(value)}
         accessibilityRole="tab"
         accessibilityState={{ selected }}
-        accessibilityLabel={
-          count === undefined || count === null
-            ? label
-            : `${label}, ${count === 1 ? '1 place' : `${count} places`}`
-        }
+        accessibilityLabel={spoken ?? label}
         /*
           Outlined as well as lifted: `surface` on `surfaceSunk` is a clear step
           on the light ground and almost none on the dark one, where the brighter
@@ -466,8 +487,15 @@ function ViewTabs({
         { backgroundColor: theme.colour.surfaceSunk, borderColor: theme.colour.line },
       ]}
     >
-      {tab('days', 'Days')}
-      {tab('waiting', 'No day yet', waitingCount)}
+      {tab('days', say(message('calendar.days')))}
+      {tab(
+        'waiting',
+        say(message('calendar.noDayYet')),
+        waitingCount,
+        waitingCount === null
+          ? undefined
+          : say(message('calendar.noDayYetCounted', { count: waitingCount })),
+      )}
     </View>
   )
 }
@@ -545,6 +573,7 @@ function Waiting({
   onOpen: (marker: Marker) => void
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <View
@@ -575,7 +604,7 @@ function Waiting({
             somebody is meant to read.
           */
           <Text style={[styles.waitingEmpty, { color: theme.colour.inkMuted }]}>
-            Nothing waiting for a day.
+            {say(message('calendar.nothingWaiting'))}
           </Text>
         ) : (
           groups.map((group) => (
@@ -586,7 +615,12 @@ function Waiting({
                 accessibilityRole="header"
                 style={[styles.cityName, { color: theme.colour.inkMuted }]}
               >
-                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
+                {say(
+                  message('calendar.cityGroup', {
+                    city: group.city?.name ?? say(message('empty.city')),
+                    count: group.markers.length,
+                  }),
+                )}
               </Text>
               {group.markers.map((marker) => (
                 <PlaceRow key={marker.id} marker={marker} onOpen={onOpen} />
@@ -616,6 +650,8 @@ function DayCard({
   onOpen: (marker: Marker) => void
 }) {
   const theme = useTheme()
+  const say = useSay()
+  const language = useLanguage()
 
   return (
     <View
@@ -624,12 +660,12 @@ function DayCard({
         styles.dayCard,
         { backgroundColor: theme.colour.surface, borderColor: theme.colour.lineStrong },
       ]}
-      accessibilityLabel={day ? formatDayFull(day) : undefined}
+      accessibilityLabel={day ? formatDayFull(language, day) : undefined}
     >
       {/* Outside the scroll, so the day's name stays put above its places. */}
       {day ? (
         <Text style={[styles.dayName, { color: theme.colour.ink }]}>
-          {formatDay(day)}
+          {formatDay(language, day)}
         </Text>
       ) : (
         <NamePlaceholder
@@ -648,7 +684,7 @@ function DayCard({
           // it is information. It is said, not left blank and not drawn as a
           // fault.
           <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
-            Nothing planned.
+            {say(message('calendar.nothingPlanned'))}
           </Text>
         ) : (
           markers.map((marker) => (
@@ -676,13 +712,18 @@ function PlaceRow({
   onOpen: (marker: Marker) => void
 }) {
   const theme = useTheme()
+  const say = useSay()
   const view = markerView(marker)
 
   // Everything the row says, in the order it is drawn — so what is heard is
   // what is seen rather than a second description that drifts from it.
-  const label = [marker.name, run ? formatRunPosition(run) : null, marker.visited ? 'visited' : null]
-    .filter(Boolean)
-    .join(', ')
+  const label = say(
+    message('calendar.placeRowSpoken', {
+      name: marker.name,
+      run: run ? say(formatRunPosition(run)) : '',
+      visited: marker.visited ? 1 : 0,
+    }),
+  )
 
   return (
     <Pressable
@@ -709,7 +750,7 @@ function PlaceRow({
       </Text>
         {run ? (
           <Text style={[styles.placeRun, { color: theme.colour.inkMuted }]}>
-            {formatRunPosition(run)}
+            {say(formatRunPosition(run))}
           </Text>
         ) : null}
       </View>
@@ -725,7 +766,7 @@ function PlaceRow({
             },
           ]}
         >
-          VISITED
+          {say(message('calendar.visitedPill'))}
         </Text>
       ) : null}
     </Pressable>

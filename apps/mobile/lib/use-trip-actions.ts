@@ -1,6 +1,6 @@
 import type { FieldErrors, IsoDay, Trip, TripMember } from '@pinpoint/core'
 import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useState } from 'react'
 
 import { supabase } from '@/lib/supabase'
@@ -40,8 +40,12 @@ export interface TripActionsInput {
    * Every write below is optimistic, so this is the only thing that can explain
    * a change that went back. Each of them clears first: a refusal still on screen
    * from the previous attempt would otherwise read as this one's answer.
+   *
+   * A name rather than a sentence, resolved only where it is drawn, so a refusal
+   * already on screen follows the language when it changes instead of staying
+   * in the one it was said in.
    */
-  report: (message: string | null) => void
+  report: (problem: Message | null) => void
 }
 
 export interface TripActions {
@@ -57,12 +61,9 @@ export interface TripActions {
   invite: (
     displayName: string,
     email: string,
-  ) => Promise<{ field: string; message: string } | null>
-  /**
-   * Take back an invitation nobody has claimed. Resolves to a refusal in words,
-   * or null.
-   */
-  removeInvitation: (member: TripMember) => Promise<string | null>
+  ) => Promise<{ field: string; reason: Message } | null>
+  /** Take back an invitation nobody has claimed. Resolves to a named refusal, or null. */
+  removeInvitation: (member: TripMember) => Promise<Message | null>
 }
 
 export function useTripActions({
@@ -71,6 +72,7 @@ export function useTripActions({
   members,
   report,
 }: TripActionsInput): TripActions {
+
   /**
    * Archived trips, once somebody asks. Null until then.
    *
@@ -104,8 +106,8 @@ export function useTripActions({
       trips.set(() => previous)
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not rename this trip.',
+          ? outcome.reason
+          : message('tripActions.renameFailed'),
       )
       return
     }
@@ -142,8 +144,8 @@ export function useTripActions({
       if (outcome.kind === 'invalid-input') return outcome.fieldErrors
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save these dates.',
+          ? outcome.reason
+          : message('tripActions.datesFailed'),
       )
       return {}
     }
@@ -179,10 +181,8 @@ export function useTripActions({
     if (!outcome.ok) {
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : value
-            ? 'Could not archive this trip.'
-            : 'Could not restore this trip.',
+          ? outcome.reason
+          : message(value ? 'tripActions.archiveFailed' : 'tripActions.restoreFailed'),
       )
       return
     }
@@ -207,7 +207,7 @@ export function useTripActions({
 
     const state = await fetchTrips(supabase, { includeArchived: true })
     if (state.status === 'failed') {
-      report(say(ENGLISH_LANGUAGE, state.reason))
+      report(state.reason)
       return
     }
     const all = state.status === 'ready' ? state.data : []
@@ -230,15 +230,15 @@ export function useTripActions({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') {
-        // Taken apart rather than defaulted in one expression: the fallback is
-        // a sentence and what it stands in for is a named message, so the two
-        // branches cannot share a shape and have to resolve separately.
+        // A field error with no field is not supposed to happen — every schema
+        // here paths its issues — so the fallback names the generic refusal
+        // rather than inventing a sentence for a case nothing produces.
         const refused = Object.entries(outcome.fieldErrors)[0]
         return refused === undefined
-          ? { field: '_', message: 'Could not add that person.' }
-          : { field: refused[0], message: say(ENGLISH_LANGUAGE, refused[1]) }
+          ? { field: '_', reason: message('member.inviteFailed') }
+          : { field: refused[0], reason: refused[1] }
       }
-      return { field: '_', message: say(ENGLISH_LANGUAGE, outcome.reason) }
+      return { field: '_', reason: outcome.reason }
     }
 
     members.set((rows) => [...rows, outcome.data])
@@ -257,8 +257,8 @@ export function useTripActions({
     const outcome = await removeMember(supabase, member.id)
     if (!outcome.ok) {
       return outcome.kind === 'invalid-input'
-        ? 'Could not take back that invitation.'
-        : say(ENGLISH_LANGUAGE, outcome.reason)
+        ? message('member.removeFailed')
+        : outcome.reason
     }
 
     members.set((rows) => rows.filter((each) => each.id !== member.id))

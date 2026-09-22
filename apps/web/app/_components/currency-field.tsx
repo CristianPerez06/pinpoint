@@ -1,8 +1,11 @@
 'use client'
 
 import { currencyLabel, searchCurrencies } from '@pinpoint/core'
+import { message } from '@pinpoint/wording'
 import { Search, X } from 'lucide-react'
 import { useId, useState } from 'react'
+
+import { useLanguage, useSay } from '@/app/_components/language'
 
 import styles from './currency-field.module.css'
 
@@ -34,7 +37,9 @@ export function CurrencyField({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
 
-  const results = searchCurrencies(query)
+  const language = useLanguage()
+  const say = useSay()
+  const results = searchCurrencies(language, query)
 
   function choose(code: string) {
     onChange(code)
@@ -46,19 +51,19 @@ export function CurrencyField({
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={styles.label}>
-        Second currency
+        {say(message('currencyField.label'))}
       </label>
 
       {value !== null ? (
         <>
           <div className={styles.chosen}>
-            <span>{currencyLabel(value)}</span>
+            <span>{currencyLabel(language, value)}</span>
             <button
               type="button"
               className={styles.clear}
               onClick={() => onChange(null)}
-              aria-label={`Remove ${value}`}
-              title={`Remove ${value}`}
+              aria-label={say(message('common.removeNamed', { name: value }))}
+              title={say(message('common.removeNamed', { name: value }))}
             >
               <X size={15} strokeWidth={2.2} />
             </button>
@@ -89,7 +94,7 @@ export function CurrencyField({
               }
               autoComplete="off"
               value={query}
-              placeholder="None · search by name or code"
+              placeholder={say(message('currencyField.searchPlaceholder'))}
               onFocus={() => setOpen(true)}
               onBlur={() => setOpen(false)}
               onChange={(event) => {
@@ -120,7 +125,7 @@ export function CurrencyField({
           {open ? (
             <ul id={listId} role="listbox" className={styles.list}>
               {results.length === 0 ? (
-                <li className={styles.empty}>No currency matches that.</li>
+                <li className={styles.empty}>{say(message('currencyField.noMatch'))}</li>
               ) : (
                 results.map(([code, name], index) => (
                   <li
@@ -149,9 +154,7 @@ export function CurrencyField({
             said here instead, where it was previously said nowhere but the
             placeholder.
           */}
-          <span className={styles.hint}>
-            Leave it as None if prices here are only in US dollars.
-          </span>
+          <span className={styles.hint}>{say(message('currencyField.noneHint'))}</span>
         </div>
       )}
     </div>

@@ -14,12 +14,14 @@ import {
   type WaitingGroup,
 } from '@pinpoint/core'
 import { markerView } from '@pinpoint/map'
+import { message, type Message } from '@pinpoint/wording'
 import { ChevronLeft, ChevronRight, MapIcon } from 'lucide-react'
 import Link from 'next/link'
 import { type KeyboardEvent, type ReactNode, useId, useState } from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
 import { ChromeBar } from '@/app/_components/chrome-bar'
+import { useLanguage, useSay } from '@/app/_components/language'
 import { TypeChip } from '@/app/_components/pin'
 import { TripBar } from '@/app/_components/trip-bar'
 import { NamePlaceholder } from '@/app/_components/ui'
@@ -71,7 +73,8 @@ export type CalendarBindings = {
   workspaceHref: string
   day: IsoDay
   onGoToDay: (day: IsoDay) => void
-  message: string | null
+  /** A name rather than a sentence, so a change of language re-words it. */
+  message: Message | null
   waiting: readonly WaitingGroup[]
   waitingCount: number
   markersOn: (day: IsoDay) => readonly Marker[]
@@ -114,6 +117,8 @@ export function CalendarScreen({
     onViewChange?.(next)
   }
   const viewIds = useId()
+  const say = useSay()
+  const language = useLanguage()
 
   const days = live
     ? [-NEIGHBOURS, 0, NEIGHBOURS].map((offset) => addDays(live.day, offset))
@@ -152,12 +157,12 @@ export function CalendarScreen({
           {live ? (
             <Link href={live.workspaceHref} className={styles.back}>
               <MapIcon size={16} strokeWidth={2.2} aria-hidden />
-              <span>Back to the map</span>
+              <span>{say(message('common.backToMap'))}</span>
             </Link>
           ) : (
             <a role="link" aria-disabled="true" tabIndex={0} className={styles.back}>
               <MapIcon size={16} strokeWidth={2.2} aria-hidden />
-              <span>Back to the map</span>
+              <span>{say(message('common.backToMap'))}</span>
             </a>
           )}
         </span>
@@ -171,7 +176,7 @@ export function CalendarScreen({
       >
         {live ? null : (
           <p role="status" className={styles.visuallyHidden}>
-            Loading the calendar
+            {say(message('calendar.loading'))}
           </p>
         )}
 
@@ -205,13 +210,17 @@ export function CalendarScreen({
                   — the day it leads to is what the screen is showing and what the
                   control therefore has to say.
                 */
-                aria-label={`Previous day, ${formatDayFull(addDays(live.day, -1))}`}
+                aria-label={say(
+                  message('calendar.previousDayTo', {
+                    day: formatDayFull(language, addDays(live.day, -1)),
+                  }),
+                )}
               >
                 <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
               </button>
 
               <label className={styles.picker}>
-                <span className={styles.pickerLabel}>Day</span>
+                <span className={styles.pickerLabel}>{say(message('calendar.dayField'))}</span>
                 <input
                   type="date"
                   value={live.day}
@@ -228,7 +237,11 @@ export function CalendarScreen({
                 type="button"
                 onClick={() => live.onGoToDay(addDays(live.day, 1))}
                 className={styles.step}
-                aria-label={`Next day, ${formatDayFull(addDays(live.day, 1))}`}
+                aria-label={say(
+                  message('calendar.nextDayTo', {
+                    day: formatDayFull(language, addDays(live.day, 1)),
+                  }),
+                )}
               >
                 <ChevronRight size={18} strokeWidth={2.2} aria-hidden />
               </button>
@@ -245,13 +258,13 @@ export function CalendarScreen({
                 type="button"
                 aria-disabled="true"
                 className={styles.step}
-                aria-label="Previous day"
+                aria-label={say(message('calendar.previousDay'))}
               >
                 <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
               </button>
 
               <label className={styles.picker}>
-                <span className={styles.pickerLabel}>Day</span>
+                <span className={styles.pickerLabel}>{say(message('calendar.dayField'))}</span>
                 <button
                   type="button"
                   aria-disabled="true"
@@ -265,7 +278,7 @@ export function CalendarScreen({
                 type="button"
                 aria-disabled="true"
                 className={styles.step}
-                aria-label="Next day"
+                aria-label={say(message('calendar.nextDay'))}
               >
                 <ChevronRight size={18} strokeWidth={2.2} aria-hidden />
               </button>
@@ -276,7 +289,7 @@ export function CalendarScreen({
         <div className={styles.body}>
           {live?.message ? (
             <p role="alert" className={styles.message}>
-              {live.message}
+              {say(live.message)}
             </p>
           ) : null}
 
@@ -348,6 +361,8 @@ function ViewTabs({
   waitingCount: number | null
   ids: string
 }) {
+  const say = useSay()
+
   // Arrow keys move between the two, as a tab list is expected to.
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
@@ -361,7 +376,7 @@ function ViewTabs({
     <div
       className={styles.tabs}
       role="tablist"
-      aria-label="Calendar"
+      aria-label={say(message('calendar.views'))}
       onKeyDown={onKeyDown}
     >
       <button
@@ -374,7 +389,7 @@ function ViewTabs({
         onClick={() => onChange('days')}
         className={styles.tab}
       >
-        Days
+        {say(message('calendar.days'))}
       </button>
       <button
         type="button"
@@ -386,7 +401,7 @@ function ViewTabs({
         onClick={() => onChange('waiting')}
         className={styles.tab}
       >
-        No day yet
+        {say(message('calendar.noDayYet'))}
         <WaitingCount count={waitingCount} />
       </button>
     </div>
@@ -405,6 +420,8 @@ function ViewTabs({
  * number, because zero would be a claim.
  */
 function WaitingCount({ count }: { count: number | null }) {
+  const say = useSay()
+
   if (count === null) {
     return (
       <span className={`${styles.count} ${styles.countNone}`} aria-hidden>
@@ -417,7 +434,7 @@ function WaitingCount({ count }: { count: number | null }) {
     <span className={`${styles.count} ${count === 0 ? styles.countNone : ''}`}>
       <span aria-hidden>{count}</span>
       <span className={styles.visuallyHidden}>
-        {count === 1 ? ', 1 place' : `, ${count} places`}
+        {say(message('calendar.waitingCountSpoken', { count }))}
       </span>
     </span>
   )
@@ -455,6 +472,8 @@ function Waiting({
   labelledBy: string
   onOpen: (marker: Marker) => void
 }) {
+  const say = useSay()
+
   return (
     <section
       className={styles.waiting}
@@ -465,7 +484,7 @@ function Waiting({
       {/* The narrow shape's tab already says this, so the stylesheet hides it
           there. */}
       <div className={styles.waitingHead}>
-        <h2 className={styles.waitingTitle}>No day yet</h2>
+        <h2 className={styles.waitingTitle}>{say(message('calendar.noDayYet'))}</h2>
         <WaitingCount count={count} />
       </div>
 
@@ -484,14 +503,21 @@ function Waiting({
             </div>
           ))
         ) : groups.length === 0 ? (
-          <p className={styles.waitingEmpty}>Nothing waiting for a day.</p>
+          <p className={styles.waitingEmpty}>
+            {say(message('calendar.nothingWaiting'))}
+          </p>
         ) : (
           groups.map((group) => (
             <div key={group.city?.id ?? 'unassigned'} className={styles.cityGroup}>
               {/* `Unassigned` is what the city control calls a place filed
                   under no city, so the product has one name for them. */}
               <h3 className={styles.cityName}>
-                {group.city?.name ?? 'Unassigned'} · {group.markers.length}
+                {say(
+                  message('calendar.cityGroup', {
+                    city: group.city?.name ?? say(message('empty.city')),
+                    count: group.markers.length,
+                  }),
+                )}
               </h3>
               <ul className={styles.list}>
                 {group.markers.map((marker) => (
@@ -517,29 +543,32 @@ function DayColumn({
   markers: readonly Marker[]
   onOpen: (marker: Marker) => void
 }) {
+  const say = useSay()
+  const language = useLanguage()
+
   return (
     <section
       className={`${styles.day} ${current ? styles.dayCurrent : styles.dayNeighbour}`}
       aria-current={current ? 'date' : undefined}
-      aria-label={formatDayFull(day)}
+      aria-label={formatDayFull(language, day)}
     >
       <h2 className={styles.dayName}>
         {/* The full wording where there is room, the short one where there is
             not — one element rather than two, so the accessible name does not
             depend on which of a pair happens to be drawn. */}
         <span className={styles.dayNameLong} aria-hidden>
-          {formatDay(day)}
+          {formatDay(language, day)}
         </span>
         <span className={styles.dayNameShort} aria-hidden>
-          {formatDayShort(day)}
+          {formatDayShort(language, day)}
         </span>
-        <span className={styles.visuallyHidden}>{formatDayFull(day)}</span>
+        <span className={styles.visuallyHidden}>{formatDayFull(language, day)}</span>
       </h2>
 
       {markers.length === 0 ? (
         // An empty day is the ordinary state of most days on most trips, and it
         // is information. It is said, not left blank and not drawn as a fault.
-        <p className={styles.dayEmpty}>Nothing planned.</p>
+        <p className={styles.dayEmpty}>{say(message('calendar.nothingPlanned'))}</p>
       ) : (
         <ul className={styles.list}>
           {markers.map((marker) => (
@@ -598,6 +627,8 @@ function PlaceRow({
   run?: RunPosition | null
   onOpen: (marker: Marker) => void
 }) {
+  const say = useSay()
+
   return (
     <li>
       <button type="button" onClick={() => onOpen(marker)} className={styles.place}>
@@ -615,13 +646,13 @@ function PlaceRow({
         <span className={styles.placeBody}>
           <span className={styles.placeName}>{marker.name}</span>
           {run ? (
-            <span className={styles.placeRun}>{formatRunPosition(run)}</span>
+            <span className={styles.placeRun}>{say(formatRunPosition(run))}</span>
           ) : null}
         </span>
         {/* Visited is said in words as well as drawn, because a signal that
             survives only in styling does not survive a screen reader. */}
         {marker.visited ? (
-          <span className={styles.placeVisited}>Visited</span>
+          <span className={styles.placeVisited}>{say(message('calendar.visited'))}</span>
         ) : null}
       </button>
     </li>

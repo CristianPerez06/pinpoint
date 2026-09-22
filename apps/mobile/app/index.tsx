@@ -1,11 +1,11 @@
 import { fetchTrips } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Redirect } from 'expo-router'
 
 import { FailedState } from '@/components/states'
 import { TripSetup } from '@/components/trip-setup'
 import { TripWorkspace } from '@/components/trip-workspace'
 import { WaitingMap, WorkspaceChrome } from '@/components/workspace-chrome'
+import { useSay } from '@/lib/language'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTripChoice } from '@/lib/trip-choice'
@@ -26,6 +26,7 @@ import { useQuery } from '@/lib/use-query'
  */
 export default function Index() {
   const { session, loading } = useSession()
+  const say = useSay()
 
   /**
    * The trips this account is on.
@@ -77,7 +78,7 @@ export default function Index() {
 
   if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
-    return <FailedState message={say(ENGLISH_LANGUAGE, trips.state.reason)} />
+    return <FailedState message={say(trips.state.reason)} />
   }
 
   // No longer a dead end: this is where a first trip is made, and where somebody

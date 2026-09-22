@@ -2,7 +2,7 @@
 
 import type { FieldErrors, Trip, TripMember } from '@pinpoint/core'
 import { fetchTrips, inviteMember, removeMember, updateTrip } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useRouter } from 'next/navigation'
 import { type Dispatch, type SetStateAction, useState } from 'react'
 
@@ -42,8 +42,12 @@ export type TripActionsInput = {
    * Every write below is optimistic, so this is the only thing that can explain
    * a change that went back. Each of them clears first: a refusal still on
    * screen from the previous attempt would otherwise read as this one's answer.
+   *
+   * A name rather than a sentence, resolved only where it is drawn, so a refusal
+   * already on screen follows the language when it changes instead of staying
+   * in the one it was said in.
    */
-  report: (message: string | null) => void
+  report: (problem: Message | null) => void
   /** Where choosing a trip from the switcher goes. */
   addressOfTrip: (tripId: string) => string
   /** Where archiving the open trip leaves to, once the write succeeds. */
@@ -128,8 +132,8 @@ export function useTripActions({
       setTrips(previous)
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not rename this trip.',
+          ? outcome.reason
+          : message('tripActions.renameFailed'),
       )
       return
     }
@@ -166,8 +170,8 @@ export function useTripActions({
       if (outcome.kind === 'invalid-input') return outcome.fieldErrors
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save these dates.',
+          ? outcome.reason
+          : message('tripActions.datesFailed'),
       )
       return {}
     }
@@ -194,7 +198,7 @@ export function useTripActions({
 
     const state = await fetchTrips(supabase, { includeArchived: true })
     if (state.status === 'failed') {
-      report(say(ENGLISH_LANGUAGE, state.reason))
+      report(state.reason)
       return false
     }
 
@@ -234,8 +238,8 @@ export function useTripActions({
       setTrips(previous)
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not archive this trip.',
+          ? outcome.reason
+          : message('tripActions.archiveFailed'),
       )
       return false
     }
@@ -326,8 +330,8 @@ export function useTripActions({
       setTrips(previousTrips)
       report(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not restore this trip.',
+          ? outcome.reason
+          : message('tripActions.restoreFailed'),
       )
       return
     }

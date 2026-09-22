@@ -1,4 +1,9 @@
+'use client'
+
+import { message, type Message } from '@pinpoint/wording'
 import type { ReactNode } from 'react'
+
+import { useSay } from '@/app/_components/language'
 
 import styles from './states.module.css'
 
@@ -24,10 +29,14 @@ import styles from './states.module.css'
  * often mistaken for emptiness.
  */
 export function LoadingState({
-  what = 'the map',
+  label = message('loading.map'),
   bare = false,
 }: {
-  what?: string
+  /**
+   * What is being waited for, as the whole sentence rather than a noun dropped
+   * into one — `Loading {what}…` holds together in English only.
+   */
+  label?: Message
   /**
    * Do not paint a ground of your own; something behind this already has.
    *
@@ -39,11 +48,13 @@ export function LoadingState({
    */
   bare?: boolean
 }) {
+  const say = useSay()
+
   return (
     <div className={`${styles.panel} ${bare ? '' : styles.loading}`}>
       <span aria-hidden className={styles.spinner} />
       <p role="status" className={styles.message}>
-        Loading {what}…
+        {say(label)}
       </p>
     </div>
   )
@@ -55,16 +66,18 @@ export function LoadingState({
  * from an empty map on their own.
  */
 export function FailedState({
-  message,
+  message: said,
   children,
 }: {
-  message: string
+  /** A name, resolved here so it follows the language when that changes. */
+  message: Message
   children?: ReactNode
 }) {
+  const say = useSay()
   return (
     <div className={`${styles.panel} ${styles.failed}`}>
       <p role="alert" className={styles.failedMessage}>
-        {message}
+        {say(said)}
       </p>
       {children}
     </div>

@@ -1,7 +1,7 @@
 import type { FieldErrors, IsoDay } from '@pinpoint/core'
 import { createTrip } from '@pinpoint/data'
 import { SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
+import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -35,6 +36,7 @@ import { role } from '@/lib/type'
  */
 export function TripSetup({ onCreated }: { onCreated: (tripId: string) => void }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
 
   return (
@@ -57,11 +59,13 @@ export function TripSetup({ onCreated }: { onCreated: (tripId: string) => void }
       >
         <View style={styles.brand}>
           <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-          <Text style={[styles.title, { color: theme.colour.ink }]}>Start a trip</Text>
+          <Text style={[styles.title, { color: theme.colour.ink }]}>
+            {say(message('tripSetup.title'))}
+          </Text>
         </View>
 
         <Text style={[styles.lead, { color: theme.colour.inkMuted }]}>
-          A trip is one shared map. Everyone you add to it sees the same places.
+          {say(message('tripSetup.lead'))}
         </Text>
 
         <CreateTripForm onCreated={onCreated} />
@@ -75,30 +79,14 @@ export function TripSetup({ onCreated }: { onCreated: (tripId: string) => void }
         <View style={[styles.note, { borderColor: theme.colour.line }]}>
           <Text style={[styles.noteText, { color: theme.colour.inkMuted }]}>
             <Text style={styles.noteStrong}>
-              Expecting to be on someone else’s trip?{' '}
+              {say(message('tripSetup.expectingQuestion'))}{' '}
             </Text>
-            You are added by email address, and the trip appears when you sign in
-            with the same one. If it has not appeared, check that the address you
-            signed up with is the address they added — and ask them to look at the
-            trip’s people, where anyone who has not joined yet is shown with the
-            address they were added at.
+            {say(message('tripSetup.expectingAnswer'))}
           </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
-}
-
-/**
- * A field's refusal, in words, and nothing when there is no refusal.
- *
- * The language is still named at the call — this only carries the `undefined`
- * through, which is the part four fields would otherwise each spell out. Named
- * apart from `@pinpoint/core`'s `refusal`, which goes the other way: that one
- * puts a name into a schema's message slot, this takes one out.
- */
-function refusalWords(error: Message | undefined): string | undefined {
-  return error === undefined ? undefined : say(ENGLISH_LANGUAGE, error)
 }
 
 /**
@@ -124,12 +112,26 @@ export function CreateTripForm({
   const [endsOn, setEndsOn] = useState<IsoDay | null>(null)
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<string | null>(null)
+  // Held as the named message, so a change of language re-words it.
+  const [note, setNote] = useState<Message | null>(null)
+  const say = useSay()
+
+  /**
+   * A field's refusal, in words, and nothing when there is no refusal.
+   *
+   * Only carries the `undefined` through, which is the part four fields would
+   * otherwise each spell out. Named apart from `@pinpoint/core`'s `refusal`,
+   * which goes the other way: that one puts a name into a schema's message
+   * slot, this takes one out.
+   */
+  function refusalWords(error: Message | undefined): string | undefined {
+    return error === undefined ? undefined : say(error)
+  }
 
   async function create() {
     setBusy(true)
     setFieldErrors({})
-    setMessage(null)
+    setNote(null)
 
     const outcome = await createTrip(supabase, {
       name: name.trim(),
@@ -142,7 +144,7 @@ export function CreateTripForm({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
+      else setNote(outcome.reason)
       return
     }
 
@@ -152,11 +154,11 @@ export function CreateTripForm({
   return (
     <>
       <TextField
-        label="What is the trip called?"
+        label={say(message('tripSetup.nameLabel'))}
         value={name}
         onChange={setName}
         error={refusalWords(fieldErrors.name)}
-        placeholder="Japan 2026"
+        placeholder={say(message('tripSetup.namePlaceholder'))}
       />
 
       {/*
@@ -166,11 +168,11 @@ export function CreateTripForm({
         the result, permanently.
       */}
       <TextField
-        label="What should we call you on it?"
+        label={say(message('tripSetup.displayNameLabel'))}
         value={displayName}
         onChange={setDisplayName}
         error={refusalWords(fieldErrors.displayName)}
-        placeholder="Your name, as the others would say it"
+        placeholder={say(message('tripSetup.displayNamePlaceholder'))}
       />
 
       {/*
@@ -181,22 +183,22 @@ export function CreateTripForm({
         calendar opens on.
       */}
       <DayField
-        label="Start date"
+        label={say(message('trip.startDate'))}
         value={startsOn}
         onChange={setStartsOn}
         error={refusalWords(fieldErrors.startsOn)}
       />
       <DayField
-        label="End date"
+        label={say(message('trip.endDate'))}
         value={endsOn}
         onChange={setEndsOn}
         error={refusalWords(fieldErrors.endsOn)}
       />
 
-      {message ? <FormNote tone="danger">{message}</FormNote> : null}
+      {note ? <FormNote tone="danger">{say(note)}</FormNote> : null}
 
       <Button
-        label={busy ? 'Creating…' : 'Create trip'}
+        label={say(busy ? message('common.creating') : message('tripSetup.create'))}
         tone="primary"
         disabled={busy || name.trim() === '' || displayName.trim() === ''}
         onPress={() => void create()}

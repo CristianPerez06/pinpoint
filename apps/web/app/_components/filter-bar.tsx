@@ -3,8 +3,8 @@
 import {
   activeFilterCount,
   dateOfDay,
-  formatDayRange,
   formatDayShort,
+  formatDayStretch,
   type InterestFilter,
   isFiltered,
   type IsoDay,
@@ -13,11 +13,12 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Language, type Message } from '@pinpoint/wording'
 
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
+import { useLanguage, useSay } from '@/app/_components/language'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { Menu, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 
@@ -151,11 +152,16 @@ type OpenQuestion = 'interest' | 'kind' | 'day'
  * allowed to name members at all: the rule against naming them is about the
  * *trigger*, whose width would then follow its own state, and this sits inside
  * the panel at a settled width and truncates.
+ *
+ * The last pair is joined by the catalogue, because `and` is a word. A message,
+ * so the caller resolves it with everything else it draws.
  */
-function wordList(words: readonly string[]): string {
-  if (words.length === 0) return ''
-  if (words.length === 1) return words[0]
-  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+function wordList(words: readonly string[]): Message {
+  if (words.length <= 1) return message('filter.listOne', { word: words[0] ?? '' })
+  return message('filter.listAnd', {
+    head: words.slice(0, -1).join(', '),
+    last: words[words.length - 1]!,
+  })
 }
 
 /**
@@ -203,8 +209,8 @@ function inWeeks(days: readonly IsoDay[]): readonly (readonly IsoDay[])[] {
  * to one question waiting to drift apart — and a third was about to be written
  * for a trip's dates in the trip menu.
  */
-function runLabel(run: readonly IsoDay[]): string {
-  return formatDayRange(run[0], run[run.length - 1]) ?? run[0]
+function runLabel(language: Language, run: readonly IsoDay[]): string {
+  return formatDayStretch(language, run[0]!, run[run.length - 1]!)
 }
 
 function FilterBarLive({
@@ -216,10 +222,12 @@ function FilterBarLive({
   open,
   onOpen,
 }: FilterBarLiveProps) {
+  const say = useSay()
+  const language = useLanguage()
   const [question, setQuestion] = useState<OpenQuestion | null>(null)
 
   const nameOf = (member: TripMember) =>
-    member.id === ownMemberId ? 'You' : member.displayName
+    member.id === ownMemberId ? say(message('interest.you')) : member.displayName
 
   const chosen =
     filter.interest.kind === 'wanted-by' ? filter.interest.members : []
@@ -280,31 +288,33 @@ function FilterBarLive({
    */
   const interestSaid =
     filter.interest.kind === 'unanswered'
-      ? 'Nobody has answered'
+      ? say(message('filter.nobodyAnsweredSaid'))
       : filter.interest.kind === 'wanted-by'
-        ? wordList(
+        ? say(wordList(
             chosen
               .map((id) => members.find((member) => member.id === id))
               .filter((member) => member !== undefined)
               .map(nameOf),
-          )
-        : 'Anyone'
+          ))
+        : say(message('filter.anyone'))
 
   const kindSaid =
     kinds.length === 0
-      ? 'Any kind'
-      : wordList(
-          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
-            say(ENGLISH_LANGUAGE, markerTypeMessage(type.id)),
+      ? say(message('filter.anyKind'))
+      : say(
+          wordList(
+            MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
+              say(markerTypeMessage(type.id)),
+            ),
           ),
         )
 
   const daySaid =
     filter.day.kind === 'undated'
-      ? 'No day yet'
+      ? say(message('filter.noDay'))
       : chosenDays.length === 0
-        ? 'Any day'
-        : wordList([...chosenDays].sort().map(formatDayShort))
+        ? say(message('filter.anyDay'))
+        : say(wordList([...chosenDays].sort().map((day) => formatDayShort(language, day))))
 
   function section(
     id: OpenQuestion,
@@ -338,7 +348,7 @@ function FilterBarLive({
 
   return (
     <Menu
-      name="Filter"
+      name={say(message('filter.name'))}
       /*
         The narrowing, said in words, at every width.
 
@@ -355,7 +365,7 @@ function FilterBarLive({
         exact reading `marker-filtering` rejected `15 of 17` for.
       */
       hint={
-        narrowed ? 'Filter this trip. Some places are hidden' : 'Filter this trip'
+        say(message(narrowed ? 'filter.hintNarrowed' : 'filter.hint'))
       }
       label={<FilterLabel narrowed={narrowed} active={active} />}
       marked={narrowed}
@@ -371,13 +381,13 @@ function FilterBarLive({
     >
       {section(
         'interest',
-        'Wanted by',
+        say(message('filter.wantedBy')),
         interestSaid,
         filter.interest.kind !== 'anyone',
         <>
           {/* The question this list is asking, because the two lists below it
               ask the opposite one and tick boxes do not say which is which. */}
-          <p className={styles.heading}>Places all of them want</p>
+          <p className={styles.heading}>{say(message('filter.wantedByHeading'))}</p>
 
           {members.map((member) => (
             <label key={member.id} className={styles.option}>
@@ -405,7 +415,7 @@ function FilterBarLive({
               }
               className={styles.everyone}
             >
-              Everyone
+              {say(message('filter.everyone'))}
             </button>
           ) : null}
 
@@ -428,14 +438,14 @@ function FilterBarLive({
               }
               className={styles.checkbox}
             />
-            <span>Nobody has answered yet</span>
+            <span>{say(message('filter.nobodyAnswered'))}</span>
           </label>
         </>,
       )}
 
       {section(
         'kind',
-        'Kind of place',
+        say(message('filter.kind')),
         kindSaid,
         kinds.length > 0,
         <>
@@ -448,7 +458,7 @@ function FilterBarLive({
             kind, so the other reading would always select nothing — but nobody
             discovers that by ticking, they discover an empty map.
           */}
-          <p className={styles.heading}>Places of any of these</p>
+          <p className={styles.heading}>{say(message('filter.kindHeading'))}</p>
 
           {MARKER_TYPES.map((type) => (
             <label key={type.id} className={styles.option}>
@@ -463,7 +473,7 @@ function FilterBarLive({
                 className={styles.swatch}
                 style={{ background: `var(--pp-pin-${type.id})` }}
               />
-              <span>{say(ENGLISH_LANGUAGE, markerTypeMessage(type.id))}</span>
+              <span>{say(markerTypeMessage(type.id))}</span>
             </label>
           ))}
         </>,
@@ -471,20 +481,20 @@ function FilterBarLive({
 
       {section(
         'day',
-        'Day',
+        say(message('filter.day')),
         daySaid,
         filter.day.kind !== 'any',
         <>
-          <p className={styles.heading}>Places on any of these days</p>
+          <p className={styles.heading}>{say(message('filter.dayHeading'))}</p>
 
           {days.length === 0 ? (
             /* A trip with no dates and nothing planned. Saying so beats an
                empty region, which reads as the list having failed to load. */
-            <p className={styles.empty}>Nothing is planned for a day yet.</p>
+            <p className={styles.empty}>{say(message('filter.noDays'))}</p>
           ) : (
             inWeeks(days).map((run) => (
               <div key={run[0]}>
-                <p className={styles.week}>{runLabel(run)}</p>
+                <p className={styles.week}>{runLabel(language, run)}</p>
                 {run.map((day) => (
                   <label key={day} className={styles.option}>
                     <input
@@ -493,7 +503,7 @@ function FilterBarLive({
                       onChange={() => toggleDay(day)}
                       className={styles.checkbox}
                     />
-                    <span>{formatDayShort(day)}</span>
+                    <span>{formatDayShort(language, day)}</span>
                   </label>
                 ))}
               </div>
@@ -520,7 +530,7 @@ function FilterBarLive({
               }
               className={styles.checkbox}
             />
-            <span>No day yet</span>
+            <span>{say(message('filter.noDay'))}</span>
           </label>
         </>,
       )}
@@ -558,7 +568,7 @@ function FilterBarLive({
           }
           className={styles.checkbox}
         />
-        <span>Not filed under a city</span>
+        <span>{say(message('filter.unfiled'))}</span>
       </label>
 
       {/*
@@ -580,7 +590,7 @@ function FilterBarLive({
           }
           className={styles.checkbox}
         />
-        <span>Hide visited</span>
+        <span>{say(message('filter.hideVisited'))}</span>
       </label>
 
       {/*
@@ -597,7 +607,7 @@ function FilterBarLive({
         }}
         className={styles.clear}
       >
-          Clear the filter
+          {say(message('filter.clear'))}
         </button>
       </div>
     </Menu>
@@ -616,6 +626,7 @@ function FilterBarLive({
  * differs, because the label is the part nobody knows yet.
  */
 export function FilterBar(props: FilterBarProps) {
+  const say = useSay()
   if (props.waiting) {
     /*
       No placeholder, because nothing here is unknown.
@@ -644,11 +655,11 @@ export function FilterBar(props: FilterBarProps) {
     */
     return (
       <Menu
-        name="Filter"
+        name={say(message('filter.name'))}
         /* Nothing has been read, so nothing is narrowed, so it is the unnarrowed
            sentence. The control being unavailable is already announced by
            `aria-disabled` and is not this string's job. */
-        hint="Filter this trip"
+        hint={say(message('filter.hint'))}
         label={<FilterLabel narrowed={false} active={0} />}
         align="end"
         open={false}
@@ -683,6 +694,7 @@ export function FilterBar(props: FilterBarProps) {
  * column there, and anything else in this list would be another line.
  */
 function FilterLabel({ narrowed, active }: { narrowed: boolean; active: number }) {
+  const say = useSay()
   return (
     <>
       {/*
@@ -733,8 +745,8 @@ function FilterLabel({ narrowed, active }: { narrowed: boolean; active: number }
         `display` declarations of equal specificity in two stylesheets and let
         the bundler's ordering decide. `Drop` already answers this the same way.
       */}
-      <span className={styles.wideLabel}>Filter</span>
-      <span className={toolLabelClass}>Filter</span>
+      <span className={styles.wideLabel}>{say(message('filter.name'))}</span>
+      <span className={toolLabelClass}>{say(message('filter.name'))}</span>
 
       {/*
         The count, in the bar only.

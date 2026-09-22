@@ -6,7 +6,7 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -21,6 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, Question, TextField } from '@/components/ui'
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -64,21 +65,22 @@ export function PeopleSheet({
   onInvite: (
     displayName: string,
     email: string,
-  ) => Promise<{ field: string; message: string } | null>
+  ) => Promise<{ field: string; reason: Message } | null>
   /**
-   * Take back an invitation nobody has claimed. Resolves to a refusal in words,
-   * or null. Only ever called with a row whose `userId` is null.
+   * Take back an invitation nobody has claimed. Resolves to a named refusal, or
+   * null. Only ever called with a row whose `userId` is null.
    */
-  onRemove: (member: TripMember) => Promise<string | null>
+  onRemove: (member: TripMember) => Promise<Message | null>
 }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [message, setMessage] = useState<string | null>(null)
+  const [errors, setErrors] = useState<Record<string, Message>>({})
+  const [note, setNote] = useState<Message | null>(null)
   /**
    * This sheet's own wait.
    *
@@ -96,13 +98,13 @@ export function PeopleSheet({
 
   function invite() {
     setErrors({})
-    setMessage(null)
+    setNote(null)
 
     startInvite(async () => {
       const problem = await onInvite(displayName.trim(), email.trim())
       if (problem) {
-        if (problem.field === '_') setMessage(problem.message)
-        else setErrors({ [problem.field]: problem.message })
+        if (problem.field === '_') setNote(problem.reason)
+        else setErrors({ [problem.field]: problem.reason })
         return
       }
 
@@ -113,13 +115,13 @@ export function PeopleSheet({
 
   function close() {
     setErrors({})
-    setMessage(null)
+    setNote(null)
     onClose()
   }
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
 
@@ -157,10 +159,12 @@ export function PeopleSheet({
             ]}
           >
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: theme.colour.ink }]}>People</Text>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>
+                {say(message('trip.people'))}
+              </Text>
               <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
                 <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                  Done
+                  {say(message('common.done'))}
                 </Text>
               </Pressable>
             </View>
@@ -173,11 +177,13 @@ export function PeopleSheet({
                 >
                   <View style={styles.who}>
                     <Text style={[styles.personName, { color: theme.colour.ink }]}>
-                      {member.id === ownMemberId ? 'You' : member.displayName}
+                      {member.id === ownMemberId
+                        ? say(message('people.you'))
+                        : member.displayName}
                     </Text>
                     {member.userId === null ? (
                       <Text style={[styles.pending, { color: theme.colour.inkMuted }]}>
-                        not joined yet · {member.email}
+                        {say(message('people.notJoined', { email: member.email }))}
                       </Text>
                     ) : null}
                   </View>
@@ -193,14 +199,13 @@ export function PeopleSheet({
                   {member.userId === null && asking === null ? (
                     <Pressable
                       onPress={() => {
-                        setMessage(null)
+                        setNote(null)
                         setAsking(member)
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel={
-                        `${say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)} ` +
-                        `${member.displayName}'s invitation`
-                      }
+                      accessibilityLabel={say(
+                        message('people.takeBackNamed', { name: member.displayName }),
+                      )}
                       hitSlop={6}
                       style={[
                         styles.takeBack,
@@ -210,7 +215,7 @@ export function PeopleSheet({
                       <Text
                         style={[styles.takeBackText, { color: theme.colour.danger }]}
                       >
-                        {say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)}
+                        {say(TAKE_BACK_LABEL)}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -219,16 +224,16 @@ export function PeopleSheet({
 
               {asking !== null ? (
                 <Question
-                  question={say(ENGLISH_LANGUAGE, takeBackQuestion(asking.displayName))}
-                  consequence={say(ENGLISH_LANGUAGE, takeBackConsequence(asking.email))}
-                  confirm={say(ENGLISH_LANGUAGE, TAKE_BACK_CONFIRM)}
+                  question={say(takeBackQuestion(asking.displayName))}
+                  consequence={say(takeBackConsequence(asking.email))}
+                  confirm={say(TAKE_BACK_CONFIRM)}
                   waiting={removing}
                   onConfirm={() => {
                     const member = asking
                     startRemove(async () => {
                       const problem = await onRemove(member)
                       setAsking(null)
-                      if (problem) setMessage(problem)
+                      if (problem) setNote(problem)
                     })
                   }}
                   onDecline={() => setAsking(null)}
@@ -245,35 +250,33 @@ export function PeopleSheet({
               */}
               {asking === null ? (
               <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                Adding somebody puts them on the trip straight away. Nothing is sent
-                — tell them yourself, and the trip appears when they sign in with
-                this address.
+                {say(message('people.inviteHint'))}
               </Text>
               ) : null}
 
               {asking === null ? (
               <View style={styles.form}>
                 <TextField
-                  label="Name"
+                  label={say(message('common.name'))}
                   value={displayName}
                   onChange={setDisplayName}
-                  error={errors.displayName}
-                  placeholder="What to call them on this trip"
+                  error={errors.displayName && say(errors.displayName)}
+                  placeholder={say(message('people.namePlaceholder'))}
                 />
                 <TextField
-                  label="Email"
+                  label={say(message('people.email'))}
                   value={email}
                   onChange={setEmail}
-                  error={errors.email}
-                  placeholder="The address they will sign in with"
+                  error={errors.email && say(errors.email)}
+                  placeholder={say(message('people.emailPlaceholder'))}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
 
-                {message ? <FormNote tone="danger">{message}</FormNote> : null}
+                {note ? <FormNote tone="danger">{say(note)}</FormNote> : null}
 
                 <Button
-                  label={adding ? 'Adding…' : 'Add to trip'}
+                  label={say(adding ? message('people.adding') : message('people.add'))}
                   tone="primary"
                   disabled={
                     adding || displayName.trim() === '' || email.trim() === ''

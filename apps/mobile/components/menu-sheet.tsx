@@ -1,11 +1,13 @@
 import type { TripMember } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import LogOut from 'lucide-react-native/icons/log-out'
 import SettingsIcon from 'lucide-react-native/icons/settings'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -59,10 +61,11 @@ export function MenuSheet({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const say = useSay()
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={say(message('common.close'))}>
         <View
           // The sheet swallows presses so that touching a row does not dismiss
           // through the backdrop underneath it.
@@ -95,7 +98,7 @@ export function MenuSheet({
                 style={[styles.name, { color: theme.colour.ink }]}
                 numberOfLines={1}
               >
-                {member?.displayName ?? 'Signed in'}
+                {member?.displayName ?? say(message('account.signedIn'))}
               </Text>
               {member !== null ? (
                 <Text style={[styles.email, { color: theme.colour.inkMuted }]}>
@@ -129,7 +132,9 @@ export function MenuSheet({
             style={[styles.row, { borderBottomColor: theme.colour.line }]}
           >
             <SettingsIcon size={18} color={theme.colour.inkMuted} strokeWidth={2} />
-            <Text style={[styles.rowText, { color: theme.colour.ink }]}>Settings</Text>
+            <Text style={[styles.rowText, { color: theme.colour.ink }]}>
+              {say(message('common.settings'))}
+            </Text>
           </Pressable>
 
           <Pressable
@@ -139,7 +144,7 @@ export function MenuSheet({
           >
             <LogOut size={18} color={theme.colour.danger} strokeWidth={2} />
             <Text style={[styles.signOutText, { color: theme.colour.danger }]}>
-              Sign out
+              {say(message('account.signOut'))}
             </Text>
           </Pressable>
         </View>

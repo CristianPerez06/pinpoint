@@ -5,8 +5,10 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message, type Message } from '@pinpoint/wording'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -24,16 +26,16 @@ import { role } from '@/lib/type'
  * offering a button that cannot work.
  */
 
-const STATE_LABEL: Record<InterestState, string> = {
-  interested: 'Wants to go',
-  'not-interested': 'Not for them',
-  undecided: 'Undecided',
+const STATE_LABEL: Record<InterestState, Message> = {
+  interested: message('interest.wantsToGo'),
+  'not-interested': message('interest.notForThem'),
+  undecided: message('interest.undecided'),
 }
 
-const OWN_STATE_LABEL: Record<InterestState, string> = {
-  interested: 'You want to go',
-  'not-interested': 'Not for you',
-  undecided: 'You have not said',
+const OWN_STATE_LABEL: Record<InterestState, Message> = {
+  interested: message('interest.youWantToGo'),
+  'not-interested': message('interest.notForYou'),
+  undecided: message('interest.youHaveNotSaid'),
 }
 
 const styles = StyleSheet.create({
@@ -75,6 +77,7 @@ export function InterestRows({
   onWithdraw: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   /**
    * Undecided is its own colour rather than a faded "not interested".
@@ -101,13 +104,13 @@ export function InterestRows({
         return (
           <View key={member.id} style={styles.row}>
             <Text style={[styles.who, { color: theme.colour.ink }]}>
-              {isOwn ? 'You' : member.displayName}
+              {isOwn ? say(message('interest.you')) : member.displayName}
             </Text>
 
             {isOwn ? (
               <View style={styles.choices}>
                 <Choice
-                  label="Want to go"
+                  label={say(message('interest.wantToGo'))}
                   active={state === 'interested'}
                   // Pressing the active choice takes it back rather than doing
                   // nothing. Withdrawing has to be reachable, and a third button
@@ -117,7 +120,7 @@ export function InterestRows({
                   }
                 />
                 <Choice
-                  label="Not for me"
+                  label={say(message('interest.notForMe'))}
                   active={state === 'not-interested'}
                   onPress={() =>
                     state === 'not-interested' ? onWithdraw() : onRecord(false)
@@ -126,13 +129,13 @@ export function InterestRows({
               </View>
             ) : (
               <Text style={[styles.state, { color: stateColour[state] }]}>
-                {STATE_LABEL[state]}
+                {say(STATE_LABEL[state])}
               </Text>
             )}
 
             {isOwn ? (
               <Text style={[styles.state, { color: stateColour[state] }]}>
-                {OWN_STATE_LABEL[state]}
+                {say(OWN_STATE_LABEL[state])}
               </Text>
             ) : null}
           </View>
@@ -196,6 +199,7 @@ export function VisitedToggle({
   onChange: (visited: boolean) => void
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <Pressable
@@ -216,7 +220,7 @@ export function VisitedToggle({
           { color: visited ? theme.colour.accentInk : theme.colour.ink },
         ]}
       >
-        {visited ? '✓ Visited' : 'Mark visited'}
+        {say(visited ? message('visited.on') : message('visited.mark'))}
       </Text>
     </Pressable>
   )

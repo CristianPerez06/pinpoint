@@ -18,7 +18,7 @@ import {
   type MarkerGroup,
   type StyleDocument,
 } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { RefreshCw } from 'lucide-react'
 // Named imports, not a default: maplibre-gl v6 has no default export, and the
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
@@ -36,7 +36,8 @@ import { createRoot } from 'react-dom/client'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { DraftPin, Pin } from '@/app/_components/pin'
 import { Menu } from '@/app/_components/ui'
-import { themedBasemap } from '@/lib/basemap'
+import { useSay } from '@/app/_components/language'
+import { BasemapFailure, themedBasemap } from '@/lib/basemap'
 import { useColourScheme } from '@/lib/use-colour-scheme'
 
 import styles from './trip-map.module.css'
@@ -139,7 +140,8 @@ function ZoomButton({
   spent: boolean
   onPress: () => void
 }) {
-  const label = direction === 1 ? 'Zoom in' : 'Zoom out'
+  const say = useSay()
+  const label = say(message(direction === 1 ? 'map.zoomIn' : 'map.zoomOut'))
 
   return (
     <button
@@ -288,6 +290,7 @@ export function TripMap({
    */
   onMarkersInView: (anyInView: boolean) => void
 }) {
+  const say = useSay()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
   /**
@@ -457,7 +460,12 @@ export function TripMap({
    * given one, so it is state rather than a value.
    */
   const [style, setStyle] = useState<StyleDocument | null>(null)
-  const [styleError, setStyleError] = useState<string | null>(null)
+  /**
+   * Why the style failed. Null for no reason worth quoting, in which case the
+   * catalogue's own general reason is drawn — resolved at render, so it follows
+   * the language rather than being fixed at the moment it failed.
+   */
+  const [styleError, setStyleError] = useState<{ reason: Message | null } | null>(null)
 
   // Callbacks reached through refs so that the effects binding them to the
   // renderer do not tear down and rebuild every time the parent re-renders.
@@ -487,9 +495,7 @@ export function TripMap({
       },
       (cause: unknown) => {
         if (!live) return
-        setStyleError(
-          cause instanceof Error ? cause.message : 'the map style could not be loaded',
-        )
+        setStyleError({ reason: cause instanceof BasemapFailure ? cause.reason : null })
       },
     )
 
@@ -712,12 +718,18 @@ export function TripMap({
        * survives exactly the redraw that the element does not.
        */
       element.dataset.point = group.key
-      element.title = group.count > 1 ? `${group.count} places here` : group.view.label
+      const several = say(message('map.placesHere', { count: group.count }))
+      element.title = group.count > 1 ? several : group.view.label
       element.setAttribute(
         'aria-label',
         group.count > 1
-          ? `${group.count} places here`
-          : `${group.view.label} (${say(ENGLISH_LANGUAGE, markerTypeMessage(group.view.typeId))})`,
+          ? several
+          : say(
+              message('map.placeOfType', {
+                name: group.view.label,
+                type: say(markerTypeMessage(group.view.typeId)),
+              }),
+            ),
       )
 
       element.addEventListener('click', (event) => {
@@ -755,7 +767,7 @@ export function TripMap({
         queueMicrotask(() => root.unmount())
       }
     }
-  }, [map, shown, selectedKey])
+  }, [map, shown, selectedKey, say])
 
   /**
    * Pointing at the map creates a place, but only when that was armed first.
@@ -794,8 +806,8 @@ export function TripMap({
 
     const element = document.createElement('div')
     element.className = `${styles.marker} ${styles.draft}`
-    element.setAttribute('aria-label', 'New place, not yet saved')
-    element.title = 'Drag to adjust, then save'
+    element.setAttribute('aria-label', say(message('map.draftPin')))
+    element.title = say(message('map.draftPinHint'))
 
     const root = createRoot(element)
     root.render(<DraftPin />)
@@ -822,8 +834,11 @@ export function TripMap({
     }
     // `draft` is read once, for the starting position. Every later move goes
     // through the sync effect below.
+    //
+    // `say` is here so a change of language relabels the pin. It re-creates it
+    // at `draft`, which every drag has already written back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, hasDraft])
+  }, [map, hasDraft, say])
 
   useEffect(() => {
     if (draft && draftMarkerRef.current) {
@@ -868,10 +883,13 @@ export function TripMap({
   if (styleError !== null) {
     return (
       <div className={styles.failure} role="alert">
-        <p className={styles.failureTitle}>The map could not be loaded</p>
+        <p className={styles.failureTitle}>{say(message('map.styleFailed'))}</p>
         <p className={styles.failureDetail}>
-          The place data is fine — {styleError}. Your saved places are still
-          here; only the map underneath them is missing.
+          {say(
+            message('map.styleFailedDetail', {
+              reason: say(styleError.reason ?? message('map.styleFailedReason')),
+            }),
+          )}
         </p>
       </div>
     )
@@ -923,14 +941,14 @@ export function TripMap({
         style={{ bottom: `calc(${floor}px + var(--pp-space-sm))` }}
       >
         <Menu
-          name="About this map"
+          name={say(message('credits.title'))}
           label={ATTRIBUTION}
           tone="quiet"
           open={creditsOpen}
           onOpen={setCreditsOpen}
         >
-          <p className={styles.creditsHeading}>About this map</p>
-          <p className={styles.creditsBlurb}>Four projects, none of them ours.</p>
+          <p className={styles.creditsHeading}>{say(message('credits.title'))}</p>
+          <p className={styles.creditsBlurb}>{say(message('credits.blurb'))}</p>
           {MAP_CREDITS.map((credit) => (
             <a
               key={credit.url}
@@ -947,7 +965,7 @@ export function TripMap({
               */}
               <span className={styles.creditName}>{credit.name}</span>
               <span className={styles.creditRole}>
-                {say(ENGLISH_LANGUAGE, message(credit.role))}
+                {say(message(credit.role))}
               </span>
             </a>
           ))}
@@ -1020,7 +1038,7 @@ export function TripMap({
             type="button"
             className={styles.reread}
             onClick={onReread}
-            aria-label="Read everything again"
+            aria-label={say(message('map.reread'))}
             aria-busy={rereading}
             /*
               `aria-disabled` rather than `disabled`, matching the spent zoom
@@ -1033,7 +1051,7 @@ export function TripMap({
             <RefreshCw aria-hidden className={styles.rereadGlyph} />
           </button>
 
-          <div className={styles.zoom} role="group" aria-label="Zoom">
+          <div className={styles.zoom} role="group" aria-label={say(message('map.zoom'))}>
             <ZoomButton
               direction={1}
               // A step that arrives where it started is a control with nothing

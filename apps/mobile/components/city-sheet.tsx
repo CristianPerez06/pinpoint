@@ -1,7 +1,7 @@
 import type { City, Marker } from '@pinpoint/core'
 import { CITY_NEEDS_A_NAME, cityNameTaken, localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all 1767 glyphs in.
 import Check from 'lucide-react-native/icons/check'
@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, Question, TextField } from '@/components/ui'
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -103,10 +104,11 @@ export function CitySheet({
    */
   onCreateCity: (name: string, currency: string | null) => Promise<City | null>
   /** A refusal from one of the writes reached from here, or null. */
-  problem: string | null
+  problem: Message | null
   onDismissProblem: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -134,7 +136,7 @@ export function CitySheet({
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
 
@@ -174,10 +176,12 @@ export function CitySheet({
             ]}
           >
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: theme.colour.ink }]}>Cities</Text>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>
+                {say(message('city.cities'))}
+              </Text>
               <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
                 <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                  Done
+                  {say(message('common.done'))}
                 </Text>
               </Pressable>
             </View>
@@ -192,10 +196,10 @@ export function CitySheet({
               <Pressable
                 onPress={onDismissProblem}
                 accessibilityRole="button"
-                accessibilityHint="Dismisses this message"
+                accessibilityHint={say(message('common.dismissesMessage'))}
                 style={styles.problem}
               >
-                <FormNote tone="danger">{problem}</FormNote>
+                <FormNote tone="danger">{say(problem)}</FormNote>
               </Pressable>
             ) : null}
 
@@ -209,8 +213,8 @@ export function CitySheet({
                 it ticked says so more plainly than an empty list would.
               */}
               <PickRow
-                name="All places"
-                meta={`${countLabel(markers.length)} · the whole trip`}
+                name={say(message('city.allPlaces'))}
+                meta={say(message('city.allPlacesMeta', { count: markers.length }))}
                 current={selectedCityId === null}
                 onPress={() => pick(null)}
               />
@@ -224,8 +228,7 @@ export function CitySheet({
                   knows.
                 */
                 <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-                  No cities yet. Name the places you&rsquo;re going, or file one
-                  while you save a place.
+                  {say(message('city.none'))}
                 </Text>
               ) : (
                 cities.map((city) => (
@@ -262,9 +265,11 @@ export function CitySheet({
                 no name to correct.
               */}
               <PickRow
-                name="Unassigned"
-                meta={countLabel(
-                  markers.filter((marker) => marker.cityId === null).length,
+                name={say(message('city.unassigned'))}
+                meta={say(
+                  message('city.placeCount', {
+                    count: markers.filter((marker) => marker.cityId === null).length,
+                  }),
                 )}
                 current={selectedCityId === UNASSIGNED_CITY}
                 onPress={() => pick(UNASSIGNED_CITY)}
@@ -294,12 +299,12 @@ export function CitySheet({
                     setCreating(true)
                   }}
                   accessibilityRole="button"
-                  accessibilityHint="Adds a city to this trip"
+                  accessibilityHint={say(message('city.newHint'))}
                   style={styles.createRow}
                 >
                   <Plus size={16} color={theme.colour.accentInk} strokeWidth={2.5} />
                   <Text style={[styles.createText, { color: theme.colour.accentInk }]}>
-                    New city…
+                    {say(message('city.new'))}
                   </Text>
                 </Pressable>
               )}
@@ -333,6 +338,7 @@ function CityCreator({
   // this sheet turns a refusal into words is the place it draws it.
   const [error, setError] = useState<Message | null>(null)
   const [creating, startCreate] = usePending()
+  const say = useSay()
 
   const trimmed = name.trim()
 
@@ -352,24 +358,24 @@ function CityCreator({
   return (
     <View style={styles.editor}>
       <TextField
-        label="Name"
+        label={say(message('common.name'))}
         value={name}
         onChange={(next) => {
           setName(next)
           setError(null)
         }}
-        error={error === null ? undefined : say(ENGLISH_LANGUAGE, error)}
+        error={error === null ? undefined : say(error)}
       />
       <CurrencyField
         value={currency}
         onChange={setCurrency}
-        hint={`Places in ${trimmed || 'this city'} get a ${currency ?? ''} price box beside the dollars.`}
+        hint={say(message('city.currencyHint', { city: trimmed, currency: currency ?? '' }))}
       />
 
       <View style={styles.actions}>
         <View style={styles.grow}>
           <Button
-            label={creating ? 'Creating…' : 'Create city'}
+            label={say(creating ? message('common.creating') : message('city.create'))}
             tone="primary"
             disabled={creating}
             onPress={() => {
@@ -392,15 +398,12 @@ function CityCreator({
             }}
           />
         </View>
-        <Button label="Cancel" tone="quiet" disabled={creating} onPress={onClose} />
+        <Button
+          label={say(message('common.cancel'))}
+          tone="quiet" disabled={creating} onPress={onClose} />
       </View>
     </View>
   )
-}
-
-/** `1 place` or `N places`, said the same way here as on the laptop. */
-function countLabel(count: number): string {
-  return count === 1 ? '1 place' : `${count} places`
 }
 
 /**
@@ -498,6 +501,7 @@ function CityRow({
   onDone: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
   const [name, setName] = useState(city.name)
   const [currency, setCurrency] = useState(city.currency)
 
@@ -526,20 +530,13 @@ function CityRow({
    */
   const [asking, setAsking] = useState<'currency' | 'remove' | null>(null)
 
-  function removalConsequence(): string {
-    if (count === 0) return 'Nothing is filed under it.'
-    return `${count} ${count === 1 ? 'place stays' : 'places stay'} on the trip and ${
-      count === 1 ? 'becomes' : 'become'
-    } unassigned.${
-      // Unassigned is a city with no currency, so local prices go too.
-      localCount === 0 || city.currency === null
-        ? ''
-        : ` ${count === 1 ? 'It' : `${localCount} of them`} ${
-            localCount === 1 ? 'loses its' : 'lose their'
-          } ${city.currency} price; ${
-            localCount === 1 ? 'its USD price stays' : 'their USD prices stay'
-          }.`
-    }`
+  function removalConsequence(): Message {
+    // Unassigned is a city with no currency, so local prices go too.
+    return message('city.removeConsequenceStays', {
+      places: count,
+      local: city.currency === null ? 0 : localCount,
+      currency: city.currency ?? '',
+    })
   }
 
   /**
@@ -549,19 +546,20 @@ function CityRow({
   const currencyLoses =
     currency !== city.currency && city.currency !== null && localCount > 0
 
-  function currencyQuestion(): string {
+  function currencyQuestion(): Message {
     return currency === null
-      ? `Remove ${city.currency} from ${city.name}?`
-      : `Change ${city.name} to ${currency}?`
+      ? message('city.removeCurrencyQuestion', {
+          name: city.name,
+          currency: city.currency ?? '',
+        })
+      : message('city.changeCurrencyQuestion', { name: city.name, currency })
   }
 
-  function currencyConsequence(): string {
-    const places = localCount === 1 ? '1 place' : `${localCount} places`
-    return `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${
-      city.currency
-    } price. ${localCount === 1 ? 'It' : 'They'} will lose it${
-      currency === null ? '' : ', not have it converted'
-    }. ${localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'}.`
+  function currencyConsequence(): Message {
+    const values = { count: localCount, name: city.name, currency: city.currency ?? '' }
+    return currency === null
+      ? message('city.currencyRemovedConsequence', values)
+      : message('city.currencyChangedConsequence', values)
   }
 
   function save() {
@@ -586,7 +584,7 @@ function CityRow({
           onPress={onPick}
           accessibilityRole="button"
           accessibilityState={{ selected: current }}
-          accessibilityLabel={`${city.name}. Work on this city`}
+          accessibilityLabel={say(message('city.pickNamed', { name: city.name }))}
           style={styles.pickArea}
         >
           <Tick shown={current} />
@@ -601,7 +599,7 @@ function CityRow({
               {city.name}
             </Text>
             <Text style={[styles.meta, { color: theme.colour.inkMuted }]}>
-              {countLabel(count)}
+              {say(message('city.placeCount', { count }))}
             </Text>
           </View>
         </Pressable>
@@ -610,7 +608,7 @@ function CityRow({
           onPress={onToggle}
           accessibilityRole="button"
           accessibilityState={{ expanded: editing }}
-          accessibilityLabel={`Edit ${city.name}`}
+          accessibilityLabel={say(message('city.editNamed', { name: city.name }))}
           hitSlop={6}
           style={[
             styles.pen,
@@ -642,13 +640,19 @@ function CityRow({
           */
           <View style={styles.editor}>
             <Question
-              question={
-                asking === 'remove' ? `Remove ${city.name}?` : currencyQuestion()
-              }
-              consequence={
-                asking === 'remove' ? removalConsequence() : currencyConsequence()
-              }
-              confirm={asking === 'remove' ? 'Remove' : 'Change'}
+              question={say(
+                asking === 'remove'
+                  ? message('city.removeQuestion', { name: city.name })
+                  : currencyQuestion(),
+              )}
+              consequence={say(
+                asking === 'remove' ? removalConsequence() : currencyConsequence(),
+              )}
+              confirm={say(
+                asking === 'remove'
+                  ? message('common.remove')
+                  : message('city.changeCurrency'),
+              )}
               waiting={busy}
               onConfirm={() => {
                 if (asking !== 'remove') {
@@ -665,17 +669,26 @@ function CityRow({
           </View>
         ) : (
         <View style={styles.editor}>
-          <TextField label="Name" value={name} onChange={setName} />
+          <TextField
+            label={say(message('common.name'))}
+            value={name}
+            onChange={setName}
+          />
           <CurrencyField
             value={currency}
             onChange={setCurrency}
-            hint={`Places in ${name.trim() || city.name} get a ${currency ?? ''} price box beside the dollars.`}
+            hint={say(
+              message('city.currencyHint', {
+                city: name.trim() || city.name,
+                currency: currency ?? '',
+              }),
+            )}
           />
 
           <View style={styles.actions}>
             <View style={styles.grow}>
               <Button
-                label={saving ? 'Saving…' : 'Save'}
+                label={say(saving ? message('common.saving') : message('common.save'))}
                 tone="primary"
                 disabled={busy || name.trim() === ''}
                 onPress={() => {
@@ -695,7 +708,7 @@ function CityRow({
             </View>
             <View style={styles.grow}>
               <Button
-                label="Remove"
+                label={say(message('common.remove'))}
                 tone="danger"
                 disabled={busy}
                 onPress={() => setAsking('remove')}

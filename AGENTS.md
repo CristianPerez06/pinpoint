@@ -436,11 +436,28 @@ cut `@pinpoint/tokens` makes for colour: one source of values, two applications 
 them in their own idiom, and **nothing rendered crosses between them**. That package
 declares no dependencies and exports no component.
 
+**The product speaks English and Spanish**, and every name has a sentence in both:
+`english.ts` and `spanish.ts`, the second typed against the first, so a name missing from
+either is a compile error rather than a blank — and nothing ever falls back to the other
+language's words. The Spanish is **impersonal**: infinitives and `se` forms, never
+addressing the person (*Ingresar un email válido*, not *Ingresá*).
+
 **No package under `packages/` returns a sentence.** A shared read, write or refusal
 hands over a name and the values to place into it; the application resolves it where it
-draws it, with `say(ENGLISH_LANGUAGE, message)`. The language is passed at every call
-site on purpose — there is one today, and taking it as an argument now is what keeps the
-change that adds a second one to replacing a value rather than a signature.
+draws it, with the `say` from `useSay()` — `@/app/_components/language` on the laptop,
+`@/lib/language` on the phone, `serverSay()` in a laptop server component. Each
+application decides the language in one place, the way it decides the ground: the
+laptop reads a cookie (and `Accept-Language` for *follow the device*) on the server and
+seeds a provider; the phone reads its preference store inside the launch gate and asks
+the device once, at launch. **The device is asked which language to open in and nothing
+else** — a day, a price or a number is written from the language, never the locale.
+
+**Words written into a component fail the build.** `eslint.words.cjs` holds the rule for
+both applications and the packages: `react/jsx-no-literals` between elements, and a
+selector for a literal with a letter in it in `aria-label`, `placeholder`, `title`, `alt`,
+`label`, `accessibilityLabel` and `accessibilityHint`. It checks position, not meaning,
+so it misses a sentence assembled elsewhere and handed in — an option array's `label:`, a
+helper's return value. Read the file, not just the lint output.
 
 A name is always **written out**, never assembled: `` message(`markerType.${id}`) `` is
 refused by `pnpm check:wording`, because a name built at runtime cannot be read by a
@@ -450,9 +467,11 @@ Where a set each needs a name, use an exhaustive record, as both applications do
 marker type beside the record mapping its icon.
 
 `pnpm check:wording` fails on a name with no sentence and on a sentence nothing resolves.
-What is **not** in there: anything a person typed, the tile attribution, and values
-formatted from stored data — a day, a price, a currency's name — which are worded by the
-capabilities that define them and come under this when they gain a second language.
+What is **not** in there: anything a person typed, and the tile attribution. Values
+formatted from stored data — a day, a price, a weekday's name, a currency's name — are
+worded in `@pinpoint/core` from one definition **per language**, which takes the language
+as its first argument; the words around such a value (`Free`, `From`, `Day 2 of 4`) are
+named sentences like any other.
 
 ## Attribution
 

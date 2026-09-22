@@ -1,5 +1,6 @@
 'use client'
 
+import { message } from '@pinpoint/wording'
 import { ArrowLeft, MapPinPlus, Search } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 
@@ -7,6 +8,7 @@ import { AccountMenu, type AccountMenuLiveProps } from '@/app/_components/accoun
 import { ChromeBar } from '@/app/_components/chrome-bar'
 import { CityBar, type CityBarLiveProps } from '@/app/_components/city-bar'
 import { FilterBar, type FilterBarLiveProps } from '@/app/_components/filter-bar'
+import { useSay } from '@/app/_components/language'
 import { PlaceSearch, type PlaceSearchLiveProps } from '@/app/_components/place-search'
 import { TripBar, type TripBarLiveProps } from '@/app/_components/trip-bar'
 import type { PlaceCandidate } from '@pinpoint/geocode'
@@ -140,6 +142,7 @@ export function WorkspaceChrome({
   live: ChromeBindings | null
   children: ReactNode
 }) {
+  const say = useSay()
   const dropping = live?.dropping ?? false
 
   return (
@@ -206,7 +209,7 @@ export function WorkspaceChrome({
             live && live.panelOpen ? styles.yielded : ''
           }`}
           role="toolbar"
-          aria-label="This trip's tools"
+          aria-label={say(message('map.tools'))}
         >
           {/*
             The tool that opens the field, and only where the field is not
@@ -221,7 +224,7 @@ export function WorkspaceChrome({
             className={styles.searchTool}
           >
             <Search aria-hidden className={toolGlyphClass} />
-            <span className={toolLabelClass}>Search</span>
+            <span className={toolLabelClass}>{say(message('map.searchTool'))}</span>
           </button>
 
           {/*
@@ -245,7 +248,7 @@ export function WorkspaceChrome({
             <button
               type="button"
               onClick={() => live?.onSearchOpen(false)}
-              aria-label="Close search"
+              aria-label={say(message('map.closeSearch'))}
               className={styles.searchBack}
             >
               <ArrowLeft aria-hidden className={styles.backGlyph} />
@@ -320,10 +323,10 @@ export function WorkspaceChrome({
               */}
               <MapPinPlus aria-hidden className={toolGlyphClass} />
               <span className={styles.wideLabel}>
-                {dropping ? 'Cancel' : '+ Drop a pin'}
+                {say(message(dropping ? 'common.cancel' : 'map.dropPin'))}
               </span>
               <span className={toolLabelClass}>
-                {dropping ? 'Cancel' : 'Drop'}
+                {say(message(dropping ? 'common.cancel' : 'map.dropPinShort'))}
               </span>
             </Button>
           </span>
@@ -348,11 +351,9 @@ export function WorkspaceChrome({
               onClick={() => live?.onCancelSight()}
               className={styles.confirmCancel}
             >
-              Cancel
+              {say(message('common.cancel'))}
             </button>
-            <span className={styles.confirmHint}>
-              Move the map to put the place under the ring.
-            </span>
+            <span className={styles.confirmHint}>{say(message('map.sightHint'))}</span>
             <button
               type="button"
               onClick={() => {
@@ -360,7 +361,7 @@ export function WorkspaceChrome({
               }}
               className={styles.confirmUse}
             >
-              Use this spot
+              {say(message('map.useSpot'))}
             </button>
           </span>
 

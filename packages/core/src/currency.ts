@@ -1,4 +1,6 @@
+import type { Language } from '@pinpoint/wording'
 import { z } from 'zod'
+
 import { refusal } from './field-errors'
 
 /**
@@ -191,16 +193,193 @@ export const CURRENCIES: readonly (readonly [code: string, name: string])[] = [
   ["ZWG", "Zimbabwean Gold"],
 ]
 
-const NAMES = new Map(CURRENCIES)
+/**
+ * The same currencies' names in Spanish, keyed by code.
+ *
+ * Taken from `Intl.DisplayNames('es')` when this was written, for the reason
+ * the English list above is plain data. Capitalised at the first letter only:
+ * Spanish writes a currency's name as an ordinary noun (`yen japonés`), and
+ * these are read standing alone at the start of a line in a picker.
+ *
+ * Typed against the English list's codes, so a currency added there without a
+ * Spanish name here reads as its code rather than as a blank — and
+ * `currency.test.ts` fails on it.
+ */
+const SPANISH_NAMES: Readonly<Record<string, string>> = {
+  AED: "Dírham de los Emiratos Árabes Unidos",
+  AFN: "Afgani afgano",
+  ALL: "Lek albanés",
+  AMD: "Dram armenio",
+  AOA: "Kuanza angoleño",
+  ARS: "Peso argentino",
+  AUD: "Dólar australiano",
+  AWG: "Florín arubeño",
+  AZN: "Manat azerbaiyano",
+  BAM: "Marco convertible de Bosnia y Herzegovina",
+  BBD: "Dólar barbadense",
+  BDT: "Taka bangladesí",
+  BHD: "Dinar bareiní",
+  BIF: "Franco burundés",
+  BMD: "Dólar bermudeño",
+  BND: "Dólar bruneano",
+  BOB: "Boliviano",
+  BRL: "Real brasileño",
+  BSD: "Dólar bahameño",
+  BTN: "Gultrum butanés",
+  BWP: "Pula botsuano",
+  BYN: "Rublo bielorruso",
+  BZD: "Dólar beliceño",
+  CAD: "Dólar canadiense",
+  CDF: "Franco congoleño",
+  CHF: "Franco suizo",
+  CLP: "Peso chileno",
+  CNY: "Yuan renminbi",
+  COP: "Peso colombiano",
+  CRC: "Colón costarricense",
+  CUP: "Peso cubano",
+  CVE: "Escudo de Cabo Verde",
+  CZK: "Corona checa",
+  DJF: "Franco yibutiano",
+  DKK: "Corona danesa",
+  DOP: "Peso dominicano",
+  DZD: "Dinar argelino",
+  EGP: "Libra egipcia",
+  ERN: "Nakfa eritreo",
+  ETB: "Bir etíope",
+  EUR: "Euro",
+  FJD: "Dólar fiyiano",
+  FKP: "Libra malvinense",
+  GBP: "Libra esterlina",
+  GEL: "Lari georgiano",
+  GHS: "Cedi ghanés",
+  GIP: "Libra gibraltareña",
+  GMD: "Dalasi gambiano",
+  GNF: "Franco guineano",
+  GTQ: "Quetzal guatemalteco",
+  GYD: "Dólar guyanés",
+  HKD: "Dólar hongkonés",
+  HNL: "Lempira hondureño",
+  HTG: "Gurde haitiano",
+  HUF: "Forinto húngaro",
+  IDR: "Rupia indonesia",
+  ILS: "Nuevo séquel israelí",
+  INR: "Rupia india",
+  IQD: "Dinar iraquí",
+  IRR: "Rial iraní",
+  ISK: "Corona islandesa",
+  JMD: "Dólar jamaicano",
+  JOD: "Dinar jordano",
+  JPY: "Yen japonés",
+  KES: "Chelín keniano",
+  KGS: "Som kirguís",
+  KHR: "Riel camboyano",
+  KMF: "Franco comorense",
+  KPW: "Won norcoreano",
+  KRW: "Won surcoreano",
+  KWD: "Dinar kuwaití",
+  KYD: "Dólar de las Islas Caimán",
+  KZT: "Tengue kazajo",
+  LAK: "Kip laosiano",
+  LBP: "Libra libanesa",
+  LKR: "Rupia esrilanquesa",
+  LRD: "Dólar liberiano",
+  LSL: "Loti lesotense",
+  LYD: "Dinar libio",
+  MAD: "Dírham marroquí",
+  MDL: "Leu moldavo",
+  MGA: "Ariari malgache",
+  MKD: "Dinar macedonio",
+  MMK: "Kiat de Myanmar",
+  MNT: "Tugrik mongol",
+  MOP: "Pataca macaense",
+  MRU: "Uguiya mauritano",
+  MUR: "Rupia mauriciana",
+  MVR: "Rufiya maldiva",
+  MWK: "Kuacha malauí",
+  MXN: "Peso mexicano",
+  MYR: "Ringit malasio",
+  MZN: "Metical mozambiqueño",
+  NAD: "Dólar namibio",
+  NGN: "Naira nigeriano",
+  NIO: "Córdoba oro",
+  NOK: "Corona noruega",
+  NPR: "Rupia nepalí",
+  NZD: "Dólar neozelandés",
+  OMR: "Rial omaní",
+  PAB: "Balboa panameño",
+  PEN: "Sol peruano",
+  PGK: "Kina papú",
+  PHP: "Peso filipino",
+  PKR: "Rupia pakistaní",
+  PLN: "Esloti polaco",
+  PYG: "Guaraní paraguayo",
+  QAR: "Rial catarí",
+  RON: "Leu rumano",
+  RSD: "Dinar serbio",
+  RUB: "Rublo ruso",
+  RWF: "Franco ruandés",
+  SAR: "Rial saudí",
+  SBD: "Dólar salomonense",
+  SCR: "Rupia seychellense",
+  SDG: "Libra sudanesa",
+  SEK: "Corona sueca",
+  SGD: "Dólar singapurense",
+  SHP: "Libra de Santa Elena",
+  SLE: "Leona sierraleonesa",
+  SOS: "Chelín somalí",
+  SRD: "Dólar surinamés",
+  SSP: "Libra sursudanesa",
+  STN: "Dobra santotomense",
+  SVC: "Colón salvadoreño",
+  SYP: "Libra siria",
+  SZL: "Lilangeni esuatiní",
+  THB: "Bat tailandés",
+  TJS: "Somoni tayiko",
+  TMT: "Manat turcomano",
+  TND: "Dinar tunecino",
+  TOP: "Paanga tongano",
+  TRY: "Lira turca",
+  TTD: "Dólar de Trinidad y Tobago",
+  TWD: "Nuevo dólar taiwanés",
+  TZS: "Chelín tanzano",
+  UAH: "Grivna ucraniana",
+  UGX: "Chelín ugandés",
+  UYU: "Peso uruguayo",
+  UZS: "Sum uzbeko",
+  VES: "Bolívar venezolano",
+  VND: "Dong vietnamita",
+  VUV: "Vatu vanuatense",
+  WST: "Tala samoano",
+  XAF: "Franco CFA de África Central",
+  XCD: "Dólar del Caribe Oriental",
+  XCG: "Florín caribeño",
+  XOF: "Franco CFA de África Occidental",
+  XPF: "Franco CFP",
+  YER: "Rial yemení",
+  ZAR: "Rand sudafricano",
+  ZMW: "Kuacha zambiano",
+  ZWG: "Oro zimbabuense",
+}
+
+const NAMES: Readonly<Record<Language, ReadonlyMap<string, string>>> = {
+  en: new Map(CURRENCIES),
+  es: new Map(Object.entries(SPANISH_NAMES)),
+}
+
+/** Every currency a city may be given, as `[code, name]` in the language asked for. */
+export function currenciesIn(language: Language): readonly (readonly [string, string])[] {
+  if (language === 'en') return CURRENCIES
+  return CURRENCIES.map(([code]) => [code, currencyName(language, code)] as const)
+}
 
 /** `Japanese Yen` for `JPY`, or the code itself for one the list no longer holds. */
-export function currencyName(code: string): string {
-  return NAMES.get(code) ?? code
+export function currencyName(language: Language, code: string): string {
+  return NAMES[language].get(code) ?? code
 }
 
 /** `JPY — Japanese Yen`: how a currency is offered and how a chosen one reads. */
-export function currencyLabel(code: string): string {
-  const name = NAMES.get(code)
+export function currencyLabel(language: Language, code: string): string {
+  const name = NAMES[language].get(code)
   return name === undefined ? code : `${code} — ${name}`
 }
 
@@ -220,12 +399,16 @@ function normalise(text: string): string {
  * Matches on the code come first, so `JPY` puts the yen at the top rather than
  * wherever `J` falls in a list of names that happen to contain it.
  */
-export function searchCurrencies(query: string): readonly (readonly [string, string])[] {
+export function searchCurrencies(
+  language: Language,
+  query: string,
+): readonly (readonly [string, string])[] {
+  const all = currenciesIn(language)
   const q = normalise(query)
-  if (q === '') return CURRENCIES
+  if (q === '') return all
 
-  const byCode = CURRENCIES.filter(([code]) => code.toLowerCase().startsWith(q))
-  const byName = CURRENCIES.filter(
+  const byCode = all.filter(([code]) => code.toLowerCase().startsWith(q))
+  const byName = all.filter(
     ([code, name]) => !code.toLowerCase().startsWith(q) && normalise(name).includes(q),
   )
   return [...byCode, ...byName]

@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CURRENCIES,
+  currenciesIn,
   currencyCodeSchema,
   currencyLabel,
   currencyName,
   searchCurrencies,
 } from './currency'
 
-const codes = (query: string) => searchCurrencies(query).map(([code]) => code)
+const codes = (query: string) => searchCurrencies('en', query).map(([code]) => code)
 
 describe('CURRENCIES', () => {
   it('never offers US dollars', () => {
@@ -44,7 +45,7 @@ describe('searchCurrencies', () => {
   })
 
   it('lists everything for an empty search, and never USD', () => {
-    expect(searchCurrencies('  ')).toHaveLength(CURRENCIES.length)
+    expect(searchCurrencies('en', '  ')).toHaveLength(CURRENCIES.length)
     expect(codes('us')).not.toContain('USD')
     expect(codes('dollar')).not.toContain('USD')
   })
@@ -61,12 +62,24 @@ describe('currencyCodeSchema', () => {
 
 describe('currencyLabel', () => {
   it('reads as code and name', () => {
-    expect(currencyLabel('JPY')).toBe('JPY — Japanese Yen')
-    expect(currencyName('KRW')).toBe('South Korean Won')
+    expect(currencyLabel('en', 'JPY')).toBe('JPY — Japanese Yen')
+    expect(currencyName('en', 'KRW')).toBe('South Korean Won')
   })
 
   it('falls back to the code for one the list no longer holds', () => {
-    expect(currencyLabel('HRK')).toBe('HRK')
+    expect(currencyLabel('en', 'HRK')).toBe('HRK')
+  })
+})
+
+describe('currency names in Spanish', () => {
+  it('names every currency the English list holds', () => {
+    for (const [code] of CURRENCIES) expect(currencyName('es', code)).not.toBe(code)
+  })
+
+  it('reads as code and name, and is found by its Spanish name', () => {
+    expect(currencyLabel('es', 'JPY')).toBe('JPY — Yen japonés')
+    expect(searchCurrencies('es', 'japon').map(([code]) => code)).toContain('JPY')
+    expect(currenciesIn('es')).toHaveLength(CURRENCIES.length)
   })
 })
 

@@ -29,7 +29,7 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useCallback,
@@ -40,6 +40,7 @@ import {
 
 import { AccountMenu, signedInAs } from '@/app/_components/account-menu'
 import { CalendarScreen } from '@/app/_components/calendar-screen'
+import { useSay } from '@/app/_components/language'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm } from '@/app/_components/marker-form'
 import { TripBar } from '@/app/_components/trip-bar'
@@ -79,20 +80,18 @@ import styles from './trip-calendar.module.css'
  * there is no field for one to land on. Naming that case here is what stops
  * each of them reading a `reason` off an outcome that has none.
  *
- * The other two carry a name, resolved here. The fallback is already words
- * because it is this screen's own, and there is nothing above this to hand a
- * name to: what comes out goes straight into the line the screen shows.
+ * The other two carry a name of their own. A name comes out either way, and
+ * the screen resolves it where it draws the line, so a change of language
+ * re-words a refusal already on screen.
  */
 function refusalMessage(
   outcome:
     | { kind: 'invalid-input' }
     | { kind: 'rejected'; reason: Message }
     | { kind: 'conflict'; reason: Message },
-  fallback: string,
-): string {
-  return outcome.kind === 'invalid-input'
-    ? fallback
-    : say(ENGLISH_LANGUAGE, outcome.reason)
+  fallback: Message,
+): Message {
+  return outcome.kind === 'invalid-input' ? fallback : outcome.reason
 }
 
 /**
@@ -156,6 +155,7 @@ export function TripCalendar({
   workspaceHref: string
 }) {
   const supabase = useMemo(() => createClient(), [])
+  const say = useSay()
   const searchParams = useSearchParams()
 
   /*
@@ -204,7 +204,7 @@ export function TripCalendar({
   /** Who the account control names, derived where the control is defined. */
   const you = signedInAs(members, ownMemberId)
 
-  const [message, setMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<Message | null>(null)
   /**
    * A refusal from a write the trip panel started, kept apart from the note
    * over the map.
@@ -214,8 +214,8 @@ export function TripCalendar({
    * started inside a panel that is still open in front of it. One state for
    * both put the answer behind the thing that asked the question.
    */
-  const [tripProblem, setTripProblem] = useState<string | null>(null)
-  const [conflict, setConflict] = useState<string | null>(null)
+  const [tripProblem, setTripProblem] = useState<Message | null>(null)
+  const [conflict, setConflict] = useState<Message | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [openMarkerId, setOpenMarkerId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -464,7 +464,7 @@ export function TripCalendar({
   async function save(values: MarkerFormValues) {
     if (!editing) return
     setFieldErrors({})
-    setMessage(null)
+    setNotice(null)
     setConflict(null)
 
     const outcome = await updateMarker(
@@ -479,9 +479,8 @@ export function TripCalendar({
     if (!outcome.ok) {
       // Everything typed survives a refusal, whichever kind it was.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict')
-        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
-      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
+      else if (outcome.kind === 'conflict') setConflict(outcome.reason)
+      else setNotice(outcome.reason)
       return
     }
 
@@ -508,7 +507,7 @@ export function TripCalendar({
   async function remove(marker: Marker) {
     const outcome = await deleteMarker(supabase, marker.id)
     if (!outcome.ok) {
-      setMessage(refusalMessage(outcome, 'Could not remove that place.'))
+      setNotice(refusalMessage(outcome, message('calendar.removeFailed')))
       return
     }
     setMarkers((rows) => rows.filter((each) => each.id !== marker.id))
@@ -524,7 +523,7 @@ export function TripCalendar({
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
     if (!outcome.ok) {
       setMarkers(previous)
-      setMessage(refusalMessage(outcome, 'Could not save that.'))
+      setNotice(refusalMessage(outcome, message('interest.saveFailed')))
     }
   }
 
@@ -553,7 +552,7 @@ export function TripCalendar({
     })
     if (!outcome.ok) {
       setInterest(previous)
-      setMessage(refusalMessage(outcome, 'Could not save that.'))
+      setNotice(refusalMessage(outcome, message('interest.saveFailed')))
     }
   }
 
@@ -570,7 +569,7 @@ export function TripCalendar({
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
       setInterest(previous)
-      setMessage(refusalMessage(outcome, 'Could not save that.'))
+      setNotice(refusalMessage(outcome, message('interest.saveFailed')))
     }
   }
 
@@ -603,7 +602,7 @@ export function TripCalendar({
               already are — and the address is the one that restores the city as
               well as the trip.
             */
-            otherView={{ name: 'Map', href: workspaceHref }}
+            otherView={{ name: say(message('calendar.otherViewMap')), href: workspaceHref }}
             archived={tripActions.archived}
             onRevealArchived={tripActions.onRevealArchived}
             onArchive={tripActions.onArchive}
@@ -630,7 +629,7 @@ export function TripCalendar({
         workspaceHref,
         day,
         onGoToDay: goToDay,
-        message,
+        message: notice,
         waiting,
         waitingCount: grouped.undated.length,
         markersOn: (each) => markersOnDay(grouped, each),
@@ -657,7 +656,7 @@ export function TripCalendar({
             onChoose={() => {}}
             onBack={() => {}}
             extraAction={{
-              label: 'View on map',
+              label: say(message('calendar.viewOnMap')),
               onClick: () => viewOnMap(selection.group.markers[0]!),
             }}
             onDismiss={() => setOpenMarkerId(null)}
@@ -670,7 +669,7 @@ export function TripCalendar({
       {editing ? (
         <div className={styles.panel}>
           <MarkerForm
-            title="Edit place"
+            title={say(message('calendar.editPlace'))}
             capturing={false}
             initial={{
               name: editing.name,
@@ -688,7 +687,7 @@ export function TripCalendar({
             cities={cities}
             cityNotice={null}
             fieldErrors={fieldErrors}
-            message={conflict}
+            message={conflict && say(conflict)}
             notice={null}
             onSubmit={save}
             onCancel={() => {

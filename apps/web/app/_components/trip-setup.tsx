@@ -2,10 +2,11 @@
 
 import type { FieldErrors } from '@pinpoint/core'
 import { createTrip } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
+import { useSay } from '@/app/_components/language'
 import { Button, FormError, TextField } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,13 +31,12 @@ import styles from './trip-setup.module.css'
  */
 export function TripSetup() {
   const router = useRouter()
+  const say = useSay()
 
   return (
     <div className={styles.setup}>
-      <h1 className={styles.title}>Start a trip</h1>
-      <p className={styles.lead}>
-        A trip is one shared map. Everyone you add to it sees the same places.
-      </p>
+      <h1 className={styles.title}>{say(message('tripSetup.title'))}</h1>
+      <p className={styles.lead}>{say(message('tripSetup.lead'))}</p>
 
       <CreateTripForm
         onCreated={(tripId) => {
@@ -46,12 +46,8 @@ export function TripSetup() {
       />
 
       <p className={styles.note}>
-        <strong>Expecting to be on someone else&rsquo;s trip?</strong> You are
-        added by email address, and the trip appears when you sign in with the
-        same one. If it has not appeared, check that the address you signed up
-        with is the address they added — and ask them to look at the trip&rsquo;s
-        people, where anyone who has not joined yet is shown with the address
-        they were added at.
+        <strong>{say(message('tripSetup.expectingQuestion'))}</strong>{' '}
+        {say(message('tripSetup.expectingAnswer'))}
       </p>
     </div>
   )
@@ -75,6 +71,7 @@ export function CreateTripForm({
   onCreated: (tripId: string) => void
 }) {
   const supabase = useMemo(() => createClient(), [])
+  const say = useSay()
 
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -82,12 +79,12 @@ export function CreateTripForm({
   const [endsOn, setEndsOn] = useState('')
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<Message | null>(null)
+  const [note, setNote] = useState<Message | null>(null)
 
   async function create() {
     setBusy(true)
     setFieldErrors({})
-    setMessage(null)
+    setNote(null)
 
     const outcome = await createTrip(supabase, {
       name: name.trim(),
@@ -102,7 +99,7 @@ export function CreateTripForm({
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else setMessage(outcome.reason)
+      else setNote(outcome.reason)
       return
     }
 
@@ -115,11 +112,11 @@ export function CreateTripForm({
   return (
     <>
       <TextField
-        label="What is the trip called?"
+        label={say(message('tripSetup.nameLabel'))}
         value={name}
         onChange={setName}
         error={fieldErrors.name}
-        placeholder="Japan 2026"
+        placeholder={say(message('tripSetup.namePlaceholder'))}
         autoFocus
       />
 
@@ -130,11 +127,11 @@ export function CreateTripForm({
         the result, permanently.
       */}
       <TextField
-        label="What should we call you on it?"
+        label={say(message('tripSetup.displayNameLabel'))}
         value={displayName}
         onChange={setDisplayName}
         error={fieldErrors.displayName}
-        placeholder="Your name, as the others would say it"
+        placeholder={say(message('tripSetup.displayNamePlaceholder'))}
       />
 
       {/*
@@ -146,14 +143,14 @@ export function CreateTripForm({
       */}
       <div className={styles.dates}>
         <TextField
-          label="Start date"
+          label={say(message('trip.startDate'))}
           type="date"
           value={startsOn}
           onChange={setStartsOn}
           error={fieldErrors.startsOn}
         />
         <TextField
-          label="End date"
+          label={say(message('trip.endDate'))}
           type="date"
           value={endsOn}
           onChange={setEndsOn}
@@ -161,14 +158,14 @@ export function CreateTripForm({
         />
       </div>
 
-      {message ? <FormError message={say(ENGLISH_LANGUAGE, message)} /> : null}
+      {note ? <FormError message={say(note)} /> : null}
 
       <Button
         tone="primary"
         disabled={busy || name.trim() === '' || displayName.trim() === ''}
         onClick={() => void create()}
       >
-        {busy ? 'Creating…' : 'Create trip'}
+        {say(busy ? message('common.creating') : message('tripSetup.create'))}
       </Button>
     </>
   )

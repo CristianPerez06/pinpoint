@@ -2,7 +2,7 @@ import { signUp } from '@pinpoint/auth'
 import type { FieldErrors } from '@pinpoint/core'
 import { authFailureMessage } from '@pinpoint/supabase'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -17,6 +17,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useSay } from '@/lib/language'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
@@ -47,10 +48,12 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [formError, setFormError] = useState<string | null>(null)
+  // A name rather than a sentence, so a change of language redraws it.
+  const [formError, setFormError] = useState<Message | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const say = useSay()
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
   // `!submitting` holds the redirect until `signUp` has fully resolved, claim
@@ -72,7 +75,7 @@ export default function SignupScreen() {
       if (outcome.kind === 'invalid-input') {
         setFieldErrors(outcome.fieldErrors)
       } else {
-        setFormError(say(ENGLISH_LANGUAGE, authFailureMessage(outcome.failure)))
+        setFormError(authFailureMessage(outcome.failure))
       }
     }
     // On success the auth state listener swaps the tree; no navigation here.
@@ -125,11 +128,13 @@ export default function SignupScreen() {
         >
           <View style={styles.wordmark}>
             <View style={[styles.dot, { backgroundColor: theme.colour.accent }]} />
-            <Text style={[styles.brand, { color: theme.colour.ink }]}>pinpoint</Text>
+            <Text style={[styles.brand, { color: theme.colour.ink }]}>
+              {say(message('app.name'))}
+            </Text>
           </View>
 
           <Text style={[styles.title, { color: theme.colour.ink }]}>
-            Create an account
+            {say(message('auth.createAnAccount'))}
           </Text>
 
           {/* Written for both people who reach this screen. Somebody invited has
@@ -137,8 +142,7 @@ export default function SignupScreen() {
               signing up cold reads the conditional and moves on rather than
               hunting for an invitation they never got. */}
           <Text style={[styles.subtitle, { color: theme.colour.inkMuted }]}>
-            If you were invited, use the address the invitation went to — it is what
-            links you to your trip.
+            {say(message('auth.invitedHint'))}
           </Text>
 
           {formError ? (
@@ -152,12 +156,14 @@ export default function SignupScreen() {
                 },
               ]}
             >
-              {formError}
+              {say(formError)}
             </Text>
           ) : null}
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>Email</Text>
+            <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
+              {say(message('auth.email'))}
+            </Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -169,14 +175,14 @@ export default function SignupScreen() {
             />
             {fieldErrors.email ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {say(ENGLISH_LANGUAGE, fieldErrors.email)}
+                {say(fieldErrors.email)}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-              Password
+              {say(message('auth.password'))}
             </Text>
             <TextInput
               value={password}
@@ -188,14 +194,14 @@ export default function SignupScreen() {
             />
             {fieldErrors.password ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {say(ENGLISH_LANGUAGE, fieldErrors.password)}
+                {say(fieldErrors.password)}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.colour.inkMuted }]}>
-              Repeat password
+              {say(message('auth.repeatPassword'))}
             </Text>
             <TextInput
               value={confirmPassword}
@@ -207,7 +213,7 @@ export default function SignupScreen() {
             />
             {fieldErrors.confirmPassword ? (
               <Text style={[styles.fieldError, { color: theme.colour.danger }]}>
-                {say(ENGLISH_LANGUAGE, fieldErrors.confirmPassword)}
+                {say(fieldErrors.confirmPassword)}
               </Text>
             ) : null}
           </View>
@@ -224,7 +230,9 @@ export default function SignupScreen() {
             {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
                 pair chosen against the accent on each ground. */}
             <Text style={[styles.submitText, { color: theme.colour.inkOnAccent }]}>
-              {submitting ? 'Creating account…' : 'Create account'}
+              {submitting
+                ? say(message('auth.creatingAccount'))
+                : say(message('auth.createAccount'))}
             </Text>
           </Pressable>
 
@@ -234,10 +242,10 @@ export default function SignupScreen() {
               target: a line of `note` text is about 17pt tall on its own. */}
           <Link href="/login" style={styles.alternative}>
             <Text style={{ color: theme.colour.inkMuted }}>
-              Already have an account?{' '}
+              {say(message('auth.haveAccount'))}{' '}
             </Text>
             <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
-              Sign in
+              {say(message('auth.signIn'))}
             </Text>
           </Link>
         </View>

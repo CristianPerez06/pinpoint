@@ -10,10 +10,11 @@ import {
   type Trip,
   type TripMember,
 } from '@pinpoint/core'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { useLanguage, useSay } from '@/app/_components/language'
 import { CreateTripForm } from '@/app/_components/trip-setup'
 import {
   Button,
@@ -173,7 +174,7 @@ export type TripBarLiveProps = {
    * The phone's sheet has taken a `problem` for as long as it has existed and
    * draws it itself. This is the laptop catching up to it, under the same name.
    */
-  problem: string | null
+  problem: Message | null
   onDismissProblem: () => void
 }
 
@@ -209,6 +210,8 @@ function TripBarLive({
   problem,
   onDismissProblem,
 }: TripBarLiveProps) {
+  const say = useSay()
+  const language = useLanguage()
   const [view, setView] = useState<View>('root')
   const [name, setName] = useState(trip.name)
   const [startsOn, setStartsOn] = useState(trip.startsOn ?? '')
@@ -253,7 +256,7 @@ function TripBarLive({
 
   return (
     <Menu
-      name="Trip"
+      name={say(message('trip.menuName'))}
       label={<span className={styles.name}>{trip.name}</span>}
       open={open}
       onOpen={setOpen}
@@ -268,10 +271,10 @@ function TripBarLive({
         <button
           type="button"
           onClick={onDismissProblem}
-          aria-label="Dismiss this message"
+          aria-label={say(message('common.dismissMessage'))}
           className={styles.problem}
         >
-          <FormError message={problem} />
+          <FormError message={say(problem)} />
         </button>
       ) : null}
 
@@ -288,7 +291,7 @@ function TripBarLive({
           */}
           {trips.length > 1 ? (
             <>
-              <p className={styles.heading}>Trips</p>
+              <p className={styles.heading}>{say(message('trip.trips'))}</p>
               {trips.map((each) => {
                 /*
                  * A trip with no dates shows its name alone — no placeholder and
@@ -296,7 +299,8 @@ function TripBarLive({
                  * life, and a column of stand-ins says nothing while taking the
                  * room the names need.
                  */
-                const dates = formatDayRange(each.startsOn, each.endsOn)
+                const range = formatDayRange(language, each.startsOn, each.endsOn)
+                const dates = range === null ? null : say(range)
                 return (
                   <button
                     key={each.id}
@@ -315,7 +319,7 @@ function TripBarLive({
                     </span>
                     {dates ? <span className={styles.rowDates}>{dates}</span> : null}
                     {each.id === trip.id ? (
-                      <span className={styles.rowNote}>Open</span>
+                      <span className={styles.rowNote}>{say(message('trip.currentNote'))}</span>
                     ) : null}
                   </button>
                 )
@@ -325,12 +329,16 @@ function TripBarLive({
           ) : null}
 
           <button type="button" onClick={() => show('rename')} className={styles.row}>
-            Rename this trip
+            {say(message('trip.renameThis'))}
           </button>
           <button type="button" onClick={() => show('dates')} className={styles.row}>
-            <span>Trip dates</span>
+            <span>{say(message('trip.dates'))}</span>
             <span className={styles.rowNote}>
-              {trip.startsOn === null && trip.endsOn === null ? 'None' : 'Set'}
+              {say(
+                trip.startsOn === null && trip.endsOn === null
+                  ? message('trip.datesNone')
+                  : message('trip.datesSet'),
+              )}
             </span>
           </button>
           {/*
@@ -345,7 +353,7 @@ function TripBarLive({
             {otherView.name}
           </Link>
           <button type="button" onClick={() => show('people')} className={styles.row}>
-            <span>People</span>
+            <span>{say(message('trip.people'))}</span>
             <span className={styles.rowNote}>{members.length}</span>
           </button>
           {/*
@@ -356,7 +364,7 @@ function TripBarLive({
             create a trip, not only somebody who has none.
           */}
           <button type="button" onClick={() => show('create')} className={styles.row}>
-            New trip
+            {say(message('trip.new'))}
           </button>
 
           <hr className={styles.divide} />
@@ -382,7 +390,7 @@ function TripBarLive({
             aria-disabled={archiving}
             className={`${styles.row} ${styles.danger}`}
           >
-            {archiving ? 'Archiving…' : 'Archive this trip'}
+            {say(archiving ? message('trip.archiving') : message('trip.archiveThis'))}
           </button>
 
           {/*
@@ -416,14 +424,14 @@ function TripBarLive({
             aria-disabled={revealing}
             className={`${styles.row} ${styles.quiet}`}
           >
-            {revealing ? 'Looking…' : 'Archived trips'}
+            {say(revealing ? message('trip.archivedLooking') : message('trip.archivedTrips'))}
           </button>
         </>
       ) : null}
 
       {view === 'rename' ? (
         <>
-          <TextField label="Trip name" value={name} onChange={setName} autoFocus />
+          <TextField label={say(message('trip.name'))} value={name} onChange={setName} autoFocus />
           <div className={styles.actions}>
             <Button
               tone="primary"
@@ -438,10 +446,10 @@ function TripBarLive({
                 })
               }
             >
-              {saving ? 'Saving…' : 'Save'}
+              {say(saving ? message('common.saving') : message('common.save'))}
             </Button>
             <Button tone="quiet" onClick={() => setView('root')}>
-              Back
+              {say(message('common.back'))}
             </Button>
           </div>
         </>
@@ -449,9 +457,9 @@ function TripBarLive({
 
       {view === 'dates' ? (
         <>
-          <p className={styles.heading}>Trip dates</p>
+          <p className={styles.heading}>{say(message('trip.dates'))}</p>
           <TextField
-            label="Start date"
+            label={say(message('trip.startDate'))}
             type="date"
             value={startsOn}
             onChange={setStartsOn}
@@ -459,12 +467,12 @@ function TripBarLive({
             autoFocus
           />
           <TextField
-            label="End date"
+            label={say(message('trip.endDate'))}
             type="date"
             value={endsOn}
             onChange={setEndsOn}
             error={dateErrors.endsOn}
-            hint="Both are optional. They decide which day the calendar opens on and nothing else."
+            hint={say(message('trip.datesHint'))}
           />
           <div className={styles.actions}>
             <Button
@@ -483,7 +491,7 @@ function TripBarLive({
                 })
               }
             >
-              {saving ? 'Saving…' : 'Save'}
+              {say(saving ? message('common.saving') : message('common.save'))}
             </Button>
             <Button
               tone="quiet"
@@ -494,10 +502,10 @@ function TripBarLive({
                 setDateErrors({})
               }}
             >
-              Clear
+              {say(message('common.clear'))}
             </Button>
             <Button tone="quiet" onClick={() => setView('root')}>
-              Back
+              {say(message('common.back'))}
             </Button>
           </div>
         </>
@@ -514,10 +522,10 @@ function TripBarLive({
 
       {view === 'archived' ? (
         <>
-          <p className={styles.heading}>Archived</p>
+          <p className={styles.heading}>{say(message('trip.archived'))}</p>
 
           {archived === null || archived.length === 0 ? (
-            <p className={styles.hint}>Nothing archived.</p>
+            <p className={styles.hint}>{say(message('trip.nothingArchived'))}</p>
           ) : (
             <>
               {archived.map((each) => (
@@ -527,16 +535,13 @@ function TripBarLive({
                   onRestore={() => onRestore(each.id)}
                 />
               ))}
-              <p className={styles.hint}>
-                Nothing was deleted. Restoring one brings back everything it
-                held.
-              </p>
+              <p className={styles.hint}>{say(message('trip.restoreNote'))}</p>
             </>
           )}
 
           <div className={styles.actions}>
             <Button tone="quiet" onClick={() => setView('root')}>
-              Back
+              {say(message('common.back'))}
             </Button>
           </div>
         </>
@@ -544,10 +549,7 @@ function TripBarLive({
 
       {view === 'create' ? (
         <>
-          <p className={styles.hint}>
-            A trip is one shared map, separate from this one. Nothing here moves
-            across.
-          </p>
+          <p className={styles.hint}>{say(message('trip.newNote'))}</p>
           <CreateTripForm
             onCreated={(tripId) => {
               setOpen(false)
@@ -556,7 +558,7 @@ function TripBarLive({
           />
           <div className={styles.actions}>
             <Button tone="quiet" onClick={() => setView('root')}>
-              Back
+              {say(message('common.back'))}
             </Button>
           </div>
         </>
@@ -587,6 +589,7 @@ function ArchivedRow({
   onRestore: () => Promise<unknown>
 }) {
   const [restoring, startRestore] = usePending()
+  const say = useSay()
 
   return (
     <div className={styles.archived}>
@@ -595,10 +598,10 @@ function ArchivedRow({
         type="button"
         onClick={() => startRestore(onRestore)}
         aria-disabled={restoring}
-        aria-label={`Restore ${trip.name}`}
+        aria-label={say(message('trip.restoreNamed', { name: trip.name }))}
         className={styles.restore}
       >
-        {restoring ? 'Putting back…' : 'Restore'}
+        {say(restoring ? message('trip.restoring') : message('trip.restore'))}
       </button>
     </div>
   )
@@ -642,21 +645,22 @@ function People({
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<Record<string, Message>>({})
-  const [message, setMessage] = useState<Message | null>(null)
+  const [note, setNote] = useState<Message | null>(null)
   const [adding, startInvite] = usePending()
   /** Which invitation is being asked about, or null. The row, not its id, so
    *  the question can name the person and the address without a second lookup. */
   const [asking, setAsking] = useState<TripMember | null>(null)
   const [removing, startRemove] = usePending()
+  const say = useSay()
 
   function invite() {
     setErrors({})
-    setMessage(null)
+    setNote(null)
 
     startInvite(async () => {
       const problem = await onInvite(displayName.trim(), email.trim())
       if (problem) {
-        if (problem.field === '_') setMessage(problem.reason)
+        if (problem.field === '_') setNote(problem.reason)
         else setErrors({ [problem.field]: problem.reason })
         return
       }
@@ -675,7 +679,7 @@ function People({
               <span className={styles.personName}>{member.displayName}</span>
               {member.userId === null ? (
                 <span className={styles.pending}>
-                  not joined yet · {member.email}
+                  {say(message('people.notJoined', { email: member.email }))}
                 </span>
               ) : null}
             </span>
@@ -694,11 +698,11 @@ function People({
                 type="button"
                 className={styles.takeBack}
                 onClick={() => {
-                  setMessage(null)
+                  setNote(null)
                   setAsking(member)
                 }}
               >
-                {say(ENGLISH_LANGUAGE, TAKE_BACK_LABEL)}
+                {say(TAKE_BACK_LABEL)}
               </button>
             ) : null}
           </li>
@@ -715,41 +719,37 @@ function People({
       */}
       {asking !== null ? (
         <Question
-          question={say(ENGLISH_LANGUAGE, takeBackQuestion(asking.displayName))}
-          consequence={say(ENGLISH_LANGUAGE, takeBackConsequence(asking.email))}
-          confirm={say(ENGLISH_LANGUAGE, TAKE_BACK_CONFIRM)}
+          question={say(takeBackQuestion(asking.displayName))}
+          consequence={say(takeBackConsequence(asking.email))}
+          confirm={say(TAKE_BACK_CONFIRM)}
           waiting={removing}
           onConfirm={() => {
             const member = asking
             startRemove(async () => {
               const problem = await onRemove(member)
               setAsking(null)
-              if (problem) setMessage(problem)
+              if (problem) setNote(problem)
             })
           }}
           onDecline={() => setAsking(null)}
         />
       ) : (
         <>
-      <p className={styles.hint}>
-        Adding somebody puts them on the trip straight away. Nothing is sent —
-        tell them yourself, and the trip appears when they sign in with this
-        address.
-      </p>
+      <p className={styles.hint}>{say(message('people.inviteHint'))}</p>
 
       <TextField
-        label="Name"
+        label={say(message('common.name'))}
         value={displayName}
         onChange={setDisplayName}
         error={errors.displayName}
-        placeholder="What to call them on this trip"
+        placeholder={say(message('people.namePlaceholder'))}
       />
       <TextField
-        label="Email"
+        label={say(message('people.email'))}
         value={email}
         onChange={setEmail}
         error={errors.email}
-        placeholder="The address they will sign in with"
+        placeholder={say(message('people.emailPlaceholder'))}
         type="email"
       />
 
@@ -759,10 +759,10 @@ function People({
           disabled={adding || displayName.trim() === '' || email.trim() === ''}
           onClick={invite}
         >
-          {adding ? 'Adding…' : 'Add to trip'}
+          {say(adding ? message('people.adding') : message('people.add'))}
         </Button>
         <Button tone="quiet" onClick={onClose}>
-          Back
+          {say(message('common.back'))}
         </Button>
       </div>
         </>
@@ -774,7 +774,7 @@ function People({
         taking back an invitation lands here too — most often the one saying
         that person has joined since the list was opened.
       */}
-      {message ? <FormError message={say(ENGLISH_LANGUAGE, message)} /> : null}
+      {note ? <FormError message={say(note)} /> : null}
     </>
   )
 }
@@ -791,9 +791,14 @@ function People({
  * differs, because the label is the part nobody knows yet.
  */
 export function TripBar(props: TripBarProps) {
+  const say = useSay()
   if (props.waiting)
     return (
-      <WaitingMenu name="Trip" labelClassName={styles.name} measure="12ch" />
+      <WaitingMenu
+        name={say(message('trip.menuName'))}
+        labelClassName={styles.name}
+        measure="12ch"
+      />
     )
   return <TripBarLive {...props} />
 }

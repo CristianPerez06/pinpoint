@@ -1,5 +1,7 @@
 const expo = require('eslint-config-expo/flat')
 
+const { wordsRules } = require('../../eslint.words.cjs')
+
 /**
  * Icons come from `lucide-react-native/icons/<name>`, never the package root.
  *
@@ -62,6 +64,11 @@ const config = [
       '@typescript-eslint/restrict-plus-operands': 'error',
     },
   },
+  /**
+   * Words a person reads are not written into a component. The rules and what
+   * they permit are stated once, in `eslint.words.cjs`, for both applications.
+   */
+  { files: ['**/*.tsx'], rules: wordsRules },
 ]
 
 module.exports = config

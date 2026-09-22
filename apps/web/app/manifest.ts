@@ -1,6 +1,9 @@
 import type { MetadataRoute } from 'next'
 
 import { COLOUR } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
+
+import { serverSay } from '@/lib/language'
 
 /**
  * What an installed copy of the site is called and what it looks like before it
@@ -24,12 +27,17 @@ import { COLOUR } from '@pinpoint/tokens'
  * media query. The two are not in competition: this one dresses the splash
  * screen an installed copy shows before the first paint, that one dresses the
  * browser's own furniture around a page already rendering.
+ *
+ * The description is in the language of whoever asked for the manifest, read
+ * from their cookie and their browser as every page is — an install is the one
+ * moment it is shown, and it is shown to them.
  */
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const say = await serverSay()
   return {
-    name: 'pinpoint',
-    short_name: 'pinpoint',
-    description: 'A map you can drop markers on.',
+    name: say(message('app.name')),
+    short_name: say(message('app.name')),
+    description: say(message('app.description')),
     start_url: '/',
     display: 'standalone',
     background_color: COLOUR.ground.light,

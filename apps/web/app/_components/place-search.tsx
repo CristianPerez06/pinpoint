@@ -6,10 +6,12 @@ import {
   type SearchResult,
   searchPlaces,
 } from '@pinpoint/geocode'
+import { formatDistance } from '@pinpoint/core'
 import { markerTypeOf } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import { type CSSProperties, useEffect, useState } from 'react'
 
+import { useLanguage, useSay } from '@/app/_components/language'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 
@@ -60,17 +62,6 @@ const browserFetch = (url: string, init?: { signal?: AbortSignal }) =>
  */
 const FAR_AWAY_KM = 100
 
-/**
- * A distance, at a precision that suits its size.
- *
- * Under 10 km a tenth matters, because that is the difference between the right
- * temple and the one across the river. At four figures it is noise.
- */
-function formatDistance(km: number): string {
-  if (km < 10) return `${km.toFixed(1)} km`
-  return `${Math.round(km).toLocaleString('en')} km`
-}
-
 export type PlaceSearchProps =
   | { waiting: true }
   | ({ waiting?: false } & PlaceSearchLiveProps)
@@ -90,6 +81,7 @@ export type PlaceSearchProps =
  * unavailable rather than vanishing from the tab order.
  */
 export function PlaceSearch(props: PlaceSearchProps) {
+  const say = useSay()
   if (props.waiting) {
     return (
       <div className={styles.wrap}>
@@ -98,8 +90,8 @@ export function PlaceSearch(props: PlaceSearchProps) {
           value=""
           readOnly
           aria-disabled="true"
-          placeholder="Search for a place…"
-          aria-label="Search for a place"
+          placeholder={say(message('search.placeholder'))}
+          aria-label={say(message('search.label'))}
           className={styles.input}
         />
       </div>
@@ -127,6 +119,8 @@ export type PlaceSearchLiveProps = {
 }
 
 function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
+  const say = useSay()
+  const language = useLanguage()
   const [query, setQuery] = useState('')
   /**
    * The last answer, stamped with the query it answered.
@@ -235,8 +229,8 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search for a place…"
-        aria-label="Search for a place"
+        placeholder={say(message('search.placeholder'))}
+        aria-label={say(message('search.label'))}
         className={styles.input}
       />
 
@@ -252,18 +246,17 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
             true thing: what you are reading does not answer what you have now
             typed.
           */}
-          {asking ? <Note role="status">Searching…</Note> : null}
+          {asking ? <Note role="status">{say(message('search.searching'))}</Note> : null}
 
           <div className={styles.scroll}>
           {result?.status === 'failed' ? (
             /* Never phrased as "no matches". Rephrasing a query at a service
                that is down is a way to spend five minutes learning nothing. */
             <Note role="alert" tone="danger">
-              {say(ENGLISH_LANGUAGE, result.reason)} You can still add a place by
-              dropping a pin.
+              {say(message('search.failed', { reason: say(result.reason) }))}
             </Note>
           ) : result?.status === 'empty' ? (
-            <Note role="status">No matches. Try fewer words, or drop a pin.</Note>
+            <Note role="status">{say(message('search.empty'))}</Note>
           ) : candidates.length === 0 ? (
             /*
               Only once something has been asked. `showing` already withholds the
@@ -320,7 +313,7 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
                             candidate.distanceKm > FAR_AWAY_KM ? styles.far : ''
                           }`}
                         >
-                          {formatDistance(candidate.distanceKm)}
+                          {say(formatDistance(language, candidate.distanceKm))}
                         </span>
                       )}
                     </span>
@@ -431,6 +424,7 @@ function Note({
  * a ramen shop is filed as a temple.
  */
 function Glyph({ candidate }: { candidate: PlaceCandidate }) {
+  const say = useSay()
   const definition = markerTypeOf(candidate.typeGuess)
 
   return (
@@ -438,7 +432,7 @@ function Glyph({ candidate }: { candidate: PlaceCandidate }) {
       className={styles.glyph}
       style={{ backgroundColor: `var(--pp-pin-${definition.id})` }}
       aria-hidden
-      title={say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
+      title={say(markerTypeMessage(definition.id))}
     >
       <MarkerGlyph icon={definition.icon} size={14} />
     </span>

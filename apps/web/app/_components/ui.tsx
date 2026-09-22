@@ -1,6 +1,6 @@
 'use client'
 
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import {
   type ReactNode,
   type RefObject,
@@ -10,6 +10,8 @@ import {
   useLayoutEffect,
   useRef,
 } from 'react'
+
+import { useSay } from '@/app/_components/language'
 
 import styles from './ui.module.css'
 
@@ -741,6 +743,7 @@ export function TextField({
   hint?: string
 }) {
   const invalid = error !== undefined
+  const say = useSay()
 
   return (
     <label className={styles.field}>
@@ -769,7 +772,7 @@ export function TextField({
 
       {invalid ? (
         <span role="alert" className={styles.error}>
-          {say(ENGLISH_LANGUAGE, error)}
+          {say(error)}
         </span>
       ) : hint ? (
         <span className={styles.hint}>{hint}</span>
@@ -799,6 +802,14 @@ export function TextField({
  * The two amounts are independent. Nothing converts one into the other, which
  * is what the hint under the row says.
  */
+/**
+ * The first price's currency, as its code.
+ *
+ * A code rather than words: it reads the same in every language, exactly as
+ * the second box's code beside it does.
+ */
+const DOLLARS = 'USD'
+
 export function PriceField({
   value,
   onChange,
@@ -834,17 +845,18 @@ export function PriceField({
   const id = useId()
   const localId = useId()
   const labelId = useId()
+  const say = useSay()
 
   return (
     <div className={styles.priceFields} role="group" aria-labelledby={labelId}>
       <span id={labelId} className={styles.label}>
-        Price
+        {say(message('priceField.label'))}
       </span>
 
       <div className={styles.priceRow}>
         <div className={styles.money}>
           <label htmlFor={id} className={styles.code}>
-            USD
+            {DOLLARS}
           </label>
           <input
             id={id}
@@ -861,7 +873,7 @@ export function PriceField({
               and in the narrow card — so what it said moved to the line beneath,
               which is where this form says everything else of that kind.
             */
-            placeholder={free ? 'Free' : ''}
+            placeholder={free ? say(message('price.free')) : ''}
             aria-invalid={invalid}
             data-free={free}
             className={styles.amount}
@@ -882,7 +894,7 @@ export function PriceField({
               onFocus={() => {
                 if (free) onFreeChange(false)
               }}
-              placeholder={free ? 'Free' : ''}
+              placeholder={free ? say(message('price.free')) : ''}
               aria-invalid={localInvalid}
               data-free={free}
               className={styles.amount}
@@ -902,13 +914,13 @@ export function PriceField({
           }}
           className={styles.freeToggle}
         >
-          Free
+          {say(message('price.free'))}
         </button>
       </div>
 
       {invalid ? (
         <span role="alert" className={styles.error}>
-          {say(ENGLISH_LANGUAGE, error)}
+          {say(error)}
         </span>
       ) : null}
 
@@ -920,7 +932,7 @@ export function PriceField({
           site so neither app can forget it.
         */
         <span role="alert" className={styles.error}>
-          {`${local.currency}: ${say(ENGLISH_LANGUAGE, local.error)}`}
+          {local.currency}: {say(local.error)}
         </span>
       ) : null}
 
@@ -930,7 +942,13 @@ export function PriceField({
         a second amount to explain.
       */}
       <span className={styles.hint}>
-        {local ? `Leave an amount blank if you don't know it. ${local.hint}` : "Leave it blank if you don't know."}
+        {local ? (
+          <>
+            {say(message('priceField.blankHintEither'))} {local.hint}
+          </>
+        ) : (
+          say(message('priceField.blankHint'))
+        )}
       </span>
 
       {warning ? (
@@ -955,6 +973,8 @@ export function SelectField({
   options: readonly { value: string; label: string }[]
   error?: Message
 }) {
+  const say = useSay()
+
   return (
     <label className={styles.field}>
       <span className={styles.label}>{label}</span>
@@ -972,7 +992,7 @@ export function SelectField({
       </select>
       {error === undefined ? null : (
         <span role="alert" className={styles.error}>
-          {say(ENGLISH_LANGUAGE, error)}
+          {say(error)}
         </span>
       )}
     </label>
@@ -1033,13 +1053,15 @@ export function Question({
   onConfirm: () => void
   onDecline: () => void
 }) {
+  const say = useSay()
+
   return (
     <div role="group" aria-live="assertive" className={styles.question}>
       <p className={styles.questionText}>{question}</p>
       {consequence ? <p className={styles.consequence}>{consequence}</p> : null}
       <div className={styles.questionControls}>
         <Button onClick={onDecline} disabled={waiting}>
-          Cancel
+          {say(message('common.cancel'))}
         </Button>
         <Button tone="danger" onClick={onConfirm} disabled={waiting}>
           {waiting ? `${confirm}…` : confirm}

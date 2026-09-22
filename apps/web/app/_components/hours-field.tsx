@@ -9,8 +9,10 @@ import {
   WEEK,
   WEEKDAY_WORDING,
 } from '@pinpoint/core'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useId } from 'react'
+
+import { useLanguage, useSay } from '@/app/_components/language'
 
 import styles from './hours-field.module.css'
 
@@ -36,13 +38,17 @@ export function HoursField({
   error?: Message
 }) {
   const labelId = useId()
+  const language = useLanguage()
+  const say = useSay()
   const [open, close] = draft.range
   const hint = rangeHint(draft.range)
+  const days = describeDays(language, draft.days)
+  const week = WEEKDAY_WORDING[language]
 
   return (
     <div className={styles.field} role="group" aria-labelledby={labelId}>
       <span id={labelId} className={styles.label}>
-        Hours
+        {say(message('placeField.hours'))}
       </span>
 
       <div className={styles.days}>
@@ -52,18 +58,17 @@ export function HoursField({
             type="button"
             className={styles.day}
             aria-pressed={draft.days.includes(day)}
-            aria-label={WEEKDAY_WORDING[day].name}
-            title={WEEKDAY_WORDING[day].name}
+            aria-label={week[day].name}
+            title={week[day].name}
             onClick={() => onChange(toggleDay(draft, day))}
           >
-            {WEEKDAY_WORDING[day].letter}
+            {week[day].letter}
           </button>
         ))}
       </div>
 
       <p className={styles.hint}>
-        {describeDays(draft.days) ??
-          "Leave empty if you don't know. Pick the days it opens to add hours."}
+        {say(days ?? message('hoursField.empty'))}
       </p>
 
       {draft.days.length > 0 ? (
@@ -71,23 +76,23 @@ export function HoursField({
           <div className={styles.range}>
             <TimeInput
               value={open}
-              label="Opens"
+              label={say(message('hoursField.opens'))}
               onChange={(value) => onChange({ ...draft, range: [value, close] })}
             />
-            <span className={styles.to}>to</span>
+            <span className={styles.to}>{say(message('hoursField.to'))}</span>
             <TimeInput
               value={close}
-              label="Closes"
+              label={say(message('hoursField.closes'))}
               onChange={(value) => onChange({ ...draft, range: [open, value] })}
             />
           </div>
-          {hint ? <span className={styles.nextDay}>{hint}</span> : null}
+          {hint ? <span className={styles.nextDay}>{say(hint)}</span> : null}
         </div>
       ) : null}
 
       {error ? (
         <span role="alert" className={styles.error}>
-          {say(ENGLISH_LANGUAGE, error)}
+          {say(error)}
         </span>
       ) : null}
     </div>

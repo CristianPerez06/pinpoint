@@ -1,3 +1,5 @@
+import { message } from '@pinpoint/wording'
+
 import { LoadingState } from '@/app/_components/states'
 import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 
@@ -33,7 +35,7 @@ export default function Loading() {
   return (
     <WorkspaceChrome live={null}>
       <main className={chrome.stageWaiting}>
-        <LoadingState what="your trip" bare />
+        <LoadingState label={message('loading.trip')} bare />
       </main>
     </WorkspaceChrome>
   )

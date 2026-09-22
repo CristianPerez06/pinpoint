@@ -8,9 +8,11 @@ import {
   WEEKDAY_WORDING,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { FieldLabel } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
@@ -41,12 +43,16 @@ export function HoursField({
   error?: string
 }) {
   const theme = useTheme()
+  const language = useLanguage()
+  const say = useSay()
   const [open, close] = draft.range
   const hint = rangeHint(draft.range)
+  const days = describeDays(language, draft.days)
+  const week = WEEKDAY_WORDING[language]
 
   return (
     <View style={[styles.field, { borderColor: theme.colour.line }]}>
-      <FieldLabel>Hours</FieldLabel>
+      <FieldLabel>{say(message('placeField.hours'))}</FieldLabel>
 
       <View style={styles.days}>
         {WEEK.map((day) => {
@@ -56,7 +62,7 @@ export function HoursField({
               key={day}
               onPress={() => onChange(toggleDay(draft, day))}
               accessibilityRole="button"
-              accessibilityLabel={WEEKDAY_WORDING[day].name}
+              accessibilityLabel={week[day].name}
               accessibilityState={{ selected: on }}
               style={[
                 styles.day,
@@ -75,7 +81,7 @@ export function HoursField({
                   },
                 ]}
               >
-                {WEEKDAY_WORDING[day].letter}
+                {week[day].letter}
               </Text>
             </Pressable>
           )
@@ -83,8 +89,7 @@ export function HoursField({
       </View>
 
       <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-        {describeDays(draft.days) ??
-          "Leave empty if you don't know. Pick the days it opens to add hours."}
+        {say(days ?? message('hoursField.empty'))}
       </Text>
 
       {draft.days.length > 0 ? (
@@ -92,18 +97,20 @@ export function HoursField({
           <View style={styles.range}>
             <TimeInput
               value={open}
-              label="Opens"
+              label={say(message('hoursField.opens'))}
               onChange={(value) => onChange({ ...draft, range: [value, close] })}
             />
-            <Text style={[styles.to, { color: theme.colour.inkMuted }]}>to</Text>
+            <Text style={[styles.to, { color: theme.colour.inkMuted }]}>
+              {say(message('hoursField.to'))}
+            </Text>
             <TimeInput
               value={close}
-              label="Closes"
+              label={say(message('hoursField.closes'))}
               onChange={(value) => onChange({ ...draft, range: [open, value] })}
             />
           </View>
           {hint ? (
-            <Text style={[styles.nextDay, { color: theme.colour.accentInk }]}>{hint}</Text>
+            <Text style={[styles.nextDay, { color: theme.colour.accentInk }]}>{say(hint)}</Text>
           ) : null}
         </View>
       ) : null}

@@ -1,35 +1,32 @@
+import type { Catalogue } from './catalogue'
 import { ENGLISH } from './english'
+import { SPANISH } from './spanish'
 
 /**
- * The languages the product is offered in, and how one is asked for.
+ * The languages the product is offered in.
  *
- * THERE IS ONE, AND THE ARGUMENT IS TAKEN ANYWAY
- *
- * `say` takes a language from its first day, with exactly one to pass it. That
- * is deliberate. The alternative — `say(message)` now, a language later — is
- * smaller today and changes the signature of every call in the repository in the
- * change that adds the second language, which is already the larger of the two.
- *
- * `price.ts` wrote the instruction for this case down before there was anywhere
- * to act on it: *"`en` because the interface is English. When the interface is
- * translated this becomes an argument threaded from wherever the language is
- * decided, not a second call to the device."* Taking it now means that change
- * replaces a constant with a value, at call sites it is visiting anyway.
+ * `say` took a language from its first day, with exactly one to pass it, so
+ * that adding the second would replace a value at every call site rather than
+ * change a signature. This is that second value. A third is a third catalogue
+ * typed as `Catalogue`, a third entry here and in `CATALOGUES` below, and
+ * nothing else.
  *
  * No provider and no context here. Where the language is *decided* is each
- * application's business, exactly as where a colour is applied is.
+ * application's business, exactly as where a colour is applied is — see
+ * `language.ts` for the rule both of them decide it by.
  */
-export const LANGUAGES = ['en'] as const
+export const LANGUAGES = ['en', 'es'] as const
 
 export type Language = (typeof LANGUAGES)[number]
 
-/** The one there is. Named rather than defaulted, so every call site says it. */
+/** English, named, for the places that have to say it without asking anyone. */
 export const ENGLISH_LANGUAGE: Language = 'en'
+
+/** Spanish, named for the same reason. */
+export const SPANISH_LANGUAGE: Language = 'es'
 
 /** Everything the product can say. A name, never the sentence behind it. */
 export type MessageKey = keyof typeof ENGLISH
-
-type Catalogue = typeof ENGLISH
 
 /**
  * What naming a given message takes: nothing, or exactly the values its
@@ -40,7 +37,7 @@ type Catalogue = typeof ENGLISH
  * name whose sentence has a gap left unfilled — both of which are otherwise
  * invisible until somebody reads the screen they happen on.
  */
-type ArgsFor<K extends MessageKey> = Catalogue[K] extends (values: infer V) => string
+type ArgsFor<K extends MessageKey> = (typeof ENGLISH)[K] extends (values: infer V) => string
   ? [values: V]
   : []
 
@@ -73,9 +70,15 @@ export function message<K extends MessageKey>(key: K, ...rest: ArgsFor<K>): Mess
  * language cannot be added holding fewer names than this one, or holding a
  * plain sentence where a value has to go. That is the check that matters at the
  * type level; `check:wording` covers what a type cannot see.
+ *
+ * There is no fallback from one language to another, deliberately. A missing
+ * sentence that fell back to English would draw words somebody can read, on a
+ * screen that otherwise looks finished — so nobody would report it. The type
+ * makes it impossible instead.
  */
 const CATALOGUES: Readonly<Record<Language, Catalogue>> = {
   en: ENGLISH,
+  es: SPANISH,
 }
 
 /**

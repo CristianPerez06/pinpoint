@@ -1,5 +1,6 @@
 import { currencyLabel, searchCurrencies } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 // One subpath each, like every other icon on this platform: Metro does not
 // tree-shake in development, so the package root would pull all the glyphs in.
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
@@ -20,6 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { FieldLabel } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
 
@@ -46,11 +48,13 @@ export function CurrencyField({
   hint?: string
 }) {
   const theme = useTheme()
+  const language = useLanguage()
+  const say = useSay()
   const [picking, setPicking] = useState(false)
 
   return (
     <View style={styles.field}>
-      <FieldLabel>Second currency</FieldLabel>
+      <FieldLabel>{say(message('currencyField.label'))}</FieldLabel>
       <View
         style={[
           styles.control,
@@ -61,7 +65,13 @@ export function CurrencyField({
           onPress={() => setPicking(true)}
           accessibilityRole="button"
           accessibilityLabel={
-            value === null ? 'Second currency: none. Choose one' : `Second currency: ${currencyLabel(value)}. Change it`
+            value === null
+              ? say(message('currencyField.chooseLabel'))
+              : say(
+                  message('currencyField.changeLabel', {
+                    currency: currencyLabel(language, value),
+                  }),
+                )
           }
           style={styles.open}
         >
@@ -72,7 +82,7 @@ export function CurrencyField({
             ]}
             numberOfLines={1}
           >
-            {value === null ? 'None' : currencyLabel(value)}
+            {value === null ? say(message('currencyField.none')) : currencyLabel(language, value)}
           </Text>
         </Pressable>
         {value === null ? (
@@ -81,7 +91,7 @@ export function CurrencyField({
           <Pressable
             onPress={() => onChange(null)}
             accessibilityRole="button"
-            accessibilityLabel={`Remove ${value}`}
+            accessibilityLabel={say(message('common.removeNamed', { name: value }))}
             hitSlop={10}
           >
             <X size={16} color={theme.colour.inkMuted} strokeWidth={2} />
@@ -98,7 +108,7 @@ export function CurrencyField({
         <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>{hint}</Text>
       ) : value === null ? (
         <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-          Leave it as None if prices here are only in US dollars.
+          {say(message('currencyField.noneHint'))}
         </Text>
       ) : null}
 
@@ -129,8 +139,10 @@ function CurrencyPicker({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const height = Math.round(useWindowDimensions().height * SHEET_HEIGHT)
+  const language = useLanguage()
+  const say = useSay()
   const [query, setQuery] = useState('')
-  const results = searchCurrencies(query)
+  const results = searchCurrencies(language, query)
 
   function close() {
     setQuery('')
@@ -139,7 +151,7 @@ function CurrencyPicker({
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/* A bare positioner; the surface is the `View` inside it. See `AGENTS.md`. */}
         <KeyboardAvoidingView behavior="padding">
           <View
@@ -155,9 +167,13 @@ function CurrencyPicker({
             ]}
           >
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: theme.colour.ink }]}>Second currency</Text>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>
+                {say(message('currencyField.label'))}
+              </Text>
               <Pressable onPress={close} accessibilityRole="button" style={styles.cancel}>
-                <Text style={[styles.cancelText, { color: theme.colour.accentInk }]}>Cancel</Text>
+                <Text style={[styles.cancelText, { color: theme.colour.accentInk }]}>
+                  {say(message('common.cancel'))}
+                </Text>
               </Pressable>
             </View>
 
@@ -171,12 +187,12 @@ function CurrencyPicker({
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search by name or code"
+                placeholder={say(message('currencyField.searchPlaceholderShort'))}
                 placeholderTextColor={theme.colour.inkMuted}
                 autoFocus
                 autoCorrect={false}
                 autoCapitalize="none"
-                accessibilityLabel="Search currencies"
+                accessibilityLabel={say(message('currencyField.search'))}
                 style={[styles.search, { color: theme.colour.ink }]}
               />
             </View>
@@ -188,7 +204,7 @@ function CurrencyPicker({
               style={styles.list}
               ListEmptyComponent={
                 <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-                  No currency matches that.
+                  {say(message('currencyField.noMatch'))}
                 </Text>
               }
               renderItem={({ item: [code, name] }) => {

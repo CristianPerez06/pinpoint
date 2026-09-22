@@ -1,3 +1,5 @@
+import { message, type Language, type Message } from '@pinpoint/wording'
+
 /**
  * Presenting a price.
  *
@@ -7,18 +9,25 @@
  */
 
 /**
- * The locale prices are formatted in, pinned rather than taken from the device.
+ * The locale prices are formatted in, one per language, never the device's.
  *
  * Left to the device, a laptop set to en-US and a phone set to de-DE would
  * render the same stored amount as `1,200.50` and `1.200,50`. The rule is that
- * both applications present a price the same way, and that is only true if
- * neither asks the operating system what it prefers.
+ * both applications present a price the same way **for the same language**, and
+ * that is only true if neither asks the operating system what it prefers. The
+ * language is an argument threaded from wherever each application decides it.
  *
- * `en` because the interface is English. When the interface is translated this
- * becomes an argument threaded from wherever the language is decided, not a
- * second call to the device.
+ * Spanish follows its own convention rather than English with the marks
+ * swapped, and the difference matters most exactly where prices on this product
+ * land: `es` writes **no** thousands separator at four digits (`USD 1200`,
+ * `JPY 3800`) and a full stop from five (`USD 12.000`). That reads like a bug to
+ * anybody who has only heard the rule stated as "comma becomes full stop", so
+ * `price.test.ts` asserts it outright.
  */
-const PRICE_LOCALE = 'en'
+const PRICE_LOCALE: Readonly<Record<Language, string>> = {
+  en: 'en',
+  es: 'es-ES',
+}
 
 /**
  * Format a price for display: `Free`, `USD 25`, or `USD 32.50`.
@@ -28,10 +37,14 @@ const PRICE_LOCALE = 'en'
  *
  * `USD` rather than `$`: several currencies write `$`, and a trip abroad is
  * exactly where somebody would wonder which one this is.
+ *
+ * A message, because `Free` is a word — `Gratis` in Spanish — and no package
+ * writes words. The amount travels in a message too, so a caller draws every
+ * answer the same way.
  */
-export function formatPrice(amount: number): string {
-  if (amount === 0) return 'Free'
-  return formatMoney(amount, 'USD')
+export function formatPrice(language: Language, amount: number): Message {
+  if (amount === 0) return message('price.free')
+  return message('price.amounts', { amounts: formatMoney(language, amount, 'USD') })
 }
 
 /**
@@ -45,9 +58,9 @@ export function formatPrice(amount: number): string {
  * `25` does not grow a `.00` nobody typed and `32.5` does not read as a
  * dimensionless number.
  */
-export function formatMoney(amount: number, code: string): string {
+export function formatMoney(language: Language, amount: number, code: string): string {
   const number = new Intl.NumberFormat(
-    PRICE_LOCALE,
+    PRICE_LOCALE[language],
     Number.isInteger(amount)
       ? { maximumFractionDigits: 0 }
       : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
@@ -63,17 +76,20 @@ export function formatMoney(amount: number, code: string): string {
  * either one alone. A free place carries no local price — the database clears
  * it — and this says `Free` regardless, so the two can never read together.
  */
-export function formatPrices(marker: {
-  price: number | null
-  localPrice: number | null
-  localCurrency: string | null
-}): string | null {
-  if (marker.price === 0) return 'Free'
+export function formatPrices(
+  language: Language,
+  marker: {
+    price: number | null
+    localPrice: number | null
+    localCurrency: string | null
+  },
+): Message | null {
+  if (marker.price === 0) return message('price.free')
 
   const parts: string[] = []
-  if (marker.price !== null) parts.push(formatMoney(marker.price, 'USD'))
+  if (marker.price !== null) parts.push(formatMoney(language, marker.price, 'USD'))
   if (marker.localPrice !== null && marker.localCurrency !== null) {
-    parts.push(formatMoney(marker.localPrice, marker.localCurrency))
+    parts.push(formatMoney(language, marker.localPrice, marker.localCurrency))
   }
-  return parts.length === 0 ? null : parts.join(' · ')
+  return parts.length === 0 ? null : message('price.amounts', { amounts: parts.join(' · ') })
 }
