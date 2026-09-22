@@ -1,4 +1,5 @@
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 // Deep imports, not the package root — see marker-icon.tsx. One value import of
 // the barrel pulls all 1767 icons and crashes Hermes.
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
@@ -12,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoadingState } from '@/components/states'
 import { NamePlaceholder } from '@/components/ui'
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -58,6 +60,7 @@ export function WorkspaceChrome({
   overlays?: ReactNode
 }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
 
   return (
@@ -97,7 +100,11 @@ export function WorkspaceChrome({
           <Pressable
             onPress={live?.onOpenTrips}
             accessibilityRole="button"
-            accessibilityLabel={live ? `${live.tripName}. Switch or manage trips` : 'Trip'}
+            accessibilityLabel={say(
+              live
+                ? message('calendar.tripButton', { name: live.tripName })
+                : message('calendar.tripButtonWaiting'),
+            )}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
             style={styles.tripButton}
@@ -125,7 +132,7 @@ export function WorkspaceChrome({
           <Pressable
             onPress={live?.onOpenMenu}
             accessibilityRole="button"
-            accessibilityLabel="Menu"
+            accessibilityLabel={say(message('calendar.menu'))}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={8}
             style={[
@@ -164,7 +171,7 @@ export function WorkspaceChrome({
           <Pressable
             onPress={live?.onOpenCities}
             accessibilityRole="button"
-            accessibilityLabel={live ? live.cityHint : 'City'}
+            accessibilityLabel={live ? live.cityHint : say(message('city.menuName'))}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
             style={styles.cityButton}
@@ -216,13 +223,14 @@ export function WorkspaceChrome({
  * says it is unavailable rather than disappearing into a label.
  */
 export function WaitingMap() {
+  const say = useSay()
   const insets = useSafeAreaInsets()
 
   return (
     <View style={styles.fill}>
       <View
         accessible
-        accessibilityLabel="Loading the map"
+        accessibilityLabel={say(message('map.loading'))}
         accessibilityState={{ busy: true }}
         // Centred on the part of the area the bar does not cover, so the words
         // sit in the middle of what can be seen.
@@ -291,6 +299,7 @@ export type ToolBindings = {
  * `waiting-screens` warns about.
  */
 export function SessionTools({ tools }: { tools: ToolBindings | null }) {
+  const say = useSay()
   return (
     <View style={styles.row}>
       {/*
@@ -331,14 +340,14 @@ export function SessionTools({ tools }: { tools: ToolBindings | null }) {
         to reach that — the web came to meet it.
       */}
       <Tool
-        label="Search"
-        hint="Search for a place"
+        label={say(message('map.searchTool'))}
+        hint={say(message('search.label'))}
         icon={Search}
         onPress={tools?.onSearch ?? null}
       />
       <Tool
-        label="Drop"
-        hint="Drop a pin on the map"
+        label={say(message('map.dropPinShort'))}
+        hint={say(message('map.dropPinHint'))}
         icon={MapPinPlus}
         onPress={tools?.onDrop ?? null}
       />
@@ -353,10 +362,8 @@ export function SessionTools({ tools }: { tools: ToolBindings | null }) {
         being recoloured.
       */}
       <Tool
-        label="Filter"
-        hint={
-          tools?.narrowed ? 'Filter this trip. Some places are hidden' : 'Filter this trip'
-        }
+        label={say(message('filter.name'))}
+        hint={say(message(tools?.narrowed ? 'filter.hintNarrowed' : 'filter.hint'))}
         icon={SlidersHorizontal}
         marked={tools?.narrowed ?? false}
         onPress={tools?.onFilter ?? null}

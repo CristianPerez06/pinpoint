@@ -9,14 +9,16 @@ import {
   localPriceClearedBy,
   pricesFromDraft,
   splitHours,
+  UNFILED_CITY_WORDING,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
 import { HoursField } from '@/app/_components/hours-field'
+import { useLanguage, useSay } from '@/app/_components/language'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { usePending } from '@/lib/use-pending'
@@ -63,7 +65,8 @@ export function MarkerForm({
   cities,
   cityNotice,
   fieldErrors,
-  message,
+  // Renamed here only: `message` is what names a sentence in this file.
+  message: failure,
   notice,
   onSubmit,
   onCancel,
@@ -179,7 +182,8 @@ export function MarkerForm({
   const [newCity, setNewCity] = useState<{ name: string; currency: string | null } | null>(
     null,
   )
-  const [cityError, setCityError] = useState<string | null>(null)
+  // A name rather than a sentence, so a change of language redraws it.
+  const [cityError, setCityError] = useState<Message | null>(null)
 
   /**
    * Two writes, two flags, because this form offers both at once.
@@ -195,7 +199,9 @@ export function MarkerForm({
   const chosenCity = cities.find((city) => city.id === cityId) ?? null
   const currency = chosenCity?.currency ?? null
   const local = currency === null ? '' : (localByCurrency[currency] ?? '')
-  const cleared = localPriceClearedBy(initial, currency)
+  const language = useLanguage()
+  const say = useSay()
+  const cleared = localPriceClearedBy(language, initial, currency)
 
   function submit() {
     // Routed through the same guard as the button because Enter in any field
@@ -231,7 +237,7 @@ export function MarkerForm({
       const created = await onCreateCity(newCity.name.trim(), newCity.currency)
 
       if (!created) {
-        setCityError('Could not create that city.')
+        setCityError(message('placeForm.createCityFailed'))
         return
       }
 
@@ -322,14 +328,14 @@ export function MarkerForm({
           type="button"
           className={styles.dismiss}
           onClick={leave}
-          aria-label="Discard"
-          title="Discard"
+          aria-label={say(message('common.discard'))}
+          title={say(message('common.discard'))}
         >
           <X size={16} strokeWidth={2.2} />
         </button>
       </div>
 
-      {message ? <FormError message={message} /> : null}
+      {failure ? <FormError message={failure} /> : null}
       {notice ? (
         <p role="status" className={styles.notice}>
           {notice}
@@ -337,11 +343,11 @@ export function MarkerForm({
       ) : null}
 
       <TextField
-        label="Name"
+        label={say(message('placeField.name'))}
         value={name}
         onChange={setName}
         error={fieldErrors.name}
-        placeholder="What is this place called?"
+        placeholder={say(message('placeForm.namePlaceholder'))}
         autoFocus
       />
 
@@ -352,11 +358,11 @@ export function MarkerForm({
         once it is on the map.
       */}
       <div>
-        <span className={styles.typesLabel}>Type</span>
-        <div className={styles.types} role="group" aria-label="Type">
+        <span className={styles.typesLabel}>{say(message('placeField.type'))}</span>
+        <div className={styles.types} role="group" aria-label={say(message('placeField.type'))}>
           {MARKER_TYPES.map((definition) => {
             const chosen = definition.id === type
-            const name = say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))
+            const name = say(markerTypeMessage(definition.id))
 
             return (
               <button
@@ -385,13 +391,13 @@ export function MarkerForm({
         </div>
         {fieldErrors.type ? (
           <span role="alert" className={styles.typeError}>
-            {say(ENGLISH_LANGUAGE, fieldErrors.type)}
+            {say(fieldErrors.type)}
           </span>
         ) : null}
       </div>
 
       <SelectField
-        label="City"
+        label={say(message('placeField.city'))}
         value={cityId ?? UNASSIGNED}
         onChange={(value) => {
           if (value === NEW_CITY) {
@@ -402,16 +408,16 @@ export function MarkerForm({
         }}
         error={fieldErrors.cityId}
         options={[
-          { value: UNASSIGNED, label: 'Unassigned' },
+          { value: UNASSIGNED, label: say(UNFILED_CITY_WORDING) },
           ...cities.map((city) => ({ value: city.id, label: city.name })),
           // Absent, rather than present and refusing, where the surface cannot
           // create one. See `onCreateCity`.
-          ...(onCreateCity ? [{ value: NEW_CITY, label: '+ New city…' }] : []),
+          ...(onCreateCity ? [{ value: NEW_CITY, label: say(message('placeForm.newCityOption')) }] : []),
         ]}
       />
 
       <TextField
-        label="Day"
+        label={say(message('placeField.day'))}
         type="date"
         value={plannedOn}
         onChange={(value) => {
@@ -425,7 +431,7 @@ export function MarkerForm({
           }
         }}
         error={fieldErrors.plannedOn}
-        hint="Which day of the trip you plan to go. Leave it blank to decide later."
+        hint={say(message('placeForm.dayHint'))}
       />
 
       {/*
@@ -443,13 +449,13 @@ export function MarkerForm({
           className={styles.extendDay}
           onClick={() => setExtended(true)}
         >
-          + More than one day
+          {say(message('placeForm.moreThanOneDay'))}
         </button>
       ) : null}
 
       {plannedOn !== '' && extended ? (
         <TextField
-          label="Until"
+          label={say(message('placeField.until'))}
           type="date"
           value={plannedUntil}
           // Emptying the field is the way back out, so there is one act rather
@@ -460,21 +466,21 @@ export function MarkerForm({
             if (value === '') setExtended(false)
           }}
           error={fieldErrors.plannedUntil}
-          hint="The last day it is planned for. Clear it to go back to one day."
+          hint={say(message('placeForm.untilHint'))}
         />
       ) : null}
 
       {cityNotice ? (
         <div className={styles.cityNotice}>
           <p role="status" className={styles.cityNoticeText}>
-            {say(ENGLISH_LANGUAGE, cityNotice.message)}
+            {say(cityNotice.message)}
           </p>
           {cityNotice.offer && !newCity ? (
             <Button
               onClick={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
               tone="quiet"
             >
-              {`Create ${cityNotice.offer}`}
+              {say(message('placeForm.createOffered', { name: cityNotice.offer }))}
             </Button>
           ) : null}
         </div>
@@ -483,28 +489,37 @@ export function MarkerForm({
       {newCity ? (
         <div className={styles.newCity}>
           <TextField
-            label="New city name"
+            label={say(message('placeForm.newCityName'))}
             value={newCity.name}
             onChange={(value) => setNewCity({ ...newCity, name: value })}
-            placeholder="Kyoto"
+            placeholder={say(message('placeForm.newCityPlaceholder'))}
             autoFocus
           />
           <CurrencyField
             value={newCity.currency}
             onChange={(code) => setNewCity({ ...newCity, currency: code })}
-            hint={`Places in ${newCity.name.trim() || 'this city'} get a ${newCity.currency ?? ''} price box beside the dollars.`}
+            hint={say(
+              newCity.name.trim() === ''
+                ? message('placeForm.newCityCurrencyHintUnnamed', {
+                    currency: newCity.currency ?? '',
+                  })
+                : message('placeForm.newCityCurrencyHint', {
+                    city: newCity.name.trim(),
+                    currency: newCity.currency ?? '',
+                  }),
+            )}
           />
-          {cityError ? <FormError message={cityError} /> : null}
+          {cityError ? <FormError message={say(cityError)} /> : null}
           <div className={styles.row}>
             <Button
               onClick={createCity}
               disabled={creatingCity || newCity.name.trim() === ''}
               tone="primary"
             >
-              {creatingCity ? 'Creating…' : 'Create city'}
+              {say(creatingCity ? message('common.creating') : message('city.create'))}
             </Button>
             <Button onClick={() => setNewCity(null)} tone="quiet">
-              Cancel
+              {say(message('common.cancel'))}
             </Button>
           </div>
         </div>
@@ -513,20 +528,20 @@ export function MarkerForm({
       <HoursField draft={hours} onChange={setHours} error={fieldErrors.hours} />
 
       <TextField
-        label="Note"
+        label={say(message('placeField.note'))}
         value={note}
         onChange={setNote}
         error={fieldErrors.note}
-        placeholder="Why is this worth going to?"
+        placeholder={say(message('placeForm.notePlaceholder'))}
         multiline
       />
 
       <TextField
-        label="Link"
+        label={say(message('placeField.link'))}
         value={link}
         onChange={setLink}
         error={fieldErrors.link}
-        placeholder="https://…"
+        placeholder={say(message('placeForm.linkPlaceholder'))}
         type="url"
       />
 
@@ -544,7 +559,9 @@ export function MarkerForm({
                 value: local,
                 onChange: (value) =>
                   setLocalByCurrency((current) => ({ ...current, [currency]: value })),
-                hint: `${currency} is ${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                hint: say(
+                  message('placeForm.localPriceHint', { currency, city: chosenCity.name }),
+                ),
                 error: fieldErrors.localPrice,
               }
         }
@@ -552,8 +569,13 @@ export function MarkerForm({
           cleared === null
             ? null
             : chosenCity === null
-              ? `Leaving this place without a city clears the ${cleared} saved for it.`
-              : `Moving to ${chosenCity.name} clears the ${cleared} saved for this place.`
+              ? say(message('placeForm.localPriceClearedUnfiled', { amount: cleared }))
+              : say(
+                  message('placeForm.localPriceClearedMoved', {
+                    city: chosenCity.name,
+                    amount: cleared,
+                  }),
+                )
         }
       />
 
@@ -564,23 +586,21 @@ export function MarkerForm({
       */}
       {leaving ? (
         <Question
-          question="Discard what you typed?"
-          consequence={
-            capturing
-              ? 'The place you found on the map goes with it.'
-              : 'Your changes to this place are not saved.'
-          }
-          confirm="Discard"
+          question={say(message('placeForm.discardQuestion'))}
+          consequence={say(
+            capturing ? message('placeForm.discardCapture') : message('placeForm.discardEdit'),
+          )}
+          confirm={say(message('common.discard'))}
           onConfirm={onCancel}
           onDecline={() => setLeaving(false)}
         />
       ) : (
       <div className={styles.actions}>
         <Button type="submit" tone="primary" disabled={saving}>
-          {saving ? 'Saving…' : 'Save place'}
+          {say(saving ? message('common.saving') : message('placeForm.save'))}
         </Button>
         <Button onClick={leave} tone="quiet">
-          Cancel
+          {say(message('common.cancel'))}
         </Button>
       </div>
       )}

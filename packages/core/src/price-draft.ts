@@ -1,3 +1,5 @@
+import type { Language } from '@pinpoint/wording'
+
 import { formatMoney } from './price'
 
 /**
@@ -61,12 +63,13 @@ export function pricesFromDraft(draft: PriceDraft): DraftedPrices {
  * the form says; this is what lets the form say so first.
  */
 export function localPriceClearedBy(
+  language: Language,
   saved: { localPrice: number | null; localCurrency: string | null },
   currency: string | null,
 ): string | null {
   if (saved.localPrice === null || saved.localCurrency === null) return null
   if (saved.localCurrency === currency) return null
-  return formatMoney(saved.localPrice, saved.localCurrency)
+  return formatMoney(language, saved.localPrice, saved.localCurrency)
 }
 
 /**

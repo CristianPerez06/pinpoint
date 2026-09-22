@@ -12,7 +12,7 @@ import {
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
 import X from 'lucide-react-native/icons/x'
@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { InterestRows, VisitedToggle } from '@/components/interest'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { Question } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -140,7 +141,11 @@ const styles = StyleSheet.create({
   absent: { ...role(TYPE.body), fontStyle: 'italic' },
   hours: { gap: 1 },
   hoursLine: { flexDirection: 'row', gap: 14 },
-  /* Wide enough for `Every day`, the longest name a line can carry. */
+  /*
+    Wide enough for `Every day`, the longest name a line can carry. Spanish's
+    `Todos los días` is wider and simply takes more room: it only ever appears on
+    a card's single line, with no line under it whose times must align.
+  */
   hoursDays: { ...role(TYPE.body), minWidth: 72, fontVariant: ['tabular-nums'] },
   hoursText: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', columnGap: 4 },
   hoursRange: { ...role(TYPE.body), fontVariant: ['tabular-nums'] },
@@ -237,6 +242,7 @@ function Field({
   isLink?: boolean
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <View style={styles.field}>
@@ -259,7 +265,7 @@ function Field({
           */
           onPress={() => void Linking.openURL(value).catch(() => {})}
           accessibilityRole="link"
-          accessibilityHint="Opens in your browser"
+          accessibilityHint={say(message('common.opensInBrowser'))}
         >
           {value}
         </Text>
@@ -281,24 +287,25 @@ function Field({
  */
 function HoursLines({ hours }: { hours: OpeningHours }) {
   const theme = useTheme()
-  const lines = describeHours(hours)
+  const say = useSay()
+  const lines = describeHours(useLanguage(), hours)
 
   return (
     <View style={styles.hours}>
       {lines.map((line) => {
         const colour = line.closed ? theme.colour.inkMuted : theme.colour.ink
         return (
-          <View key={line.days} style={styles.hoursLine}>
+          <View key={say(line.days)} style={styles.hoursLine}>
             <Text
               style={[
                 styles.hoursDays,
                 { color: colour, fontWeight: line.closed ? '400' : '600' },
               ]}
             >
-              {line.days}
+              {say(line.days)}
             </Text>
             <View style={styles.hoursText}>
-              {line.text.split(', ').map((part, index, parts) => (
+              {say(line.text).split(', ').map((part, index, parts) => (
                 <Text key={part} style={[styles.hoursRange, { color: colour }]}>
                   {index < parts.length - 1 ? `${part},` : part}
                 </Text>
@@ -313,12 +320,13 @@ function HoursLines({ hours }: { hours: OpeningHours }) {
 
 function Dismiss({ onDismiss }: { onDismiss: () => void }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <Pressable
       onPress={onDismiss}
       accessibilityRole="button"
-      accessibilityLabel="Close"
+      accessibilityLabel={say(message('common.close'))}
       style={styles.dismiss}
       hitSlop={8}
     >
@@ -343,6 +351,7 @@ function Dismiss({ onDismiss }: { onDismiss: () => void }) {
  */
 function HiddenNote() {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <Text
@@ -354,8 +363,7 @@ function HiddenNote() {
         },
       ]}
     >
-      Already saved on this trip. Your filter is hiding it, so it is not drawn on
-      the map.
+      {say(message('placeCard.hidden'))}
     </Text>
   )
 }
@@ -446,6 +454,8 @@ export function MarkerDetails({
   removingId: string | null
 }) {
   const theme = useTheme()
+  const language = useLanguage()
+  const say = useSay()
   /**
    * Whether the question is standing in place of the footer.
    *
@@ -491,13 +501,12 @@ export function MarkerDetails({
       <View style={sheet}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: theme.colour.ink }]}>
-            {group.count} places here
+            {say(message('placeGroup.count', { count: group.count }))}
           </Text>
           <Dismiss onDismiss={onDismiss} />
         </View>
         <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-          They share the same coordinates, so zooming will not separate them.
-          Nothing has been moved — pick one.
+          {say(message('placeGroup.note'))}
         </Text>
         {hidden ? <HiddenNote /> : null}
         {/* Same reasoning as the fields below: a ScrollView here reports almost
@@ -517,7 +526,7 @@ export function MarkerDetails({
                 {marker.name}
               </Text>
               <Text style={[styles.choiceType, { color: theme.colour.inkMuted }]}>
-                {say(ENGLISH_LANGUAGE, markerTypeMessage(group.views[i]!.type))}
+                {say(markerTypeMessage(group.views[i]!.type))}
               </Text>
             </Pressable>
           ))}
@@ -528,7 +537,12 @@ export function MarkerDetails({
 
   const marker = group.markers[index]!
   const view = group.views[index]!
-  const prices = formatPrices(marker)
+  const prices = formatPrices(language, marker)
+  // Only reached with both ends present, which always words a stretch.
+  const stretch =
+    marker.plannedOn === null || marker.plannedUntil === null
+      ? null
+      : formatDayRange(language, marker.plannedOn, marker.plannedUntil)
   const removing = removingId === marker.id
 
   /**
@@ -544,7 +558,7 @@ export function MarkerDetails({
     <>
       <View style={styles.field}>
         <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
-          Who wants to go
+          {say(message('placeField.whoWantsToGo'))}
         </Text>
         <InterestRows
           members={members}
@@ -557,7 +571,7 @@ export function MarkerDetails({
 
       <View style={styles.field}>
         <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
-          Visited
+          {say(message('placeField.visited'))}
         </Text>
         <VisitedToggle
           visited={marker.visited}
@@ -574,9 +588,9 @@ export function MarkerDetails({
         fields say `No … yet` because they are waiting to be filled in.
       */}
       <Field
-        label="City"
-        value={cityNameOf(marker) ?? say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
-        absent={say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
+        label={say(message('placeField.city'))}
+        value={cityNameOf(marker) ?? say(UNFILED_CITY_WORDING)}
+        absent={say(UNFILED_CITY_WORDING)}
       />
 
       {/* The day, where the laptop's card carries it: after what was decided
@@ -584,22 +598,24 @@ export function MarkerDetails({
           for a run reads as the stretch it covers, from the same shared wording
           the laptop uses. */}
       <Field
-        label="Day"
+        label={say(message('placeField.day'))}
         value={
           marker.plannedOn === null
             ? null
-            : marker.plannedUntil === null
-              ? formatDay(marker.plannedOn)
-              : formatDayRange(marker.plannedOn, marker.plannedUntil)
+            : stretch === null
+              ? formatDay(language, marker.plannedOn)
+              : say(stretch)
         }
-        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.day)}
+        absent={say(EMPTY_FIELD_WORDING.day)}
       />
 
       <View style={styles.field}>
-        <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>Hours</Text>
+        <Text style={[styles.fieldLabel, { color: theme.colour.inkMuted }]}>
+          {say(message('placeField.hours'))}
+        </Text>
         {marker.hours === null ? (
           <Text style={[styles.absent, { color: theme.colour.inkMuted }]}>
-            {say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.hours)}
+            {say(EMPTY_FIELD_WORDING.hours)}
           </Text>
         ) : (
           <HoursLines hours={marker.hours} />
@@ -607,14 +623,14 @@ export function MarkerDetails({
       </View>
 
       <Field
-        label="Note"
+        label={say(message('placeField.note'))}
         value={marker.note}
-        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.note)}
+        absent={say(EMPTY_FIELD_WORDING.note)}
       />
       <Field
-        label="Link"
+        label={say(message('placeField.link'))}
         value={marker.link}
-        absent={say(ENGLISH_LANGUAGE, EMPTY_FIELD_WORDING.link)}
+        absent={say(EMPTY_FIELD_WORDING.link)}
         isLink
       />
 
@@ -634,12 +650,12 @@ export function MarkerDetails({
       */}
       {asking ? (
         <Question
-          question={`Remove ${marker.name}?`}
+          question={say(message('placeCard.removeQuestion', { name: marker.name }))}
           // "Cannot be undone" rather than a softer word, because it cannot:
           // there is no archive, no trash, and nothing that would let a member
           // get a marker back.
-          consequence="This cannot be undone."
-          confirm="Remove"
+          consequence={say(message('placeCard.cannotBeUndone'))}
+          confirm={say(message('common.remove'))}
           waiting={removing}
           onConfirm={() => onDelete(marker)}
           onDecline={() => setAsking(false)}
@@ -649,22 +665,24 @@ export function MarkerDetails({
           <Pressable
             onPress={() => onEdit(marker)}
             accessibilityRole="button"
-            accessibilityLabel={`Edit ${marker.name}`}
+            accessibilityLabel={say(message('common.editNamed', { name: marker.name }))}
             style={[styles.action, { borderColor: theme.colour.lineStrong }]}
           >
-            <Text style={[styles.actionText, { color: theme.colour.ink }]}>Edit</Text>
+            <Text style={[styles.actionText, { color: theme.colour.ink }]}>
+              {say(message('common.edit'))}
+            </Text>
           </Pressable>
           <Pressable
             onPress={() => setAsking(true)}
             accessibilityRole="button"
-            accessibilityLabel={`Remove ${marker.name}`}
+            accessibilityLabel={say(message('common.removeNamed', { name: marker.name }))}
             style={[
               styles.action,
               { backgroundColor: theme.colour.dangerSurface },
             ]}
           >
             <Text style={[styles.actionText, { color: theme.colour.danger }]}>
-              Remove
+              {say(message('common.remove'))}
             </Text>
           </Pressable>
         </View>
@@ -687,7 +705,7 @@ export function MarkerDetails({
           accessibilityRole="button"
         >
           <Text style={[styles.backText, { color: theme.colour.ink }]}>
-            ← Others at this point
+            {say(message('placeCard.othersHere'))}
           </Text>
         </Pressable>
       ) : null}
@@ -720,14 +738,16 @@ export function MarkerDetails({
           style={[styles.tag, { backgroundColor: theme.markerType[view.type] }]}
         >
           <Text style={[styles.tagText, { color: theme.markerForeground }]}>
-            {say(ENGLISH_LANGUAGE, markerTypeMessage(view.type))}
+            {say(markerTypeMessage(view.type))}
           </Text>
         </View>
         {prices === null ? null : (
           <View style={[styles.tag, { backgroundColor: theme.colour.surfaceMuted }]}>
             {/* `USD 25 · JPY 3,800`, either alone, or `Free`. Formatted by the
                 shared helper so the phone and the laptop cannot disagree. */}
-            <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>{prices}</Text>
+            <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>
+              {say(prices)}
+            </Text>
           </View>
         )}
       </View>

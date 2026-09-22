@@ -1,6 +1,21 @@
 import { styleUrl, themeStyle, type StyleDocument } from '@pinpoint/map'
 import type { ThemeMode } from '@pinpoint/tokens'
+import { message, type Message } from '@pinpoint/wording'
 import { useEffect, useState } from 'react'
+
+/**
+ * A style fetch that failed for a reason worth telling the person.
+ *
+ * It carries a name rather than a sentence because the reason is drawn inside
+ * one, and a sentence fixed at the moment of failure would stay in that
+ * language after the person changed it. `Error.message` is left to developers.
+ */
+class BasemapFailure extends Error {
+  constructor(readonly reason: Message) {
+    super('the map style could not be fetched')
+    this.name = 'BasemapFailure'
+  }
+}
 
 /**
  * Fetching the style document, so the shared transformation can repaint it.
@@ -22,7 +37,7 @@ function fetchStyleDocument(): Promise<StyleDocument> {
   cached ??= fetch(styleUrl())
     .then((response) => {
       if (!response.ok) {
-        throw new Error(`the tile service answered ${response.status}`)
+        throw new BasemapFailure(message('map.styleRefused', { status: response.status }))
       }
       return response.json() as Promise<StyleDocument>
     })
@@ -40,8 +55,11 @@ function fetchStyleDocument(): Promise<StyleDocument> {
 export interface BasemapState {
   /** The document to hand the renderer, or null while it is being fetched. */
   style: StyleDocument | null
-  /** What went wrong, if anything. Never both this and a style. */
-  error: string | null
+  /**
+   * What went wrong, if anything, as a name to resolve where it is drawn. Never
+   * both this and a style.
+   */
+  error: Message | null
 }
 
 /**
@@ -68,7 +86,7 @@ export function useThemedBasemap(mode: ThemeMode): BasemapState {
         setState({
           style: null,
           error:
-            cause instanceof Error ? cause.message : 'the map style could not be loaded',
+            cause instanceof BasemapFailure ? cause.reason : message('map.styleFailedReason'),
         })
       },
     )

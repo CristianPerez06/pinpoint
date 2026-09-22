@@ -8,10 +8,11 @@ import {
   localPriceClearedBy,
   pricesFromDraft,
   splitHours,
+  UNFILED_CITY_WORDING,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Animated,
@@ -38,6 +39,7 @@ import {
   Question,
   TextField,
 } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -91,21 +93,6 @@ export function openingHeight(windowHeight: number): number {
 /** How far a drag must travel before it counts as reaching for the other height. */
 const SNAP_THRESHOLD = 60
 
-/**
- * A field's refusal, in words, and nothing when there is no refusal.
- *
- * `FieldErrors` names a message rather than holding a sentence, and this form
- * draws eight of them into controls that take a string. The language is still
- * named at every call — this only carries the `undefined`, which is the part
- * that would otherwise be written out eight times with nothing to gain.
- *
- * Not `refusal`: `@pinpoint/core` already has one, and it goes the other way —
- * it puts a name *into* a schema's message slot, where this takes one out.
- */
-function refusalWords(error: Message | undefined): string | undefined {
-  return error === undefined ? undefined : say(ENGLISH_LANGUAGE, error)
-}
-
 /** Blank is absent, never empty text. The two look identical in a form and are very different in a query. */
 function absentIfBlank(value: string): string | null {
   const trimmed = value.trim()
@@ -118,7 +105,8 @@ export function MarkerFormSheet({
   cities,
   cityNotice,
   fieldErrors,
-  message,
+  // Renamed here only: `message` is what names a sentence in this file.
+  message: failure,
   notice,
   onSubmit,
   onCancel,
@@ -214,6 +202,22 @@ export function MarkerFormSheet({
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const language = useLanguage()
+  const say = useSay()
+
+  /**
+   * A field's refusal, in words, and nothing when there is no refusal.
+   *
+   * `FieldErrors` names a message rather than holding a sentence, and this form
+   * draws eight of them into controls that take a string. This only carries the
+   * `undefined`, which is the part that would otherwise be written out eight
+   * times with nothing to gain.
+   *
+   * Not `refusal`: `@pinpoint/core` already has one, and it goes the other way —
+   * it puts a name *into* a schema's message slot, where this takes one out.
+   */
+  const refusalWords = (error: Message | undefined): string | undefined =>
+    error === undefined ? undefined : say(error)
 
   const [name, setName] = useState(initial.name)
   const [note, setNote] = useState(initial.note ?? '')
@@ -252,7 +256,8 @@ export function MarkerFormSheet({
   const [newCity, setNewCity] = useState<{ name: string; currency: string | null } | null>(
     null,
   )
-  const [cityError, setCityError] = useState<string | null>(null)
+  // A name rather than a sentence, so a change of language redraws it.
+  const [cityError, setCityError] = useState<Message | null>(null)
 
   /**
    * Two writes, two flags, because this sheet offers both at once.
@@ -270,7 +275,7 @@ export function MarkerFormSheet({
   const chosenCity = cities.find((city) => city.id === cityId) ?? null
   const currency = chosenCity?.currency ?? null
   const local = currency === null ? '' : (localByCurrency[currency] ?? '')
-  const cleared = localPriceClearedBy(initial, currency)
+  const cleared = localPriceClearedBy(language, initial, currency)
 
   const windowHeight = useWindowDimensions().height
   const heights = useMemo(
@@ -392,7 +397,7 @@ export function MarkerFormSheet({
       const created = await onCreateCity?.(newCity.name.trim(), newCity.currency)
 
       if (!created) {
-        setCityError('Could not create that city.')
+        setCityError(message('placeForm.createCityFailed'))
         return
       }
 
@@ -444,8 +449,12 @@ export function MarkerFormSheet({
           {...pan.panHandlers}
           style={styles.grabRow}
           accessibilityRole="adjustable"
-          accessibilityLabel="Sheet height"
-          accessibilityValue={{ text: detent === 0 ? 'Half screen' : 'Almost full screen' }}
+          accessibilityLabel={say(message('placeForm.sheetHeight'))}
+          accessibilityValue={{
+            text: say(
+              detent === 0 ? message('placeForm.sheetHalf') : message('placeForm.sheetFull'),
+            ),
+          }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
           onAccessibilityAction={(event) => {
             // The drag is a gesture a screen reader cannot perform, so the two
@@ -464,7 +473,7 @@ export function MarkerFormSheet({
           <Pressable
             onPress={onCancel}
             accessibilityRole="button"
-            accessibilityLabel="Discard"
+            accessibilityLabel={say(message('common.discard'))}
             hitSlop={10}
             style={styles.dismiss}
           >
@@ -490,15 +499,15 @@ export function MarkerFormSheet({
           contentContainerStyle={styles.fields}
           keyboardShouldPersistTaps="handled"
         >
-          {message ? <FormNote tone="danger">{message}</FormNote> : null}
+          {failure ? <FormNote tone="danger">{failure}</FormNote> : null}
           {notice ? <FormNote tone="notice">{notice}</FormNote> : null}
 
           <TextField
-            label="Name"
+            label={say(message('placeField.name'))}
             value={name}
             onChange={setName}
             error={refusalWords(fieldErrors.name)}
-            placeholder="What is this place called?"
+            placeholder={say(message('placeForm.namePlaceholder'))}
           />
 
           {/*
@@ -508,11 +517,11 @@ export function MarkerFormSheet({
             map.
           */}
           <View>
-            <FieldLabel>Type</FieldLabel>
+            <FieldLabel>{say(message('placeField.type'))}</FieldLabel>
             <View
               style={styles.types}
               accessibilityRole="radiogroup"
-              accessibilityLabel="Type"
+              accessibilityLabel={say(message('placeField.type'))}
             >
               {MARKER_TYPES.map((definition) => {
                 const chosen = definition.id === type
@@ -523,7 +532,7 @@ export function MarkerFormSheet({
                     onPress={() => setType(definition.id)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: chosen }}
-                    accessibilityLabel={say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
+                    accessibilityLabel={say(markerTypeMessage(definition.id))}
                     style={[
                       styles.type,
                       {
@@ -558,7 +567,7 @@ export function MarkerFormSheet({
                       style={[styles.typeLabel, { color: theme.colour.ink }]}
                       numberOfLines={1}
                     >
-                      {say(ENGLISH_LANGUAGE, markerTypeMessage(definition.id))}
+                      {say(markerTypeMessage(definition.id))}
                     </Text>
                   </Pressable>
                 )
@@ -569,16 +578,16 @@ export function MarkerFormSheet({
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.colour.danger }]}
               >
-                {say(ENGLISH_LANGUAGE, fieldErrors.type)}
+                {say(fieldErrors.type)}
               </Text>
             ) : null}
           </View>
 
           <View>
-            <FieldLabel>City</FieldLabel>
+            <FieldLabel>{say(message('placeField.city'))}</FieldLabel>
             <View style={styles.cityRow}>
               <CityChip
-                label="Unassigned"
+                label={say(UNFILED_CITY_WORDING)}
                 chosen={cityId === null}
                 onPress={() => setCityId(null)}
               />
@@ -595,7 +604,7 @@ export function MarkerFormSheet({
                   than present and inert. */}
               {onCreateCity ? (
                 <CityChip
-                  label="+ New city"
+                  label={say(message('placeForm.newCityChip'))}
                   chosen={false}
                   onPress={() => setNewCity({ name: '', currency: null })}
                 />
@@ -612,12 +621,12 @@ export function MarkerFormSheet({
                 ]}
               >
                 <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  {say(ENGLISH_LANGUAGE, cityNotice.message)}
+                  {say(cityNotice.message)}
                 </Text>
                 {cityNotice.offer && !newCity ? (
                   <View style={styles.row}>
                     <Button
-                      label={`Create ${cityNotice.offer}`}
+                      label={say(message('placeForm.createOffered', { name: cityNotice.offer }))}
                       onPress={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
                     />
                   </View>
@@ -629,7 +638,7 @@ export function MarkerFormSheet({
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.colour.danger }]}
               >
-                {say(ENGLISH_LANGUAGE, fieldErrors.cityId)}
+                {say(fieldErrors.cityId)}
               </Text>
             ) : null}
           </View>
@@ -645,29 +654,40 @@ export function MarkerFormSheet({
               ]}
             >
               <TextField
-                label="New city name"
+                label={say(message('placeForm.newCityName'))}
                 value={newCity.name}
                 onChange={(value) => setNewCity({ ...newCity, name: value })}
-                placeholder="Kyoto"
+                placeholder={say(message('placeForm.newCityPlaceholder'))}
                 autoFocus
               />
               <CurrencyField
                 value={newCity.currency}
                 onChange={(code) => setNewCity({ ...newCity, currency: code })}
-                hint={`Places in ${newCity.name.trim() || 'this city'} get a ${newCity.currency ?? ''} price box beside the dollars.`}
+                hint={say(
+                  newCity.name.trim() === ''
+                    ? message('placeForm.newCityCurrencyHintUnnamed', {
+                        currency: newCity.currency ?? '',
+                      })
+                    : message('placeForm.newCityCurrencyHint', {
+                        city: newCity.name.trim(),
+                        currency: newCity.currency ?? '',
+                      }),
+                )}
               />
-              {cityError ? <FormNote tone="danger">{cityError}</FormNote> : null}
+              {cityError ? <FormNote tone="danger">{say(cityError)}</FormNote> : null}
               <View style={styles.row}>
                 <View style={styles.grow}>
                   <Button
-                    label={creatingCity ? 'Creating…' : 'Create city'}
+                    label={say(
+                      creatingCity ? message('common.creating') : message('city.create'),
+                    )}
                     tone="primary"
                     disabled={creatingCity || newCity.name.trim() === ''}
                     onPress={createCity}
                   />
                 </View>
                 <View style={styles.grow}>
-                  <Button label="Cancel" onPress={() => setNewCity(null)} />
+                  <Button label={say(message('common.cancel'))} onPress={() => setNewCity(null)} />
                 </View>
               </View>
             </View>
@@ -682,7 +702,7 @@ export function MarkerFormSheet({
             on most trips, which is what `No day yet` says.
           */}
           <DayField
-            label="Day"
+            label={say(message('placeField.day'))}
             value={plannedOn}
             onChange={(day) => {
               setPlannedOn(day)
@@ -710,14 +730,14 @@ export function MarkerFormSheet({
               style={styles.extendDay}
             >
               <Text style={[styles.extendDayText, { color: theme.colour.accentInk }]}>
-                + More than one day
+                {say(message('placeForm.moreThanOneDay'))}
               </Text>
             </Pressable>
           ) : null}
 
           {plannedOn !== null && extended ? (
             <DayField
-              label="Until"
+              label={say(message('placeField.until'))}
               value={plannedUntil}
               onChange={(day) => {
                 setPlannedUntil(day)
@@ -734,20 +754,20 @@ export function MarkerFormSheet({
           />
 
           <TextField
-            label="Note"
+            label={say(message('placeField.note'))}
             value={note}
             onChange={setNote}
             error={refusalWords(fieldErrors.note)}
-            placeholder="Why is this worth going to?"
+            placeholder={say(message('placeForm.notePlaceholder'))}
             multiline
           />
 
           <TextField
-            label="Link"
+            label={say(message('placeField.link'))}
             value={link}
             onChange={setLink}
             error={refusalWords(fieldErrors.link)}
-            placeholder="https://…"
+            placeholder={say(message('placeForm.linkPlaceholder'))}
             keyboardType="url"
             autoCapitalize="none"
           />
@@ -766,7 +786,9 @@ export function MarkerFormSheet({
                     value: local,
                     onChange: (value) =>
                       setLocalByCurrency((current) => ({ ...current, [currency]: value })),
-                    hint: `${currency} is ${chosenCity.name}'s currency. Type it as you saw it; nothing is converted.`,
+                    hint: say(
+                      message('placeForm.localPriceHint', { currency, city: chosenCity.name }),
+                    ),
                     error: refusalWords(fieldErrors.localPrice),
                   }
             }
@@ -774,8 +796,13 @@ export function MarkerFormSheet({
               cleared === null
                 ? null
                 : chosenCity === null
-                  ? `Leaving this place without a city clears the ${cleared} saved for it.`
-                  : `Moving to ${chosenCity.name} clears the ${cleared} saved for this place.`
+                  ? say(message('placeForm.localPriceClearedUnfiled', { amount: cleared }))
+                  : say(
+                      message('placeForm.localPriceClearedMoved', {
+                        city: chosenCity.name,
+                        amount: cleared,
+                      }),
+                    )
             }
           />
 
@@ -797,7 +824,7 @@ export function MarkerFormSheet({
               style={[styles.adjust, { borderColor: theme.colour.lineStrong }]}
             >
               <Text style={[styles.adjustText, { color: theme.colour.accentInk }]}>
-                Adjust position on the map
+                {say(message('placeForm.adjustPosition'))}
               </Text>
             </Pressable>
           ) : null}
@@ -811,16 +838,16 @@ export function MarkerFormSheet({
           {onDelete ? (
             asking ? (
               <Question
-                question="Remove this place?"
-                consequence="This cannot be undone."
-                confirm="Remove"
+                question={say(message('placeForm.removeQuestion'))}
+                consequence={say(message('placeCard.cannotBeUndone'))}
+                confirm={say(message('common.remove'))}
                 waiting={removing}
                 onConfirm={onDelete}
                 onDecline={() => setAsking(false)}
               />
             ) : (
               <Button
-                label="Remove this place"
+                label={say(message('placeForm.remove'))}
                 tone="danger"
                 onPress={() => setAsking(true)}
               />
@@ -848,14 +875,14 @@ export function MarkerFormSheet({
         >
           <View style={styles.grow}>
             <Button
-              label={saving ? 'Saving…' : 'Save place'}
+              label={say(saving ? message('common.saving') : message('placeForm.save'))}
               tone="primary"
               disabled={saving}
               onPress={() => startSave(() => onSubmit(values()))}
             />
           </View>
           <View style={styles.grow}>
-            <Button label="Cancel" onPress={onCancel} />
+            <Button label={say(message('common.cancel'))} onPress={onCancel} />
           </View>
         </View>
       </Animated.View>

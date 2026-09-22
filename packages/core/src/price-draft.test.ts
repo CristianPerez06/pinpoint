@@ -68,13 +68,13 @@ describe('localPriceClearedBy', () => {
   const saved = { localPrice: 3800, localCurrency: 'JPY' }
 
   it('names the amount when the chosen city has another currency, none, or there is no city', () => {
-    expect(localPriceClearedBy(saved, 'KRW')).toBe('JPY 3,800')
-    expect(localPriceClearedBy(saved, null)).toBe('JPY 3,800')
+    expect(localPriceClearedBy('en', saved, 'KRW')).toBe('JPY 3,800')
+    expect(localPriceClearedBy('en', saved, null)).toBe('JPY 3,800')
   })
 
   it('says nothing when the currency is the same, or nothing was saved', () => {
-    expect(localPriceClearedBy(saved, 'JPY')).toBeNull()
-    expect(localPriceClearedBy({ localPrice: null, localCurrency: null }, 'KRW')).toBeNull()
+    expect(localPriceClearedBy('en', saved, 'JPY')).toBeNull()
+    expect(localPriceClearedBy('en', { localPrice: null, localCurrency: null }, 'KRW')).toBeNull()
   })
 })
 

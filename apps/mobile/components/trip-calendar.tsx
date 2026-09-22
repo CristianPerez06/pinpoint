@@ -26,7 +26,7 @@ import {
   withdrawInterest,
 } from '@pinpoint/data'
 import { groupCoincident } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
@@ -37,6 +37,7 @@ import { MenuSheet } from '@/components/menu-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { askMapToShow } from '@/lib/calendar-detour'
+import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
@@ -94,6 +95,7 @@ export function TripCalendar({
   asked: { day?: string; view?: string } | null
 }) {
   const router = useRouter()
+  const say = useSay()
 
   /*
    * The four lists this screen shows, beside the trips it was handed.
@@ -115,14 +117,18 @@ export function TripCalendar({
   const interest = interestQuery.rows
   const members = memberQuery.rows
 
-  const [problem, setProblem] = useState<string | null>(null)
+  /*
+   * A sentence rather than a name, because the trip's actions report into the
+   * same line and they hand over sentences.
+   */
+  const [problem, setProblem] = useState<Message | null>(null)
   const [tripsOpen, setTripsOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openMarkerId, setOpenMarkerId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [conflict, setConflict] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<Message | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
   /**
@@ -232,9 +238,8 @@ export function TripCalendar({
     if (!outcome.ok) {
       // Everything entered survives a refusal, whichever kind it was.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict')
-        setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
-      else setProblem(say(ENGLISH_LANGUAGE, outcome.reason))
+      else if (outcome.kind === 'conflict') setConflict(outcome.reason)
+      else setProblem(outcome.reason)
       return
     }
 
@@ -264,8 +269,8 @@ export function TripCalendar({
     if (!outcome.ok) {
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not remove that place.',
+          ? outcome.reason
+          : message('calendar.removeFailed'),
       )
       return
     }
@@ -287,8 +292,8 @@ export function TripCalendar({
       markerQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not change whether this place is visited.',
+          ? outcome.reason
+          : message('visited.saveFailed'),
       )
     }
   }
@@ -320,8 +325,8 @@ export function TripCalendar({
       interestQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
@@ -343,8 +348,8 @@ export function TripCalendar({
       interestQuery.set(() => previous)
       setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
@@ -439,7 +444,7 @@ export function TripCalendar({
           onChoose={() => {}}
           onBack={() => {}}
           extraAction={{
-            label: 'View on map',
+            label: say(message('calendar.viewOnMap')),
             onPress: () => viewOnMap(selection.group.markers[0]!),
           }}
           onDismiss={() => setOpenMarkerId(null)}
@@ -455,7 +460,7 @@ export function TripCalendar({
 
       {editing ? (
         <MarkerFormSheet
-          title="Edit place"
+          title={say(message('calendar.editPlace'))}
           initial={{
             name: editing.name,
             note: editing.note,
@@ -474,7 +479,7 @@ export function TripCalendar({
           // screen never placed it anywhere for a rule to have an opinion about.
           cityNotice={null}
           fieldErrors={fieldErrors}
-          message={conflict}
+          message={conflict && say(conflict)}
           notice={null}
           onSubmit={save}
           onCancel={() => {
@@ -523,7 +528,7 @@ export function TripCalendar({
         // The map, which is the view this screen is not. The same way back the
         // header's control takes, so the two cannot disagree about what "back"
         // means.
-        otherView={{ name: 'Map', onPress: backToTheMap }}
+        otherView={{ name: say(message('calendar.otherViewMap')), onPress: backToTheMap }}
         onCreated={onCreated}
         onSetArchived={(tripId, value) => {
           void tripActions.setTripArchived(tripId, value)

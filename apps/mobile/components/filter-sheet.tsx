@@ -1,7 +1,7 @@
 import {
   dateOfDay,
-  formatDayRange,
   formatDayShort,
+  formatDayStretch,
   type InterestFilter,
   isFiltered,
   type IsoDay,
@@ -11,7 +11,7 @@ import {
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Language, type Message } from '@pinpoint/wording'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import { type ReactNode, useState } from 'react'
 import {
@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { markerTypeMessage } from '@/components/marker-icon'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -162,6 +163,8 @@ export function FilterSheet({
   days: readonly IsoDay[]
 }) {
   const theme = useTheme()
+  const say = useSay()
+  const language = useLanguage()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -176,6 +179,9 @@ export function FilterSheet({
   // What the way out below is live for, and what the toolbar's filter button
   // is drawing its dot for. One predicate, read in both places.
   const narrowed = isFiltered(filter)
+
+  const nameOf = (member: TripMember) =>
+    member.id === ownMemberId ? say(message('interest.you')) : member.displayName
 
   /* Reopening shows the overview rather than whatever was last expanded: the
      rows are the point of the sheet, and one standing open is a state nobody
@@ -230,33 +236,35 @@ export function FilterSheet({
    */
   const interestSaid =
     filter.interest.kind === 'unanswered'
-      ? 'Nobody has answered'
+      ? say(message('filter.nobodyAnsweredSaid'))
       : filter.interest.kind === 'wanted-by'
-        ? wordList(
-            chosen
-              .map((id) => members.find((member) => member.id === id))
-              .filter((member) => member !== undefined)
-              .map((member) =>
-                member.id === ownMemberId ? 'You' : member.displayName,
-              ),
+        ? say(
+            wordList(
+              chosen
+                .map((id) => members.find((member) => member.id === id))
+                .filter((member) => member !== undefined)
+                .map(nameOf),
+            ),
           )
-        : 'Anyone'
+        : say(message('filter.anyone'))
 
   const kindSaid =
     kinds.length === 0
-      ? 'Any kind'
-      : wordList(
-          MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
-            say(ENGLISH_LANGUAGE, markerTypeMessage(type.id)),
+      ? say(message('filter.anyKind'))
+      : say(
+          wordList(
+            MARKER_TYPES.filter((type) => kinds.includes(type.id)).map((type) =>
+              say(markerTypeMessage(type.id)),
+            ),
           ),
         )
 
   const daySaid =
     filter.day.kind === 'undated'
-      ? 'No day yet'
+      ? say(message('filter.noDay'))
       : chosenDays.length === 0
-        ? 'Any day'
-        : wordList([...chosenDays].sort().map(formatDayShort))
+        ? say(message('filter.anyDay'))
+        : say(wordList([...chosenDays].sort().map((day) => formatDayShort(language, day))))
 
   return (
     <Modal
@@ -267,7 +275,7 @@ export function FilterSheet({
       // Android's back gesture reaches `onRequestClose`; on iOS the backdrop and
       // the Done button are the ways out.
     >
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/* The sheet swallows presses so that touching a row does not dismiss
             through the backdrop underneath it. */}
         <Pressable
@@ -287,10 +295,10 @@ export function FilterSheet({
           ]}
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.colour.ink }]}>Filter</Text>
+            <Text style={[styles.title, { color: theme.colour.ink }]}>{say(message('filter.name'))}</Text>
             <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
               <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                Done
+                {say(message('common.done'))}
               </Text>
             </Pressable>
           </View>
@@ -315,7 +323,7 @@ export function FilterSheet({
               hide in.
             */}
             <Question
-              name="Wanted by"
+              name={say(message('filter.wantedBy'))}
               said={interestSaid}
               set={filter.interest.kind !== 'anyone'}
               open={question === 'interest'}
@@ -325,12 +333,12 @@ export function FilterSheet({
             >
               {/* The question this list asks, because the two below ask the
                   opposite one and tick boxes do not say which is which. */}
-              <Heading>Places all of them want</Heading>
+              <Heading>{say(message('filter.wantedByHeading'))}</Heading>
 
               {members.map((member) => (
                 <Option
                   key={member.id}
-                  label={member.id === ownMemberId ? 'You' : member.displayName}
+                  label={nameOf(member)}
                   checked={chosen.includes(member.id)}
                   onPress={() => toggleMember(member.id)}
                 />
@@ -342,7 +350,7 @@ export function FilterSheet({
                   ticks rather than adding to them — "wanted by Ana, and also
                   nobody has answered" has no meaning. */}
               <Option
-                label="Nobody has answered yet"
+                label={say(message('filter.nobodyAnswered'))}
                 checked={filter.interest.kind === 'unanswered'}
                 onPress={() =>
                   setInterest(
@@ -355,7 +363,7 @@ export function FilterSheet({
             </Question>
 
             <Question
-              name="Kind of place"
+              name={say(message('filter.kind'))}
               said={kindSaid}
               set={kinds.length > 0}
               open={question === 'kind'}
@@ -371,12 +379,12 @@ export function FilterSheet({
                 nothing — but nobody discovers that by ticking, they discover an
                 empty map.
               */}
-              <Heading>Places of any of these</Heading>
+              <Heading>{say(message('filter.kindHeading'))}</Heading>
 
               {MARKER_TYPES.map((type) => (
                 <Option
                   key={type.id}
-                  label={say(ENGLISH_LANGUAGE, markerTypeMessage(type.id))}
+                  label={say(markerTypeMessage(type.id))}
                   swatch={theme.markerType[type.id]}
                   checked={kinds.includes(type.id)}
                   onPress={() => toggleKind(type.id)}
@@ -385,28 +393,28 @@ export function FilterSheet({
             </Question>
 
             <Question
-              name="Day"
+              name={say(message('filter.day'))}
               said={daySaid}
               set={filter.day.kind !== 'any'}
               open={question === 'day'}
               onToggle={() => setQuestion(question === 'day' ? null : 'day')}
             >
-              <Heading>Places on any of these days</Heading>
+              <Heading>{say(message('filter.dayHeading'))}</Heading>
 
               {days.length === 0 ? (
                 /* Said rather than left blank: an empty region reads as a list
                    that failed to load. */
                 <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
-                  Nothing is planned for a day yet.
+                  {say(message('filter.noDays'))}
                 </Text>
               ) : (
                 inWeeks(days).map((run) => (
                   <View key={run[0]}>
-                    <Heading>{runLabel(run)}</Heading>
+                    <Heading>{runLabel(language, run)}</Heading>
                     {run.map((day) => (
                       <Option
                         key={day}
-                        label={formatDayShort(day)}
+                        label={formatDayShort(language, day)}
                         checked={chosenDays.includes(day)}
                         onPress={() => toggleDay(day)}
                       />
@@ -421,7 +429,7 @@ export function FilterSheet({
                   triage pile above and the same reason. "Thursday, and also the
                   ones with no day" is two questions wearing one answer. */}
               <Option
-                label="No day yet"
+                label={say(message('filter.noDay'))}
                 checked={filter.day.kind === 'undated'}
                 onPress={() =>
                   onChange({
@@ -446,7 +454,7 @@ export function FilterSheet({
               instead. `city.ts` carries the measurement this rests on.
             */}
             <Option
-              label="Not filed under a city"
+              label={say(message('filter.unfiled'))}
               checked={filter.city === 'unfiled'}
               onPress={() =>
                 onChange({
@@ -457,7 +465,7 @@ export function FilterSheet({
             />
 
             <Option
-              label="Hide visited"
+              label={say(message('filter.hideVisited'))}
               checked={filter.visited === 'unvisited'}
               onPress={() =>
                 onChange({
@@ -491,7 +499,7 @@ export function FilterSheet({
                 if (narrowed) onChange(NO_FILTER)
               }}
               accessibilityRole="button"
-              accessibilityLabel="Clear the filter"
+              accessibilityLabel={say(message('filter.clear'))}
               accessibilityState={{ disabled: !narrowed }}
               style={[
                 styles.clear,
@@ -512,7 +520,7 @@ export function FilterSheet({
                   { color: narrowed ? theme.colour.accentInk : theme.colour.inkMuted },
                 ]}
               >
-                Clear
+                {say(message('filter.clearShort'))}
               </Text>
             </Pressable>
           </View>
@@ -529,11 +537,15 @@ export function FilterSheet({
  * members is allowed here: the rule against it is about the *trigger*, whose
  * width would then follow its own state. This sits inside the sheet and
  * truncates.
+ *
+ * The last pair is joined by the catalogue, because `and` is a word.
  */
-function wordList(words: readonly string[]): string {
-  if (words.length === 0) return ''
-  if (words.length === 1) return words[0]
-  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+function wordList(words: readonly string[]): Message {
+  if (words.length <= 1) return message('filter.listOne', { word: words[0] ?? '' })
+  return message('filter.listAnd', {
+    head: words.slice(0, -1).join(', '),
+    last: words[words.length - 1]!,
+  })
 }
 
 /**
@@ -580,8 +592,8 @@ function inWeeks(days: readonly IsoDay[]): readonly (readonly IsoDay[])[] {
  * to one question waiting to drift apart — and a third was about to be written
  * for a trip's dates in the trip menu.
  */
-function runLabel(run: readonly IsoDay[]): string {
-  return formatDayRange(run[0], run[run.length - 1]) ?? run[0]
+function runLabel(language: Language, run: readonly IsoDay[]): string {
+  return formatDayStretch(language, run[0]!, run[run.length - 1]!)
 }
 
 /** The small uppercase line that says what a list of ticks is asking. */
@@ -619,6 +631,7 @@ function Question({
   children: ReactNode
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   return (
     <View>
@@ -628,7 +641,7 @@ function Question({
         accessibilityState={{ expanded: open }}
         /* The whole state in the name, for somebody who is not looking at it —
            the chevron and the colour are drawn and reach nobody else. */
-        accessibilityLabel={`${name}. ${said}`}
+        accessibilityLabel={say(message('filter.questionSpoken', { name, said }))}
         style={styles.questionHead}
       >
         <Text style={[styles.questionName, { color: theme.colour.ink }]}>{name}</Text>

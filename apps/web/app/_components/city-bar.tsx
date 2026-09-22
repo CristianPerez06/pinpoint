@@ -2,11 +2,12 @@
 
 import type { City, Marker } from '@pinpoint/core'
 import { CITY_NEEDS_A_NAME, cityNameTaken, localPricesUnder, UNASSIGNED_CITY } from '@pinpoint/core'
-import type { Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { CurrencyField } from '@/app/_components/currency-field'
+import { useSay } from '@/app/_components/language'
 import { Button, Menu, Question, TextField, WaitingMenu } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
@@ -116,6 +117,7 @@ function CityBarLive({
   const [editing, setEditing] = useState<string | null>(null)
   /** Whether the creator is open. Never open at the same time as an editor. */
   const [creating, setCreating] = useState(false)
+  const say = useSay()
   const selected = cities.find((city) => city.id === selectedCityId) ?? null
 
   /**
@@ -128,8 +130,8 @@ function CityBarLive({
    */
   const selectionName =
     selectedCityId === UNASSIGNED_CITY
-      ? 'Unassigned'
-      : (selected?.name ?? 'All places')
+      ? say(message('city.unassigned'))
+      : (selected?.name ?? say(message('city.allPlaces')))
 
   /** Opening always starts at the list, never wherever it was last left. */
   function setOpen(next: boolean) {
@@ -146,7 +148,7 @@ function CityBarLive({
 
   return (
     <Menu
-      name="City"
+      name={say(message('city.menuName'))}
       /*
         What the selection is called — a city's name, `All places`, or
         `Unassigned` — not a `CITY` label beside a
@@ -159,7 +161,7 @@ function CityBarLive({
       onOpen={setOpen}
       tone="quiet"
     >
-      <p className={styles.heading}>Working on</p>
+      <p className={styles.heading}>{say(message('city.workingOn'))}</p>
 
       <button
         type="button"
@@ -170,8 +172,10 @@ function CityBarLive({
         aria-current={selectedCityId === null}
         className={styles.row}
       >
-        <span className={styles.rowName}>All places</span>
-        <span className={styles.rowNote}>{countLabel(markers.length)}</span>
+        <span className={styles.rowName}>{say(message('city.allPlaces'))}</span>
+        <span className={styles.rowNote}>
+          {say(message('city.placeCount', { count: markers.length }))}
+        </span>
         {/* Holds the column the pencils occupy, so the names of the cities
             below line up with this one instead of stepping sideways. */}
         <span className={styles.penSlot} aria-hidden />
@@ -198,7 +202,7 @@ function CityBarLive({
               >
                 <span className={styles.rowName}>{city.name}</span>
                 <span className={styles.rowNote}>
-                  {countLabel(count)}
+                  {say(message('city.placeCount', { count }))}
                 </span>
               </button>
 
@@ -208,7 +212,7 @@ function CityBarLive({
                   setEditing((current) => (current === city.id ? null : city.id))
                 }
                 aria-expanded={editing === city.id}
-                aria-label={`Edit ${city.name}`}
+                aria-label={say(message('city.editNamed', { name: city.name }))}
                 className={styles.pen}
               >
                 <Pencil size={14} strokeWidth={2} aria-hidden />
@@ -247,9 +251,13 @@ function CityBarLive({
         aria-current={selectedCityId === UNASSIGNED_CITY}
         className={styles.row}
       >
-        <span className={styles.rowName}>Unassigned</span>
+        <span className={styles.rowName}>{say(message('city.unassigned'))}</span>
         <span className={styles.rowNote}>
-          {countLabel(markers.filter((marker) => marker.cityId === null).length)}
+          {say(
+            message('city.placeCount', {
+              count: markers.filter((marker) => marker.cityId === null).length,
+            }),
+          )}
         </span>
         {/* Holds the pencil column, as `All places` does. There is nothing to
             edit here: a group defined by the absence of a city has no name of
@@ -289,7 +297,7 @@ function CityBarLive({
             className={styles.create}
           >
             <Plus size={14} strokeWidth={2.5} aria-hidden />
-            <span>New city…</span>
+            <span>{say(message('city.new'))}</span>
           </button>
         )}
       </div>
@@ -319,6 +327,7 @@ function CityCreator({
   const [currency, setCurrency] = useState<string | null>(null)
   const [error, setError] = useState<Message | null>(null)
   const [creating, startCreate] = usePending()
+  const say = useSay()
 
   const trimmed = name.trim()
 
@@ -358,7 +367,7 @@ function CityCreator({
   return (
     <div className={styles.editor}>
       <TextField
-        label="Name"
+        label={say(message('common.name'))}
         value={name}
         onChange={(next) => {
           setName(next)
@@ -370,40 +379,25 @@ function CityCreator({
       <CurrencyField
         value={currency}
         onChange={setCurrency}
-        hint={`Places in ${trimmed || 'this city'} get a ${currency ?? ''} price box beside the dollars.`}
+        hint={say(message('city.currencyHint', { city: trimmed, currency: currency ?? '' }))}
       />
 
       <div className={styles.actions}>
         <Button tone="primary" onClick={create} disabled={creating}>
-          {creating ? 'Creating…' : 'Create city'}
+          {say(creating ? message('common.creating') : message('city.create'))}
         </Button>
         <Button tone="quiet" disabled={creating} onClick={onClose}>
-          Cancel
+          {say(message('common.cancel'))}
         </Button>
       </div>
     </div>
   )
 }
 
-/** `1 place` or `N places`, said the same way here as on the phone. */
-function countLabel(count: number): string {
-  return count === 1 ? '1 place' : `${count} places`
-}
-
 /** What the editor writes: a name, and the second currency or none. */
 export interface CityEdit {
   name: string
   currency: string | null
-}
-
-/**
- * `4 of them lose their JPY price; their USD prices stay.` — the sentence every
- * warning about clearing local prices shares, so the three say it the same way.
- */
-function localLoss(count: number, currency: string, lead: string): string {
-  return `${lead} ${count === 1 ? 'loses its' : 'lose their'} ${currency} price; ${
-    count === 1 ? 'its USD price stays' : 'their USD prices stay'
-  }.`
 }
 
 function CityEditor({
@@ -434,6 +428,7 @@ function CityEditor({
   const [saving, startSave] = usePending()
   const [removing, startRemove] = usePending()
   const busy = saving || removing
+  const say = useSay()
 
   /**
    * Which question is standing, or none.
@@ -453,19 +448,20 @@ function CityEditor({
   const currencyLoses =
     currency !== city.currency && city.currency !== null && localCount > 0
 
-  function currencyQuestion(): string {
+  function currencyQuestion(): Message {
     return currency === null
-      ? `Remove ${city.currency} from “${city.name}”?`
-      : `Change “${city.name}” to ${currency}?`
+      ? message('city.removeCurrencyQuestionQuoted', {
+          name: city.name,
+          currency: city.currency ?? '',
+        })
+      : message('city.changeCurrencyQuestionQuoted', { name: city.name, currency })
   }
 
-  function currencyConsequence(): string {
-    const places = localCount === 1 ? '1 place' : `${localCount} places`
-    return `${places} in ${city.name} ${localCount === 1 ? 'has' : 'have'} a ${city.currency} price. ${
-      localCount === 1 ? 'It' : 'They'
-    } will lose it${currency === null ? '' : ', not have it converted'}. ${
-      localCount === 1 ? 'Its USD price stays' : 'Their USD prices stay'
-    }.`
+  function currencyConsequence(): Message {
+    const values = { count: localCount, name: city.name, currency: city.currency ?? '' }
+    return currency === null
+      ? message('city.currencyRemovedConsequence', values)
+      : message('city.currencyChangedConsequence', values)
   }
 
   /**
@@ -474,17 +470,13 @@ function CityEditor({
    * The consequence lands on rows the person is not looking at, so the count is
    * stated rather than left to be discovered.
    */
-  function removalConsequence(): string {
-    const consequence =
-      markerCount === 0
-        ? 'It holds no places.'
-        : `${markerCount} ${markerCount === 1 ? 'place' : 'places'} will become unassigned. They are not deleted.`
+  function removalConsequence(): Message {
     // Unassigned is a city with no currency, so local prices go too.
-    const loss =
-      localCount === 0 || city.currency === null
-        ? ''
-        : ` ${localLoss(localCount, city.currency, markerCount === 1 ? 'It' : `${localCount} of them`)}`
-    return `${consequence}${loss}`
+    return message('city.removeConsequence', {
+      places: markerCount,
+      local: city.currency === null ? 0 : localCount,
+      currency: city.currency ?? '',
+    })
   }
 
   function save() {
@@ -508,11 +500,15 @@ function CityEditor({
     return (
       <div className={styles.editor}>
         <Question
-          question={removingCity ? `Remove “${city.name}”?` : currencyQuestion()}
-          consequence={
-            removingCity ? removalConsequence() : currencyConsequence()
-          }
-          confirm={removingCity ? 'Remove city' : 'Save'}
+          question={say(
+            removingCity
+              ? message('city.removeQuestionQuoted', { name: city.name })
+              : currencyQuestion(),
+          )}
+          consequence={say(
+            removingCity ? removalConsequence() : currencyConsequence(),
+          )}
+          confirm={say(removingCity ? message('city.remove') : message('common.save'))}
           waiting={busy}
           onConfirm={() => {
             if (!removingCity) {
@@ -532,11 +528,21 @@ function CityEditor({
 
   return (
     <div className={styles.editor}>
-      <TextField label="Name" value={name} onChange={setName} autoFocus />
+      <TextField
+        label={say(message('common.name'))}
+        value={name}
+        onChange={setName}
+        autoFocus
+      />
       <CurrencyField
         value={currency}
         onChange={setCurrency}
-        hint={`Places in ${name.trim() || city.name} get a ${currency ?? ''} price box beside the dollars.`}
+        hint={say(
+          message('city.currencyHint', {
+            city: name.trim() || city.name,
+            currency: currency ?? '',
+          }),
+        )}
       />
 
       <div className={styles.actions}>
@@ -557,10 +563,10 @@ function CityEditor({
           }}
           disabled={busy || name.trim() === ''}
         >
-          {saving ? 'Saving…' : 'Save'}
+          {say(saving ? message('common.saving') : message('common.save'))}
         </Button>
         <Button tone="quiet" disabled={busy} onClick={onClose}>
-          Cancel
+          {say(message('common.cancel'))}
         </Button>
         <span className={styles.spacer}>
           <Button
@@ -568,7 +574,7 @@ function CityEditor({
             disabled={busy}
             onClick={() => setAsking('remove')}
           >
-            Remove city
+            {say(message('city.remove'))}
           </Button>
         </span>
       </div>
@@ -588,9 +594,14 @@ function CityEditor({
  * differs, because the label is the part nobody knows yet.
  */
 export function CityBar(props: CityBarProps) {
+  const say = useSay()
   if (props.waiting)
     return (
-      <WaitingMenu name="City" labelClassName={styles.name} measure="11ch" />
+      <WaitingMenu
+        name={say(message('city.menuName'))}
+        labelClassName={styles.name}
+        measure="11ch"
+      />
     )
   return <CityBarLive {...props} />
 }

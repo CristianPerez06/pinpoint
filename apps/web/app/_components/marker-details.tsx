@@ -12,11 +12,12 @@ import {
   type TripMember,
 } from '@pinpoint/core'
 import type { MarkerGroup, MarkerView } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { X } from 'lucide-react'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
+import { useLanguage, useSay } from '@/app/_components/language'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { TypeChip } from '@/app/_components/pin'
 import {
@@ -41,11 +42,12 @@ import styles from './marker-details.module.css'
  */
 
 function DismissButton({ onDismiss }: { onDismiss: () => void }) {
+  const say = useSay()
   return (
     <button
       type="button"
       onClick={onDismiss}
-      aria-label="Close"
+      aria-label={say(message('common.close'))}
       className={styles.dismiss}
     >
       <X size={16} strokeWidth={2.2} />
@@ -96,7 +98,8 @@ function ControlField({ label, children }: { label: string; children: ReactNode 
  * per field — and resolves it here, which is the span it is drawn in.
  */
 function Absent({ children }: { children: Message }) {
-  return <span className={styles.absent}>{say(ENGLISH_LANGUAGE, children)}</span>
+  const say = useSay()
+  return <span className={styles.absent}>{say(children)}</span>
 }
 
 /**
@@ -107,16 +110,17 @@ function Absent({ children }: { children: Message }) {
  * from line to line cannot be compared at a glance.
  */
 function HoursLines({ lines }: { lines: ReturnType<typeof describeHours> }) {
+  const say = useSay()
   return (
     <div className={styles.hours}>
       {lines.map((line) => (
         <div
-          key={line.days}
+          key={say(line.days)}
           className={`${styles.hoursLine} ${line.closed ? styles.hoursClosed : ''}`}
         >
-          <span className={styles.hoursDays}>{line.days}</span>
+          <span className={styles.hoursDays}>{say(line.days)}</span>
           <span className={styles.hoursText}>
-            {line.text.split(', ').map((part, index) => (
+            {say(line.text).split(', ').map((part, index) => (
               // One range per unbreakable piece, so a line that has to wrap
               // breaks between ranges and never inside one.
               <Fragment key={part}>
@@ -205,7 +209,14 @@ function Details({
    * person can answer it again without re-opening it.
    */
   const [asking, setAsking] = useState(false)
-  const prices = formatPrices(marker)
+  const language = useLanguage()
+  const say = useSay()
+  const prices = formatPrices(language, marker)
+  // Only reached with both ends present, which always words a stretch.
+  const stretch =
+    marker.plannedOn === null || marker.plannedUntil === null
+      ? null
+      : formatDayRange(language, marker.plannedOn, marker.plannedUntil)
 
   /**
    * The card is a read, so the way out costs nothing and there is no question
@@ -252,19 +263,19 @@ function Details({
           className={`${styles.tag} ${styles.tagFamily}`}
           style={{ backgroundColor: `var(--pp-pin-${view.type})` }}
         >
-          {say(ENGLISH_LANGUAGE, markerTypeMessage(view.typeId))}
+          {say(markerTypeMessage(view.typeId))}
         </span>
         {/* `USD 25 · JPY 3,800`, either alone, or `Free`; no pill for neither.
             One shared helper, so the phone and the laptop cannot disagree. */}
         {prices === null ? null : (
-          <span className={`${styles.tag} ${styles.tagPrice}`}>{prices}</span>
+          <span className={`${styles.tag} ${styles.tagPrice}`}>{say(prices)}</span>
         )}
       </div>
 
       {hidden ? <HiddenNote /> : null}
 
       <div className={styles.fields}>
-        <ControlField label="Who wants to go">
+        <ControlField label={say(message('placeField.whoWantsToGo'))}>
           <InterestRows
             members={members}
             interest={interest}
@@ -274,7 +285,7 @@ function Details({
           />
         </ControlField>
 
-        <ControlField label="Visited">
+        <ControlField label={say(message('placeField.visited'))}>
           <VisitedToggle visited={marker.visited} onChange={onSetVisited} />
         </ControlField>
 
@@ -286,8 +297,8 @@ function Details({
           that has not been supplied; a place filed under nothing has an answer,
           and it is `Unassigned`. See `UNFILED_CITY_WORDING`.
         */}
-        <Field label="City">
-          {cityName ?? say(ENGLISH_LANGUAGE, UNFILED_CITY_WORDING)}
+        <Field label={say(message('placeField.city'))}>
+          {cityName ?? say(UNFILED_CITY_WORDING)}
         </Field>
 
         {/*
@@ -299,28 +310,28 @@ function Details({
           both ends present; with one it would word a half-open range, which is
           a trip's dates and not a place's.
         */}
-        <Field label="Day">
+        <Field label={say(message('placeField.day'))}>
           {marker.plannedOn === null ? (
             <Absent>{EMPTY_FIELD_WORDING.day}</Absent>
-          ) : marker.plannedUntil === null ? (
-            formatDay(marker.plannedOn)
+          ) : stretch === null ? (
+            formatDay(language, marker.plannedOn)
           ) : (
-            formatDayRange(marker.plannedOn, marker.plannedUntil)
+            say(stretch)
           )}
         </Field>
 
-        <ControlField label="Hours">
+        <ControlField label={say(message('placeField.hours'))}>
           {marker.hours === null ? (
             <Absent>{EMPTY_FIELD_WORDING.hours}</Absent>
           ) : (
-            <HoursLines lines={describeHours(marker.hours)} />
+            <HoursLines lines={describeHours(language, marker.hours)} />
           )}
         </ControlField>
 
-        <Field label="Note" valueClassName={styles.noteValue}>
+        <Field label={say(message('placeField.note'))} valueClassName={styles.noteValue}>
           {marker.note ?? <Absent>{EMPTY_FIELD_WORDING.note}</Absent>}
         </Field>
-        <Field label="Link">
+        <Field label={say(message('placeField.link'))}>
           {marker.link === null ? (
             <Absent>{EMPTY_FIELD_WORDING.link}</Absent>
           ) : (
@@ -346,20 +357,20 @@ function Details({
       */}
       {asking ? (
         <Question
-          question={`Remove “${marker.name}”?`}
+          question={say(message('placeCard.removeQuestionQuoted', { name: marker.name }))}
           // Said plainly, because it is true: there is no soft delete and no
           // undo anywhere behind this.
-          consequence="This cannot be undone."
-          confirm="Remove"
+          consequence={say(message('placeCard.cannotBeUndone'))}
+          confirm={say(message('common.remove'))}
           waiting={removing}
           onConfirm={() => startRemove(onDelete)}
           onDecline={() => setAsking(false)}
         />
       ) : (
       <div className={styles.actions}>
-        <Button onClick={onEdit}>Edit</Button>
+        <Button onClick={onEdit}>{say(message('common.edit'))}</Button>
         <Button tone="danger" onClick={() => setAsking(true)}>
-          Remove
+          {say(message('common.remove'))}
         </Button>
 
         {extraAction ? (
@@ -371,7 +382,7 @@ function Details({
         ) : onBack ? (
           <span className={styles.spacer}>
             <Button tone="quiet" onClick={onBack}>
-              ← Others at this point
+              {say(message('placeCard.othersHere'))}
             </Button>
           </span>
         ) : null}
@@ -396,11 +407,9 @@ function Details({
  * the view is narrowed.
  */
 function HiddenNote() {
+  const say = useSay()
   return (
-    <p className={styles.hiddenNote}>
-      Already saved on this trip. Your filter is hiding it, so it is not drawn on
-      the map.
-    </p>
+    <p className={styles.hiddenNote}>{say(message('placeCard.hidden'))}</p>
   )
 }
 
@@ -422,16 +431,16 @@ function Chooser({
   onChoose: (index: number) => void
   onDismiss: () => void
 }) {
+  const say = useSay()
   return (
     <div className={overlayPanelClass}>
       <div className={styles.head}>
-        <h2 className={styles.name}>{group.count} places here</h2>
+        <h2 className={styles.name}>
+          {say(message('placeGroup.count', { count: group.count }))}
+        </h2>
         <DismissButton onDismiss={onDismiss} />
       </div>
-      <p className={styles.chooserNote}>
-        They share the same coordinates, so zooming will not separate them.
-        Nothing has been moved — pick one.
-      </p>
+      <p className={styles.chooserNote}>{say(message('placeGroup.note'))}</p>
       {hidden ? <HiddenNote /> : null}
 
       <ul className={styles.list}>
@@ -445,7 +454,7 @@ function Chooser({
               <TypeChip view={group.views[index]!} size={26} />
               <span>{marker.name}</span>
               <span className={styles.choiceType}>
-                {say(ENGLISH_LANGUAGE, markerTypeMessage(group.views[index]!.typeId))}
+                {say(markerTypeMessage(group.views[index]!.typeId))}
               </span>
             </button>
           </li>

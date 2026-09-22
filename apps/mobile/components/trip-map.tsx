@@ -23,6 +23,7 @@ import {
   type Viewport,
 } from '@pinpoint/map'
 import { ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 // One subpath each, like `marker-details.tsx` and for the same reason: Metro
 // does not tree-shake in development, so the package root would pull all 1767
 // glyphs into the bundle.
@@ -45,6 +46,7 @@ import { type ExtraAction, MarkerDetails, type Selection } from '@/components/ma
 import { DraftPin, Pin } from '@/components/pin'
 import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
+import { useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
 
 /**
@@ -311,7 +313,8 @@ function ZoomButton({
   divided?: boolean
 }) {
   const theme = useTheme()
-  const label = direction === 1 ? 'Zoom in' : 'Zoom out'
+  const say = useSay()
+  const label = say(message(direction === 1 ? 'map.zoomIn' : 'map.zoomOut'))
   // A step that arrives where it started is a control with nothing left to do.
   // Asking the shared function rather than comparing against the constants keeps
   // one opinion about where the range ends, and sidesteps comparing floats.
@@ -626,6 +629,7 @@ export function TripMap({
     extraAction?: ExtraAction
   } | null>(null)
   const theme = useTheme()
+  const say = useSay()
   const mode = useThemeMode()
 
   /**
@@ -988,11 +992,10 @@ export function TripMap({
     return (
       <View style={[styles.failure, { backgroundColor: theme.colour.surfaceMuted }]}>
         <Text style={[styles.failureTitle, { color: theme.colour.ink }]}>
-          The map could not be loaded
+          {say(message('map.styleFailed'))}
         </Text>
         <Text style={[styles.failureDetail, { color: theme.colour.inkMuted }]}>
-          The place data is fine — {basemap.error}. Your saved places are still
-          here; only the map underneath them is missing.
+          {say(message('map.styleFailedDetail', { reason: say(basemap.error) }))}
         </Text>
       </View>
     )
@@ -1277,7 +1280,7 @@ export function TripMap({
           <Pressable
             onPress={onReread}
             accessibilityRole="button"
-            accessibilityLabel="Read everything again"
+            accessibilityLabel={say(message('map.reread'))}
             accessibilityState={{ busy: rereading, disabled: rereading }}
             disabled={rereading}
             style={[
@@ -1349,8 +1352,8 @@ export function TripMap({
       <Pressable
         onPress={() => setCreditsOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel="Map data credits"
-        accessibilityHint="Opens the projects this map is built from"
+        accessibilityLabel={say(message('map.credits'))}
+        accessibilityHint={say(message('map.creditsHint'))}
         style={[
           styles.attribution,
           {

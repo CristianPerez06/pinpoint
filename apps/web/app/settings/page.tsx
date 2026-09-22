@@ -1,18 +1,23 @@
+import { message } from '@pinpoint/wording'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
 import { requireUser } from '@/lib/auth/guards'
+import { serverSay } from '@/lib/language'
 
 import { AccountRow, SettingsScreen } from './settings-screen'
 
-export const metadata: Metadata = { title: 'Settings · pinpoint' }
+export async function generateMetadata(): Promise<Metadata> {
+  const say = await serverSay()
+  return { title: say(message('settings.documentTitle')) }
+}
 
 /**
  * Settings, drawn at once, with the address streamed in where it goes.
  *
  * The page does not wait for the account. Only the account's row does, behind
  * its own boundary, and everything around it — the way back and the choice of
- * appearance — is on the first paint and live from it.
+ * appearance and of language — is on the first paint and live from it.
  *
  * Deliberately not a `loading.tsx`. A route's loading file is a fallback for the
  * whole page, and on a full load React does not attach behaviour to a fallback

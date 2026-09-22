@@ -1,10 +1,10 @@
 import { fetchTrips } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import { Redirect, useLocalSearchParams } from 'expo-router'
 
 import { CalendarScreen } from '@/components/calendar-screen'
 import { FailedState } from '@/components/states'
 import { TripCalendar } from '@/components/trip-calendar'
+import { useSay } from '@/lib/language'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { useTripChoice } from '@/lib/trip-choice'
@@ -29,6 +29,7 @@ import { useQuery } from '@/lib/use-query'
  */
 export default function CalendarRoute() {
   const { session, loading } = useSession()
+  const say = useSay()
   const { chosenTripId, chooseTrip } = useTripChoice()
 
   const trips = useQuery(() => fetchTrips(supabase), [session])
@@ -57,7 +58,7 @@ export default function CalendarRoute() {
 
   if (trips.state.status === 'loading') return waiting
   if (trips.state.status === 'failed') {
-    return <FailedState message={say(ENGLISH_LANGUAGE, trips.state.reason)} />
+    return <FailedState message={say(trips.state.reason)} />
   }
 
   /*

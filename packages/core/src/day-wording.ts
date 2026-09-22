@@ -1,3 +1,5 @@
+import { message, type Language, type Message } from '@pinpoint/wording'
+
 import { dateOfDay, type IsoDay } from './marker-day'
 
 /**
@@ -29,12 +31,19 @@ import { dateOfDay, type IsoDay } from './marker-day'
  * evidence is one console message that names neither dates nor this file.
  *
  * `en-GB` rather than `en-US` because these read as "Thursday 8 October", which
- * is the wording the day columns were designed around. English rather than the
- * reader's language because every other string in this product is English;
- * translating only the dates would be the inconsistency, and translating the
- * product is its own piece of work (#45). When that happens this becomes an
- * argument threaded from wherever the language is decided, not a second question
- * asked of the device — the same note `price.ts` carries about `PRICE_LOCALE`.
+ * is the wording the day columns were designed around. `es-ES` because it is the
+ * Spanish whose forms the specification writes out — `viernes, 3 de abril`,
+ * `vie, 3 abr` — and a stated locale per language is what keeps a laptop and a
+ * phone reading Spanish agreeing with each other. **The language is an
+ * argument, never a question asked of the device**: the device is consulted once,
+ * for the first launch, by whoever decides the language, and not here.
+ *
+ * The two languages differ in more than their words. Spanish writes a comma
+ * after the weekday (`viernes, 3 de abril`) where English writes none, puts `de`
+ * before a month and before a year, and writes weekdays and months in lower
+ * case. None of that is substituted in here; it is what each stated locale
+ * answers, and `day-wording.test.ts` writes every form out in both languages so a
+ * reviewer can tell a wording decision from a runtime's default.
  *
  * WHY EVERY FORMAT FALLS BACK
  *
@@ -44,16 +53,19 @@ import { dateOfDay, type IsoDay } from './marker-day'
  * the same, returning the `YYYY-MM-DD` string — which is not the wording anybody
  * wants, and is still a day somebody can read.
  */
-const LOCALE = 'en-GB'
+const LOCALE: Readonly<Record<Language, string>> = {
+  en: 'en-GB',
+  es: 'es-ES',
+}
 
 /** `Friday 3 April` — what a day is called while you are looking at it. */
-export function formatDay(day: IsoDay): string {
-  return worded(day, { weekday: 'long', day: 'numeric', month: 'long' })
+export function formatDay(language: Language, day: IsoDay): string {
+  return worded(language, day, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 /** `Fri 3 Apr` — the same day where there is less room for it. */
-export function formatDayShort(day: IsoDay): string {
-  return worded(day, { weekday: 'short', day: 'numeric', month: 'short' })
+export function formatDayShort(language: Language, day: IsoDay): string {
+  return worded(language, day, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 /**
@@ -63,8 +75,8 @@ export function formatDayShort(day: IsoDay): string {
  * weekday is noise: the days it spans are listed underneath with their own
  * weekdays, and repeating one of them in the heading says nothing.
  */
-export function formatDayCompact(day: IsoDay): string {
-  return worded(day, { day: 'numeric', month: 'short' })
+export function formatDayCompact(language: Language, day: IsoDay): string {
+  return worded(language, day, { day: 'numeric', month: 'short' })
 }
 
 /**
@@ -85,13 +97,26 @@ export function formatDayCompact(day: IsoDay): string {
  *
  * Composing it means the two cannot drift apart again: this form is that form
  * plus a year, by construction, and a change to the wording reaches both.
+ *
+ * Spanish carries a comma after its weekday on screen, so it carries one here
+ * too — the rule is that the two forms agree, not that there is no comma — and
+ * joins the year with `de`, as it joins the month: `viernes, 3 de abril de
+ * 2026`. That joining word is the one piece of the form this file states rather
+ * than asks `Intl` for, because asking for the year separately is what brought
+ * the stray English comma in.
  */
-export function formatDayFull(day: IsoDay): string {
-  const named = formatDay(day)
+export function formatDayFull(language: Language, day: IsoDay): string {
+  const named = formatDay(language, day)
   // `formatDay` hands back the stored string where the runtime cannot word a
   // day. A year appended to that makes a date nobody can read.
   if (named === day) return day
-  return `${named} ${yearOf(day)}`
+  return `${named}${YEAR_JOIN[language]}${yearOf(day)}`
+}
+
+/** What stands between a worded day and its year, per language. */
+const YEAR_JOIN: Readonly<Record<Language, string>> = {
+  en: ' ',
+  es: ' de ',
 }
 
 /**
@@ -110,6 +135,11 @@ export function formatDayFull(day: IsoDay): string {
  * nothing rather than an empty label — a column of placeholders says less than
  * the names it crowds.
  *
+ * A message rather than a string, because `From` and `Until` are words and no
+ * package writes words. The stretch itself has no words around it in either
+ * language, and travels in a message too so every answer here is drawn the same
+ * way; `formatDayStretch` is the string, for a caller that always has both ends.
+ *
  * **The year is always present.** A trip is commonly planned a year ahead, and
  * `9–26 Oct` reads correctly right up until the year it means stops being
  * obvious. Collapsing the repeated month pays for most of its width: the
@@ -117,13 +147,24 @@ export function formatDayFull(day: IsoDay): string {
  * character shorter.
  */
 export function formatDayRange(
+  language: Language,
   from: IsoDay | null,
   to: IsoDay | null,
-): string | null {
+): Message | null {
   if (from == null && to == null) return null
-  if (from == null) return `Until ${formatDayWithYear(to!)}`
-  if (to == null) return `From ${formatDayWithYear(from)}`
-  if (from === to) return formatDayWithYear(from)
+  if (from == null) return message('days.until', { day: formatDayWithYear(language, to!) })
+  if (to == null) return message('days.from', { day: formatDayWithYear(language, from) })
+  return message('days.stretch', { days: formatDayStretch(language, from, to) })
+}
+
+/**
+ * `9–26 Oct 2026` — a stretch whose both ends are known, as a string.
+ *
+ * The part of `formatDayRange` that is a value rather than a sentence. For a
+ * caller that always holds both ends, such as a week heading in the filter.
+ */
+export function formatDayStretch(language: Language, from: IsoDay, to: IsoDay): string {
+  if (from === to) return formatDayWithYear(language, from)
 
   /*
    * Where this runtime cannot word a month, every branch below would splice a
@@ -131,7 +172,7 @@ export function formatDayRange(
    * stored, joined, is the readable answer, and it is the same fallback the
    * single-day formats make.
    */
-  if (formatDayCompact(from) === from || formatDayCompact(to) === to)
+  if (formatDayCompact(language, from) === from || formatDayCompact(language, to) === to)
     return `${from} – ${to}`
 
   /*
@@ -140,11 +181,12 @@ export function formatDayRange(
    * rule. Both ends are written in full rather than quietly swapped: swapping
    * would state an order nobody entered.
    */
-  if (to < from) return `${formatDayWithYear(from)} – ${formatDayWithYear(to)}`
+  if (to < from)
+    return `${formatDayWithYear(language, from)} – ${formatDayWithYear(language, to)}`
 
   // Different years, so each end carries its own: `28 Dec 2026 – 3 Jan 2027`.
   if (yearOf(from) !== yearOf(to))
-    return `${formatDayWithYear(from)} – ${formatDayWithYear(to)}`
+    return `${formatDayWithYear(language, from)} – ${formatDayWithYear(language, to)}`
 
   /*
    * One month, written once: `9–26 Oct 2026`. The dash is tight between two
@@ -152,15 +194,21 @@ export function formatDayRange(
    * collapsed form read as one date rather than two.
    */
   if (monthOf(from) === monthOf(to))
-    return `${dayNumberOf(from)}–${formatDayWithYear(to)}`
+    return `${dayNumberOf(from)}–${formatDayWithYear(language, to)}`
 
   // Two months in one year, so the year is only needed once, at the end.
-  return `${formatDayCompact(from)} – ${formatDayWithYear(to)}`
+  return `${formatDayCompact(language, from)} – ${formatDayWithYear(language, to)}`
 }
 
-/** `3 Apr 2026` — a day with its year and no weekday. */
-function formatDayWithYear(day: IsoDay): string {
-  const compact = formatDayCompact(day)
+/**
+ * `3 Apr 2026` — a day with its year and no weekday.
+ *
+ * A plain space before the year in both languages, unlike the full form: the
+ * specification writes a stretch as `28 sept – 3 oct 2027` in Spanish, compact
+ * as a heading needs to be.
+ */
+function formatDayWithYear(language: Language, day: IsoDay): string {
+  const compact = formatDayCompact(language, day)
   if (compact === day) return day
   return `${compact} ${yearOf(day)}`
 }
@@ -204,9 +252,9 @@ export function formatDayNumeric(day: IsoDay): string {
  * the `date` column exists to avoid — reintroduced at the last step, by the code
  * that draws the label.
  */
-function worded(day: IsoDay, format: Intl.DateTimeFormatOptions): string {
+function worded(language: Language, day: IsoDay, format: Intl.DateTimeFormatOptions): string {
   try {
-    return dateOfDay(day).toLocaleDateString(LOCALE, format)
+    return dateOfDay(day).toLocaleDateString(LOCALE[language], format)
   } catch {
     return day
   }
@@ -227,11 +275,11 @@ function worded(day: IsoDay, format: Intl.DateTimeFormatOptions): string {
  * you sleep: a rail pass, a festival, a park pass.
  *
  * No locale and no `Intl` here, so none of the fallbacks above apply — this is
- * two integers and a word.
+ * two integers and a sentence, and the sentence is named rather than written.
  */
 export function formatRunPosition(position: {
   readonly index: number
   readonly total: number
-}): string {
-  return `Day ${position.index} of ${position.total}`
+}): Message {
+  return message('days.runPosition', { index: position.index, total: position.total })
 }

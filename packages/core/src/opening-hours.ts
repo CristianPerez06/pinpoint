@@ -1,4 +1,6 @@
+import { message, type Language, type Message } from '@pinpoint/wording'
 import { z } from 'zod'
+
 import { refusal } from './field-errors'
 
 /**
@@ -28,24 +30,52 @@ export const WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 export type Weekday = (typeof WEEK)[number]
 
 /**
- * Names, in the interface's language.
+ * Weekday names, per language — the letters, the abbreviations and the names a
+ * screen reader hears.
  *
- * English because the interface is English, as `PRICE_LOCALE` is. When the
- * interface is translated (#45) these become the catalogue's, and this is the
- * one place to change — the letters, the abbreviations and the names a screen
- * reader hears all come from here.
+ * Here rather than in the catalogue for the reason a day's wording is in
+ * `day-wording.ts`: these are how a stored value is written, not something the
+ * product says, and both applications must write them identically. Written out
+ * rather than asked of `Intl`, because the letters are not something `Intl`
+ * offers and a row of them drawn from two sources would be two answers.
+ *
+ * Spanish writes Wednesday's letter as `X`, which is the convention on every
+ * Spanish calendar — `M` is already Tuesday, and two `M`s side by side name
+ * nothing. Days are lower case, because Spanish does not capitalise them.
  */
-export const WEEKDAY_WORDING: Record<
-  Weekday,
-  { letter: string; short: string; name: string }
+export const WEEKDAY_WORDING: Readonly<
+  Record<Language, Readonly<Record<Weekday, { letter: string; short: string; name: string }>>>
 > = {
-  mon: { letter: 'M', short: 'Mon', name: 'Monday' },
-  tue: { letter: 'T', short: 'Tue', name: 'Tuesday' },
-  wed: { letter: 'W', short: 'Wed', name: 'Wednesday' },
-  thu: { letter: 'T', short: 'Thu', name: 'Thursday' },
-  fri: { letter: 'F', short: 'Fri', name: 'Friday' },
-  sat: { letter: 'S', short: 'Sat', name: 'Saturday' },
-  sun: { letter: 'S', short: 'Sun', name: 'Sunday' },
+  en: {
+    mon: { letter: 'M', short: 'Mon', name: 'Monday' },
+    tue: { letter: 'T', short: 'Tue', name: 'Tuesday' },
+    wed: { letter: 'W', short: 'Wed', name: 'Wednesday' },
+    thu: { letter: 'T', short: 'Thu', name: 'Thursday' },
+    fri: { letter: 'F', short: 'Fri', name: 'Friday' },
+    sat: { letter: 'S', short: 'Sat', name: 'Saturday' },
+    sun: { letter: 'S', short: 'Sun', name: 'Sunday' },
+  },
+  es: {
+    mon: { letter: 'L', short: 'lun', name: 'lunes' },
+    tue: { letter: 'M', short: 'mar', name: 'martes' },
+    wed: { letter: 'X', short: 'mié', name: 'miércoles' },
+    thu: { letter: 'J', short: 'jue', name: 'jueves' },
+    fri: { letter: 'V', short: 'vie', name: 'viernes' },
+    sat: { letter: 'S', short: 'sáb', name: 'sábado' },
+    sun: { letter: 'D', short: 'dom', name: 'domingo' },
+  },
+}
+
+/**
+ * What joins the first and last of three or more days in a row, per language:
+ * `Mon to Fri`, `lun a vie`.
+ *
+ * Part of how a list of days is written rather than a sentence, in the way `de`
+ * is part of how `3 de abril` is written — so it sits beside the names it joins.
+ */
+const SPAN_JOIN: Readonly<Record<Language, string>> = {
+  en: ' to ',
+  es: ' a ',
 }
 
 /** `HH:MM` on a 24-hour clock. `24:00` is not a time; an all-day range is `00:00–00:00`. */
@@ -228,25 +258,26 @@ export function toggleDay(draft: HoursDraft, day: Weekday): HoursDraft {
  * Two letters repeat, so the row alone cannot say which T was meant. Runs of
  * three or more read as a span; anything shorter is listed.
  */
-export function describeDays(days: readonly Weekday[]): string | null {
+export function describeDays(language: Language, days: readonly Weekday[]): Message | null {
   if (days.length === 0) return null
-  if (days.length === 7) return 'Open every day'
+  if (days.length === 7) return message('hours.openEveryDay')
 
+  const short = shortIn(language)
   const parts = runsOf(days.slice().sort(byWeek)).flatMap((run) =>
     run.length >= 3
-      ? [`${short(run[0]!)} to ${short(run[run.length - 1]!)}`]
+      ? [`${short(run[0]!)}${SPAN_JOIN[language]}${short(run[run.length - 1]!)}`]
       : run.map(short),
   )
-  return `Open ${parts.join(', ')}`
+  return message('hours.openOn', { days: parts.join(', ') })
 }
 
 /** What the form says under a finished range, or null when there is nothing to say. */
-export function rangeHint([open, close]: HoursRange): string | null {
+export function rangeHint([open, close]: HoursRange): Message | null {
   const o = normaliseTime(open)
   const c = normaliseTime(close)
   if (o === null || c === null) return null
-  if (o === c) return 'Open all day'
-  if (c < o) return `Closes ${c} the next day`
+  if (o === c) return message('hours.openAllDay')
+  if (c < o) return message('hours.closesNextDay', { time: c })
   return null
 }
 
@@ -254,9 +285,9 @@ export function rangeHint([open, close]: HoursRange): string | null {
 
 export type HoursLine = {
   /** `Mon, Wed, Fri`, `Tue–Sat`, `Every day`, or `Closed`. */
-  days: string
+  days: Message
   /** `09:00–17:00`, `24 hours`, or the closed days. */
-  text: string
+  text: Message
   /** The last line, listing the days the place is closed; drawn as secondary. */
   closed: boolean
 }
@@ -270,36 +301,47 @@ export type HoursLine = {
  * and all seven read `Every day`. Listing the closed days makes a closed day
  * something the card says rather than a gap the reader has to notice.
  */
-export function describeHours(hours: OpeningHours): HoursLine[] {
+export function describeHours(language: Language, hours: OpeningHours): HoursLine[] {
   const open = WEEK.filter((day) => hours[day] !== undefined)
   const closed = WEEK.filter((day) => hours[day] === undefined)
+  const short = shortIn(language)
 
   const days =
     open.length === 7
-      ? 'Every day'
-      : runsOf(open)
-          .map((run) =>
-            run.length === 1 ? short(run[0]!) : `${short(run[0]!)}–${short(run[run.length - 1]!)}`,
-          )
-          .join(', ')
+      ? message('hours.everyDay')
+      : message('hours.days', {
+          days: runsOf(open)
+            .map((run) =>
+              run.length === 1
+                ? short(run[0]!)
+                : `${short(run[0]!)}–${short(run[run.length - 1]!)}`,
+            )
+            .join(', '),
+        })
 
   const lines: HoursLine[] = [
     { days, text: rangeText(hours[open[0]!]![0]!), closed: false },
   ]
 
   if (closed.length > 0) {
-    lines.push({ days: 'Closed', text: closed.map(short).join(', '), closed: true })
+    lines.push({
+      days: message('hours.closed'),
+      text: message('hours.days', { days: closed.map(short).join(', ') }),
+      closed: true,
+    })
   }
 
   return lines
 }
 
-function rangeText(range: HoursRange): string {
-  return isAllDay(range) ? '24 hours' : `${range[0]}–${range[1]}`
+function rangeText(range: HoursRange): Message {
+  return isAllDay(range)
+    ? message('hours.allDay')
+    : message('hours.between', { open: range[0], close: range[1] })
 }
 
-function short(day: Weekday): string {
-  return WEEKDAY_WORDING[day].short
+function shortIn(language: Language): (day: Weekday) => string {
+  return (day) => WEEKDAY_WORDING[language][day].short
 }
 
 function byWeek(a: Weekday, b: Weekday): number {

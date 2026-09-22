@@ -53,6 +53,7 @@ function treeWith(tree) {
   }
 
   write('packages/wording/src/english.ts', tree.catalogue ?? catalogueOf())
+  if (tree.translation !== undefined) write('packages/wording/src/spanish.ts', tree.translation)
   write('apps/web/app/thing.tsx', tree.app ?? consumerOf(fillerNames()))
   write(
     'packages/map/src/marker-type.ts',
@@ -74,6 +75,15 @@ test('passes a catalogue whose every name is resolved', () => {
   const { problems, defined } = check({})
   assert.deepEqual(problems, [])
   assert.equal(defined, 21)
+})
+
+test('does not count a second language spelling out every name as using it', () => {
+  const { problems } = check({
+    catalogue: catalogueOf({ 'place.orphan': 'Nobody asks for this.' }),
+    translation: `export const SPANISH = {\n  'place.orphan': 'Nadie pide esto.',\n}\n`,
+  })
+  assert.equal(problems.length, 1)
+  assert.match(problems[0], /"place\.orphan" and nothing resolves it/)
 })
 
 test('fails a name nothing defines', () => {

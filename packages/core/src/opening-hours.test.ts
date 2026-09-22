@@ -1,3 +1,4 @@
+import { say, type Language, type Message } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -12,9 +13,24 @@ import {
   splitHours,
   toggleDay,
   WEEK,
+  WEEKDAY_WORDING,
   type HoursRange,
   type OpeningHours,
 } from './opening-hours'
+
+/** A message as the person reads it, in English, or null where there is none. */
+function said(named: Message | null, language: Language = 'en'): string | null {
+  return named === null ? null : say(language, named)
+}
+
+/** The card's lines, as the person reads them. */
+function lines(language: Language, hours: Parameters<typeof describeHours>[1]) {
+  return describeHours(language, hours).map((line) => ({
+    days: say(language, line.days),
+    text: say(language, line.text),
+    closed: line.closed,
+  }))
+}
 
 const nine: HoursRange = ['09:00', '17:00']
 
@@ -123,11 +139,11 @@ describe('normaliseTime', () => {
 
 describe('rangeHint', () => {
   it('says a late close is the next day', () => {
-    expect(rangeHint(['19:00', '02:00'])).toBe('Closes 02:00 the next day')
+    expect(said(rangeHint(['19:00', '02:00']))).toBe('Closes 02:00 the next day')
   })
 
   it('says equal times are all day', () => {
-    expect(rangeHint(['00:00', '00:00'])).toBe('Open all day')
+    expect(said(rangeHint(['00:00', '00:00']))).toBe('Open all day')
   })
 
   it('says nothing about an ordinary or unfinished range', () => {
@@ -138,56 +154,56 @@ describe('rangeHint', () => {
 
 describe('describeDays', () => {
   it('names a run as a span', () => {
-    expect(describeDays(['tue', 'wed', 'thu', 'fri', 'sat'])).toBe('Open Tue to Sat')
+    expect(said(describeDays('en', ['tue', 'wed', 'thu', 'fri', 'sat']))).toBe('Open Tue to Sat')
   })
 
   it('names every day', () => {
-    expect(describeDays([...WEEK])).toBe('Open every day')
+    expect(said(describeDays('en', [...WEEK]))).toBe('Open every day')
   })
 
   it('lists days that are not a run', () => {
-    expect(describeDays(['mon', 'wed', 'fri'])).toBe('Open Mon, Wed, Fri')
+    expect(said(describeDays('en', ['mon', 'wed', 'fri']))).toBe('Open Mon, Wed, Fri')
   })
 
   it('lists a pair rather than spanning it', () => {
-    expect(describeDays(['sat', 'sun'])).toBe('Open Sat, Sun')
+    expect(said(describeDays('en', ['sat', 'sun']))).toBe('Open Sat, Sun')
   })
 
   it('says nothing when no day is on', () => {
-    expect(describeDays([])).toBeNull()
+    expect(said(describeDays('en', []))).toBeNull()
   })
 })
 
 describe('describeHours', () => {
   it('reads the worst case line by line', () => {
-    expect(describeHours(bar)).toEqual([
+    expect(lines('en', bar)).toEqual([
       { days: 'Mon, Wed, Fri, Sun', text: '19:00–02:00', closed: false },
       { days: 'Closed', text: 'Tue, Thu, Sat', closed: true },
     ])
   })
 
   it('reads the same hours every day as Every day', () => {
-    expect(describeHours(week(WEEK, ['09:00', '18:00']))).toEqual([
+    expect(lines('en', week(WEEK, ['09:00', '18:00']))).toEqual([
       { days: 'Every day', text: '09:00–18:00', closed: false },
     ])
   })
 
   it('reads weekdays only with the weekend closed', () => {
-    expect(describeHours(week(WEEK.slice(0, 5), nine))).toEqual([
+    expect(lines('en', week(WEEK.slice(0, 5), nine))).toEqual([
       { days: 'Mon–Fri', text: '09:00–17:00', closed: false },
       { days: 'Closed', text: 'Sat, Sun', closed: true },
     ])
   })
 
   it('puts days that are not neighbours on one line', () => {
-    expect(describeHours(week(['mon', 'wed', 'fri'], nine))).toEqual([
+    expect(lines('en', week(['mon', 'wed', 'fri'], nine))).toEqual([
       { days: 'Mon, Wed, Fri', text: '09:00–17:00', closed: false },
       { days: 'Closed', text: 'Tue, Thu, Sat, Sun', closed: true },
     ])
   })
 
   it('spans neighbours and lists the rest', () => {
-    expect(describeHours(week(['mon', 'tue', 'wed', 'fri'], nine))[0]).toEqual({
+    expect(lines('en', week(['mon', 'tue', 'wed', 'fri'], nine))[0]).toEqual({
       days: 'Mon–Wed, Fri',
       text: '09:00–17:00',
       closed: false,
@@ -195,7 +211,7 @@ describe('describeHours', () => {
   })
 
   it('reads all day as 24 hours', () => {
-    expect(describeHours(week(WEEK, ['00:00', '00:00']))).toEqual([
+    expect(lines('en', week(WEEK, ['00:00', '00:00']))).toEqual([
       { days: 'Every day', text: '24 hours', closed: false },
     ])
   })
@@ -203,8 +219,26 @@ describe('describeHours', () => {
   it('never takes more than two lines', () => {
     for (let mask = 1; mask < 128; mask += 1) {
       const days = WEEK.filter((_, i) => mask & (1 << i))
-      expect(describeHours(week(days, nine)).length).toBeLessThanOrEqual(2)
+      expect(lines('en', week(days, nine)).length).toBeLessThanOrEqual(2)
     }
+  })
+})
+
+describe('hours in Spanish', () => {
+  it('words the form and the card in Spanish', () => {
+    expect(said(describeDays('es', ['mon', 'tue', 'wed', 'thu', 'fri']), 'es')).toBe('Abre lun a vie')
+    expect(said(describeDays('es', [...WEEK]), 'es')).toBe('Abre todos los días')
+    expect(said(rangeHint(['19:00', '02:00']), 'es')).toBe('Cierra a las 02:00 del día siguiente')
+    expect(lines('es', week(WEEK.slice(0, 5), nine))).toEqual([
+      { days: 'lun–vie', text: '09:00–17:00', closed: false },
+      { days: 'Cerrado', text: 'sáb, dom', closed: true },
+    ])
+  })
+
+  it('writes Wednesday as X, so no two letters in the row are the same', () => {
+    const letters = WEEK.map((day) => WEEKDAY_WORDING.es[day].letter)
+    expect(letters).toEqual(['L', 'M', 'X', 'J', 'V', 'S', 'D'])
+    expect(new Set(letters).size).toBe(7)
   })
 })
 

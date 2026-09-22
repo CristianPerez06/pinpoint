@@ -6,11 +6,12 @@ import {
   MARKER_SELECTED_SCALE,
   RADIUS,
 } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 
 /**
@@ -82,6 +83,7 @@ const styles = StyleSheet.create({
  */
 export function DraftPin() {
   const theme = useTheme()
+  const say = useSay()
   const { width, height } = { width: 32, height: 42 }
 
   return (
@@ -89,7 +91,7 @@ export function DraftPin() {
       // Explicit size for the same reason `Pin` has one: the iOS annotation
       // derives its frame from this view and bails out on a zero dimension.
       style={{ width, height }}
-      accessibilityLabel="The place being added"
+      accessibilityLabel={say(message('pin.draft'))}
     >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Path
@@ -121,6 +123,7 @@ export function Pin({
   selected?: boolean
 }) {
   const theme = useTheme()
+  const say = useSay()
 
   /*
    * A selected pin is drawn larger, by the shared amount, so that the pin the
@@ -154,8 +157,13 @@ export function Pin({
       style={{ width, height }}
       accessibilityLabel={
         count > 1
-          ? `${count} places here`
-          : `${view.label} (${say(ENGLISH_LANGUAGE, markerTypeMessage(view.type))})`
+          ? say(message('placeGroup.count', { count }))
+          : say(
+              message('pin.label', {
+                name: view.label,
+                type: say(markerTypeMessage(view.type)),
+              }),
+            )
       }
     >
       {/* The viewBox stays the unscaled box, so the path, the ring and the

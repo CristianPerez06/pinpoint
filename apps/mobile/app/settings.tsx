@@ -1,7 +1,9 @@
 import { SPACE, RADIUS, TYPE, type ThemePreference } from '@pinpoint/tokens'
+import { message, type LanguagePreference, type Message } from '@pinpoint/wording'
 import { Redirect, useRouter } from 'expo-router'
 import ArrowLeft from 'lucide-react-native/icons/arrow-left'
 import Check from 'lucide-react-native/icons/check'
+import Languages from 'lucide-react-native/icons/languages'
 import Monitor from 'lucide-react-native/icons/monitor'
 import Moon from 'lucide-react-native/icons/moon'
 import Sun from 'lucide-react-native/icons/sun'
@@ -9,13 +11,15 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { NamePlaceholder } from '@/components/ui'
+import { useSay } from '@/lib/language'
 import { usePreferences } from '@/lib/preferences'
 import { useSession } from '@/lib/session'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
 /**
- * Settings: the account, and the ground everything is drawn on.
+ * Settings: the account, the ground everything is drawn on, and the language
+ * it is written in.
  *
  * THIS IS THE FIRST SCREEN SOMEBODY COMES BACK FROM
  *
@@ -41,6 +45,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { session, loading } = useSession()
+  const say = useSay()
 
   // The same guard every signed-in route carries. `loading` is a real state:
   // reading the session back is asynchronous, and redirecting during that frame
@@ -60,7 +65,7 @@ export default function SettingsScreen() {
             else router.replace('/')
           }}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={say(message('common.back'))}
           // 44pt, which is the floor rather than the aspiration. The glyph is
           // 20pt and the padding is what makes the target.
           hitSlop={8}
@@ -68,7 +73,9 @@ export default function SettingsScreen() {
         >
           <ArrowLeft size={20} color={theme.colour.ink} strokeWidth={2} />
         </Pressable>
-        <Text style={[styles.title, { color: theme.colour.ink }]}>Settings</Text>
+        <Text style={[styles.title, { color: theme.colour.ink }]}>
+          {say(message('common.settings'))}
+        </Text>
       </View>
 
       <ScrollView
@@ -77,7 +84,7 @@ export default function SettingsScreen() {
           { paddingBottom: SPACE.xl + insets.bottom },
         ]}
       >
-        <Section title="Account">
+        <Section title={say(message('account.label'))}>
           {/*
             While the session is still being read back, the row is one element to
             assistive technology saying so, and the address is a drawn bar. It
@@ -86,14 +93,16 @@ export default function SettingsScreen() {
           */}
           <View
             accessible={loading}
-            accessibilityLabel={loading ? 'Loading your account' : undefined}
+            accessibilityLabel={loading ? say(message('settings.loadingAccount')) : undefined}
             accessibilityState={loading ? { busy: true } : undefined}
             style={[
               styles.card,
               { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
             ]}
           >
-            <Text style={[styles.rowLabel, { color: theme.colour.inkMuted }]}>Signed in as</Text>
+            <Text style={[styles.rowLabel, { color: theme.colour.inkMuted }]}>
+              {say(message('settings.signedInAs'))}
+            </Text>
             {/*
               The address, and deliberately no name.
 
@@ -110,14 +119,18 @@ export default function SettingsScreen() {
               />
             ) : (
               <Text style={[styles.rowValue, { color: theme.colour.ink }]}>
-                {session?.user.email ?? 'No address on this account'}
+                {session?.user.email ?? say(message('settings.noAddress'))}
               </Text>
             )}
           </View>
         </Section>
 
-        <Section title="Appearance">
+        <Section title={say(message('settings.appearance'))}>
           <Appearance />
+        </Section>
+
+        <Section title={say(message('settings.language'))}>
+          <LanguageChoice />
         </Section>
       </ScrollView>
     </View>
@@ -141,30 +154,94 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * everybody using this product is in today. Offering light and dark alone turns
  * a working default into something nobody chose, with no way back to it.
  */
-const OPTIONS: readonly {
-  value: ThemePreference
-  label: string
-  note: string
-  Glyph: typeof Sun
-}[] = [
+const APPEARANCE: readonly Option<ThemePreference>[] = [
   {
     value: 'system',
-    label: 'Follow the device',
-    note: 'Changes when your system appearance does',
+    label: message('settings.followDevice'),
+    note: message('appearance.systemNote'),
     Glyph: Monitor,
   },
-  { value: 'light', label: 'Light', note: 'Always the light ground', Glyph: Sun },
-  { value: 'dark', label: 'Dark', note: 'Always the dark ground', Glyph: Moon },
+  {
+    value: 'light',
+    label: message('appearance.light'),
+    note: message('appearance.lightNote'),
+    Glyph: Sun,
+  },
+  {
+    value: 'dark',
+    label: message('appearance.dark'),
+    note: message('appearance.darkNote'),
+    Glyph: Moon,
+  },
 ]
 
 function Appearance() {
-  const theme = useTheme()
   const { theme: preference, chooseTheme } = usePreferences()
+  return <Options options={APPEARANCE} chosen={preference} onChoose={chooseTheme} />
+}
+
+/**
+ * The three languages, in the shape the three grounds already have.
+ *
+ * Following the device is a choice of its own for the reason it is beside
+ * Appearance. Each language is named in itself — `English`, `Español` — in
+ * every language the screen can be drawn in, because somebody who opened this
+ * in a language they cannot read is looking for the name of their own.
+ *
+ * A choice repaints every screen in the same render: every surface reads the
+ * one preference through `useSay`, and the store behind it is written after.
+ */
+const LANGUAGE: readonly Option<LanguagePreference>[] = [
+  {
+    value: 'system',
+    label: message('settings.followDevice'),
+    note: message('language.systemNote'),
+    // The glyph Appearance gives the same words, so the two read as one idea.
+    Glyph: Monitor,
+  },
+  {
+    value: 'en',
+    label: message('language.english'),
+    note: message('language.englishNote'),
+    Glyph: Languages,
+  },
+  {
+    value: 'es',
+    label: message('language.spanish'),
+    note: message('language.spanishNote'),
+    Glyph: Languages,
+  },
+]
+
+function LanguageChoice() {
+  const { language: preference, chooseLanguage } = usePreferences()
+  return <Options options={LANGUAGE} chosen={preference} onChoose={chooseLanguage} />
+}
+
+type Option<T extends string> = {
+  value: T
+  label: Message
+  note: Message
+  Glyph: typeof Sun
+}
+
+/** One of several, drawn as a column of rows. Shared by both choices above. */
+function Options<T extends string>({
+  options,
+  chosen,
+  onChoose,
+}: {
+  options: readonly Option<T>[]
+  chosen: T
+  onChoose: (value: T) => void
+}) {
+  const theme = useTheme()
+  const say = useSay()
 
   return (
     <View style={styles.options}>
-      {OPTIONS.map(({ value, label, note, Glyph }) => {
-        const selected = preference === value
+      {options.map(({ value, label, note, Glyph }) => {
+        const selected = chosen === value
 
         /*
          * Selected is carried by the wash, the border and the tick together.
@@ -178,10 +255,10 @@ function Appearance() {
         return (
           <Pressable
             key={value}
-            onPress={() => chooseTheme(value)}
+            onPress={() => onChoose(value)}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
-            accessibilityLabel={label}
+            accessibilityLabel={say(label)}
             style={[
               styles.option,
               {
@@ -202,7 +279,7 @@ function Appearance() {
                   { color: selected ? theme.colour.accentInk : theme.colour.ink },
                 ]}
               >
-                {label}
+                {say(label)}
               </Text>
               <Text
                 style={[
@@ -215,7 +292,7 @@ function Appearance() {
                   selected ? styles.optionNoteSelected : null,
                 ]}
               >
-                {note}
+                {say(note)}
               </Text>
             </View>
             {selected ? (

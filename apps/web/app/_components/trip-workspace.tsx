@@ -50,11 +50,12 @@ import {
   type MarkerGroup,
   type Rect,
 } from '@pinpoint/map'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { type ReadonlyURLSearchParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { signedInAs } from '@/app/_components/account-menu'
+import { useSay } from '@/app/_components/language'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm } from '@/app/_components/marker-form'
 import { useTripActions } from '@/app/_components/use-trip-actions'
@@ -264,10 +265,11 @@ export function TripWorkspace({
    * map still renders — it is fine either way — and only this note distinguishes
    * a trip with nothing on it from a trip that would not load.
    */
-  notice: { tone: 'muted' | 'danger'; text: string } | null
+  notice: { tone: 'muted' | 'danger'; text: Message } | null
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const say = useSay()
   const searchParams = useSearchParams()
 
   /**
@@ -391,8 +393,11 @@ export function TripWorkspace({
    * that had nothing to do with what was in flight and left the responsible one
    * live — which is what `busy` did to the rename and the invite until this
    * change. Every pending state now lives in the control that starts the write.
+   *
+   * Held as a name rather than a sentence, so a note already on screen follows a
+   * change of language instead of staying in the one it failed in.
    */
-  const [message, setMessage] = useState<string | null>(null)
+  const [problem, setProblem] = useState<Message | null>(null)
   /**
    * A refusal from a write the trip panel started, kept apart from the note
    * over the map.
@@ -402,17 +407,17 @@ export function TripWorkspace({
    * started inside a panel that is still open in front of it. One state for
    * both put the answer behind the thing that asked the question.
    */
-  const [tripProblem, setTripProblem] = useState<string | null>(null)
+  const [tripProblem, setTripProblem] = useState<Message | null>(null)
   /**
    * Somebody else changed this place while it was being edited.
    *
-   * Held apart from `message` because it is not the same kind of event. A
+   * Held apart from `problem` because it is not the same kind of event. A
    * message above a form means the form is wrong; this means the world moved,
    * which is nobody's mistake and calls for a different next action — look at
    * their version, then decide. Sharing one channel would make the two
    * indistinguishable exactly where the difference matters.
    */
-  const [conflict, setConflict] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<Message | null>(null)
   /**
    * What the camera has been asked to show, and how many times it has been
    * asked. Nothing else moves it.
@@ -669,7 +674,7 @@ export function TripWorkspace({
 
   async function rereadByHand() {
     if (rereading) return
-    setMessage(null)
+    setProblem(null)
     setRereading(true)
 
     const everythingArrived = await rereadEverything({ force: true })
@@ -678,7 +683,7 @@ export function TripWorkspace({
     if (!everythingArrived) {
       // The rows are untouched — a read that fails leaves them alone — so this
       // is news beside a working map rather than a replacement for one.
-      setMessage('Could not read the trip again. Check your connection.')
+      setProblem(message('map.rereadFailed'))
     }
   }
 
@@ -818,12 +823,12 @@ export function TripWorkspace({
   /**
    * A refusal with no form to sit above.
    *
-   * The form renders `message` itself when it is open, which is the closer
+   * The form renders `problem` itself when it is open, which is the closer
    * place to say it; this is every other write's failure, which until now had
    * nowhere on this screen to appear at all.
    */
   const refusal =
-    panel.kind === 'create' || panel.kind === 'edit' ? null : message
+    panel.kind === 'create' || panel.kind === 'edit' ? null : problem
 
   const cityMarkers = useMemo(
     () => markersSelectedBy(selectedCityId, markers),
@@ -870,7 +875,7 @@ export function TripWorkspace({
     // A new attempt supersedes the last refusal. Without this a note about a
     // write that failed a minute ago outlives the one that has just succeeded,
     // which leaves the screen saying something that is no longer true.
-    setMessage(null)
+    setProblem(null)
 
     const previous = interest
     const optimistic: MarkerInterest = {
@@ -896,10 +901,10 @@ export function TripWorkspace({
 
     if (!outcome.ok) {
       setInterest(previous)
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
@@ -907,7 +912,7 @@ export function TripWorkspace({
   async function unanswer(marker: Marker) {
     if (ownMemberId === null) return
 
-    setMessage(null)
+    setProblem(null)
 
     const previous = interest
     setInterest((current) =>
@@ -920,16 +925,16 @@ export function TripWorkspace({
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
       setInterest(previous)
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that.',
+          ? outcome.reason
+          : message('interest.saveFailed'),
       )
     }
   }
 
   async function markVisited(marker: Marker, visited: boolean) {
-    setMessage(null)
+    setProblem(null)
 
     const previous = markers
     setMarkers((current) =>
@@ -939,10 +944,10 @@ export function TripWorkspace({
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
     if (!outcome.ok) {
       setMarkers(previous)
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not change whether this place is visited.',
+          ? outcome.reason
+          : message('visited.saveFailed'),
       )
     }
   }
@@ -1007,7 +1012,7 @@ export function TripWorkspace({
     setDraft(position)
     setDropping(false)
     setFieldErrors({})
-    setMessage(null)
+    setProblem(null)
     setConflict(null)
 
     /*
@@ -1075,7 +1080,7 @@ export function TripWorkspace({
       setDraft(null)
       setDropping(false)
       setFieldErrors({})
-      setMessage(null)
+      setProblem(null)
       setConflict(null)
       setPanel({
         kind: 'details',
@@ -1104,13 +1109,13 @@ export function TripWorkspace({
     setDraft(null)
     setDropping(false)
     setFieldErrors({})
-    setMessage(null)
+    setProblem(null)
     setConflict(null)
   }
 
   async function save(values: MarkerFormValues) {
     setFieldErrors({})
-    setMessage(null)
+    setProblem(null)
     setConflict(null)
 
     /*
@@ -1160,8 +1165,8 @@ export function TripWorkspace({
       // Everything typed, and the marker's position, survive a rejection.
       // Retyping a name is a nuisance; re-finding a spot on a map is worse.
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
-      else if (outcome.kind === 'conflict') setConflict(say(ENGLISH_LANGUAGE, outcome.reason))
-      else setMessage(say(ENGLISH_LANGUAGE, outcome.reason))
+      else if (outcome.kind === 'conflict') setConflict(outcome.reason)
+      else setProblem(outcome.reason)
       // Nothing is written to `markers` on any of these paths, so the map keeps
       // showing what is stored while the form keeps what was typed.
       return
@@ -1177,14 +1182,14 @@ export function TripWorkspace({
   }
 
   async function remove(marker: Marker) {
-    setMessage(null)
+    setProblem(null)
 
     const outcome = await deleteMarker(supabase, marker.id)
     if (!outcome.ok) {
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not remove that place.',
+          ? outcome.reason
+          : message('calendar.removeFailed'),
       )
       return
     }
@@ -1200,14 +1205,14 @@ export function TripWorkspace({
    * has no id to select. The caller says `Creating…` while this is in flight.
    */
   async function addCity(name: string, currency: string | null) {
-    setMessage(null)
+    setProblem(null)
 
     const outcome = await createCity(supabase, { tripId: trip.id, name, currency })
     if (!outcome.ok) {
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not create that city.',
+          ? outcome.reason
+          : message('placeForm.createCityFailed'),
       )
       return null
     }
@@ -1225,7 +1230,7 @@ export function TripWorkspace({
     cityId: string,
     patch: { name?: string; currency?: string | null },
   ) {
-    setMessage(null)
+    setProblem(null)
 
     // Whether this clears local prices, decided before the write. The database
     // does the clearing and moves those places' `updated_at`, so they are read
@@ -1244,10 +1249,10 @@ export function TripWorkspace({
     const outcome = await updateCity(supabase, cityId, patch)
     if (!outcome.ok) {
       setCities(previous)
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not save that city.',
+          ? outcome.reason
+          : message('map.saveCityFailed'),
       )
       return
     }
@@ -1266,7 +1271,7 @@ export function TripWorkspace({
    * lands on markers the person is not looking at.
    */
   async function removeCity(cityId: string) {
-    setMessage(null)
+    setProblem(null)
 
     /*
       Whether this unassigns anything, decided before the write — afterwards
@@ -1284,10 +1289,10 @@ export function TripWorkspace({
 
     const outcome = await deleteCity(supabase, cityId)
     if (!outcome.ok) {
-      setMessage(
+      setProblem(
         outcome.kind === 'rejected'
-          ? say(ENGLISH_LANGUAGE, outcome.reason)
-          : 'Could not remove that city.',
+          ? outcome.reason
+          : message('map.removeCityFailed'),
       )
       return
     }
@@ -1316,7 +1321,7 @@ export function TripWorkspace({
         onSelectTrip: tripActions.onSelect,
         onRenameTrip: tripActions.onRename,
         onSetTripDates: tripActions.onSetDates,
-        otherView: { name: 'Calendar', href: calendarHref },
+        otherView: { name: say(message('map.otherViewCalendar')), href: calendarHref },
         onRevealArchived: tripActions.onRevealArchived,
         onArchiveTrip: tripActions.onArchive,
         onRestoreTrip: tripActions.onRestore,
@@ -1409,16 +1414,14 @@ export function TripWorkspace({
         />
 
         {dropping ? (
-          <Banner>
-            Click the map where the place is. You can drag the pin afterwards.
-          </Banner>
+          <Banner>{say(message('map.dropBanner'))}</Banner>
         ) : null}
 
         {/*
           A refusal, where the person is looking.
 
           Without this the five optimistic writes on this screen rolled back in
-          silence: `message` was rendered in exactly one place — above the
+          silence: `problem` was rendered in exactly one place — above the
           marker form — and none of those writes has a form open when it fails.
           The screen put back what the database refused and said nothing, which
           is the worst version of a failure, because something visibly happened
@@ -1431,13 +1434,13 @@ export function TripWorkspace({
         */}
         {refusal !== null ? (
           <MapOverlayNote tone="danger">
-            {refusal}{' '}
+            {say(refusal)}{' '}
             <button
               type="button"
-              onClick={() => setMessage(null)}
+              onClick={() => setProblem(null)}
               className={styles.inlineAction}
             >
-              Dismiss
+              {say(message('map.dismiss'))}
             </button>
           </MapOverlayNote>
         ) : null}
@@ -1446,7 +1449,7 @@ export function TripWorkspace({
             saying "nothing saved yet" beside a marker somebody just added would
             be false. */}
         {refusal === null && notice && markers.length === 0 ? (
-          <MapOverlayNote tone={notice.tone}>{notice.text}</MapOverlayNote>
+          <MapOverlayNote tone={notice.tone}>{say(notice.text)}</MapOverlayNote>
         ) : null}
 
         {/*
@@ -1459,14 +1462,13 @@ export function TripWorkspace({
         */}
         {refusal === null && markers.length > 0 && visibleMarkers.length === 0 ? (
           <MapOverlayNote tone="muted">
-            No places match this filter. The trip still has {markers.length}{' '}
-            {markers.length === 1 ? 'place' : 'places'}.{' '}
+            {say(message('map.noMatches', { count: markers.length }))}{' '}
             <button
               type="button"
               onClick={() => setFilter(NO_FILTER)}
               className={styles.inlineAction}
             >
-              Clear the filter
+              {say(message('filter.clear'))}
             </button>
           </MapOverlayNote>
         ) : null}
@@ -1512,9 +1514,7 @@ export function TripWorkspace({
         !dropping &&
         draft === null ? (
           <MapOverlayNote tone="muted">
-            {visibleMarkers.length}{' '}
-            {visibleMarkers.length === 1 ? 'place matches' : 'places match'}, none
-            of them in view.{' '}
+            {say(message('map.matchesOutOfView', { count: visibleMarkers.length }))}{' '}
             <button
               type="button"
               onClick={() =>
@@ -1525,7 +1525,7 @@ export function TripWorkspace({
               }
               className={styles.inlineAction}
             >
-              Show {visibleMarkers.length === 1 ? 'it' : 'them'}
+              {say(message('map.showMatches', { count: visibleMarkers.length }))}
             </button>
           </MapOverlayNote>
         ) : null}
@@ -1566,7 +1566,7 @@ export function TripWorkspace({
             }
             extraAction={
               panel.kind === 'details' && panel.fromCalendar
-                ? { label: '← Back to Calendar', onClick: () => router.back() }
+                ? { label: say(message('map.backToCalendar')), onClick: () => router.back() }
                 : undefined
             }
             // Dismissal touches no map method, so the camera cannot move.
@@ -1574,7 +1574,7 @@ export function TripWorkspace({
             onEdit={(marker) => {
               setDraft({ lng: marker.lng, lat: marker.lat })
               setFieldErrors({})
-              setMessage(null)
+              setProblem(null)
               setConflict(null)
               setPanel({ kind: 'edit', marker, initial: valuesOf(marker) })
             }}
@@ -1584,7 +1584,7 @@ export function TripWorkspace({
 
         {panel.kind === 'create' || panel.kind === 'edit' ? (
           <MarkerForm
-            title={panel.kind === 'edit' ? 'Edit this place' : 'Save this place'}
+            title={say(message(panel.kind === 'edit' ? 'map.editPlaceTitle' : 'map.savePlaceTitle'))}
             capturing={panel.kind !== 'edit'}
             initial={panel.initial}
             cities={cities}
@@ -1593,8 +1593,8 @@ export function TripWorkspace({
             // note would be the form arguing with a decision already made.
             cityNotice={panel.kind === 'create' ? panel.cityNotice : null}
             fieldErrors={fieldErrors}
-            message={message}
-            notice={conflict}
+            message={problem && say(problem)}
+            notice={conflict && say(conflict)}
             onSubmit={save}
             onCancel={cancel}
             onCreateCity={addCity}

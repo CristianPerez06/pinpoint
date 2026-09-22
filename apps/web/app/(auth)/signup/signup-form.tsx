@@ -1,20 +1,21 @@
 'use client'
 
-import { ENGLISH_LANGUAGE, say, type Message } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import Link from 'next/link'
 import { useActionState } from 'react'
 
 import { type AuthFormState, signUpAction } from '@/app/_actions/auth'
+import { useSay } from '@/app/_components/language'
 
 import styles from '../auth.module.css'
 
 const INITIAL: AuthFormState = {}
 
-/** The action reports names; this is the screen, so this is where they become words. */
-const words = (refusal: Message) => say(ENGLISH_LANGUAGE, refusal)
-
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUpAction, INITIAL)
+  // The action reports names; this is the screen, so this is where they become
+  // words — in the language in force now, not the one the action ran in.
+  const words = useSay()
 
   return (
     <form action={action} className={styles.form}>
@@ -25,7 +26,7 @@ export function SignupForm() {
       ) : null}
 
       <p className={styles.field}>
-        <label className={styles.label} htmlFor="email">Email</label>
+        <label className={styles.label} htmlFor="email">{words(message('auth.email'))}</label>
         <input
           id="email"
           name="email"
@@ -41,7 +42,7 @@ export function SignupForm() {
       </p>
 
       <p className={styles.field}>
-        <label className={styles.label} htmlFor="password">Password</label>
+        <label className={styles.label} htmlFor="password">{words(message('auth.password'))}</label>
         <input
           id="password"
           name="password"
@@ -59,7 +60,7 @@ export function SignupForm() {
       </p>
 
       <p className={styles.field}>
-        <label className={styles.label} htmlFor="confirmPassword">Repeat password</label>
+        <label className={styles.label} htmlFor="confirmPassword">{words(message('auth.repeatPassword'))}</label>
         <input
           id="confirmPassword"
           name="confirmPassword"
@@ -77,11 +78,12 @@ export function SignupForm() {
       </p>
 
       <button type="submit" disabled={pending} className={styles.submit}>
-        {pending ? 'Creating account…' : 'Create account'}
+        {pending ? words(message('auth.creatingAccount')) : words(message('auth.createAccount'))}
       </button>
 
       <p className={styles.alternative}>
-        Already have an account? <Link href="/login">Sign in</Link>
+        {words(message('auth.haveAccount'))}{' '}
+        <Link href="/login">{words(message('auth.signIn'))}</Link>
       </p>
     </form>
   )

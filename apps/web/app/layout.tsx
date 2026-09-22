@@ -3,16 +3,22 @@ import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
 import { COLOUR, parseThemePreference, type ThemePreference } from '@pinpoint/tokens'
+import { message } from '@pinpoint/wording'
 
+import { LanguageProvider } from '@/app/_components/language'
 import { ThemePreferenceProvider } from '@/app/_components/theme-preference'
 import { figtree } from '@/app/fonts'
+import { requestLanguage, serverSay } from '@/lib/language'
 import { THEME_COOKIE, themeAttribute } from '@/lib/theme-preference'
 
 import './globals.css'
 
-export const metadata: Metadata = {
-  title: 'pinpoint',
-  description: 'A map you can drop markers on.',
+export async function generateMetadata(): Promise<Metadata> {
+  const say = await serverSay()
+  return {
+    title: say(message('app.name')),
+    description: say(message('app.description')),
+  }
 }
 
 /** The chosen ground, read before anything is rendered. */
@@ -95,15 +101,25 @@ export async function generateViewport(): Promise<Viewport> {
  */
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const preference = await storedPreference()
+  const language = await requestLanguage()
 
+  /*
+   * `lang` is the language in force rather than a fixed one, so a screen reader
+   * pronounces the page in the language it is written in and the browser offers
+   * to translate only a page that is not already in the reader's language.
+   */
   return (
     <html
-      lang="en"
+      lang={language.language}
       className={figtree.variable}
       data-theme={themeAttribute(preference) ?? undefined}
     >
       <body>
-        <ThemePreferenceProvider initial={preference}>{children}</ThemePreferenceProvider>
+        <ThemePreferenceProvider initial={preference}>
+          <LanguageProvider initial={language.preference} requested={language.requested}>
+            {children}
+          </LanguageProvider>
+        </ThemePreferenceProvider>
       </body>
     </html>
   )

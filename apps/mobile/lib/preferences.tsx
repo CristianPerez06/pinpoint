@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { parseThemePreference, type ThemePreference } from '@pinpoint/tokens'
+import { parseLanguagePreference, type LanguagePreference } from '@pinpoint/wording'
 import {
   createContext,
   useCallback,
@@ -34,16 +35,18 @@ import {
  * write to overwrite another's, and the failure is silent and racy. A key each
  * costs nothing and cannot do that.
  *
- * This change writes only the theme. The other two keys are deliberately not
- * added speculatively — what they should hold when the trip is archived, or the
- * membership revoked, is a question that belongs to whoever adds them.
+ * The language joined the ground here as a key of its own, read inside the same
+ * launch gate, so no frame is drawn in a language nobody chose.
  */
 const PREFIX = 'pinpoint.preference.'
 const THEME_KEY = `${PREFIX}theme`
+const LANGUAGE_KEY = `${PREFIX}language`
 
 type PreferencesState = {
   theme: ThemePreference
   chooseTheme: (next: ThemePreference) => void
+  language: LanguagePreference
+  chooseLanguage: (next: LanguagePreference) => void
 }
 
 /**
@@ -73,13 +76,19 @@ export function PreferencesProvider({
   onReady: () => void
 }) {
   const [theme, setTheme] = useState<ThemePreference>(UNREAD)
+  // `'system'` for the same reason the ground's default is: it is what the
+  // product does before anybody chooses, so a failed read costs nothing new.
+  const [language, setLanguage] = useState<LanguagePreference>('system')
 
   useEffect(() => {
     let active = true
 
-    AsyncStorage.getItem(THEME_KEY)
+    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY])
       .then((stored) => {
-        if (active) setTheme(parseThemePreference(stored))
+        if (!active) return
+        const read = new Map(stored)
+        setTheme(parseThemePreference(read.get(THEME_KEY)))
+        setLanguage(parseLanguagePreference(read.get(LANGUAGE_KEY)))
       })
       .catch(() => {
         // Deliberately swallowed, and deliberately still ready.
@@ -111,7 +120,16 @@ export function PreferencesProvider({
     void AsyncStorage.setItem(THEME_KEY, next).catch(() => {})
   }, [])
 
-  const value = useMemo(() => ({ theme, chooseTheme }), [theme, chooseTheme])
+  const chooseLanguage = useCallback((next: LanguagePreference) => {
+    // As the ground: the tree first, the write not waited on.
+    setLanguage(next)
+    void AsyncStorage.setItem(LANGUAGE_KEY, next).catch(() => {})
+  }, [])
+
+  const value = useMemo(
+    () => ({ theme, chooseTheme, language, chooseLanguage }),
+    [theme, chooseTheme, language, chooseLanguage],
+  )
 
   return <Context value={value}>{children}</Context>
 }

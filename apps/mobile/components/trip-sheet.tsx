@@ -5,7 +5,7 @@ import {
   type Trip,
 } from '@pinpoint/core'
 import { SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import Archive from 'lucide-react-native/icons/archive'
 import ArchiveRestore from 'lucide-react-native/icons/archive-restore'
 import Check from 'lucide-react-native/icons/check'
@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateTripForm } from '@/components/trip-setup'
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
+import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
@@ -127,10 +128,11 @@ export function TripSheet({
   onSetArchived: (tripId: string, value: boolean) => void
   onOpenPeople: () => void
   /** A refusal from one of the writes reached from here, or null. */
-  problem: string | null
+  problem: Message | null
   onDismissProblem: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -166,7 +168,7 @@ export function TripSheet({
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
 
@@ -209,10 +211,12 @@ export function TripSheet({
             ]}
           >
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: theme.colour.ink }]}>Trips</Text>
+              <Text style={[styles.title, { color: theme.colour.ink }]}>
+                {say(message('trip.trips'))}
+              </Text>
               <Pressable onPress={close} accessibilityRole="button" style={styles.done}>
                 <Text style={[styles.doneText, { color: theme.colour.accentInk }]}>
-                  Done
+                  {say(message('common.done'))}
                 </Text>
               </Pressable>
             </View>
@@ -235,10 +239,10 @@ export function TripSheet({
               <Pressable
                 onPress={onDismissProblem}
                 accessibilityRole="button"
-                accessibilityHint="Dismisses this message"
+                accessibilityHint={say(message('common.dismissesMessage'))}
                 style={styles.problem}
               >
-                <FormNote tone="danger">{problem}</FormNote>
+                <FormNote tone="danger">{say(problem)}</FormNote>
               </Pressable>
             ) : null}
 
@@ -268,15 +272,14 @@ export function TripSheet({
               >
                 <Plus size={18} color={theme.colour.accentInk} strokeWidth={2.4} />
                 <Text style={[styles.rowName, { color: theme.colour.accentInk }]}>
-                  New trip
+                  {say(message('trip.new'))}
                 </Text>
               </Pressable>
 
               {creating ? (
                 <View style={styles.editor}>
                   <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                    A trip is one shared map, separate from this one. Nothing here
-                    moves across.
+                    {say(message('trip.newNote'))}
                   </Text>
                   <CreateTripForm
                     onCreated={(tripId) => {
@@ -284,7 +287,7 @@ export function TripSheet({
                       onCreated(tripId)
                     }}
                   />
-                  <Button label="Cancel" onPress={() => openDetour(null)} />
+                  <Button label={say(message('common.cancel'))} onPress={() => openDetour(null)} />
                 </View>
               ) : null}
 
@@ -305,18 +308,18 @@ export function TripSheet({
                 style={styles.row}
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>
-                  Rename
+                  {say(message('trip.rename'))}
                 </Text>
                 <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
               </Pressable>
 
               {renaming ? (
                 <View style={styles.editor}>
-                  <TextField label="Trip name" value={name} onChange={setName} />
+                  <TextField label={say(message('trip.name'))} value={name} onChange={setName} />
                   <View style={styles.buttons}>
                     <View style={styles.grow}>
                       <Button
-                        label={saving ? 'Saving…' : 'Save'}
+                        label={say(saving ? message('common.saving') : message('common.save'))}
                         tone="primary"
                         disabled={
                           saving || name.trim() === '' || name.trim() === trip.name
@@ -333,7 +336,7 @@ export function TripSheet({
                       />
                     </View>
                     <View style={styles.grow}>
-                      <Button label="Cancel" onPress={() => openDetour(null)} />
+                      <Button label={say(message('common.cancel'))} onPress={() => openDetour(null)} />
                     </View>
                   </View>
                 </View>
@@ -356,12 +359,16 @@ export function TripSheet({
                 style={styles.row}
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>
-                  Trip dates
+                  {say(message('trip.dates'))}
                 </Text>
                 {/* What the laptop's row says, in the same words: whether there
                     are any, without opening it. */}
                 <Text style={[styles.rowNote, { color: theme.colour.inkMuted }]}>
-                  {trip.startsOn === null && trip.endsOn === null ? 'None' : 'Set'}
+                  {say(
+                    trip.startsOn === null && trip.endsOn === null
+                      ? message('trip.datesNone')
+                      : message('trip.datesSet'),
+                  )}
                 </Text>
                 <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
               </Pressable>
@@ -369,30 +376,24 @@ export function TripSheet({
               {dating ? (
                 <View style={styles.editor}>
                   <DayField
-                    label="Start date"
+                    label={say(message('trip.startDate'))}
                     value={startsOn}
                     onChange={setStartsOn}
-                    error={
-                      dateErrors.startsOn &&
-                      say(ENGLISH_LANGUAGE, dateErrors.startsOn)
-                    }
+                    error={dateErrors.startsOn && say(dateErrors.startsOn)}
                   />
                   <DayField
-                    label="End date"
+                    label={say(message('trip.endDate'))}
                     value={endsOn}
                     onChange={setEndsOn}
-                    error={
-                      dateErrors.endsOn && say(ENGLISH_LANGUAGE, dateErrors.endsOn)
-                    }
+                    error={dateErrors.endsOn && say(dateErrors.endsOn)}
                   />
                   <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                    Both are optional. They decide which day the calendar opens on
-                    and nothing else.
+                    {say(message('trip.datesHint'))}
                   </Text>
                   <View style={styles.buttons}>
                     <View style={styles.grow}>
                       <Button
-                        label={saving ? 'Saving…' : 'Save'}
+                        label={say(saving ? message('common.saving') : message('common.save'))}
                         tone="primary"
                         disabled={saving}
                         onPress={() =>
@@ -410,7 +411,7 @@ export function TripSheet({
                       />
                     </View>
                     <View style={styles.grow}>
-                      <Button label="Cancel" onPress={() => openDetour(null)} />
+                      <Button label={say(message('common.cancel'))} onPress={() => openDetour(null)} />
                     </View>
                   </View>
                 </View>
@@ -440,7 +441,9 @@ export function TripSheet({
                 accessibilityRole="button"
                 style={styles.row}
               >
-                <Text style={[styles.rowName, { color: theme.colour.ink }]}>People</Text>
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>
+                  {say(message('trip.people'))}
+                </Text>
                 <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
               </Pressable>
 
@@ -459,13 +462,13 @@ export function TripSheet({
                   onSetArchived(trip.id, true)
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`Archive ${trip.name}`}
-                accessibilityHint="Puts the trip away. Nothing is deleted and it can be restored."
+                accessibilityLabel={say(message('trip.archiveNamed', { name: trip.name }))}
+                accessibilityHint={say(message('trip.archiveHint'))}
                 style={styles.row}
               >
                 <Archive size={18} color={theme.colour.danger} strokeWidth={2} />
                 <Text style={[styles.rowName, { color: theme.colour.danger }]}>
-                  Archive trip
+                  {say(message('trip.archive'))}
                 </Text>
               </Pressable>
 
@@ -496,12 +499,16 @@ export function TripSheet({
                     strokeWidth={2}
                   />
                   <Text style={[styles.rowName, { color: theme.colour.inkMuted }]}>
-                    {revealing ? 'Showing…' : 'Show archived trips'}
+                    {say(
+                      revealing
+                        ? message('trip.showingArchived')
+                        : message('trip.showArchived'),
+                    )}
                   </Text>
                 </Pressable>
               ) : archived.length === 0 ? (
                 <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  Nothing archived.
+                  {say(message('trip.nothingArchived'))}
                 </Text>
               ) : (
                 archived.map((each) => (
@@ -512,14 +519,14 @@ export function TripSheet({
                     <Pressable
                       onPress={() => onSetArchived(each.id, false)}
                       accessibilityRole="button"
-                      accessibilityLabel={`Restore ${each.name}`}
+                      accessibilityLabel={say(message('trip.restoreNamed', { name: each.name }))}
                       hitSlop={8}
                       style={styles.restore}
                     >
                       <Text
                         style={[styles.restoreText, { color: theme.colour.accentInk }]}
                       >
-                        Restore
+                        {say(message('trip.restore'))}
                       </Text>
                     </Pressable>
                   </View>
@@ -550,20 +557,25 @@ function TripRow({
   onPress: () => void
 }) {
   const theme = useTheme()
+  const say = useSay()
+  const language = useLanguage()
 
   /*
    * A trip with no dates shows its name alone — no placeholder and no dash.
    * Most trips exist in that state for most of their life, and a column of
    * stand-ins says nothing while taking the room the names need.
    */
-  const dates = formatDayRange(trip.startsOn, trip.endsOn)
+  const range = formatDayRange(language, trip.startsOn, trip.endsOn)
+  const dates = range === null ? null : say(range)
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected: current }}
-      accessibilityLabel={dates ? `${trip.name}, ${dates}` : trip.name}
+      accessibilityLabel={
+        dates ? say(message('trip.rowLabel', { name: trip.name, dates })) : trip.name
+      }
       style={styles.row}
     >
       <View style={styles.tick}>

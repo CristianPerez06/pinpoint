@@ -1,10 +1,11 @@
 import { MAP_CREDITS } from '@pinpoint/map'
 import { SPACE, TYPE } from '@pinpoint/tokens'
-import { ENGLISH_LANGUAGE, message, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import ExternalLink from 'lucide-react-native/icons/external-link'
 import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 
@@ -33,10 +34,11 @@ export function AttributionSheet({
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const say = useSay()
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close">
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={say(message('common.close'))}>
         <View
           // The sheet swallows presses so that touching a row does not dismiss
           // through the backdrop underneath it.
@@ -52,10 +54,10 @@ export function AttributionSheet({
         >
           <View style={[styles.head, { borderBottomColor: theme.colour.line }]}>
             <Text style={[styles.title, { color: theme.colour.ink }]}>
-              About this map
+              {say(message('credits.title'))}
             </Text>
             <Text style={[styles.blurb, { color: theme.colour.inkMuted }]}>
-              Four projects, none of them ours.
+              {say(message('credits.blurb'))}
             </Text>
           </View>
 
@@ -69,7 +71,7 @@ export function AttributionSheet({
               Resolved once for the row, because the sentence is drawn twice:
               once to read and once for the label a screen reader announces.
             */
-            const does = say(ENGLISH_LANGUAGE, message(credit.role))
+            const does = say(message(credit.role))
 
             return (
               <Pressable
@@ -84,8 +86,8 @@ export function AttributionSheet({
                 */
                 onPress={() => void Linking.openURL(credit.url).catch(() => {})}
                 accessibilityRole="link"
-                accessibilityLabel={`${credit.name}. ${does}`}
-                accessibilityHint="Opens in your browser"
+                accessibilityLabel={say(message('credits.spoken', { name: credit.name, does }))}
+                accessibilityHint={say(message('common.opensInBrowser'))}
                 style={styles.row}
               >
                 <View style={styles.what}>

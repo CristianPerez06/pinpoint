@@ -6,7 +6,7 @@ import {
   fetchTrips,
   ownMemberOf,
 } from '@pinpoint/data'
-import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
+import { message } from '@pinpoint/wording'
 import { Suspense } from 'react'
 
 import { FailedState, LoadingState } from '@/app/_components/states'
@@ -56,7 +56,7 @@ export default async function Home({
     return (
       <Shell>
         <Centred>
-          <FailedState message={say(ENGLISH_LANGUAGE, trips.reason)} />
+          <FailedState message={trips.reason} />
         </Centred>
       </Shell>
     )
@@ -152,9 +152,9 @@ export default async function Home({
           ownMemberId={ownMemberOf(memberList, userId)?.id ?? null}
           notice={
             markers.status === 'empty'
-              ? { tone: 'muted', text: 'No places saved on this trip yet.' }
+              ? { tone: 'muted', text: message('map.noPlacesYet') }
               : markers.status === 'failed'
-                ? { tone: 'danger', text: say(ENGLISH_LANGUAGE, markers.reason) }
+                ? { tone: 'danger', text: markers.reason }
                 : null
           }
         />
