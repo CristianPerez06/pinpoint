@@ -30,11 +30,36 @@ const config = [
   {
     ignores: ['.expo/**', 'node_modules/**', 'expo-env.d.ts'],
   },
+  {
+    files: ['eslint.config.js'],
+    languageOptions: {
+      globals: { __dirname: 'readonly' },
+    },
+  },
   ...expo,
   {
     files: ['**/*.ts', '**/*.tsx'],
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', { paths: [NO_ICON_BARREL] }],
+    },
+  },
+  /**
+   * Adds type information to the parser without which `restrict-template-expressions`
+   * and `restrict-plus-operands` below cannot run at all. `projectService` finds the
+   * tsconfig that owns each file rather than enumerating projects by hand, so nothing
+   * here rots when a file moves.
+   */
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/restrict-template-expressions': 'error',
+      '@typescript-eslint/restrict-plus-operands': 'error',
     },
   },
 ]
