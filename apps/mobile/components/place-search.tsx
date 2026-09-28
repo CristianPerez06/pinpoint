@@ -16,6 +16,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -366,7 +367,23 @@ export function PlaceSearchScreen({
           />
         </View>
 
-        <View style={styles.body}>
+        {/*
+          Scrolls, because a list that ends behind the keyboard is a place found,
+          listed and impossible to choose. Its own keyboard inset rather than a
+          `KeyboardAvoidingView`, which overwrites the padding it is given (see
+          `CLAUDE.md`) and would move a screen with no reason to move.
+
+          `handled` keeps choosing to one tap: the default spends the first tap on
+          a row closing the keyboard. Dragging lowers it, and nothing else here
+          does without also submitting or closing.
+        */}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.body}
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+        >
           {/*
             Before anything is typed, and only then. This is the one place the
             product says a pin can be dropped when search cannot find something,
@@ -437,7 +454,7 @@ export function PlaceSearchScreen({
               {hint ? <Note>{say(message('search.everyLanguageKey'))}</Note> : null}
             </>
           )}
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   )
@@ -667,6 +684,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
     paddingVertical: 10,
   },
+  scroll: { flex: 1 },
   body: { padding: SPACE.md, gap: SPACE.sm },
   /*
    * The words, and nothing beside them.
