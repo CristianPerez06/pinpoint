@@ -402,6 +402,8 @@ export const ENGLISH = {
   'hoursField.opens': 'Opens',
   'hoursField.closes': 'Closes',
   'hoursField.to': 'to',
+  'hoursField.everyDay': 'Every day',
+  'hoursField.allDay': '24 hours',
 
   // ── A city's second currency ─────────────────────────────────────────────
   'currencyField.label': 'Second currency',

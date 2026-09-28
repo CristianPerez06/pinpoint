@@ -5,6 +5,8 @@ import {
   type HoursDraft,
   normaliseTime,
   rangeHint,
+  setAllDay,
+  setEveryDay,
   toggleDay,
   WEEK,
   WEEKDAY_WORDING,
@@ -20,7 +22,7 @@ import styles from './hours-field.module.css'
  * The days a place is open and at what times (#176, #190).
  *
  * A row of day letters, then — once a day is on — one opening and one closing
- * time for every open day. What is stored is one week, per day; the conversion
+ * time for every open day, or the `24 hours` switch in their place (#221). What is stored is one week, per day; the conversion
  * both ways lives in `@pinpoint/core` so the phone makes the same one.
  *
  * Times are typed, not picked. The browser's own time box follows the
@@ -41,7 +43,8 @@ export function HoursField({
   const language = useLanguage()
   const say = useSay()
   const [open, close] = draft.range
-  const hint = rangeHint(draft.range)
+  const hint = draft.allDay ? null : rangeHint(draft.range)
+  const everyDay = draft.days.length === WEEK.length
   const days = describeDays(language, draft.days)
   const week = WEEKDAY_WORDING[language]
 
@@ -67,24 +70,50 @@ export function HoursField({
         ))}
       </div>
 
-      <p className={styles.hint}>
-        {say(days ?? message('hoursField.empty'))}
-      </p>
+      <div className={styles.line}>
+        <p className={styles.hint}>
+          {say(days ?? message('hoursField.empty'))}
+        </p>
+        <button
+          type="button"
+          className={styles.pill}
+          aria-pressed={everyDay}
+          onClick={() => onChange(setEveryDay(draft))}
+        >
+          {say(message('hoursField.everyDay'))}
+        </button>
+      </div>
 
       {draft.days.length > 0 ? (
         <div className={styles.rangeBlock}>
           <div className={styles.range}>
-            <TimeInput
-              value={open}
-              label={say(message('hoursField.opens'))}
-              onChange={(value) => onChange({ ...draft, range: [value, close] })}
-            />
-            <span className={styles.to}>{say(message('hoursField.to'))}</span>
-            <TimeInput
-              value={close}
-              label={say(message('hoursField.closes'))}
-              onChange={(value) => onChange({ ...draft, range: [open, value] })}
-            />
+            {draft.allDay ? (
+              <span className={styles.allDay}>{say(message('hours.openAllDay'))}</span>
+            ) : (
+              <span className={styles.times}>
+                <TimeInput
+                  value={open}
+                  label={say(message('hoursField.opens'))}
+                  onChange={(value) => onChange({ ...draft, range: [value, close] })}
+                />
+                <span className={styles.to}>{say(message('hoursField.to'))}</span>
+                <TimeInput
+                  value={close}
+                  label={say(message('hoursField.closes'))}
+                  onChange={(value) => onChange({ ...draft, range: [open, value] })}
+                />
+              </span>
+            )}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={draft.allDay}
+              className={styles.switch}
+              onClick={() => onChange(setAllDay(draft, !draft.allDay))}
+            >
+              {say(message('hoursField.allDay'))}
+              <span className={styles.track} aria-hidden="true" />
+            </button>
           </div>
           {hint ? <span className={styles.nextDay}>{say(hint)}</span> : null}
         </div>

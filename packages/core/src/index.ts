@@ -55,6 +55,8 @@ export {
   openingHoursOf,
   openingHoursSchema,
   rangeHint,
+  setAllDay,
+  setEveryDay,
   splitHours,
   toggleDay,
   WEEK,

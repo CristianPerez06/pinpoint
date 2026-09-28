@@ -10,6 +10,8 @@ import {
   openingHoursSchema,
   EMPTY_HOURS_DRAFT,
   rangeHint,
+  setAllDay,
+  setEveryDay,
   splitHours,
   toggleDay,
   WEEK,
@@ -244,28 +246,48 @@ describe('hours in Spanish', () => {
 
 describe('splitHours and joinHours', () => {
   it('opens a place with no hours with no day on', () => {
-    expect(splitHours(null)).toEqual({ days: [], range: ['', ''] })
+    expect(splitHours(null)).toEqual({ days: [], range: ['', ''], allDay: false })
   })
 
   it('opens a place with its days and its range', () => {
     expect(splitHours(week(['mon', 'wed', 'fri'], nine))).toEqual({
       days: ['mon', 'wed', 'fri'],
       range: nine,
+      allDay: false,
+    })
+  })
+
+  it('opens a place stored with equal times as open all day, keeping its times', () => {
+    expect(splitHours(week(WEEK.slice(0, 5), ['09:00', '09:00']))).toEqual({
+      days: WEEK.slice(0, 5),
+      range: ['09:00', '09:00'],
+      allDay: true,
     })
   })
 
   it('saves no hours when no day is on, whatever times were typed', () => {
-    expect(joinHours({ days: [], range: nine })).toBeNull()
+    expect(joinHours({ days: [], range: nine, allDay: false })).toBeNull()
+    expect(joinHours({ days: [], range: nine, allDay: true })).toBeNull()
   })
 
   it('gives every day turned on the range, normalised', () => {
-    expect(joinHours({ days: ['mon', 'tue', 'wed', 'thu', 'fri'], range: ['9', '1700'] })).toEqual(
+    expect(
+      joinHours({ days: ['mon', 'tue', 'wed', 'thu', 'fri'], range: ['9', '1700'], allDay: false }),
+    ).toEqual(
       week(WEEK.slice(0, 5), nine),
     )
   })
 
   it('keeps a half-filled range for the schema to refuse', () => {
-    expect(valid(joinHours({ days: ['mon'], range: ['19:00', ''] }))).toBe(false)
+    expect(valid(joinHours({ days: ['mon'], range: ['19:00', ''], allDay: false }))).toBe(false)
+  })
+
+  it('saves open all day as 00:00–00:00 over whatever times are hidden', () => {
+    for (const range of [nine, ['', ''], ['19:00', '']] as HoursRange[]) {
+      expect(joinHours({ days: ['sat', 'sun'], range, allDay: true })).toEqual(
+        week(['sat', 'sun'], ['00:00', '00:00']),
+      )
+    }
   })
 
   it('writes back exactly what it read, for every set of days', () => {
@@ -287,7 +309,36 @@ describe('editing a draft', () => {
   })
 
   it('turns a day off and keeps the range as typed', () => {
-    const draft = toggleDay({ days: ['mon', 'tue'], range: nine }, 'tue')
-    expect(draft).toEqual({ days: ['mon'], range: nine })
+    const draft = toggleDay({ days: ['mon', 'tue'], range: nine, allDay: false }, 'tue')
+    expect(draft).toEqual({ days: ['mon'], range: nine, allDay: false })
+  })
+
+  it('turns every day on in one step, from none or from some', () => {
+    expect(setEveryDay(EMPTY_HOURS_DRAFT).days).toEqual([...WEEK])
+    expect(setEveryDay({ days: ['mon', 'tue'], range: nine, allDay: false }).days).toEqual([
+      ...WEEK,
+    ])
+  })
+
+  it('turns every day off when all seven are on, keeping the range', () => {
+    const draft = setEveryDay({ days: [...WEEK], range: nine, allDay: false })
+    expect(draft).toEqual({ days: [], range: nine, allDay: false })
+    expect(joinHours(draft)).toBeNull()
+  })
+
+  it('gives the typed times back when open all day is turned off', () => {
+    const on = setAllDay({ days: ['mon'], range: nine, allDay: false }, true)
+    expect(on.range).toEqual(nine)
+    expect(setAllDay(on, false)).toEqual({ days: ['mon'], range: nine, allDay: false })
+  })
+
+  it('leaves the fields empty when nothing was typed', () => {
+    const on = setAllDay({ days: ['mon'], range: ['', ''], allDay: false }, true)
+    expect(setAllDay(on, false).range).toEqual(['', ''])
+  })
+
+  it('empties the fields when a place opened as 09:00–09:00 is turned off', () => {
+    const opened = splitHours(week(['mon'], ['09:00', '09:00']))
+    expect(setAllDay(opened, false)).toEqual({ days: ['mon'], range: ['', ''], allDay: false })
   })
 })

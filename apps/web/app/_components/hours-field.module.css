@@ -73,7 +73,19 @@
   font-weight: 700;
 }
 
+/*
+ * The words and `Every day` share a line (#221): the day row has six pixels to
+ * spare at the narrow card, so there is no room for an eighth control beside
+ * the letters. The words take what is left and wrap.
+ */
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .hint {
+  flex: 1;
   margin: 0;
   font-size: var(--pp-type-note-size);
   line-height: var(--pp-type-note-leading);
@@ -87,8 +99,112 @@
 
 .range {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--pp-space-sm);
+}
+
+/*
+ * The times as one piece, so that when the row runs out of room at the narrow
+ * card (268px, against about 300 for times and switch) the switch is what drops
+ * to the next line — never the closing time on its own.
+ */
+.times {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.allDay {
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+/* Drawn like a day letter: something turned on, not something pressed once. */
+.pill {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pill:hover {
+  border-color: var(--pp-ink-faint);
+}
+
+.pill[aria-pressed='true'] {
+  background: var(--pp-accent-wash);
+  border-color: var(--pp-accent);
+  color: var(--pp-accent-ink);
+  font-weight: 700;
+}
+
+/*
+ * The laptop has no switch of its own, so this is one: the words are the label,
+ * the track beside them is the state. `margin-left: auto` keeps it at the right
+ * of the row, and at the start of its own line once it wraps there.
+ */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.track {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-line-strong);
+  transition: background 0.15s;
+}
+
+.track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  /* The card's own colour, lifted: a knob cut out of the surface it sits on. */
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-pin);
+  transition: left 0.15s;
+}
+
+.switch[aria-checked='true'] .track {
+  background: var(--pp-accent);
+}
+
+.switch[aria-checked='true'] .track::after {
+  left: 21px;
+}
+
+.switch:focus-visible,
+.pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+  border-radius: var(--pp-radius-pill);
 }
 
 .time {

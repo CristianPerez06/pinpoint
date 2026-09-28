@@ -198,17 +198,34 @@ export function normaliseTime(input: string): string | null {
 // ─── the form ────────────────────────────────────────────────────────────────
 
 /**
- * A week as the form edits it: the days turned on, and the one range they share.
+ * A week as the form edits it: the days turned on, the one range they share,
+ * and whether the place is open all day (#221).
  *
  * Times are whatever is in the fields, typed and possibly half-finished — the
  * schema is what decides whether they can be saved, when they are.
+ *
+ * `allDay` hides the range rather than replacing it, so turning it off gives
+ * back what was typed without a second copy being kept. It is set only by the
+ * form's switch and by opening a place stored that way, never inferred while
+ * typing: two equal times typed by hand already mean open all day, and the
+ * hint says so.
  */
 export type HoursDraft = {
   days: Weekday[]
   range: HoursRange
+  allDay: boolean
 }
 
-export const EMPTY_HOURS_DRAFT: HoursDraft = { days: [], range: ['', ''] }
+export const EMPTY_HOURS_DRAFT: HoursDraft = { days: [], range: ['', ''], allDay: false }
+
+/**
+ * Two typed times that are complete and the same — `isAllDay` for fields, where
+ * `9` and `09:00` are one time and an empty pair is not a range at all.
+ */
+function isAllDayAsTyped([open, close]: HoursRange): boolean {
+  const o = normaliseTime(open)
+  return o !== null && o === normaliseTime(close)
+}
 
 /**
  * Stored hours, as the form opens them. Every open day has the same range, so
@@ -220,7 +237,7 @@ export function splitHours(hours: OpeningHours | null): HoursDraft {
 
   const days = WEEK.filter((day) => hours[day] !== undefined)
   const [open, close] = hours[days[0]!]![0]!
-  return { days, range: [open, close] }
+  return { days, range: [open, close], allDay: isAllDayAsTyped([open, close]) }
 }
 
 /**
@@ -229,11 +246,16 @@ export function splitHours(hours: OpeningHours | null): HoursDraft {
  *
  * Times are normalised where they can be, and left as typed where they cannot,
  * so the schema's refusal is about what the person actually entered.
+ *
+ * Open all day writes the range it opened with when that is already two equal
+ * times, so a place stored as 09:00–09:00 saves back as it was, and 00:00–00:00
+ * otherwise.
  */
 export function joinHours(draft: HoursDraft): OpeningHours | null {
   if (draft.days.length === 0) return null
 
-  const [o, c] = draft.range
+  const [o, c] =
+    draft.allDay && !isAllDayAsTyped(draft.range) ? (['00:00', '00:00'] as const) : draft.range
   const open = normaliseTime(o) ?? o.trim()
   const close = normaliseTime(c) ?? c.trim()
 
@@ -250,6 +272,21 @@ export function toggleDay(draft: HoursDraft, day: Weekday): HoursDraft {
     ? draft.days.filter((each) => each !== day)
     : [...draft.days, day].sort(byWeek)
   return { ...draft, days }
+}
+
+/** Every day on, or every day off when all seven already are. */
+export function setEveryDay(draft: HoursDraft): HoursDraft {
+  return { ...draft, days: draft.days.length === WEEK.length ? [] : [...WEEK] }
+}
+
+/**
+ * Turn open all day on or off. Off gives back the times that were in the
+ * fields, unless they were two equal times — a place opened as 09:00–09:00 —
+ * which would only say open all day again, so the fields come back empty.
+ */
+export function setAllDay(draft: HoursDraft, on: boolean): HoursDraft {
+  if (on) return { ...draft, allDay: true }
+  return { ...draft, allDay: false, range: isAllDayAsTyped(draft.range) ? ['', ''] : draft.range }
 }
 
 /**

@@ -447,6 +447,10 @@ hoursField.closes
   Closes
 hoursField.to
   to
+hoursField.everyDay
+  Every day
+hoursField.allDay
+  24 hours
 currencyField.label
   Second currency
 currencyField.none
@@ -1296,6 +1300,10 @@ hoursField.closes
   Cierra
 hoursField.to
   a
+hoursField.everyDay
+  Todos los días
+hoursField.allDay
+  24 horas
 currencyField.label
   Segunda moneda
 currencyField.none

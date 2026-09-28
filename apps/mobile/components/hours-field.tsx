@@ -3,13 +3,15 @@ import {
   type HoursDraft,
   normaliseTime,
   rangeHint,
+  setAllDay,
+  setEveryDay,
   toggleDay,
   WEEK,
   WEEKDAY_WORDING,
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 
 import { FieldLabel } from '@/components/ui'
 import { useLanguage, useSay } from '@/lib/language'
@@ -20,7 +22,8 @@ import { fieldRole, role } from '@/lib/type'
  * The days a place is open and at what times (#176, #190), on a phone.
  *
  * The phone's copy of the laptop's `HoursField`: a row of day letters, then —
- * once a day is on — one opening and one closing time for every open day. The
+ * once a day is on — one opening and one closing time for every open day, or
+ * the `24 hours` switch in their place (#221). The
  * conversion between that and the stored week is `splitHours` / `joinHours` in
  * `@pinpoint/core`, shared with the laptop so the two cannot open the same
  * place differently.
@@ -46,7 +49,8 @@ export function HoursField({
   const language = useLanguage()
   const say = useSay()
   const [open, close] = draft.range
-  const hint = rangeHint(draft.range)
+  const hint = draft.allDay ? null : rangeHint(draft.range)
+  const everyDay = draft.days.length === WEEK.length
   const days = describeDays(language, draft.days)
   const week = WEEKDAY_WORDING[language]
 
@@ -88,26 +92,86 @@ export function HoursField({
         })}
       </View>
 
-      <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-        {say(days ?? message('hoursField.empty'))}
-      </Text>
+      {/*
+        The words and `Every day` share a line, because the day row has no room
+        for an eighth control (see `days` below). The words take what is left and
+        wrap; the longest, the Spanish "nothing chosen" sentence, runs to two.
+      */}
+      <View style={styles.line}>
+        <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+          {say(days ?? message('hoursField.empty'))}
+        </Text>
+        <Pressable
+          onPress={() => onChange(setEveryDay(draft))}
+          accessibilityRole="button"
+          accessibilityState={{ selected: everyDay }}
+          hitSlop={6}
+          style={[
+            styles.pill,
+            {
+              borderColor: everyDay ? theme.colour.accent : theme.colour.lineStrong,
+              backgroundColor: everyDay ? theme.colour.accentWash : 'transparent',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.dayText,
+              {
+                color: everyDay ? theme.colour.accentInk : theme.colour.ink,
+                fontWeight: everyDay ? '700' : '500',
+              },
+            ]}
+          >
+            {say(message('hoursField.everyDay'))}
+          </Text>
+        </Pressable>
+      </View>
 
       {draft.days.length > 0 ? (
         <View style={styles.rangeBlock}>
           <View style={styles.range}>
-            <TimeInput
-              value={open}
-              label={say(message('hoursField.opens'))}
-              onChange={(value) => onChange({ ...draft, range: [value, close] })}
-            />
-            <Text style={[styles.to, { color: theme.colour.inkMuted }]}>
-              {say(message('hoursField.to'))}
-            </Text>
-            <TimeInput
-              value={close}
-              label={say(message('hoursField.closes'))}
-              onChange={(value) => onChange({ ...draft, range: [open, value] })}
-            />
+            {draft.allDay ? (
+              <Text style={[styles.allDay, { color: theme.colour.ink }]}>
+                {say(message('hours.openAllDay'))}
+              </Text>
+            ) : (
+              <View style={styles.times}>
+                <TimeInput
+                  value={open}
+                  label={say(message('hoursField.opens'))}
+                  onChange={(value) => onChange({ ...draft, range: [value, close] })}
+                />
+                <Text style={[styles.to, { color: theme.colour.inkMuted }]}>
+                  {say(message('hoursField.to'))}
+                </Text>
+                <TimeInput
+                  value={close}
+                  label={say(message('hoursField.closes'))}
+                  onChange={(value) => onChange({ ...draft, range: [open, value] })}
+                />
+              </View>
+            )}
+            {/*
+              The platform's own switch: it already has the size a thumb needs and
+              the role a screen reader announces. The label is the visible words
+              beside it, so the two are one control to a reader too.
+            */}
+            <View style={styles.allDaySwitch}>
+              <Text
+                style={[styles.to, { color: theme.colour.ink }]}
+                onPress={() => onChange(setAllDay(draft, !draft.allDay))}
+              >
+                {say(message('hoursField.allDay'))}
+              </Text>
+              <Switch
+                value={draft.allDay}
+                onValueChange={(on) => onChange(setAllDay(draft, on))}
+                accessibilityLabel={say(message('hoursField.allDay'))}
+                trackColor={{ true: theme.colour.accent, false: theme.colour.lineStrong }}
+                ios_backgroundColor={theme.colour.lineStrong}
+              />
+            </View>
           </View>
           {hint ? (
             <Text style={[styles.nextDay, { color: theme.colour.accentInk }]}>{say(hint)}</Text>
@@ -208,9 +272,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: { ...role(TYPE.control) },
-  hint: { ...role(TYPE.note) },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  hint: { ...role(TYPE.note), flex: 1 },
+  pill: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rangeBlock: { gap: SPACE.xs },
-  range: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  /*
+    The times and the switch share a row that wraps (#221). Measured on an
+    iPhone 17, the two 84-point times, `to` and iOS's 51-point switch with its
+    label come to about 318 points — the row has 319 on a 375-point phone. So the
+    times are one piece and the switch is what drops to the next line when they
+    do not fit, rather than overflowing the section or squeezing a time field.
+    `marginLeft: 'auto'` keeps the switch at the right on either line.
+  */
+  range: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    minHeight: 44,
+  },
+  times: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  allDay: { ...role(TYPE.body), fontWeight: '600' },
+  allDaySwitch: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+  },
   time: {
     ...fieldRole(TYPE.body),
     width: 84,
