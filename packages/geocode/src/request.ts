@@ -7,7 +7,8 @@ import type { SearchBias } from './types'
  * constraint is why this project carried Photon and Nominatim as an open choice
  * rather than picking a metered service, and Photon over Nominatim because
  * Photon is built for search-as-you-type and Nominatim's usage policy forbids
- * it.
+ * it. Nominatim is still used, for the one thing Photon cannot do — names in
+ * every language — and only when somebody submits; see `nominatim.ts`.
  *
  * The instance offers no availability guarantee and throttles extensive use, so
  * everything here is arranged to ask for as little as possible: one request per

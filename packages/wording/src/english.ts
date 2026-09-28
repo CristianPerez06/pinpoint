@@ -645,6 +645,15 @@ export const ENGLISH = {
   'search.failed': (v: { reason: string }) =>
     `${v.reason} You can still add a place by dropping a pin.`,
   'search.empty': 'No matches. Try fewer words, or drop a pin.',
+  /**
+   * Under the suggestions, saying that submitting searches names in every
+   * language. One per platform, because the act is named: a laptop has an Enter
+   * key, and a phone's keyboard has a search key drawn as a magnifying glass
+   * rather than labelled with a word.
+   */
+  'search.everyLanguageEnter': 'Not here? Press Enter to search in every language.',
+  'search.everyLanguageKey':
+    'Not here? Tap the magnifying glass on the keyboard to search in every language.',
   /** `distance` is already formatted for the language — see `formatDistance`. */
   'search.distance': (v: { distance: string }) => `${v.distance} km`,
 

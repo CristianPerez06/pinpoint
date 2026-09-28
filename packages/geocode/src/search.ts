@@ -13,7 +13,7 @@ export const SEARCH_FAILED_MESSAGE = message('search.unavailable')
  * is no single reliable marker across runtimes, so both the standard abort name
  * and the signal itself are consulted.
  */
-function wasAborted(error: unknown, signal: AbortSignal | undefined): boolean {
+export function wasAborted(error: unknown, signal: AbortSignal | undefined): boolean {
   if (signal?.aborted) return true
   return (
     typeof error === 'object' &&

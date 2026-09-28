@@ -1,5 +1,6 @@
 import { distanceKm } from '@pinpoint/map'
 
+import { isRecord, joinContext, num, str } from './read'
 import { guessMarkerType } from './type-guess'
 import type { PlaceCandidate, SearchBias } from './types'
 
@@ -13,18 +14,6 @@ import type { PlaceCandidate, SearchBias } from './types'
  * cannot be read at all yields no candidates — never a thrown error, which
  * would surface as a broken screen instead of as "search is unavailable".
  */
-
-function str(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
-}
-
-function num(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 /**
  * A name for the candidate, synthesised when the service did not supply one.
@@ -49,22 +38,19 @@ function nameOf(props: Record<string, unknown>): string | null {
 /**
  * Roughly where this is, for telling identically-named results apart.
  *
- * Two or three parts at most. The list exists to answer "which Starbucks", and a
- * full postal address answers it no better while making every row unreadable.
- *
  * `city`, `district`, and `county` are read opportunistically: they are not in
  * every response and are not depended upon. Absent, the context is thinner or
  * null, which costs a disambiguation hint and nothing else.
  */
 function contextOf(props: Record<string, unknown>, name: string): string | null {
-  const parts = [
-    str(props.city) ?? str(props.district) ?? str(props.county),
-    str(props.state),
-    str(props.country),
-  ].filter((part): part is string => part !== null && part !== name)
-
-  const unique = [...new Set(parts)].slice(0, 3)
-  return unique.length > 0 ? unique.join(', ') : null
+  return joinContext(
+    [
+      str(props.city) ?? str(props.district) ?? str(props.county),
+      str(props.state),
+      str(props.country),
+    ],
+    name,
+  )
 }
 
 function toCandidate(

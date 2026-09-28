@@ -144,10 +144,12 @@ types arrive over five colours.
   needs is acceptable. Nothing has been chosen. Three things currently depend on the
   old assumption and are open: **invitation delivery is out of band** (nothing is sent;
   the email address is only a claim key, so a mistyped address produces two screens that
-  both look correct and only the inviter can fix it); **the geocoder is Photon's free
-  public instance**, with the standing decision that search is withdrawn rather than
-  billed if it ever requires paying; and **there is no acquisition surface of any kind**
-  — the web application has exactly three routes, and none of them is a landing page.
+  both look correct and only the inviter can fix it); **the geocoders are Photon's and
+  Nominatim's free public instances** — Photon for suggestions while typing, Nominatim
+  only on submit, to find names in every language — with the standing decision that
+  each search is withdrawn rather than billed if its service ever requires paying; and
+  **there is no acquisition surface of any kind** — the web application has exactly
+  three routes, and none of them is a landing page.
 - **Onboarding for someone with no context.** Every existing first-run path assumes an
   invitation from someone who explained the product in person.
 - **A list view on web.** List and map have been called co-equal since the beginning
