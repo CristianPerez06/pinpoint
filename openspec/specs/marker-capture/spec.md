@@ -844,11 +844,16 @@ Beneath the row the form SHALL name the days turned on in words, for example `Op
 Sat`, `Open every day`, or `Open Mon, Wed, Fri`. While no day is on, it SHALL say instead
 that the hours can be left empty if they are not known.
 
+**Every day.** Beside the line naming the days, the form SHALL offer one control,
+`Every day`, that turns all seven days on in a single action. While all seven are on it
+SHALL show as on, and using it then SHALL turn every day off, with the same effect as
+turning each day off by hand.
+
 Rationale for the words: two letters in the row repeat, so the row alone cannot say which
 Tuesday-or-Thursday was meant.
 
 **Time fields appear with the first day.** While no day is on, the form SHALL show no
-time fields. Saving with no day on SHALL record the place as having no hours, whatever
+time fields and no `24 hours` switch. Saving with no day on SHALL record the place as having no hours, whatever
 times had been entered before the days were turned off.
 
 **One range.** The form SHALL offer one opening time and one closing time, which apply to
@@ -856,6 +861,17 @@ every day turned on. It SHALL NOT offer a second range, nor a way to give some d
 of their own.
 
 **Times** SHALL be entered and shown on a 24-hour clock.
+
+**24 hours.** Beside the time fields, the form SHALL offer a switch, `24 hours`, that
+marks the place open all day on every day turned on. While it is on, the form SHALL show
+`Open all day` in place of the two time fields, and saving SHALL record the place as open
+all day. Turning it off SHALL give back the times the fields held before it was turned
+on; if they held none, or held two equal times, the fields SHALL be empty. The switch
+SHALL NOT turn itself on while times are being typed: two equal times typed by hand keep
+meaning open all day, and the form says so as a hint.
+
+Rationale: "the same time twice" is how open all day is stored, but nobody would guess
+to type it (#221).
 
 **Hints while typing.** Where the closing time is earlier than the opening time, the form
 SHALL say beneath it that the place closes at that time the next day, for example `Closes
@@ -866,8 +882,9 @@ opening hours, SHALL be refused. The refusal SHALL name the hours field and SHAL
 everything entered, in the hours and everywhere else in the form.
 
 **Opening the form on a place that has hours.** The days SHALL be turned on as stored,
-and the opening and closing times SHALL be those stored. Saving without changing
-anything SHALL leave the hours exactly as they were.
+and the opening and closing times SHALL be those stored. A place whose opening and
+closing times are equal SHALL open with `24 hours` on, whichever equal time it was saved
+with. Saving without changing anything SHALL leave the hours exactly as they were.
 
 Changing a place's hours SHALL be governed by the same rules as any other change to a
 place, including the refusal of a save based on a stale read.
@@ -905,6 +922,53 @@ place, including the refusal of a save based on a stale read.
 
 - **WHEN** a person enters 00:00 to 00:00
 - **THEN** the form says `Open all day`
+
+#### Scenario: Every day in one tap
+
+- **WHEN** a person with no day turned on uses `Every day`
+- **THEN** all seven days are turned on
+- **AND** the line beneath the days says `Open every day`
+- **AND** the time fields appear
+
+#### Scenario: Every day when some days are on
+
+- **WHEN** Monday and Tuesday are on and a person uses `Every day`
+- **THEN** all seven days are turned on
+
+#### Scenario: Every day turned off
+
+- **WHEN** all seven days are on and a person uses `Every day`
+- **THEN** every day is turned off
+- **AND** no time fields and no `24 hours` switch are shown
+
+#### Scenario: A place open around the clock
+
+- **WHEN** a person turns on every day, turns `24 hours` on, and saves
+- **THEN** the time fields are replaced by `Open all day` while the switch is on
+- **AND** the place is open all day on every day of the week
+
+#### Scenario: Turning 24 hours off gives the times back
+
+- **WHEN** a person enters 09:00 to 17:00, turns `24 hours` on, then turns it off
+- **THEN** the times read 09:00 and 17:00
+
+#### Scenario: Turning 24 hours off with nothing entered
+
+- **WHEN** a person turns on a day, turns `24 hours` on without entering times, then
+  turns it off
+- **THEN** both time fields are empty
+
+#### Scenario: A place saved with equal times
+
+- **WHEN** a person opens the form on a place open Monday to Friday, 09:00–09:00
+- **THEN** Monday to Friday are turned on
+- **AND** `24 hours` is on
+- **AND** saving without changing anything leaves its hours as 09:00–09:00
+
+#### Scenario: Turning 24 hours off on a place saved with equal times
+
+- **WHEN** a person opens the form on a place saved 09:00–09:00 and turns `24 hours` off
+- **THEN** both time fields are empty
 
 #### Scenario: A range missing a time
 

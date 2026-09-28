@@ -316,6 +316,8 @@ export const SPANISH: Catalogue = {
   'hoursField.opens': 'Abre',
   'hoursField.closes': 'Cierra',
   'hoursField.to': 'a',
+  'hoursField.everyDay': 'Todos los días',
+  'hoursField.allDay': '24 horas',
 
   'currencyField.label': 'Segunda moneda',
   'currencyField.none': 'Ninguna',
