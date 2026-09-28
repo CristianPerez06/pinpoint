@@ -522,6 +522,9 @@ export const SPANISH: Catalogue = {
     'Buscar un sitio por su nombre. Si no aparece —y los lugares pequeños, nuevos o con nombre local a menudo no aparecen—, cerrar esto y colocar un pin.',
   'search.failed': (v) => `${v.reason} Igual se puede agregar un lugar colocando un pin.`,
   'search.empty': 'Sin resultados. Probar con menos palabras, o colocar un pin.',
+  'search.everyLanguageEnter': '¿No aparece? Presionar Enter para buscar en todos los idiomas.',
+  'search.everyLanguageKey':
+    '¿No aparece? Tocar la lupa del teclado para buscar en todos los idiomas.',
   'search.distance': (v) => `${v.distance} km`,
 
   'filter.name': 'Filtro',

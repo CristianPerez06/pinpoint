@@ -745,6 +745,10 @@ search.failed
   {reason} You can still add a place by dropping a pin.
 search.empty
   No matches. Try fewer words, or drop a pin.
+search.everyLanguageEnter
+  Not here? Press Enter to search in every language.
+search.everyLanguageKey
+  Not here? Tap the magnifying glass on the keyboard to search in every language.
 search.distance
   {distance} km
 filter.name
@@ -1590,6 +1594,10 @@ search.failed
   {reason} Igual se puede agregar un lugar colocando un pin.
 search.empty
   Sin resultados. Probar con menos palabras, o colocar un pin.
+search.everyLanguageEnter
+  ¿No aparece? Presionar Enter para buscar en todos los idiomas.
+search.everyLanguageKey
+  ¿No aparece? Tocar la lupa del teclado para buscar en todos los idiomas.
 search.distance
   {distance} km
 filter.name

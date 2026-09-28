@@ -1,4 +1,5 @@
 import {
+  createEveryLanguageSearch,
   searchPlaces,
   type PlaceCandidate,
   type SearchBias,
@@ -8,6 +9,7 @@ import { formatDistance } from '@pinpoint/core'
 import { markerTypeOf } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
+import Constants from 'expo-constants'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
   AccessibilityInfo,
@@ -77,15 +79,40 @@ const FAR_AWAY_KM = 100
 const BACK_GLYPH = '‹'
 
 /**
+ * Who is asking, as the geocoders' usage policies ask to be told.
+ *
+ * Nominatim refuses to be called by a stock HTTP library's `User-Agent`, and
+ * the one React Native sends names the networking stack rather than this app.
+ * A browser page cannot set this header and is identified by its `Referer`
+ * instead; a phone has no `Referer`, so it says its name. Read from the app's
+ * own config so a version bump or a new identifier cannot leave it stale.
+ */
+const USER_AGENT = `Pinpoint/${Constants.expoConfig?.version ?? '0'} (${
+  Constants.expoConfig?.ios?.bundleIdentifier ??
+  Constants.expoConfig?.android?.package ??
+  'pinpoint'
+})`
+
+/**
  * `fetch` wrapped rather than handed over directly.
  *
  * Web wraps it because a bare `globalThis.fetch` detached from its receiver
- * throws in a browser. React Native has no such problem, and it is wrapped here
- * anyway — the package takes a function, the wrapper costs nothing, and the two
- * applications reading the same at their call sites is worth more than saving a
- * line on one of them.
+ * throws in a browser. Here the wrapper also carries `USER_AGENT`, on every
+ * request — Photon's too, which is harmless and keeps one wrapper one wrapper.
  */
-const nativeFetch = (url: string, init?: { signal?: AbortSignal }) => fetch(url, init)
+const nativeFetch = (url: string, init?: { signal?: AbortSignal }) =>
+  fetch(url, { ...init, headers: { 'User-Agent': USER_AGENT } })
+
+/**
+ * The search of names in every language, created once for the app.
+ *
+ * Once, because it is what keeps this phone to one request a second and
+ * remembers what has been asked; a copy per render would do neither.
+ */
+const searchEveryLanguage = createEveryLanguageSearch(nativeFetch)
+
+/** Which search the list is showing. */
+type Source = 'typed' | 'everyLanguage'
 
 export function PlaceSearchScreen({
   open,
@@ -121,9 +148,21 @@ export function PlaceSearchScreen({
    * can disagree, and the render where they do is a screen claiming to have found
    * nothing before it has looked.
    */
-  const [answer, setAnswer] = useState<{ query: string; result: SearchResult } | null>(
-    null,
-  )
+  const [answer, setAnswer] = useState<{
+    query: string
+    source: Source
+    result: SearchResult
+  } | null>(null)
+
+  /**
+   * What was typed when the keyboard's Search key was pressed, until anything
+   * is typed after it.
+   *
+   * The list shows the every-language search exactly while this equals the
+   * query, and every edit clears it, so changing the query in any way goes back
+   * to suggestions — including typing it back to what it was.
+   */
+  const [submitted, setSubmitted] = useState<string | null>(null)
 
   /**
    * Whether a request is actually on its way.
@@ -144,11 +183,17 @@ export function PlaceSearchScreen({
   const [asking, setAsking] = useState(false)
 
   const trimmed = query.trim()
-  const result = answer?.query === trimmed ? answer.result : null
+  const source: Source =
+    trimmed !== '' && submitted === trimmed ? 'everyLanguage' : 'typed'
+  const result =
+    answer?.query === trimmed && answer.source === source ? answer.result : null
 
   useEffect(() => {
     if (!open) return
     if (trimmed === '') return
+    // The Search key has been pressed for this query; the every-language
+    // search below is answering it, and the suggestions are not asked again.
+    if (source !== 'typed') return
 
     const controller = new AbortController()
 
@@ -163,7 +208,7 @@ export function PlaceSearchScreen({
         // one would flash a stale answer on the way past.
         if (outcome.status === 'aborted') return
         setAsking(false)
-        setAnswer({ query: trimmed, result: outcome })
+        setAnswer({ query: trimmed, source: 'typed', result: outcome })
       })
     }, QUIET_PERIOD_MS)
 
@@ -174,7 +219,41 @@ export function PlaceSearchScreen({
       // this one starts its own quiet period before asking again.
       setAsking(false)
     }
-  }, [trimmed, biasRef, open])
+  }, [trimmed, source, biasRef, open])
+
+  /**
+   * The every-language search, once per press of the Search key.
+   *
+   * No quiet period: pressing the key is the pause. The pacing the service asks
+   * for is `searchEveryLanguage`'s, and a query already asked is answered from
+   * what the app remembers — which resolves before this effect's cleanup can
+   * run, so the signal is checked as well as the status.
+   *
+   * It sets no `asking` of its own: with no quiet period to tell apart from a
+   * request, "still searching" is the key having been pressed with no answer
+   * yet — see `searching` below.
+   */
+  useEffect(() => {
+    if (!open) return
+    if (source !== 'everyLanguage') return
+
+    const controller = new AbortController()
+    void searchEveryLanguage(trimmed, {
+      bias: biasRef.current(),
+      signal: controller.signal,
+    }).then((outcome) => {
+      if (outcome.status === 'aborted' || controller.signal.aborted) return
+      setAnswer({ query: trimmed, source: 'everyLanguage', result: outcome })
+    })
+
+    return () => controller.abort()
+  }, [trimmed, source, biasRef, open])
+
+  /**
+   * A request is on its way, from either search. Typed suggestions know it from
+   * the timer; for the every-language search, having no answer is the same fact.
+   */
+  const searching = asking || (source === 'everyLanguage' && result === null)
 
   /**
    * Said out loud, because a phone has no equivalent of a live region on a
@@ -188,16 +267,17 @@ export function PlaceSearchScreen({
    * twice.
    */
   useEffect(() => {
-    if (!asking) return
+    if (!searching) return
     if (Platform.OS !== 'ios') return
     AccessibilityInfo.announceForAccessibility(say(message('search.announceSearching')))
-  }, [asking, say])
+  }, [searching, say])
 
   // Closing forgets what was typed. Search is a way into capture rather than a
   // place, so returning to a stale query and a stale list would be offering
   // somebody yesterday's answer to today's question.
   function close() {
     setQuery('')
+    setSubmitted(null)
     setAnswer(null)
     onClose()
   }
@@ -226,6 +306,16 @@ export function PlaceSearchScreen({
       ? result.candidates
       : (pending ?? ([] as readonly PlaceCandidate[]))
 
+  /**
+   * Only under an answer to what is typed, and only a suggestion's answer.
+   *
+   * Before one there is nothing to fall back from; after a failure the problem
+   * is not the language; and once the key has been pressed there is nothing
+   * further it would do.
+   */
+  const hint =
+    source === 'typed' && (result?.status === 'ready' || result?.status === 'empty')
+
   return (
     <Modal
       visible={open}
@@ -252,7 +342,13 @@ export function PlaceSearchScreen({
 
           <TextInput
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(text) => {
+              setQuery(text)
+              setSubmitted(null)
+            }}
+            onSubmitEditing={() => {
+              if (trimmed !== '') setSubmitted(trimmed)
+            }}
             placeholder={say(message('search.placeholder'))}
             placeholderTextColor={theme.colour.inkMuted}
             accessibilityLabel={say(message('search.label'))}
@@ -288,7 +384,7 @@ export function PlaceSearchScreen({
                 the true thing: what you are reading does not answer what you
                 have now typed.
               */}
-              {asking ? (
+              {searching ? (
                 <View style={styles.searching} accessibilityLiveRegion="polite">
                   <Note>{say(message('search.searching'))}</Note>
                 </View>
@@ -310,7 +406,7 @@ export function PlaceSearchScreen({
                   stand through the whole quiet period claiming a search that has
                   not started.
                 */
-                asking ? (
+                searching ? (
                   <Shells />
                 ) : null
               ) : (
@@ -333,6 +429,12 @@ export function PlaceSearchScreen({
                   ))}
                 </View>
               )}
+
+              {/*
+                After the answer it offers an alternative to. Each row already
+                ends in a rule, so the list's last one separates this from it.
+              */}
+              {hint ? <Note>{say(message('search.everyLanguageKey'))}</Note> : null}
             </>
           )}
         </View>

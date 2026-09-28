@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  createEveryLanguageSearch,
   type PlaceCandidate,
   type SearchBias,
   type SearchResult,
@@ -47,6 +48,20 @@ const QUIET_PERIOD_MS = 300
  */
 const browserFetch = (url: string, init?: { signal?: AbortSignal }) =>
   fetch(url, init)
+
+/**
+ * The search of names in every language, created once for the page.
+ *
+ * Once, because it is what keeps this browser to one request a second and
+ * remembers what has been asked — a copy per render would remember nothing and
+ * pace nothing. The service is told who is asking by the `Referer` the browser
+ * sends; a page cannot set `User-Agent`, and the browser's default referrer
+ * policy sends this site's origin, which is what the usage policy asks for.
+ */
+const searchEveryLanguage = createEveryLanguageSearch(browserFetch)
+
+/** Which search the list is showing. */
+type Source = 'typed' | 'everyLanguage'
 
 /**
  * Beyond this, a candidate is marked as far away.
@@ -131,9 +146,20 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
    * can disagree, and the render where they do is a box claiming to have found
    * nothing before it has looked.
    */
-  const [answer, setAnswer] = useState<{ query: string; result: SearchResult } | null>(
-    null,
-  )
+  const [answer, setAnswer] = useState<{
+    query: string
+    source: Source
+    result: SearchResult
+  } | null>(null)
+
+  /**
+   * What was typed when Enter was pressed, until anything is typed after it.
+   *
+   * The list shows the every-language search exactly while this equals the
+   * query, and every edit clears it, so changing the query in any way goes back
+   * to suggestions — including typing it back to what it was.
+   */
+  const [submitted, setSubmitted] = useState<string | null>(null)
 
   /**
    * Whether a request is actually on its way.
@@ -154,10 +180,16 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
   const [asking, setAsking] = useState(false)
 
   const trimmed = query.trim()
-  const result = answer?.query === trimmed ? answer.result : null
+  const source: Source =
+    trimmed !== '' && submitted === trimmed ? 'everyLanguage' : 'typed'
+  const result =
+    answer?.query === trimmed && answer.source === source ? answer.result : null
 
   useEffect(() => {
     if (trimmed === '') return
+    // Enter has been pressed for this query; the every-language search below
+    // is answering it, and the suggestions are not asked for again.
+    if (source !== 'typed') return
 
     const controller = new AbortController()
 
@@ -172,7 +204,7 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
         // one would flash a stale answer on the way past.
         if (outcome.status === 'aborted') return
         setAsking(false)
-        setAnswer({ query: trimmed, result: outcome })
+        setAnswer({ query: trimmed, source: 'typed', result: outcome })
       })
     }, QUIET_PERIOD_MS)
 
@@ -183,7 +215,44 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
       // this one starts its own quiet period before asking again.
       setAsking(false)
     }
-  }, [trimmed, biasRef])
+  }, [trimmed, source, biasRef])
+
+  /**
+   * The every-language search, once per Enter.
+   *
+   * No quiet period: pressing Enter is the pause. The pacing the service asks
+   * for is `searchEveryLanguage`'s, and a query already asked is answered from
+   * what this page remembers — which resolves before this effect's cleanup can
+   * run, so the signal is checked as well as the status.
+   *
+   * It sets no `asking` of its own. There is no quiet period here to tell apart
+   * from a request, so "still searching" is simply Enter having been pressed
+   * with no answer yet — see `searching` below.
+   */
+  useEffect(() => {
+    if (source !== 'everyLanguage') return
+
+    const controller = new AbortController()
+    void searchEveryLanguage(trimmed, {
+      bias: biasRef.current(),
+      signal: controller.signal,
+    }).then((outcome) => {
+      if (outcome.status === 'aborted' || controller.signal.aborted) return
+      setAnswer({ query: trimmed, source: 'everyLanguage', result: outcome })
+    })
+
+    return () => controller.abort()
+  }, [trimmed, source, biasRef])
+
+  /**
+   * A request is on its way, from either search.
+   *
+   * Typed suggestions know it from the timer (`asking`). The every-language
+   * search is asked the moment Enter is pressed — or held for the service's
+   * one-a-second pace, which is still a search in progress — so for it, having
+   * no answer is the same fact.
+   */
+  const searching = asking || (source === 'everyLanguage' && result === null)
 
   /**
    * The answer to the previous query, kept while a newer one is outstanding.
@@ -221,14 +290,37 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
    * outlives the query it answered, so without this the list a moment ago was
    * chosen from would stay open underneath an empty field.
    */
-  const showing = trimmed !== '' && (result !== null || pending !== null || asking)
+  const showing = trimmed !== '' && (result !== null || pending !== null || searching)
+
+  /**
+   * Only under an answer to what is typed, and only a suggestion's answer.
+   *
+   * Before one there is nothing to fall back from; after a failure the problem
+   * is not the language; and once Enter has been pressed there is nothing
+   * further Enter would do.
+   */
+  const hint =
+    source === 'typed' && (result?.status === 'ready' || result?.status === 'empty')
 
   return (
     <div className={styles.wrap}>
       <input
         type="search"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setSubmitted(null)
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return
+          // Enter also confirms characters being composed with an input method
+          // — Japanese, Chinese — and a search then would be for half a word.
+          // Safari reports that keystroke as 229 rather than as composing.
+          if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
+          if (trimmed === '') return
+          event.preventDefault()
+          setSubmitted(trimmed)
+        }}
         placeholder={say(message('search.placeholder'))}
         aria-label={say(message('search.label'))}
         className={styles.input}
@@ -246,7 +338,7 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
             true thing: what you are reading does not answer what you have now
             typed.
           */}
-          {asking ? <Note role="status">{say(message('search.searching'))}</Note> : null}
+          {searching ? <Note role="status">{say(message('search.searching'))}</Note> : null}
 
           <div className={styles.scroll}>
           {result?.status === 'failed' ? (
@@ -263,7 +355,7 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
               whole panel through the quiet period, so this is the same rule
               stated where it is read rather than inferred two branches away.
             */
-            asking ? (
+            searching ? (
               <Shells />
             ) : null
           ) : (
@@ -286,6 +378,7 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
                       // Clearing the box is what dismisses the list; there is
                       // nothing else to close.
                       setQuery('')
+                      setSubmitted(null)
                     }}
                     className={styles.candidate}
                   >
@@ -323,6 +416,12 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
             </ul>
           )}
           </div>
+
+          {hint ? (
+            <p className={`${styles.note} ${styles.hint}`}>
+              {say(message('search.everyLanguageEnter'))}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

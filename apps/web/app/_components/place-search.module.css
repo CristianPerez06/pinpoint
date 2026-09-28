@@ -234,6 +234,15 @@
 }
 
 /*
+ * Under the list, and outside the box that scrolls, so it stays where it is
+ * read: after the answer it offers an alternative to. The rule separates it
+ * from the rows without making it look like one.
+ */
+.hint {
+  border-top: 1px solid var(--pp-line);
+}
+
+/*
  * The results become the screen, rather than a list hanging under a field.
  *
  * See `trip-workspace.module.css` for where 700px is decided. Above it this
