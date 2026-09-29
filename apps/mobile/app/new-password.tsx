@@ -81,8 +81,8 @@ export default function NewPasswordScreen() {
     <AuthScreen title={message('reset.newTitle')} formError={formError}>
       <NewPasswordForm
         onRefused={setFormError}
-        onSubmit={async (values) => {
-          const outcome = await setNewPassword(supabase, values)
+        onSubmit={async ({ password, confirmPassword }) => {
+          const outcome = await setNewPassword(supabase, { password, confirmPassword })
           if (outcome.ok) setSaved(true)
           return outcome
         }}

@@ -8,6 +8,7 @@ import { NamePlaceholder } from '@/app/_components/ui'
 
 import { Appearance } from './appearance'
 import { BackToMap } from './back'
+import { ChangePassword } from './change-password'
 import { Language } from './language'
 import styles from './settings.module.css'
 
@@ -43,8 +44,8 @@ import styles from './settings.module.css'
  *
  * WHY THERE ARE SECTIONS WITH ONE THING IN THEM
  *
- * Account carries an address and no controls yet; the password form that
- * belongs in it is a separate change. The section exists now rather than later
+ * Account carries the address and, where passwords can be changed, the way to
+ * change one. The section existed before it had a control
  * because it is what makes this a settings screen instead of an appearance
  * screen with a heading — and because a section added under somebody else's
  * change is a section whose shape gets decided by whatever is being added to it.
@@ -73,6 +74,7 @@ export function SettingsScreen({
             {say(message('account.label'))}
           </h2>
           {accountRow}
+          <ChangePassword />
         </section>
 
         <section className={styles.section} aria-labelledby="settings-appearance">

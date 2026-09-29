@@ -1,4 +1,5 @@
 import {
+  changePasswordSchema,
   fieldErrorsOf,
   newPasswordSchema,
   resetCodeSchema,
@@ -10,6 +11,7 @@ import {
   authFailureOf,
   type PinpointClient,
 } from '@pinpoint/supabase'
+import { message } from '@pinpoint/wording'
 import {
   type AuthOutcome,
   invalidInput,
@@ -193,6 +195,53 @@ export async function setNewPassword(
   if (error) return rejected(authFailureOf(error))
 
   return signOut(client)
+}
+
+/**
+ * Change the password of the signed-in account.
+ *
+ * The service would change it for any session without asking for the old one,
+ * so the old one is checked first, by signing in with it: somebody holding an
+ * unlocked phone must not be able to lock its owner out. A wrong one is a field
+ * error on `currentPassword` rather than a form error, so the form says which of
+ * its three fields was the problem.
+ *
+ * That check replaces this device's session with a fresh one, and the last step
+ * ends every session *except* the current one — the old session here included,
+ * which is exactly right. A failure of that last step is swallowed: the
+ * password has changed by then, and saying it had not would be the bigger lie.
+ *
+ * Not `updateUser`'s own `current_password`: that only works behind a
+ * project-wide setting, and a reset has no current password to give it.
+ */
+export async function changePassword(
+  client: PinpointClient,
+  input: unknown,
+): Promise<AuthOutcome> {
+  const validated = validate(changePasswordSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { data: current, error: userError } = await client.auth.getUser()
+  const email = current.user?.email
+  if (userError || !email) return rejected(authFailureOf(userError))
+
+  const { error: checkError } = await client.auth.signInWithPassword({
+    email,
+    password: validated.data.currentPassword,
+  })
+  if (checkError) {
+    const failure = authFailureOf(checkError)
+    return failure === 'invalid-credentials'
+      ? invalidInput({ currentPassword: message('password.currentWrong') })
+      : rejected(failure)
+  }
+
+  const { error } = await client.auth.updateUser({ password: validated.data.password })
+  if (error) return rejected(authFailureOf(error))
+
+  await client.auth.signOut({ scope: 'others' })
+
+  return succeeded
 }
 
 /**

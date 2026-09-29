@@ -70,7 +70,7 @@ export function LoginForm() {
         ) : null}
       </p>
 
-      {config.passwordReset ? (
+      {config.passwordChanges ? (
         <Link href="/forgot-password" className={styles.forgot}>
           {words(message('auth.forgotPassword'))}
         </Link>

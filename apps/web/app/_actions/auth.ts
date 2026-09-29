@@ -1,6 +1,7 @@
 'use server'
 
 import {
+  changePassword,
   requestPasswordReset,
   setNewPassword,
   signIn,
@@ -162,4 +163,26 @@ export async function setNewPasswordAction(
 
   revalidatePath('/', 'layout')
   redirect('/login?reset=done')
+}
+
+/**
+ * Change the password from settings.
+ *
+ * Stays on the screen rather than redirecting: the person is still signed in
+ * here, and what they need is to be told it worked and that the other devices
+ * were signed out.
+ */
+export async function changePasswordAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const supabase = await createClient()
+  const outcome = await changePassword(supabase, {
+    currentPassword: formData.get('currentPassword'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+
+  if (!outcome.ok) return stateFrom(outcome)
+  return { notice: message('changePassword.done') }
 }

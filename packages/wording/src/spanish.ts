@@ -31,6 +31,8 @@ export const SPANISH: Catalogue = {
   'password.needsNumber': 'Incluir al menos un número.',
   'password.repeatMissing': 'Repetir la contraseña.',
   'password.mismatch': 'Las dos contraseñas tienen que coincidir.',
+  'password.currentMissing': 'Falta la contraseña actual.',
+  'password.currentWrong': 'Esa no es la contraseña actual.',
   'code.invalidFormat': 'Ingresar el código de 6 dígitos del email.',
 
   // ── Authentication failures, by the code the service gave ────────────────
@@ -234,6 +236,11 @@ export const SPANISH: Catalogue = {
   'reset.startAgainBody':
     'La contraseña nueva solo se puede elegir justo después de ingresar el código del email.',
   'reset.startAgain': 'Empezar de nuevo',
+
+  'changePassword.open': 'Cambiar la contraseña',
+  'changePassword.note': 'Al cambiarla, se cierra la sesión en los otros dispositivos.',
+  'changePassword.current': 'Contraseña actual',
+  'changePassword.done': 'Contraseña cambiada. Se cerró la sesión en los otros dispositivos.',
 
   'account.label': 'Cuenta',
   'account.signedIn': 'Sesión iniciada',
