@@ -245,6 +245,21 @@ export function formatDayNumeric(day: IsoDay): string {
 }
 
 /**
+ * `09:05` — a moment's time of day on a 24-hour clock, in the device's time.
+ *
+ * The same in both languages, and the same form a place's hours are stored and
+ * shown in, so "as of 14:20" and "open 09:00–17:00" read as one clock. Built
+ * from the digits rather than through `Intl`, which would follow the device's
+ * region into `2:20 PM` — the device is asked which language to open in and
+ * nothing else.
+ */
+export function formatClock(moment: Date): string {
+  const hours = String(moment.getHours()).padStart(2, '0')
+  const minutes = String(moment.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+/**
  * One day, worded, or the day itself if this runtime cannot word it.
  *
  * `dateOfDay` rather than `new Date(day)`: that parses as UTC midnight and reads

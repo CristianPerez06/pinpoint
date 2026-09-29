@@ -626,6 +626,17 @@ export const ENGLISH = {
   'map.zoomOut': 'Zoom out',
   'map.reread': 'Read everything again',
   'map.loading': 'Loading the map',
+  /** The map's line while the phone has no connection: when the trip was last read. */
+  /** Under a tap made with no signal, until it is sent. */
+  'offline.sendsLater': 'Sends when you are back online',
+  'offline.editingNeedsConnection': 'Editing needs a connection.',
+  'offline.searchAndDropNeedConnection': 'Searching and adding places need a connection.',
+  'offline.savingNeedsConnection': 'Saving needs a connection. What you typed is kept.',
+  'offline.changesNeedConnection': 'Changing a trip needs a connection.',
+  'offline.asOf': (v: { time: string }) => `Offline · the trip as of ${v.time}`,
+  /** The same, when the last read was not today. */
+  'offline.asOfDay': (v: { day: string; time: string }) =>
+    `Offline · the trip as of ${v.day}, ${v.time}`,
   /** A pin standing for several places at one point. Always more than one. */
   'map.placesHere': (v: { count: number }) => `${v.count} places here`,
   /** A pin's spoken name: the place, then its kind. */

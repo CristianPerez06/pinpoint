@@ -21,10 +21,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, Question, TextField } from '@/components/ui'
+import { NeedsConnection } from '@/components/needs-connection'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
 
 /**
  * Who is on the trip, and adding somebody.
@@ -74,6 +76,7 @@ export function PeopleSheet({
 }) {
   const theme = useTheme()
   const say = useSay()
+  const online = useOnline()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -202,6 +205,8 @@ export function PeopleSheet({
                         setNote(null)
                         setAsking(member)
                       }}
+                      disabled={!online}
+                      accessibilityState={{ disabled: !online }}
                       accessibilityRole="button"
                       accessibilityLabel={say(
                         message('people.takeBackNamed', { name: member.displayName }),
@@ -209,7 +214,7 @@ export function PeopleSheet({
                       hitSlop={6}
                       style={[
                         styles.takeBack,
-                        { borderColor: theme.colour.lineStrong },
+                        { borderColor: theme.colour.lineStrong, opacity: online ? 1 : 0.5 },
                       ]}
                     >
                       <Text
@@ -275,11 +280,19 @@ export function PeopleSheet({
 
                 {note ? <FormNote tone="danger">{say(note)}</FormNote> : null}
 
+                {/*
+                  Who is on the trip stays readable; adding and taking back
+                  wait for a connection (`offline-use`).
+                */}
+                {online ? null : (
+                  <NeedsConnection>{say(message('offline.changesNeedConnection'))}</NeedsConnection>
+                )}
+
                 <Button
                   label={say(adding ? message('people.adding') : message('people.add'))}
                   tone="primary"
                   disabled={
-                    adding || displayName.trim() === '' || email.trim() === ''
+                    !online || adding || displayName.trim() === '' || email.trim() === ''
                   }
                   onPress={invite}
                 />

@@ -50,10 +50,13 @@ export type ChromeBindings = {
 
 export function WorkspaceChrome({
   live,
+  notice,
   children,
   overlays,
 }: {
   live: ChromeBindings | null
+  /** A line between the header and the map, such as the offline note. */
+  notice?: ReactNode
   /** What stands under the header: the map, or the wait for it. */
   children: ReactNode
   /** The sheets that open over the whole screen. */
@@ -202,6 +205,8 @@ export function WorkspaceChrome({
         </View>
       </View>
 
+      {notice}
+
       <View style={styles.body}>{children}</View>
 
       {overlays}
@@ -283,8 +288,10 @@ export function ToolBar({
 }
 
 export type ToolBindings = {
-  onSearch: () => void
-  onDrop: () => void
+  /** Null while there is no connection: search asks a service (`offline-use`). */
+  onSearch: (() => void) | null
+  /** Null while there is no connection: a dropped place cannot be saved. */
+  onDrop: (() => void) | null
   onFilter: () => void
   /** Whether a filter is hiding some of the trip's places. */
   narrowed: boolean

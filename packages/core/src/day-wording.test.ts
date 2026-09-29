@@ -2,6 +2,7 @@ import { say, type Language } from '@pinpoint/wording'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  formatClock,
   formatDay,
   formatDayCompact,
   formatDayFull,
@@ -223,5 +224,13 @@ describe('where a place sits in its run of days', () => {
   it('reads in either language', () => {
     expect(say('en', formatRunPosition({ index: 2, total: 4 }))).toBe('Day 2 of 4')
     expect(say('es', formatRunPosition({ index: 2, total: 4 }))).toBe('Día 2 de 4')
+  })
+})
+
+describe('formatClock', () => {
+  it('writes a 24-hour clock with two digits each side', () => {
+    expect(formatClock(new Date(2026, 4, 14, 9, 5))).toBe('09:05')
+    expect(formatClock(new Date(2026, 4, 14, 21, 40))).toBe('21:40')
+    expect(formatClock(new Date(2026, 4, 14, 0, 0))).toBe('00:00')
   })
 })

@@ -41,3 +41,16 @@ export {
 
 export { conflicted, invalidInput, rejected, wrote } from './write-outcome'
 export type { WriteOutcome } from './write-outcome'
+
+export { keepList, readKeptList } from './kept'
+export type { KeptList } from './kept'
+
+export {
+  doneWaiting,
+  isWaiting,
+  keepWaiting,
+  readWaiting,
+  waitAlso,
+  waitingTarget,
+} from './waiting'
+export type { WaitingTap } from './waiting'

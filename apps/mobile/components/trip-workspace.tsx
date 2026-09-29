@@ -1,4 +1,3 @@
-import { signOut } from '@pinpoint/auth'
 import type {
   CityNotice,
   FieldErrors,
@@ -75,6 +74,7 @@ import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState } from '@/components/states'
 import { TripMap, type TripMapRef } from '@/components/trip-map'
+import { OfflineNote } from '@/components/offline-note'
 import {
   BAR_HEIGHT,
   SessionTools,
@@ -89,6 +89,9 @@ import { onPlaceRequest, type PlaceRequest, takePlaceRequest } from '@/lib/calen
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
+import { signOutHere } from '@/lib/sign-out'
+import { useOnline } from '@/lib/connectivity'
+import { useAfterSending, useWaiting } from '@/lib/waiting'
 
 /**
  * Everything a trip can be doing on a phone, in one place.
@@ -230,10 +233,21 @@ export function TripWorkspace({
    */
   const trips = tripQuery.rows
 
-  const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
-  const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
-  const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id])
-  const memberQuery = useQuery(() => fetchTripMembers(supabase, trip.id), [trip.id])
+  const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id], {
+    keep: `markers-${trip.id}`,
+  })
+  const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id], {
+    keep: `cities-${trip.id}`,
+  })
+  const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id], {
+    keep: `interest-${trip.id}`,
+  })
+  const memberQuery = useQuery(() => fetchTripMembers(supabase, trip.id), [trip.id], {
+    keep: `members-${trip.id}`,
+  })
+
+  const online = useOnline()
+  const offlineTaps = useWaiting()
 
   const markers = markerQuery.rows
   const cities = cityQuery.rows
@@ -266,6 +280,12 @@ export function TripWorkspace({
     polling, no interval, and nothing holding a connection open.
   */
   useActiveAgain(() => void rereadEverything())
+
+  /*
+    Taps made offline have all been sent: read the trip again however recently
+    it was read, so what is shown is what the database made of them.
+  */
+  useAfterSending(() => void rereadEverything({ force: true }))
 
   /**
    * Reading everything again because somebody pressed the control for it.
@@ -529,6 +549,18 @@ export function TripWorkspace({
       },
     ])
 
+    // With no signal the tap is kept and sent later; what it changed is
+    // already on screen (`offline-use`).
+    if (!online) {
+      offlineTaps.add({
+        kind: 'interest',
+        markerId: marker.id,
+        memberId: ownMemberId,
+        interested,
+      })
+      return
+    }
+
     const outcome = await recordInterest(supabase, {
       markerId: marker.id,
       memberId: ownMemberId,
@@ -557,6 +589,16 @@ export function TripWorkspace({
       ),
     )
 
+    if (!online) {
+      offlineTaps.add({
+        kind: 'interest',
+        markerId: marker.id,
+        memberId: ownMemberId,
+        interested: null,
+      })
+      return
+    }
+
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
       interestQuery.set(() => previous)
@@ -575,6 +617,11 @@ export function TripWorkspace({
     markerQuery.set((rows) =>
       rows.map((each) => (each.id === marker.id ? { ...each, visited } : each)),
     )
+
+    if (!online) {
+      offlineTaps.add({ kind: 'visited', markerId: marker.id, visited })
+      return
+    }
 
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
     if (!outcome.ok) {
@@ -1059,6 +1106,19 @@ export function TripWorkspace({
 
   return (
     <WorkspaceChrome
+      /*
+        When the trip on screen was last read, while there is no connection to
+        read it again. The markers stand for the trip: they are what the map
+        draws, and every list is read in the same round.
+      */
+      notice={
+        !online && markerQuery.asOf !== null ? (
+          <OfflineNote
+            asOf={markerQuery.asOf}
+            unavailable={say(message('offline.searchAndDropNeedConnection'))}
+          />
+        ) : null
+      }
       live={{
         tripName: trip.name,
         onOpenTrips: () => showSheet(setTripsOpen, true, tripQuery.refetch),
@@ -1117,7 +1177,7 @@ export function TripWorkspace({
           <MenuSheet
             open={menuOpen}
             onClose={() => setMenuOpen(false)}
-            onSignOut={() => void signOut(supabase)}
+            onSignOut={() => void signOutHere()}
             member={ownMemberOf(members, userId) ?? null}
           />
 
@@ -1338,11 +1398,15 @@ export function TripWorkspace({
         bottomRow={
           <SessionTools
             tools={{
-              onSearch: () => setSearchOpen(true),
-              onDrop: () => {
-                cancelPanel()
-                setSight({ kind: 'new' })
-              },
+              // Inert with no signal, drawn the way the bar draws a tool that
+              // cannot act yet; the offline note says why (`offline-use`).
+              onSearch: online ? () => setSearchOpen(true) : null,
+              onDrop: online
+                ? () => {
+                    cancelPanel()
+                    setSight({ kind: 'new' })
+                  }
+                : null,
               onFilter: () => setFilterOpen(true),
               narrowed,
             }}

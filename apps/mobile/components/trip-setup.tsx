@@ -13,10 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
+import { NeedsConnection } from '@/components/needs-connection'
 import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
 
 /**
  * What somebody on no trips sees, which until now was a full stop.
@@ -115,6 +117,7 @@ export function CreateTripForm({
   // Held as the named message, so a change of language re-words it.
   const [note, setNote] = useState<Message | null>(null)
   const say = useSay()
+  const online = useOnline()
 
   /**
    * A field's refusal, in words, and nothing when there is no refusal.
@@ -197,10 +200,14 @@ export function CreateTripForm({
 
       {note ? <FormNote tone="danger">{say(note)}</FormNote> : null}
 
+      {online ? null : (
+        <NeedsConnection>{say(message('offline.changesNeedConnection'))}</NeedsConnection>
+      )}
+
       <Button
         label={say(busy ? message('common.creating') : message('tripSetup.create'))}
         tone="primary"
-        disabled={busy || name.trim() === '' || displayName.trim() === ''}
+        disabled={!online || busy || name.trim() === '' || displayName.trim() === ''}
         onPress={() => void create()}
       />
     </>

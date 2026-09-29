@@ -22,10 +22,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, Question, TextField } from '@/components/ui'
+import { NeedsConnection } from '@/components/needs-connection'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
 
 /**
  * Choosing which group of places is being worked on, and correcting a group
@@ -109,6 +111,7 @@ export function CitySheet({
 }) {
   const theme = useTheme()
   const say = useSay()
+  const online = useOnline()
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -293,20 +296,31 @@ export function CitySheet({
                   onClose={() => setCreating(false)}
                 />
               ) : (
-                <Pressable
-                  onPress={() => {
-                    setEditing(null)
-                    setCreating(true)
-                  }}
-                  accessibilityRole="button"
-                  accessibilityHint={say(message('city.newHint'))}
-                  style={styles.createRow}
-                >
-                  <Plus size={16} color={theme.colour.accentInk} strokeWidth={2.5} />
-                  <Text style={[styles.createText, { color: theme.colour.accentInk }]}>
-                    {say(message('city.new'))}
-                  </Text>
-                </Pressable>
+                <>
+                  {/*
+                    Choosing a city only changes what is shown and keeps working;
+                    making or changing one waits for a connection (`offline-use`).
+                  */}
+                  {online ? null : (
+                    <NeedsConnection>{say(message('offline.changesNeedConnection'))}</NeedsConnection>
+                  )}
+                  <Pressable
+                    onPress={() => {
+                      setEditing(null)
+                      setCreating(true)
+                    }}
+                    disabled={!online}
+                    accessibilityState={{ disabled: !online }}
+                    accessibilityRole="button"
+                    accessibilityHint={say(message('city.newHint'))}
+                    style={[styles.createRow, online ? null : { opacity: 0.5 }]}
+                  >
+                    <Plus size={16} color={theme.colour.accentInk} strokeWidth={2.5} />
+                    <Text style={[styles.createText, { color: theme.colour.accentInk }]}>
+                      {say(message('city.new'))}
+                    </Text>
+                  </Pressable>
+                </>
               )}
             </View>
           </View>
@@ -339,6 +353,7 @@ function CityCreator({
   const [error, setError] = useState<Message | null>(null)
   const [creating, startCreate] = usePending()
   const say = useSay()
+  const online = useOnline()
 
   const trimmed = name.trim()
 
@@ -377,7 +392,7 @@ function CityCreator({
           <Button
             label={say(creating ? message('common.creating') : message('city.create'))}
             tone="primary"
-            disabled={creating}
+            disabled={!online || creating}
             onPress={() => {
               if (trimmed === '') {
                 setError(CITY_NEEDS_A_NAME)
@@ -502,6 +517,7 @@ function CityRow({
 }) {
   const theme = useTheme()
   const say = useSay()
+  const online = useOnline()
   const [name, setName] = useState(city.name)
   const [currency, setCurrency] = useState(city.currency)
 
@@ -606,8 +622,9 @@ function CityRow({
 
         <Pressable
           onPress={onToggle}
+          disabled={!online}
           accessibilityRole="button"
-          accessibilityState={{ expanded: editing }}
+          accessibilityState={{ expanded: editing, disabled: !online }}
           accessibilityLabel={say(message('city.editNamed', { name: city.name }))}
           hitSlop={6}
           style={[
@@ -617,6 +634,7 @@ function CityRow({
                 ? theme.colour.accentWash
                 : theme.colour.surfaceMuted,
               borderColor: editing ? theme.colour.accentRing : theme.colour.line,
+              opacity: online ? 1 : 0.5,
             },
           ]}
         >
@@ -690,7 +708,7 @@ function CityRow({
               <Button
                 label={say(saving ? message('common.saving') : message('common.save'))}
                 tone="primary"
-                disabled={busy || name.trim() === ''}
+                disabled={!online || busy || name.trim() === ''}
                 onPress={() => {
                   // Nothing to write is not a write. Closing without sending is
                   // the correct answer to a Save that changed nothing.
@@ -710,7 +728,7 @@ function CityRow({
               <Button
                 label={say(message('common.remove'))}
                 tone="danger"
-                disabled={busy}
+                disabled={!online || busy}
                 onPress={() => setAsking('remove')}
               />
             </View>
