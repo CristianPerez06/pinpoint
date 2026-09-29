@@ -36,16 +36,71 @@ export const signInSchema = z.object({
   password: z.string().min(1, refusal('password.missing')),
 })
 
+/**
+ * A new password, typed twice.
+ *
+ * Its own object because two screens set a password — sign-up and the reset —
+ * and #49's change-while-signed-in will be a third. Sign-up is built from this
+ * rather than beside it, so the rules and the wording cannot come apart between
+ * them: the reset has to refuse exactly what account creation refuses.
+ */
+const newPasswordShape = {
+  password,
+  confirmPassword: z.string().min(1, refusal('password.repeatMissing')),
+}
+
+const passwordsMatch = {
+  check: (value: { password: string; confirmPassword: string }) =>
+    value.password === value.confirmPassword,
+  params: { path: ['confirmPassword'], message: refusal('password.mismatch') },
+}
+
+export const newPasswordSchema = z
+  .object(newPasswordShape)
+  .refine(passwordsMatch.check, passwordsMatch.params)
+
 export const signUpSchema = z
   .object({
     email: z.email(refusal('email.invalid')),
-    password,
-    confirmPassword: z.string().min(1, refusal('password.repeatMissing')),
+    ...newPasswordShape,
   })
-  .refine((value) => value.password === value.confirmPassword, {
-    path: ['confirmPassword'],
-    message: refusal('password.mismatch'),
-  })
+  .refine(passwordsMatch.check, passwordsMatch.params)
+
+/**
+ * How many digits the emailed reset code has.
+ *
+ * Has to equal the auth service's email OTP length: `otp_length` in
+ * `supabase/config.toml` locally, and "Email OTP Length" in the hosted project's
+ * dashboard, which does not read that file. A mismatch is a code the form refuses
+ * as malformed. `code.invalidFormat` writes the number in, and `auth.test.ts`
+ * holds the two together.
+ */
+export const RESET_CODE_LENGTH = 6
+
+/**
+ * How long "Send it again" stays unavailable after a code is sent.
+ *
+ * Matches the hosted project's minimum interval between two reset emails to one
+ * address, which defaults to 60 seconds. Asking sooner would be refused by the
+ * service anyway; waiting here means the person is told how long instead of
+ * being refused. Locally `max_frequency` is 1s, so the wait is ours alone there.
+ */
+export const RESEND_CODE_AFTER_SECONDS = 60
+
+export const resetRequestSchema = z.object({
+  email: z.email(refusal('email.invalid')),
+})
+
+export const resetCodeSchema = z.object({
+  email: z.email(refusal('email.invalid')),
+  code: z
+    .string()
+    .trim()
+    .regex(new RegExp(`^[0-9]{${RESET_CODE_LENGTH}}$`), refusal('code.invalidFormat')),
+})
 
 export type SignInInput = z.infer<typeof signInSchema>
 export type SignUpInput = z.infer<typeof signUpSchema>
+export type NewPasswordInput = z.infer<typeof newPasswordSchema>
+export type ResetRequestInput = z.infer<typeof resetRequestSchema>
+export type ResetCodeInput = z.infer<typeof resetCodeSchema>

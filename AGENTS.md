@@ -467,7 +467,10 @@ Where a set each needs a name, use an exhaustive record, as both applications do
 marker type beside the record mapping its icon.
 
 `pnpm check:wording` fails on a name with no sentence and on a sentence nothing resolves.
-What is **not** in there: anything a person typed, and the tile attribution. Values
+What is **not** in there: anything a person typed, the tile attribution, and the text of
+the emails Supabase sends — those live in `supabase/templates/`, in Spanish only, because
+the service keeps one version of each and cannot know the reader's language (#78 is what
+changes that). Values
 formatted from stored data — a day, a price, a weekday's name, a currency's name — are
 worded in `@pinpoint/core` from one definition **per language**, which takes the language
 as its first argument; the words around such a value (`Free`, `From`, `Day 2 of 4`) are

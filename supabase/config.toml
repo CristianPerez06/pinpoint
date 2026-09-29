@@ -243,6 +243,23 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# The emails Supabase sends, kept in the repository as Grana keeps them: Spanish
+# only, a code to type rather than a link, drawn in the light theme's colours
+# from @pinpoint/tokens (written in by hand; email cannot read custom
+# properties). The hosted project does not read this file, so each subject and
+# body is pasted into the dashboard's templates by hand as well.
+#
+# `confirmation` is dormant: `enable_confirmations` is false and the auth spec
+# sends no email at account creation. It is here so that turning confirmations
+# on does not send Supabase's stock email, but no screen accepts its code yet.
+[auth.email.template.recovery]
+subject = "Código para restablecer la contraseña de Pinpoint"
+content_path = "./supabase/templates/reset-password.html"
+
+[auth.email.template.confirmation]
+subject = "Código para confirmar la cuenta de Pinpoint"
+content_path = "./supabase/templates/confirm-signup.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

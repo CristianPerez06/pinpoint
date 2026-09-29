@@ -31,6 +31,7 @@ export const SPANISH: Catalogue = {
   'password.needsNumber': 'Incluir al menos un número.',
   'password.repeatMissing': 'Repetir la contraseña.',
   'password.mismatch': 'Las dos contraseñas tienen que coincidir.',
+  'code.invalidFormat': 'Ingresar el código de 6 dígitos del email.',
 
   // ── Authentication failures, by the code the service gave ────────────────
   'auth.invalidCredentials': 'Ese email y esa contraseña no corresponden a ninguna cuenta.',
@@ -40,6 +41,8 @@ export const SPANISH: Catalogue = {
   'auth.rateLimited': 'Demasiados intentos. Esperar un momento y volver a intentar.',
   'auth.signupDisabled': 'Por ahora no se aceptan cuentas nuevas.',
   'auth.generic': 'Algo salió mal. Volver a intentar.',
+  'auth.codeInvalid': 'Ese código no es válido. Puede haber vencido o ya haberse usado.',
+  'auth.samePassword': 'Esa ya es la contraseña. Elegir otra.',
 
   // ── Trips ────────────────────────────────────────────────────────────────
   'trip.needsName': 'Un viaje necesita un nombre.',
@@ -206,6 +209,31 @@ export const SPANISH: Catalogue = {
   'auth.noAccountYet': '¿Todavía sin cuenta?',
   'auth.createOne': 'Crear una',
   'auth.haveAccount': '¿Ya con cuenta?',
+  'auth.forgotPassword': '¿Contraseña olvidada?',
+  'auth.passwordUpdated': 'Contraseña actualizada. Iniciar sesión con la nueva.',
+
+  'reset.title': 'Restablecer la contraseña',
+  'reset.intro': 'Ingresar el email de la cuenta. Si tiene una, se le envía un código de 6 dígitos.',
+  'reset.sendCode': 'Enviar código',
+  'reset.sendingCode': 'Enviando código…',
+  'reset.codeTitle': 'Revisar el email',
+  'reset.codeSent': (v: { email: string }) =>
+    `Si ${v.email} tiene una cuenta, se le envió un código de 6 dígitos. Vence en una hora.`,
+  'reset.code': 'Código',
+  'reset.checkCode': 'Continuar',
+  'reset.checkingCode': 'Verificando código…',
+  'reset.sendAgain': 'Enviarlo de nuevo',
+  'reset.sendAgainIn': (v: { seconds: number }) => `Enviarlo de nuevo en ${v.seconds} s`,
+  'reset.sentAgain': 'Se envió un código nuevo.',
+  'reset.backToSignIn': 'Volver a iniciar sesión',
+  'reset.newTitle': 'Elegir una contraseña nueva',
+  'reset.newPassword': 'Contraseña nueva',
+  'reset.save': 'Guardar contraseña',
+  'reset.saving': 'Guardando…',
+  'reset.startAgainTitle': 'Hay que pedir un código nuevo',
+  'reset.startAgainBody':
+    'La contraseña nueva solo se puede elegir justo después de ingresar el código del email.',
+  'reset.startAgain': 'Empezar de nuevo',
 
   'account.label': 'Cuenta',
   'account.signedIn': 'Sesión iniciada',

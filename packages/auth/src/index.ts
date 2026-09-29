@@ -1,8 +1,12 @@
 export {
   claimTripMemberships,
+  isResetSession,
+  requestPasswordReset,
+  setNewPassword,
   signIn,
   signOut,
   signUp,
+  verifyResetCode,
 } from './operations'
 
 export { invalidInput, rejected, succeeded } from './outcome'

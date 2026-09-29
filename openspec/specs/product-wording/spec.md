@@ -125,6 +125,15 @@ The attribution required for the tile data SHALL NOT be held as a named sentence
 and SHALL NOT be reworded. It is a condition of using the data and has a fixed form. It
 SHALL NOT be translated.
 
+The text of an email the authentication service sends SHALL NOT be held as a named
+sentence either. It is written into the service's email template, and is sent in Spanish
+only, whatever language the recipient reads the product in. Rationale: that template is
+not drawn by either application, and the service keeps one version of each email with no
+way to learn which language the recipient chose, since that choice lives on their device.
+Holding the words under a name would not change what is sent. This is temporary. Sending
+each person the email in their own language belongs with a real email service (#78), and
+when that lands, this paragraph is replaced by the rule it follows.
+
 Rationale: stating this now is what stops the list becoming the place text goes. The
 boundary is not obvious from either side — a city name and a refusal about a city name sit
 next to each other in the same form — and a person's own words placed under a name is a
@@ -158,6 +167,12 @@ language.
 - **THEN** its text is the fixed form the data requires
 - **AND** it is not resolved from the shared source of sentences
 - **AND** it is the same text in every language
+
+#### Scenario: The password reset email
+
+- **WHEN** a person using the product in English asks for a password reset code
+- **THEN** the email they receive is in Spanish
+- **AND** its words are not resolved from the shared source of sentences
 
 #### Scenario: A day or a price under a second language
 

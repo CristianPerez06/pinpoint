@@ -25,6 +25,16 @@ function required(name: string, value: string | undefined): string {
   return value
 }
 
+/**
+ * An optional switch: on only when set to exactly `on`, and off otherwise.
+ *
+ * Off is the default because what these gate is unfinished somewhere: a switch
+ * nobody set must never turn a feature on.
+ */
+function switchedOn(value: string | undefined): boolean {
+  return value?.trim() === 'on'
+}
+
 // Literal property access, not process.env[name]: Expo only inlines
 // EXPO_PUBLIC_* references it can see statically.
 export const config = {
@@ -38,4 +48,13 @@ export const config = {
       process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     ),
   },
+  /**
+   * Whether sign-in offers "Forgot password?".
+   *
+   * Off on the live project until a real email service is connected (#78):
+   * a new free project cannot put the code in Supabase's built-in email, so a
+   * reset started there could never finish. On locally, where the email
+   * template in `supabase/templates/` is used.
+   */
+  passwordReset: switchedOn(process.env.EXPO_PUBLIC_PASSWORD_RESET),
 } as const

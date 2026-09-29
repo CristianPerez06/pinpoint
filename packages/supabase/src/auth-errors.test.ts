@@ -20,6 +20,11 @@ describe('authFailureOf', () => {
     expect(authFailureOf({ code: 'email_exists' })).toBe('email-taken')
   })
 
+  it('maps the reset codes to their own identifiers', () => {
+    expect(authFailureOf({ code: 'otp_expired' })).toBe('code-invalid')
+    expect(authFailureOf({ code: 'same_password' })).toBe('same-password')
+  })
+
   it.each([
     ['an unknown code', { code: 'something_new' }],
     ['a missing code', {}],
