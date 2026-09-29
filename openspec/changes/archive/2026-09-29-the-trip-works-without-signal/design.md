@@ -32,7 +32,7 @@ What exists on the phone today:
 
 ## Decisions
 
-### Kept copies are JSON files, one per trip
+### Kept copies are JSON files, one per list
 
 A folder under the app's document directory, via `expo-file-system`, with one file per list:
 `trips.json`, and `markers-<trip id>.json`, `cities-…`, `interest-…` and `members-…` for each
@@ -98,37 +98,13 @@ The pure parts — collapsing, reading and writing the queue, and what counts as
 kept list — are in `@pinpoint/data` (`waiting.ts`, `kept.ts`), where they are unit-tested.
 The phone has no test runner, and adding one is not this change.
 
-### Areas are a pure function in `@pinpoint/map`
+### Downloading the map is not part of this change
 
-`offlineAreas(markers, cities)` returns
-`{ key, bounds, cityId | null, placeCount, minZoom }[]`:
-
-- Places are joined into a group when within 5 km of any place already in it.
-- Each group's bounds get a 1 km margin.
-- The group is named by the city most of its places are filed under.
-- Its `minZoom` is the zoom at which its bounds fill a phone screen, minus one.
-- Its `key` is derived from the rounded bounds, so an unchanged group keeps its key between
-  runs.
-
-It is plain arithmetic over coordinates, next to `boundsOf` in `camera.ts`, and it honours
-the no-renderer rule.
-
-The size estimate is `tileCount(bounds, minZoom..14) × average bytes per tile`. The average
-is a constant measured once from real cities while building this. Over central Tokyo a
-compressed tile at zoom 14 is 140–420 KB. The screen says *about*.
-
-### Each area is one MapLibre offline pack
-
-`OfflineManager.createPack({ mapStyle: styleUrl(), bounds, minZoom, maxZoom: 14,
-metadata: { tripId, areaKey, downloadedAt } })`. Zoom 14 is the highest zoom OpenFreeMap
-serves; MapLibre draws street level by enlarging those tiles. Pointing the pack at the
-style URL makes MapLibre also store the sprites, fonts and tile index the style references.
-The themed document we render uses the same addresses, so it finds them offline.
-
-`getPacks()` filtered by `tripId` gives the screen its state: a missing area means Update,
-and `status()` gives progress and the size on disk. Leaving the app calls `pause()` on the
-active pack through the existing `AppState` hook, and coming back calls `resume()`. Remove
-is `deletePack` for each of the trip's packs.
+The *Offline map* screen was designed here and moved to #232, which carries its decisions:
+areas as a pure function in `@pinpoint/map`, one MapLibre offline pack per area up to zoom
+14, and the two things to settle first — OpenFreeMap's permission, and whether its weekly
+change of tile address blanks a downloaded area. Until then the streets show offline only
+where MapLibre's own cache still holds them.
 
 ### The trip copy is cleared on the Sign out button, not on a session event
 
@@ -139,23 +115,9 @@ trip at the moment it is needed.
 
 ## Risks / Trade-offs
 
-- **[OpenFreeMap's terms forbid collecting data "in automated ways without permission"]**
-  → Ask the maintainer before building the download: a user-triggered download of the areas
-  around one trip, zoom 14 at most. It costs nothing. The rest of the change does not depend
-  on the answer, so tasks put the download last. If the answer is no, the download is
-  dropped and the rest ships.
-- **[OpenFreeMap re-publishes the planet weekly under a new address]** (the tile index
-  currently points at `…/planet/20260927_080001_pt/{z}/{x}/{y}.pbf`). If the phone goes
-  online after downloading, MapLibre may refresh the stored tile index to the new week, whose
-  tiles were never downloaded, and the map would be blank offline. → The first task is a
-  spike that reproduces this. If it happens, the fix is to hand the renderer the week the
-  pack was downloaded while a pack exists, and to show *Update* on the Offline map screen
-  when a newer week is out.
 - **[Opening offline with an expired access token signs the person out]** → Verify with
   airplane mode after more than an hour. Clearing only on the button means that even if
   this happens the copy survives until the person signs in again.
-- **[Sizes are estimates]** → Labelled *about*. After downloading, the real size on disk is
-  shown.
 - **[A copy of every trip ever opened accumulates]** → Kept deliberately. Trips are small,
   and the person expects the trips they opened to open. Archiving does not delete a copy.
 

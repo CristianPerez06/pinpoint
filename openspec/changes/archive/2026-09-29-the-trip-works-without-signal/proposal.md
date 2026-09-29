@@ -26,35 +26,25 @@ Phone only.
   cities, the calendar, the trip and its people. Filtering still works, because it only
   uses what is already on the phone. Controls are greyed rather than hidden, so nothing seems
   to have disappeared.
-- **A new *Offline map* screen**, opened from one line in the trip sheet (*Offline map ·
-  Not downloaded*, or its size once downloaded). It lists the areas around the trip's
-  places — one per group of nearby places, named after their city, with *N places with no
-  city* for the rest — each with its size and a total. **Download** starts only when
-  pressed, and warns when the phone is on mobile data. The download runs while Pinpoint is
-  on screen and continues when the person comes back if they leave. Once done, the screen
-  shows the size and date and offers **Remove from this phone**. When places are added
-  somewhere not yet downloaded, it offers **Update** for just the new areas. With no signal,
-  Download and Update are greyed out.
-- **Signing out removes the trip copies and queued taps from the phone.** The downloaded map
-  stays, since it holds nothing about the person.
+- **Signing out removes the trip copies and queued taps from the phone.**
 
 Not being done:
+- **Downloading the map ahead of time.** The *Offline map* screen — a Download for offline
+  button, the areas around the trip's places with their sizes, Update and Remove — was
+  designed with this change but moved to #232. It waits on whether OpenFreeMap's terms allow
+  it. Until then the streets show offline only where the map was recently looked at.
 - **The laptop.** Planning happens online; a page that loads with no connection is a much
   larger piece of work for little use.
 - **Editing offline.** Adding, moving, renaming or removing anything offline would need
   every change merged against everybody else's later, and every save today already checks
   whether somebody else changed the place first.
-- **Downloading in the background.** Leaving the app pauses the download; it continues on
-  return.
-- **Downloading on its own.** Nothing is downloaded without pressing the button.
 
 ## Capabilities
 
 ### New Capabilities
 
 - `offline-use`: what the phone keeps from a trip, what opens and what works with no
-  signal, how taps made offline are sent later, what is greyed out, and the *Offline map*
-  screen with its download, update and removal.
+  signal, how taps made offline are sent later, and what is greyed out.
 
 ### Modified Capabilities
 
@@ -65,12 +55,9 @@ Not being done:
 ## Impact
 
 - `apps/mobile`: the copy kept on the phone, the queue of taps, the offline note and greyed
-  controls, the *Offline map* screen and its line in the trip sheet.
+  controls.
 - Storage: the trip copies and the queue are plain files on the phone. No database is
-  added. The map areas are stored by the map library itself.
+  added.
 - One new dependency on the phone to know whether it is online.
-- `@pinpoint/map`: working out the areas from a trip's places, as a plain function.
 - `@pinpoint/wording`: every new sentence, in English and Spanish.
-- To confirm before building: that downloading areas in bulk from OpenFreeMap is within its
-  terms of use. The $0 rule means there is no paid fallback.
 - No database change. The laptop is untouched.

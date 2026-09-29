@@ -1,10 +1,12 @@
+# offline-use Specification
+
 ## Purpose
-
 Define what the phone application keeps from a trip so it can be used with no signal: what
-opens, what can still be done, how what was done is sent later, and how the map around a
-trip's places is downloaded ahead of time. The laptop application is not covered.
+opens, what can still be done, and how what was done is sent later. Downloading the map
+around a trip's places ahead of time is not covered yet (#232). The laptop application is
+not covered.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: The phone keeps a copy of every trip it reads
 
@@ -163,74 +165,10 @@ with its reason says what to do about it.
 - **WHEN** the connection returns while a place's details are shown
 - **THEN** Edit and Remove become available
 
-### Requirement: The map around a trip's places can be downloaded ahead of time
-
-The phone application SHALL offer an *Offline map* screen for the open trip, reached from a
-line in the trip sheet that states whether the map is downloaded and, when it is, its size.
-
-The screen SHALL list the areas that would be downloaded, each with an estimate of its size,
-and their total. An area SHALL cover one group of places near each other, with a margin
-around them; places far apart SHALL be in separate areas rather than in one area spanning
-both. An area SHALL be named after the city most of its places are filed under, or say how
-many places with no city it holds when none of them has a city.
-
-Nothing SHALL be downloaded until the person presses Download. When the device is on mobile
-data, the screen SHALL say so before the download starts, without preventing it.
-
-While downloading, the screen SHALL show progress overall and per area, and SHALL offer to
-cancel. The download SHALL continue while the application is on screen, on any of its
-screens. When the application leaves the screen it SHALL pause, and SHALL continue when the
-person returns, without downloading again what was finished.
-
-Once downloaded, the map of those areas SHALL draw with no signal, at every zoom from the
-area as a whole down to street level. The screen SHALL show the size on the device and the
-day it was downloaded, and SHALL offer to remove it from the phone.
-
-When the trip has places outside every downloaded area, the screen and its line in the trip
-sheet SHALL say how many new areas there are, and the screen SHALL offer to download only
-those.
-
-With no connection, Download and Update SHALL be disabled with a line saying downloading
-needs a connection. Removing SHALL still work.
-
-#### Scenario: Downloading a trip's map
-
-- **WHEN** a person opens Offline map and presses Download
-- **THEN** the areas are downloaded with visible progress
-- **AND** afterwards the trip sheet line shows the size on the device
-
-#### Scenario: Using the map with no signal
-
-- **WHEN** the map was downloaded and the device has no signal
-- **THEN** the streets around the trip's places draw at street level
-
-#### Scenario: Leaving during a download
-
-- **WHEN** a person switches to another application during a download and comes back
-- **THEN** the download continues from where it stopped
-
-#### Scenario: A place is added somewhere new
-
-- **WHEN** a place is added far from every downloaded area
-- **THEN** the trip sheet line and the Offline map screen say there is one new area
-- **AND** Update downloads only that area
-
-#### Scenario: Removing the download
-
-- **WHEN** a person removes the downloaded map
-- **THEN** the space is freed and the line says the map is not downloaded
-
-#### Scenario: Places spread across a country
-
-- **WHEN** a trip has places in two cities hundreds of kilometres apart
-- **THEN** they are listed as two areas
-- **AND** the land between them is not downloaded
-
 ### Requirement: Signing out removes what the phone kept about the person
 
 Signing out SHALL remove every kept trip copy and every change still waiting to be sent from
-the device. A downloaded map SHALL be kept, because it holds nothing about the person or the
-trip beyond streets.
+the device.
 
 #### Scenario: Signing out
 
