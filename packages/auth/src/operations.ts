@@ -1,4 +1,11 @@
-import { fieldErrorsOf, signInSchema, signUpSchema } from '@pinpoint/core'
+import {
+  fieldErrorsOf,
+  newPasswordSchema,
+  resetCodeSchema,
+  resetRequestSchema,
+  signInSchema,
+  signUpSchema,
+} from '@pinpoint/core'
 import {
   authFailureOf,
   type PinpointClient,
@@ -113,6 +120,100 @@ export async function signOut(client: PinpointClient): Promise<AuthOutcome> {
   }
 
   return succeeded
+}
+
+/**
+ * Send a reset code to an address.
+ *
+ * Succeeds for any well-formed address, registered or not: the service answers
+ * the same for both, which is what lets the screens after this read the same for
+ * both. An error that does come back — a rate limit, a mail failure — is about
+ * the sending, never about the account, so it is surfaced like any other.
+ *
+ * No `redirectTo`. The email carries a code to type, not a link to open, so
+ * there is nowhere to send anyone back to.
+ */
+export async function requestPasswordReset(
+  client: PinpointClient,
+  input: unknown,
+): Promise<AuthOutcome> {
+  const validated = validate(resetRequestSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { error } = await client.auth.resetPasswordForEmail(validated.data.email)
+  if (error) return rejected(authFailureOf(error))
+
+  return succeeded
+}
+
+/**
+ * Check a reset code, which signs the person in.
+ *
+ * A verified code establishes an ordinary session, so this is an authentication
+ * like `signIn` and claims like one. Somebody invited while they were locked out
+ * would otherwise see an empty trip list until their next password sign-in.
+ */
+export async function verifyResetCode(
+  client: PinpointClient,
+  input: unknown,
+): Promise<AuthOutcome> {
+  const validated = validate(resetCodeSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { error } = await client.auth.verifyOtp({
+    email: validated.data.email,
+    token: validated.data.code,
+    type: 'recovery',
+  })
+  if (error) return rejected(authFailureOf(error))
+
+  await claimTripMemberships(client)
+
+  return succeeded
+}
+
+/**
+ * Save the new password, then end the session.
+ *
+ * Signing out afterwards is the product's choice, not the service's: the person
+ * lands on sign-in and uses the new password once, which is the proof it was
+ * saved. `signOut`'s default scope ends every session on the account, so a
+ * device still signed in with the old password is signed out too.
+ */
+export async function setNewPassword(
+  client: PinpointClient,
+  input: unknown,
+): Promise<AuthOutcome> {
+  const validated = validate(newPasswordSchema, input)
+  if (!validated.ok) return validated.outcome
+
+  const { error } = await client.auth.updateUser({
+    password: validated.data.password,
+  })
+  if (error) return rejected(authFailureOf(error))
+
+  return signOut(client)
+}
+
+/**
+ * Whether the current session came from entering a reset code.
+ *
+ * The new-password screen changes a password without asking for the current
+ * one, so a session from an ordinary sign-in must not open it. A verified code
+ * records `otp` among the token's authentication methods; a password sign-in
+ * records `password`. Nothing else in this product authenticates with `otp`.
+ *
+ * `getClaims` verifies the token rather than decoding whatever is stored, which
+ * matters on the web, where the stored token arrived in a cookie.
+ */
+export async function isResetSession(client: PinpointClient): Promise<boolean> {
+  const { data, error } = await client.auth.getClaims()
+  if (error || !data) return false
+  // An entry is an object on Supabase's tokens and a bare method name in the
+  // plain JWT form (RFC 8176); the type allows both, so this reads both.
+  return (data.claims.amr ?? []).some(
+    (entry) => (typeof entry === 'string' ? entry : entry.method) === 'otp',
+  )
 }
 
 /**

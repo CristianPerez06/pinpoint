@@ -166,3 +166,60 @@
 .alternative a:hover {
   text-decoration: underline;
 }
+
+/*
+ * Something that worked, above the form: a code sent again, a password saved.
+ * The accent's wash rather than the danger pair, because nothing is wrong.
+ */
+.notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-accent-wash);
+  border: 1px solid var(--pp-accent);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+/* A link drawn as the main button, where the only thing to do is go somewhere. */
+a.submit {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* The lesser action beside the main one: "Send it again". */
+.secondary {
+  padding: 10px var(--pp-space-md);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: transparent;
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--pp-surface-muted);
+}
+
+.secondary:disabled {
+  color: var(--pp-ink-muted);
+  cursor: not-allowed;
+}
+
+/* "Forgot password?", tucked under the password field it is about. */
+.forgot {
+  justify-self: end;
+  color: var(--pp-accent-ink);
+  font-size: var(--pp-type-note-size);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+}

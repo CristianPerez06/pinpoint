@@ -3,7 +3,16 @@ import { ENGLISH_LANGUAGE, say } from '@pinpoint/wording'
 import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
-import { claimTripMemberships, signIn, signOut, signUp } from './operations'
+import {
+  claimTripMemberships,
+  isResetSession,
+  requestPasswordReset,
+  setNewPassword,
+  signIn,
+  signOut,
+  signUp,
+  verifyResetCode,
+} from './operations'
 
 /**
  * A client that records what it was asked to do.
@@ -17,6 +26,10 @@ function stubClient(responses: {
   signUp?: unknown
   signOut?: unknown
   rpc?: unknown
+  resetPasswordForEmail?: unknown
+  verifyOtp?: unknown
+  updateUser?: unknown
+  getClaims?: unknown
 }) {
   const calls = {
     signInWithPassword: vi.fn().mockResolvedValue(
@@ -26,6 +39,14 @@ function stubClient(responses: {
       responses.signUp ?? { data: { user: { identities: [{}] } }, error: null },
     ),
     signOut: vi.fn().mockResolvedValue(responses.signOut ?? { error: null }),
+    resetPasswordForEmail: vi.fn().mockResolvedValue(
+      responses.resetPasswordForEmail ?? { data: {}, error: null },
+    ),
+    verifyOtp: vi.fn().mockResolvedValue(responses.verifyOtp ?? { data: {}, error: null }),
+    updateUser: vi.fn().mockResolvedValue(responses.updateUser ?? { data: {}, error: null }),
+    getClaims: vi.fn().mockResolvedValue(
+      responses.getClaims ?? { data: null, error: null },
+    ),
   }
   const rpc = vi.fn().mockResolvedValue(responses.rpc ?? { data: 1, error: null })
 
@@ -257,5 +278,134 @@ describe('claiming memberships on authentication', () => {
     const { client } = stubClient({ rpc: { data: 0, error: null } })
 
     expect(await claimTripMemberships(client)).toBe(0)
+  })
+})
+
+describe('requestPasswordReset', () => {
+  it('does not contact the service for a malformed address', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await requestPasswordReset(client, { email: 'nope' })
+
+    expect(outcome).toMatchObject({ ok: false, kind: 'invalid-input' })
+    expect(calls.resetPasswordForEmail).not.toHaveBeenCalled()
+  })
+
+  it('sends a code without a link to return to', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await requestPasswordReset(client, { email: 'traveller@example.com' })
+
+    expect(outcome).toEqual({ ok: true })
+    expect(calls.resetPasswordForEmail).toHaveBeenCalledWith('traveller@example.com')
+  })
+
+  it('reports a sending failure in our own words', async () => {
+    const { client } = stubClient({
+      resetPasswordForEmail: { data: null, error: { code: 'over_email_send_rate_limit' } },
+    })
+
+    const outcome = await requestPasswordReset(client, { email: 'traveller@example.com' })
+
+    expect(outcome).toEqual({ ok: false, kind: 'rejected', failure: 'rate-limited' })
+  })
+})
+
+describe('verifyResetCode', () => {
+  const INPUT = { email: 'traveller@example.com', code: '123456' }
+
+  it('does not contact the service for a malformed code', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await verifyResetCode(client, { ...INPUT, code: '12' })
+
+    expect(outcome).toMatchObject({ ok: false, kind: 'invalid-input' })
+    expect(calls.verifyOtp).not.toHaveBeenCalled()
+  })
+
+  it('checks the code as a recovery and claims on success', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await verifyResetCode(client, INPUT)
+
+    expect(outcome).toEqual({ ok: true })
+    expect(calls.verifyOtp).toHaveBeenCalledWith({
+      email: 'traveller@example.com',
+      token: '123456',
+      type: 'recovery',
+    })
+    expect(calls.rpc).toHaveBeenCalledWith('claim_trip_memberships')
+  })
+
+  it('reports a wrong code and claims nothing', async () => {
+    const { client, calls } = stubClient({
+      verifyOtp: { data: {}, error: { code: 'otp_expired' } },
+    })
+
+    const outcome = await verifyResetCode(client, INPUT)
+
+    expect(outcome).toEqual({ ok: false, kind: 'rejected', failure: 'code-invalid' })
+    expect(calls.rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('setNewPassword', () => {
+  const INPUT = { password: 'kyoto2026', confirmPassword: 'kyoto2026' }
+
+  it('does not contact the service when the passwords break the rules', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await setNewPassword(client, { password: 'short', confirmPassword: 'x' })
+
+    expect(outcome).toMatchObject({ ok: false, kind: 'invalid-input' })
+    expect(calls.updateUser).not.toHaveBeenCalled()
+    expect(calls.signOut).not.toHaveBeenCalled()
+  })
+
+  it('saves the password and then signs out', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await setNewPassword(client, INPUT)
+
+    expect(outcome).toEqual({ ok: true })
+    expect(calls.updateUser).toHaveBeenCalledWith({ password: 'kyoto2026' })
+    expect(calls.signOut).toHaveBeenCalled()
+  })
+
+  it('stays signed in when saving fails', async () => {
+    const { client, calls } = stubClient({
+      updateUser: { data: {}, error: { code: 'same_password' } },
+    })
+
+    const outcome = await setNewPassword(client, INPUT)
+
+    expect(outcome).toEqual({ ok: false, kind: 'rejected', failure: 'same-password' })
+    expect(calls.signOut).not.toHaveBeenCalled()
+  })
+})
+
+describe('isResetSession', () => {
+  const claimsWith = (amr: unknown) => ({ data: { claims: { amr } }, error: null })
+
+  it('is true for a session from a code', async () => {
+    const { client } = stubClient({ getClaims: claimsWith([{ method: 'otp', timestamp: 1 }]) })
+    expect(await isResetSession(client)).toBe(true)
+  })
+
+  it('is false for a session from a password', async () => {
+    const { client } = stubClient({
+      getClaims: claimsWith([{ method: 'password', timestamp: 1 }]),
+    })
+    expect(await isResetSession(client)).toBe(false)
+  })
+
+  it('is false with no session', async () => {
+    const { client } = stubClient({})
+    expect(await isResetSession(client)).toBe(false)
+  })
+
+  it('is false when the token cannot be verified', async () => {
+    const { client } = stubClient({ getClaims: { data: null, error: { code: 'bad_jwt' } } })
+    expect(await isResetSession(client)).toBe(false)
   })
 })

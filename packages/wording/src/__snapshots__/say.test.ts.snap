@@ -15,6 +15,8 @@ password.repeatMissing
   Repeat your password.
 password.mismatch
   Both passwords must match.
+code.invalidFormat
+  Enter the 6-digit code from the email.
 auth.invalidCredentials
   That email and password do not match an account.
 auth.emailTaken
@@ -29,6 +31,10 @@ auth.signupDisabled
   New accounts are not being accepted right now.
 auth.generic
   Something went wrong. Try again.
+auth.codeInvalid
+  That code is not valid. It may have expired or been used already.
+auth.samePassword
+  That is already the password. Choose a different one.
 trip.needsName
   A trip needs a name.
 trip.nameTooLong
@@ -269,6 +275,50 @@ auth.createOne
   Create one
 auth.haveAccount
   Already have an account?
+auth.forgotPassword
+  Forgot password?
+auth.passwordUpdated
+  Password updated. Sign in with the new one.
+reset.title
+  Reset password
+reset.intro
+  Enter the email of the account. If it has one, a 6-digit code is sent to it.
+reset.sendCode
+  Send code
+reset.sendingCode
+  Sending code…
+reset.codeTitle
+  Check your email
+reset.codeSent
+  If {email} has an account, a 6-digit code was sent to it. It expires in an hour.
+reset.code
+  Code
+reset.checkCode
+  Continue
+reset.checkingCode
+  Checking code…
+reset.sendAgain
+  Send it again
+reset.sendAgainIn
+  Send it again in {seconds}s
+reset.sentAgain
+  A new code was sent.
+reset.backToSignIn
+  Back to sign in
+reset.newTitle
+  Choose a new password
+reset.newPassword
+  New password
+reset.save
+  Save password
+reset.saving
+  Saving…
+reset.startAgainTitle
+  Start the reset again
+reset.startAgainBody
+  A new password can only be chosen right after entering the code from the email.
+reset.startAgain
+  Start again
 account.label
   Account
 account.signedIn
@@ -868,6 +918,8 @@ password.repeatMissing
   Repetir la contraseña.
 password.mismatch
   Las dos contraseñas tienen que coincidir.
+code.invalidFormat
+  Ingresar el código de 6 dígitos del email.
 auth.invalidCredentials
   Ese email y esa contraseña no corresponden a ninguna cuenta.
 auth.emailTaken
@@ -882,6 +934,10 @@ auth.signupDisabled
   Por ahora no se aceptan cuentas nuevas.
 auth.generic
   Algo salió mal. Volver a intentar.
+auth.codeInvalid
+  Ese código no es válido. Puede haber vencido o ya haberse usado.
+auth.samePassword
+  Esa ya es la contraseña. Elegir otra.
 trip.needsName
   Un viaje necesita un nombre.
 trip.nameTooLong
@@ -1122,6 +1178,50 @@ auth.createOne
   Crear una
 auth.haveAccount
   ¿Ya con cuenta?
+auth.forgotPassword
+  ¿Contraseña olvidada?
+auth.passwordUpdated
+  Contraseña actualizada. Iniciar sesión con la nueva.
+reset.title
+  Restablecer la contraseña
+reset.intro
+  Ingresar el email de la cuenta. Si tiene una, se le envía un código de 6 dígitos.
+reset.sendCode
+  Enviar código
+reset.sendingCode
+  Enviando código…
+reset.codeTitle
+  Revisar el email
+reset.codeSent
+  Si {email} tiene una cuenta, se le envió un código de 6 dígitos. Vence en una hora.
+reset.code
+  Código
+reset.checkCode
+  Continuar
+reset.checkingCode
+  Verificando código…
+reset.sendAgain
+  Enviarlo de nuevo
+reset.sendAgainIn
+  Enviarlo de nuevo en {seconds} s
+reset.sentAgain
+  Se envió un código nuevo.
+reset.backToSignIn
+  Volver a iniciar sesión
+reset.newTitle
+  Elegir una contraseña nueva
+reset.newPassword
+  Contraseña nueva
+reset.save
+  Guardar contraseña
+reset.saving
+  Guardando…
+reset.startAgainTitle
+  Hay que pedir un código nuevo
+reset.startAgainBody
+  La contraseña nueva solo se puede elegir justo después de ingresar el código del email.
+reset.startAgain
+  Empezar de nuevo
 account.label
   Cuenta
 account.signedIn

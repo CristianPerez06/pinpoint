@@ -1,8 +1,15 @@
 'use server'
 
-import { signIn, signOut, signUp } from '@pinpoint/auth'
+import {
+  requestPasswordReset,
+  setNewPassword,
+  signIn,
+  signOut,
+  signUp,
+  verifyResetCode,
+} from '@pinpoint/auth'
 import { authFailureMessage } from '@pinpoint/supabase'
-import type { Message } from '@pinpoint/wording'
+import { message, type Message } from '@pinpoint/wording'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -32,6 +39,10 @@ import { createClient } from '@/lib/supabase/server'
 export interface AuthFormState {
   fieldErrors?: Record<string, Message>
   formError?: Message
+  /** Something that worked and is worth saying, such as a code sent again. */
+  notice?: Message
+  /** Bumped each time a code is sent again, so the form can restart its wait. */
+  sentAt?: number
 }
 
 const EMPTY: AuthFormState = {}
@@ -82,4 +93,73 @@ export async function signOutAction(): Promise<void> {
 
   revalidatePath('/', 'layout')
   redirect('/login')
+}
+
+/**
+ * Resetting a forgotten password.
+ *
+ * Three steps, three actions, each ending in a redirect to the next screen. The
+ * redirect is what moves the person on, rather than the form reacting to a
+ * result: a verified code signs them in, and a screen that noticed a session
+ * and sent them into the app would take them away from the one they need.
+ */
+
+export async function requestPasswordResetAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const email = formData.get('email')
+  const supabase = await createClient()
+  const outcome = await requestPasswordReset(supabase, { email })
+
+  if (!outcome.ok) return stateFrom(outcome)
+
+  // The same destination for every address, registered or not. The email
+  // rides in the query string because it is what the next screen names and
+  // what the code is checked against; it is what the person just typed.
+  redirect(`/forgot-password/code?email=${encodeURIComponent(String(email))}`)
+}
+
+/** "Send it again", on the code screen. Stays on that screen. */
+export async function resendResetCodeAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const supabase = await createClient()
+  const outcome = await requestPasswordReset(supabase, { email: formData.get('email') })
+
+  if (!outcome.ok) return stateFrom(outcome)
+  return { notice: message('reset.sentAgain'), sentAt: Date.now() }
+}
+
+export async function verifyResetCodeAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const supabase = await createClient()
+  const outcome = await verifyResetCode(supabase, {
+    email: formData.get('email'),
+    code: formData.get('code'),
+  })
+
+  if (!outcome.ok) return stateFrom(outcome)
+
+  revalidatePath('/', 'layout')
+  redirect('/forgot-password/new')
+}
+
+export async function setNewPasswordAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const supabase = await createClient()
+  const outcome = await setNewPassword(supabase, {
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+
+  if (!outcome.ok) return stateFrom(outcome)
+
+  revalidatePath('/', 'layout')
+  redirect('/login?reset=done')
 }

@@ -6,6 +6,7 @@ import { useActionState } from 'react'
 
 import { type AuthFormState, signInAction } from '@/app/_actions/auth'
 import { useSay } from '@/app/_components/language'
+import { config } from '@/lib/config'
 
 import styles from '../auth.module.css'
 
@@ -68,6 +69,12 @@ export function LoginForm() {
           </span>
         ) : null}
       </p>
+
+      {config.passwordReset ? (
+        <Link href="/forgot-password" className={styles.forgot}>
+          {words(message('auth.forgotPassword'))}
+        </Link>
+      ) : null}
 
       <button type="submit" disabled={pending} className={styles.submit}>
         {pending ? words(message('auth.signingIn')) : words(message('auth.signIn'))}

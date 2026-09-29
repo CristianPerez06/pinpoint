@@ -49,6 +49,9 @@ export const ENGLISH = {
   'password.needsNumber': 'Include at least one number.',
   'password.repeatMissing': 'Repeat your password.',
   'password.mismatch': 'Both passwords must match.',
+  // The number is written in for the reason `password.tooShort` gives, and
+  // `auth.test.ts` holds it against `RESET_CODE_LENGTH` the same way.
+  'code.invalidFormat': 'Enter the 6-digit code from the email.',
 
   // ── Authentication failures, by the code the service gave ────────────────
   //
@@ -62,6 +65,10 @@ export const ENGLISH = {
   'auth.rateLimited': 'Too many attempts. Wait a moment and try again.',
   'auth.signupDisabled': 'New accounts are not being accepted right now.',
   'auth.generic': 'Something went wrong. Try again.',
+  // One sentence for a wrong, an expired and a used code: the service does not
+  // tell them apart, and the person does the same thing about all three.
+  'auth.codeInvalid': 'That code is not valid. It may have expired or been used already.',
+  'auth.samePassword': 'That is already the password. Choose a different one.',
 
   // ── Trips ────────────────────────────────────────────────────────────────
   'trip.needsName': 'A trip needs a name.',
@@ -269,6 +276,35 @@ export const ENGLISH = {
   'auth.noAccountYet': 'No account yet?',
   'auth.createOne': 'Create one',
   'auth.haveAccount': 'Already have an account?',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.passwordUpdated': 'Password updated. Sign in with the new one.',
+
+  // ── Resetting a forgotten password ───────────────────────────────────────
+  // `reset.intro` and `reset.codeSent` say "if it has an account" on purpose:
+  // the screens read the same whether or not one exists, and a sentence that
+  // assumed one would be untrue for exactly the address it must not reveal.
+  'reset.title': 'Reset password',
+  'reset.intro': 'Enter the email of the account. If it has one, a 6-digit code is sent to it.',
+  'reset.sendCode': 'Send code',
+  'reset.sendingCode': 'Sending code…',
+  'reset.codeTitle': 'Check your email',
+  'reset.codeSent': (v: { email: string }) =>
+    `If ${v.email} has an account, a 6-digit code was sent to it. It expires in an hour.`,
+  'reset.code': 'Code',
+  'reset.checkCode': 'Continue',
+  'reset.checkingCode': 'Checking code…',
+  'reset.sendAgain': 'Send it again',
+  'reset.sendAgainIn': (v: { seconds: number }) => `Send it again in ${v.seconds}s`,
+  'reset.sentAgain': 'A new code was sent.',
+  'reset.backToSignIn': 'Back to sign in',
+  'reset.newTitle': 'Choose a new password',
+  'reset.newPassword': 'New password',
+  'reset.save': 'Save password',
+  'reset.saving': 'Saving…',
+  'reset.startAgainTitle': 'Start the reset again',
+  'reset.startAgainBody':
+    'A new password can only be chosen right after entering the code from the email.',
+  'reset.startAgain': 'Start again',
 
   // ── The menu about the person ────────────────────────────────────────────
   // The menu's name, what it shows while no membership matches, and the

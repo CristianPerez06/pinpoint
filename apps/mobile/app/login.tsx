@@ -3,7 +3,7 @@ import type { FieldErrors } from '@pinpoint/core'
 import { authFailureMessage } from '@pinpoint/supabase'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
-import { Link, Redirect } from 'expo-router'
+import { Link, Redirect, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { config } from '@/lib/config'
 import { useSay } from '@/lib/language'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
@@ -48,6 +49,9 @@ export default function LoginScreen() {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const say = useSay()
+  // Set by the end of a reset, which signs the person out and sends them here to
+  // use the new password once.
+  const { reset } = useLocalSearchParams<{ reset?: string }>()
 
   if (loading) return <Centered><ActivityIndicator /></Centered>
   // `!submitting` holds the redirect until `signIn` has fully resolved, claim
@@ -129,6 +133,21 @@ export default function LoginScreen() {
             {say(message('auth.signIn'))}
           </Text>
 
+          {!formError && reset === 'done' ? (
+            <Text
+              style={[
+                styles.formError,
+                {
+                  backgroundColor: theme.colour.accentWash,
+                  borderColor: theme.colour.accent,
+                  color: theme.colour.ink,
+                },
+              ]}
+            >
+              {say(message('auth.passwordUpdated'))}
+            </Text>
+          ) : null}
+
           {formError ? (
             <Text
               style={[
@@ -182,6 +201,21 @@ export default function LoginScreen() {
               </Text>
             ) : null}
           </View>
+
+          {config.passwordReset ? (
+            <>
+              {/* Replaces this screen rather than pushing over it, and every step of
+                  the reset does the same. That is load-bearing: this screen sends
+                  anybody with a session into the app, and a right code creates one.
+                  Left mounted underneath, it would pull the person off the
+                  new-password screen the moment their code was accepted. */}
+              <Link href="/forgot-password" replace style={styles.forgot}>
+                <Text style={[styles.alternativeAction, { color: theme.colour.accent }]}>
+                  {say(message('auth.forgotPassword'))}
+                </Text>
+              </Link>
+            </>
+          ) : null}
 
           <Pressable
             onPress={submit}
@@ -263,6 +297,9 @@ const styles = StyleSheet.create({
   },
   submitText: { ...role(TYPE.control), fontWeight: '600' },
   alternative: { ...role(TYPE.note), textAlign: 'center', paddingVertical: 14 },
+  // Right-aligned under the password it is about. The vertical padding is the
+  // tap target, for the reason given on `alternative`'s link.
+  forgot: { ...role(TYPE.note), alignSelf: 'flex-end', paddingVertical: 8 },
   alternativeAction: { fontWeight: '600' },
 })
 

@@ -29,6 +29,8 @@ export const AUTH_FAILURES = [
   'email-not-confirmed',
   'rate-limited',
   'signup-disabled',
+  'code-invalid',
+  'same-password',
   'generic',
 ] as const
 
@@ -45,6 +47,10 @@ const BY_CODE: Record<string, AuthFailure> = {
   over_email_send_rate_limit: 'rate-limited',
   signup_disabled: 'signup-disabled',
   email_provider_disabled: 'signup-disabled',
+  // The service answers a wrong, an expired and a used code with this one code,
+  // which suits the reset: it must not say which of the three it was.
+  otp_expired: 'code-invalid',
+  same_password: 'same-password',
 }
 
 export const GENERIC_AUTH_FAILURE: AuthFailure = 'generic'
@@ -77,6 +83,8 @@ const BY_FAILURE: Record<AuthFailure, MessageKey> = {
   'email-not-confirmed': 'auth.emailNotConfirmed',
   'rate-limited': 'auth.rateLimited',
   'signup-disabled': 'auth.signupDisabled',
+  'code-invalid': 'auth.codeInvalid',
+  'same-password': 'auth.samePassword',
   generic: 'auth.generic',
 }
 

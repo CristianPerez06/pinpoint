@@ -30,6 +30,16 @@ function required(name: string, value: string | undefined): string {
   return value
 }
 
+/**
+ * An optional switch: on only when set to exactly `on`, and off otherwise.
+ *
+ * Off is the default because what these gate is unfinished somewhere: a switch
+ * nobody set must never turn a feature on.
+ */
+function switchedOn(value: string | undefined): boolean {
+  return value?.trim() === 'on'
+}
+
 // Each variable is read as a literal property access. Next only inlines
 // NEXT_PUBLIC_* values it can see statically, so `process.env[name]` would
 // silently produce undefined in the browser.
@@ -44,4 +54,13 @@ export const config = {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     ),
   },
+  /**
+   * Whether sign-in offers "Forgot password?".
+   *
+   * Off on the live project until a real email service is connected (#78):
+   * a new free project cannot put the code in Supabase's built-in email, so a
+   * reset started there could never finish. On locally, where the email
+   * template in `supabase/templates/` is used.
+   */
+  passwordReset: switchedOn(process.env.NEXT_PUBLIC_PASSWORD_RESET),
 } as const
