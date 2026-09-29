@@ -202,7 +202,7 @@ export default function LoginScreen() {
             ) : null}
           </View>
 
-          {config.passwordReset ? (
+          {config.passwordChanges ? (
             <>
               {/* Replaces this screen rather than pushing over it, and every step of
                   the reset does the same. That is load-bearing: this screen sends

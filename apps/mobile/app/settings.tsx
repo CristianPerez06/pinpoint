@@ -7,9 +7,17 @@ import Languages from 'lucide-react-native/icons/languages'
 import Monitor from 'lucide-react-native/icons/monitor'
 import Moon from 'lucide-react-native/icons/moon'
 import Sun from 'lucide-react-native/icons/sun'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { ChangePassword } from '@/components/change-password'
 import { NamePlaceholder } from '@/components/ui'
 import { useSay } from '@/lib/language'
 import { usePreferences } from '@/lib/preferences'
@@ -78,61 +86,71 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: SPACE.xl + insets.bottom },
-        ]}
-      >
-        <Section title={say(message('account.label'))}>
-          {/*
-            While the session is still being read back, the row is one element to
-            assistive technology saying so, and the address is a drawn bar. It
-            used to fall through to "No address on this account", which is a
-            claim, and false for as long as the account has not been read.
-          */}
-          <View
-            accessible={loading}
-            accessibilityLabel={loading ? say(message('settings.loadingAccount')) : undefined}
-            accessibilityState={loading ? { busy: true } : undefined}
-            style={[
-              styles.card,
-              { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
-            ]}
-          >
-            <Text style={[styles.rowLabel, { color: theme.colour.inkMuted }]}>
-              {say(message('settings.signedInAs'))}
-            </Text>
+      {/*
+        A bare positioner, as on the sign-in screens: with `behavior="padding"`
+        it overwrites any `paddingBottom` it is given (`AGENTS.md`), so it holds
+        nothing but `flex: 1`. It is here for the password form, whose three
+        fields would otherwise sit behind the keyboard.
+      */}
+      <KeyboardAvoidingView behavior="padding" style={styles.keyboard}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: SPACE.xl + insets.bottom },
+          ]}
+        >
+          <Section title={say(message('account.label'))}>
             {/*
-              The address, and deliberately no name.
-
-              `displayName` belongs to a trip membership rather than to an
-              account — the same person can be called one thing on one trip and
-              something else on another — so a name here would be whichever trip
-              happened to be open when this was pressed. The menu shows a name
-              because the menu is on a trip. This screen is not.
+              While the session is still being read back, the row is one element to
+              assistive technology saying so, and the address is a drawn bar. It
+              used to fall through to "No address on this account", which is a
+              claim, and false for as long as the account has not been read.
             */}
-            {loading ? (
-              <NamePlaceholder
-                width={180}
-                lineHeight={TYPE.body.size * TYPE.body.lineHeight}
-              />
-            ) : (
-              <Text style={[styles.rowValue, { color: theme.colour.ink }]}>
-                {session?.user.email ?? say(message('settings.noAddress'))}
+            <View
+              accessible={loading}
+              accessibilityLabel={loading ? say(message('settings.loadingAccount')) : undefined}
+              accessibilityState={loading ? { busy: true } : undefined}
+              style={[
+                styles.card,
+                { backgroundColor: theme.colour.surface, borderColor: theme.colour.line },
+              ]}
+            >
+              <Text style={[styles.rowLabel, { color: theme.colour.inkMuted }]}>
+                {say(message('settings.signedInAs'))}
               </Text>
-            )}
-          </View>
-        </Section>
+              {/*
+                The address, and deliberately no name.
 
-        <Section title={say(message('settings.appearance'))}>
-          <Appearance />
-        </Section>
+                `displayName` belongs to a trip membership rather than to an
+                account — the same person can be called one thing on one trip and
+                something else on another — so a name here would be whichever trip
+                happened to be open when this was pressed. The menu shows a name
+                because the menu is on a trip. This screen is not.
+              */}
+              {loading ? (
+                <NamePlaceholder
+                  width={180}
+                  lineHeight={TYPE.body.size * TYPE.body.lineHeight}
+                />
+              ) : (
+                <Text style={[styles.rowValue, { color: theme.colour.ink }]}>
+                  {session?.user.email ?? say(message('settings.noAddress'))}
+                </Text>
+              )}
+            </View>
+            <ChangePassword />
+          </Section>
 
-        <Section title={say(message('settings.language'))}>
-          <LanguageChoice />
-        </Section>
-      </ScrollView>
+          <Section title={say(message('settings.appearance'))}>
+            <Appearance />
+          </Section>
+
+          <Section title={say(message('settings.language'))}>
+            <LanguageChoice />
+          </Section>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   )
 }
@@ -306,6 +324,7 @@ function Options<T extends string>({
 }
 
 const styles = StyleSheet.create({
+  keyboard: { flex: 1 },
   screen: { flex: 1 },
   header: {
     flexDirection: 'row',

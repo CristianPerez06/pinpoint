@@ -67,6 +67,20 @@ export const signUpSchema = z
   .refine(passwordsMatch.check, passwordsMatch.params)
 
 /**
+ * Changing the password while signed in: the current one, then the new one twice.
+ *
+ * The current password is checked for being present and nothing else. Whether
+ * it is *right* is the authentication service's to say, and an account may
+ * predate the rules the new one is held to — the reason sign-in does the same.
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, refusal('password.currentMissing')),
+    ...newPasswordShape,
+  })
+  .refine(passwordsMatch.check, passwordsMatch.params)
+
+/**
  * How many digits the emailed reset code has.
  *
  * Has to equal the auth service's email OTP length: `otp_length` in
@@ -102,5 +116,6 @@ export const resetCodeSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>
 export type SignUpInput = z.infer<typeof signUpSchema>
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 export type ResetRequestInput = z.infer<typeof resetRequestSchema>
 export type ResetCodeInput = z.infer<typeof resetCodeSchema>

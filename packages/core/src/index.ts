@@ -1,4 +1,5 @@
 export {
+  changePasswordSchema,
   newPasswordSchema,
   RESEND_CODE_AFTER_SECONDS,
   RESET_CODE_LENGTH,
@@ -8,6 +9,7 @@ export {
   signUpSchema,
 } from './auth'
 export type {
+  ChangePasswordInput,
   NewPasswordInput,
   ResetCodeInput,
   ResetRequestInput,

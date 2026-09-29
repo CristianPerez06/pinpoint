@@ -1,4 +1,5 @@
 export {
+  changePassword,
   claimTripMemberships,
   isResetSession,
   requestPasswordReset,

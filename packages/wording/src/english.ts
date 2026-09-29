@@ -49,6 +49,8 @@ export const ENGLISH = {
   'password.needsNumber': 'Include at least one number.',
   'password.repeatMissing': 'Repeat your password.',
   'password.mismatch': 'Both passwords must match.',
+  'password.currentMissing': 'Enter your current password.',
+  'password.currentWrong': 'That is not the current password.',
   // The number is written in for the reason `password.tooShort` gives, and
   // `auth.test.ts` holds it against `RESET_CODE_LENGTH` the same way.
   'code.invalidFormat': 'Enter the 6-digit code from the email.',
@@ -305,6 +307,12 @@ export const ENGLISH = {
   'reset.startAgainBody':
     'A new password can only be chosen right after entering the code from the email.',
   'reset.startAgain': 'Start again',
+
+  // ── Changing the password, in settings ───────────────────────────────────
+  'changePassword.open': 'Change password',
+  'changePassword.note': 'Other devices are signed out when it changes.',
+  'changePassword.current': 'Current password',
+  'changePassword.done': 'Password changed. Other devices were signed out.',
 
   // ── The menu about the person ────────────────────────────────────────────
   // The menu's name, what it shows while no membership matches, and the

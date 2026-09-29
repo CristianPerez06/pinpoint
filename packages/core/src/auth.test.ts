@@ -2,6 +2,7 @@ import { ENGLISH } from '@pinpoint/wording'
 import { describe, expect, it } from 'vitest'
 
 import {
+  changePasswordSchema,
   MIN_PASSWORD_LENGTH,
   newPasswordSchema,
   RESET_CODE_LENGTH,
@@ -153,5 +154,33 @@ describe('resetRequestSchema', () => {
   it('refuses something that is not an address', () => {
     const result = resetRequestSchema.safeParse({ email: 'nope' })
     expect(fieldsWithErrors(result)).toContain('email')
+  })
+})
+
+describe('changePasswordSchema', () => {
+  const VALID = {
+    currentPassword: 'old',
+    password: 'kyoto2026',
+    confirmPassword: 'kyoto2026',
+  }
+
+  it('accepts any non-empty current password', () => {
+    expect(changePasswordSchema.safeParse(VALID).success).toBe(true)
+  })
+
+  it('reports each failure against its own field', () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: '',
+      password: 'short',
+      confirmPassword: 'other',
+    })
+    expect(fieldsWithErrors(result)).toEqual(
+      new Set(['currentPassword', 'password', 'confirmPassword']),
+    )
+  })
+
+  it('reports a mismatch against the repeat', () => {
+    const result = changePasswordSchema.safeParse({ ...VALID, confirmPassword: 'kyoto2027' })
+    expect(fieldsWithErrors(result)).toEqual(new Set(['confirmPassword']))
   })
 })

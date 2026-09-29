@@ -4,6 +4,7 @@ import type { PinpointClient } from '@pinpoint/supabase'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  changePassword,
   claimTripMemberships,
   isResetSession,
   requestPasswordReset,
@@ -30,6 +31,7 @@ function stubClient(responses: {
   verifyOtp?: unknown
   updateUser?: unknown
   getClaims?: unknown
+  getUser?: unknown
 }) {
   const calls = {
     signInWithPassword: vi.fn().mockResolvedValue(
@@ -44,6 +46,9 @@ function stubClient(responses: {
     ),
     verifyOtp: vi.fn().mockResolvedValue(responses.verifyOtp ?? { data: {}, error: null }),
     updateUser: vi.fn().mockResolvedValue(responses.updateUser ?? { data: {}, error: null }),
+    getUser: vi.fn().mockResolvedValue(
+      responses.getUser ?? { data: { user: { email: 'traveller@example.com' } }, error: null },
+    ),
     getClaims: vi.fn().mockResolvedValue(
       responses.getClaims ?? { data: null, error: null },
     ),
@@ -407,5 +412,69 @@ describe('isResetSession', () => {
   it('is false when the token cannot be verified', async () => {
     const { client } = stubClient({ getClaims: { data: null, error: { code: 'bad_jwt' } } })
     expect(await isResetSession(client)).toBe(false)
+  })
+})
+
+describe('changePassword', () => {
+  const INPUT = {
+    currentPassword: 'kyoto2025',
+    password: 'kyoto2026',
+    confirmPassword: 'kyoto2026',
+  }
+
+  it('does not contact the service when the input breaks the rules', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await changePassword(client, { ...INPUT, confirmPassword: 'x' })
+
+    expect(outcome).toMatchObject({ ok: false, kind: 'invalid-input' })
+    expect(calls.signInWithPassword).not.toHaveBeenCalled()
+    expect(calls.updateUser).not.toHaveBeenCalled()
+  })
+
+  it('checks the current password against the signed-in address', async () => {
+    const { client, calls } = stubClient({})
+
+    await changePassword(client, INPUT)
+
+    expect(calls.signInWithPassword).toHaveBeenCalledWith({
+      email: 'traveller@example.com',
+      password: 'kyoto2025',
+    })
+  })
+
+  it('reports a wrong current password on its field and changes nothing', async () => {
+    const { client, calls } = stubClient({
+      signInWithPassword: { data: {}, error: { code: 'invalid_credentials' } },
+    })
+
+    const outcome = await changePassword(client, INPUT)
+
+    expect(outcome).toMatchObject({ ok: false, kind: 'invalid-input' })
+    if (outcome.ok || outcome.kind !== 'invalid-input') throw new Error('unreachable')
+    expect(Object.keys(outcome.fieldErrors)).toEqual(['currentPassword'])
+    expect(calls.updateUser).not.toHaveBeenCalled()
+    expect(calls.signOut).not.toHaveBeenCalled()
+  })
+
+  it('saves the new password and signs out only the other sessions', async () => {
+    const { client, calls } = stubClient({})
+
+    const outcome = await changePassword(client, INPUT)
+
+    expect(outcome).toEqual({ ok: true })
+    expect(calls.updateUser).toHaveBeenCalledWith({ password: 'kyoto2026' })
+    expect(calls.signOut).toHaveBeenCalledWith({ scope: 'others' })
+  })
+
+  it('signs nobody out when saving fails', async () => {
+    const { client, calls } = stubClient({
+      updateUser: { data: {}, error: { code: 'same_password' } },
+    })
+
+    const outcome = await changePassword(client, INPUT)
+
+    expect(outcome).toEqual({ ok: false, kind: 'rejected', failure: 'same-password' })
+    expect(calls.signOut).not.toHaveBeenCalled()
   })
 })

@@ -7,12 +7,12 @@ import { useState } from 'react'
 import { AuthButton, AuthField } from '@/components/auth-screen'
 
 /**
- * A new password, typed twice.
+ * A new password, typed twice — and, when changing one, the current one first.
  *
- * Takes what to do with it rather than doing it, because it is going to be drawn
- * in two places: at the end of a reset, and in settings, where a person who is
- * signed in changes theirs (#49). The fields and their errors are the same both
- * times; what happens on submit is not.
+ * Takes what to do with it rather than doing it, because it is drawn in two
+ * places: at the end of a reset, and in settings, where a person who is signed
+ * in changes theirs. The fields and their errors are the same both times; what
+ * happens on submit is not, and only the change asks for the current password.
  *
  * The form-level refusal is handed up rather than drawn here, so the screen can
  * put it where every other screen's goes: above the form, under the title.
@@ -20,10 +20,17 @@ import { AuthButton, AuthField } from '@/components/auth-screen'
 export function NewPasswordForm({
   onSubmit,
   onRefused,
+  askCurrent = false,
 }: {
-  onSubmit: (values: { password: string; confirmPassword: string }) => Promise<AuthOutcome>
+  onSubmit: (values: {
+    currentPassword: string
+    password: string
+    confirmPassword: string
+  }) => Promise<AuthOutcome>
   onRefused: (refusal: Message | null) => void
+  askCurrent?: boolean
 }) {
+  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -34,7 +41,7 @@ export function NewPasswordForm({
     setFieldErrors({})
     onRefused(null)
 
-    const outcome = await onSubmit({ password, confirmPassword })
+    const outcome = await onSubmit({ currentPassword, password, confirmPassword })
 
     if (!outcome.ok) {
       if (outcome.kind === 'invalid-input') setFieldErrors(outcome.fieldErrors)
@@ -47,6 +54,16 @@ export function NewPasswordForm({
 
   return (
     <>
+      {askCurrent ? (
+        <AuthField
+          label={message('changePassword.current')}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+          autoComplete="current-password"
+          error={fieldErrors.currentPassword}
+        />
+      ) : null}
       <AuthField
         label={message('reset.newPassword')}
         value={password}
