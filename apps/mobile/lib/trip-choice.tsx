@@ -36,6 +36,8 @@ interface TripChoiceState {
   /** The trip chosen, or null for "whichever the list gives first". */
   chosenTripId: string | null
   chooseTrip: (tripId: string) => void
+  /** Back to "whichever the list gives first". Signing out calls it (`lib/sign-out.ts`). */
+  forgetTrip: () => void
 }
 
 const Context = createContext<TripChoiceState | null>(null)
@@ -44,7 +46,11 @@ export function TripChoiceProvider({ children }: { children: ReactNode }) {
   const [chosenTripId, setChosenTripId] = useState<string | null>(null)
 
   const value = useMemo(
-    () => ({ chosenTripId, chooseTrip: setChosenTripId }),
+    () => ({
+      chosenTripId,
+      chooseTrip: setChosenTripId,
+      forgetTrip: () => setChosenTripId(null),
+    }),
     [chosenTripId],
   )
 
