@@ -43,6 +43,7 @@ import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
 import { signOutHere } from '@/lib/sign-out'
 import { useOnline } from '@/lib/connectivity'
+import { useOfflineMapNote } from '@/lib/offline-map'
 import { useAfterSending, useWaiting } from '@/lib/waiting'
 
 /**
@@ -123,6 +124,7 @@ export function TripCalendar({
   })
 
   const markers = markerQuery.rows
+  const offlineMapNote = useOfflineMapNote(trip.id, markers)
   const cities = cityQuery.rows
   const interest = interestQuery.rows
   const members = memberQuery.rows
@@ -556,6 +558,7 @@ export function TripCalendar({
       ) : null}
 
       <TripSheet
+        offlineMapNote={offlineMapNote}
         open={tripsOpen}
         onClose={() => showSheet(setTripsOpen, false)}
         trip={trip}

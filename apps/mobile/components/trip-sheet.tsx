@@ -9,6 +9,7 @@ import { message, type Message } from '@pinpoint/wording'
 import Archive from 'lucide-react-native/icons/archive'
 import ArchiveRestore from 'lucide-react-native/icons/archive-restore'
 import Check from 'lucide-react-native/icons/check'
+import { useRouter } from 'expo-router'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import Plus from 'lucide-react-native/icons/plus'
 import { useState } from 'react'
@@ -79,6 +80,7 @@ export function TripSheet({
   otherView,
   onSetArchived,
   onOpenPeople,
+  offlineMapNote,
   problem,
   onDismissProblem,
 }: {
@@ -129,6 +131,8 @@ export function TripSheet({
   /** Archive, or put back. One call with a flag, like the write underneath it. */
   onSetArchived: (tripId: string, value: boolean) => void
   onOpenPeople: () => void
+  /** What the *Offline map* line says about this trip's download. */
+  offlineMapNote: Message
   /** A refusal from one of the writes reached from here, or null. */
   problem: Message | null
   onDismissProblem: () => void
@@ -136,6 +140,7 @@ export function TripSheet({
   const theme = useTheme()
   const say = useSay()
   const online = useOnline()
+  const router = useRouter()
   /** A row that changes the trip, with no connection: half opacity, as `Button` draws one. */
   const offlineDim = online ? null : { opacity: 0.5 }
   const insets = useSafeAreaInsets()
@@ -463,6 +468,27 @@ export function TripSheet({
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>
                   {say(message('trip.people'))}
+                </Text>
+                <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
+              </Pressable>
+
+              {/*
+                The map downloaded for no signal. Navigation, so never greyed out
+                offline: the screen it opens can still remove a download.
+              */}
+              <Pressable
+                onPress={() => {
+                  close()
+                  router.push('/offline-map')
+                }}
+                accessibilityRole="button"
+                style={styles.row}
+              >
+                <Text style={[styles.rowName, { color: theme.colour.ink }]}>
+                  {say(message('offlineMap.title'))}
+                </Text>
+                <Text style={[styles.rowNote, { color: theme.colour.inkMuted }]}>
+                  {say(offlineMapNote)}
                 </Text>
                 <ChevronRight size={18} color={theme.colour.inkFaint} strokeWidth={2} />
               </Pressable>

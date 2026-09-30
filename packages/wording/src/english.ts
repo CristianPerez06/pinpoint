@@ -637,6 +637,61 @@ export const ENGLISH = {
   /** The same, when the last read was not today. */
   'offline.asOfDay': (v: { day: string; time: string }) =>
     `Offline · the trip as of ${v.day}, ${v.time}`,
+  // ── The map downloaded for use with no signal (the phone) ────────────────
+  'offlineMap.title': 'Offline map',
+  'offlineMap.back': 'Back',
+  /** The trip sheet's line, before anything is downloaded. */
+  'offlineMap.notDownloaded': 'Not downloaded',
+  'offlineMap.newAreas': (v: { count: number }) =>
+    v.count === 1 ? '1 new area' : `${v.count} new areas`,
+  'offlineMap.intro': (v: { trip: string; count: number }) =>
+    v.count === 1
+      ? `Download the streets around ${v.trip}'s place, so the map works with no signal.`
+      : `Download the streets around ${v.trip}'s ${v.count} places, so the map works with no signal.`,
+  'offlineMap.noPlaces': 'Add places to this trip to download the map around them.',
+  /** Section heading, drawn in capitals. */
+  'offlineMap.areas': 'AREAS',
+  /** An area none of whose places is filed under a city. */
+  'offlineMap.noCity': (v: { count: number }) =>
+    v.count === 1 ? '1 place with no city' : `${v.count} places with no city`,
+  'offlineMap.total': 'Total',
+  'offlineMap.mobileData': "You're on mobile data. Wi-Fi is better for a download this size.",
+  'offlineMap.download': (v: { size: string }) => `Download ${v.size}`,
+  'offlineMap.downloading': 'Downloading…',
+  'offlineMap.progress': (v: { done: string; total: string }) => `${v.done} of ${v.total}`,
+  'offlineMap.keepOnScreen':
+    'Keep Pinpoint on screen until it finishes. If you leave, it continues when you come back.',
+  'offlineMap.percent': (v: { percent: number }) => `${v.percent}%`,
+  'offlineMap.waiting': 'Waiting',
+  'offlineMap.cancel': 'Cancel download',
+  'offlineMap.ready': 'Ready for no signal',
+  'offlineMap.readyDetail': (v: { size: string; day: string }) =>
+    `${v.size} on this phone · downloaded ${v.day}`,
+  'offlineMap.remove': 'Remove from this phone',
+  'offlineMap.newSince': (v: { count: number }) =>
+    v.count === 1 ? '1 new area since you downloaded' : `${v.count} new areas since you downloaded`,
+  /** Where the new places are: city names, already joined. */
+  'offlineMap.newIn': (v: { places: string }) => `Places were added in ${v.places}`,
+  /** The same, when none of the new places is filed under a city. */
+  'offlineMap.newAway': 'Places were added away from the others',
+  /** Update after the map's streets were republished: the whole trip comes down again. */
+  'offlineMap.updateAll': (v: { size: string }) => `Update · ${v.size}`,
+  'offlineMap.newerStreets':
+    'The map has newer streets since you downloaded, so Update downloads the whole trip again. What is on the phone keeps working until it finishes.',
+  'offlineMap.newBadge': 'New',
+  'offlineMap.update': (v: { size: string }) => `Update · ${v.size} more`,
+  'offlineMap.needsConnection': 'Downloading needs a connection',
+  'offlineMap.stopped': 'Download stopped',
+  'offlineMap.stoppedDetail': 'An area could not be downloaded. The ones that finished are kept.',
+  /** A download paused because the connection went. */
+  'offlineMap.stoppedOffline': 'The phone lost its connection. It continues when it is back online.',
+  'offlineMap.failedArea': 'Failed',
+  'offlineMap.tryAgain': 'Try again',
+  /** A size on the phone, and an estimate of one. */
+  'offlineMap.megabytes': (v: { size: string }) => `${v.size} MB`,
+  'offlineMap.gigabytes': (v: { size: string }) => `${v.size} GB`,
+  'offlineMap.aboutMegabytes': (v: { size: string }) => `about ${v.size} MB`,
+  'offlineMap.aboutGigabytes': (v: { size: string }) => `about ${v.size} GB`,
   /** A pin standing for several places at one point. Always more than one. */
   'map.placesHere': (v: { count: number }) => `${v.count} places here`,
   /** A pin's spoken name: the place, then its kind. */

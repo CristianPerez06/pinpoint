@@ -735,6 +735,80 @@ offline.asOf
   Offline · the trip as of {time}
 offline.asOfDay
   Offline · the trip as of {day}, {time}
+offlineMap.title
+  Offline map
+offlineMap.back
+  Back
+offlineMap.notDownloaded
+  Not downloaded
+offlineMap.newAreas
+  {count} new areas
+offlineMap.intro
+  Download the streets around {trip}'s {count} places, so the map works with no signal.
+offlineMap.noPlaces
+  Add places to this trip to download the map around them.
+offlineMap.areas
+  AREAS
+offlineMap.noCity
+  {count} places with no city
+offlineMap.total
+  Total
+offlineMap.mobileData
+  You're on mobile data. Wi-Fi is better for a download this size.
+offlineMap.download
+  Download {size}
+offlineMap.downloading
+  Downloading…
+offlineMap.progress
+  {done} of {total}
+offlineMap.keepOnScreen
+  Keep Pinpoint on screen until it finishes. If you leave, it continues when you come back.
+offlineMap.percent
+  {percent}%
+offlineMap.waiting
+  Waiting
+offlineMap.cancel
+  Cancel download
+offlineMap.ready
+  Ready for no signal
+offlineMap.readyDetail
+  {size} on this phone · downloaded {day}
+offlineMap.remove
+  Remove from this phone
+offlineMap.newSince
+  {count} new areas since you downloaded
+offlineMap.newIn
+  Places were added in {places}
+offlineMap.newAway
+  Places were added away from the others
+offlineMap.updateAll
+  Update · {size}
+offlineMap.newerStreets
+  The map has newer streets since you downloaded, so Update downloads the whole trip again. What is on the phone keeps working until it finishes.
+offlineMap.newBadge
+  New
+offlineMap.update
+  Update · {size} more
+offlineMap.needsConnection
+  Downloading needs a connection
+offlineMap.stopped
+  Download stopped
+offlineMap.stoppedDetail
+  An area could not be downloaded. The ones that finished are kept.
+offlineMap.stoppedOffline
+  The phone lost its connection. It continues when it is back online.
+offlineMap.failedArea
+  Failed
+offlineMap.tryAgain
+  Try again
+offlineMap.megabytes
+  {size} MB
+offlineMap.gigabytes
+  {size} GB
+offlineMap.aboutMegabytes
+  about {size} MB
+offlineMap.aboutGigabytes
+  about {size} GB
 map.placesHere
   {count} places here
 map.placeOfType
@@ -1664,6 +1738,80 @@ offline.asOf
   Sin conexión · el viaje tal como estaba a las {time}
 offline.asOfDay
   Sin conexión · el viaje tal como estaba el {day} a las {time}
+offlineMap.title
+  Mapa sin conexión
+offlineMap.back
+  Volver
+offlineMap.notDownloaded
+  Sin descargar
+offlineMap.newAreas
+  {count} zonas nuevas
+offlineMap.intro
+  Descargar las calles alrededor de los {count} lugares de {trip}, para usar el mapa sin conexión.
+offlineMap.noPlaces
+  Agregar lugares al viaje para descargar el mapa a su alrededor.
+offlineMap.areas
+  ZONAS
+offlineMap.noCity
+  {count} lugares sin ciudad
+offlineMap.total
+  Total
+offlineMap.mobileData
+  La conexión es por datos móviles. Para una descarga de este tamaño conviene el wifi.
+offlineMap.download
+  Descargar {size}
+offlineMap.downloading
+  Descargando…
+offlineMap.progress
+  {done} de {total}
+offlineMap.keepOnScreen
+  Mantener Pinpoint en pantalla hasta que termine. Si se sale, continúa al volver.
+offlineMap.percent
+  {percent}%
+offlineMap.waiting
+  En espera
+offlineMap.cancel
+  Cancelar la descarga
+offlineMap.ready
+  Listo para usar sin conexión
+offlineMap.readyDetail
+  {size} en este teléfono · descargado el {day}
+offlineMap.remove
+  Quitar de este teléfono
+offlineMap.newSince
+  {count} zonas nuevas desde la descarga
+offlineMap.newIn
+  Se agregaron lugares en {places}
+offlineMap.newAway
+  Se agregaron lugares lejos de los demás
+offlineMap.updateAll
+  Actualizar · {size}
+offlineMap.newerStreets
+  El mapa tiene calles más recientes desde la descarga, así que Actualizar descarga todo el viaje de nuevo. Lo que ya está en el teléfono sigue funcionando hasta que termine.
+offlineMap.newBadge
+  Nueva
+offlineMap.update
+  Actualizar · {size} más
+offlineMap.needsConnection
+  Descargar requiere conexión
+offlineMap.stopped
+  La descarga se detuvo
+offlineMap.stoppedDetail
+  Una zona no se pudo descargar. Las que terminaron se conservan.
+offlineMap.stoppedOffline
+  Se perdió la conexión. Continúa al recuperarla.
+offlineMap.failedArea
+  Falló
+offlineMap.tryAgain
+  Reintentar
+offlineMap.megabytes
+  {size} MB
+offlineMap.gigabytes
+  {size} GB
+offlineMap.aboutMegabytes
+  unos {size} MB
+offlineMap.aboutGigabytes
+  unos {size} GB
 map.placesHere
   {count} lugares aquí
 map.placeOfType

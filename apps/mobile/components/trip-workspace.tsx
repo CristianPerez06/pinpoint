@@ -91,6 +91,7 @@ import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
 import { signOutHere } from '@/lib/sign-out'
 import { useOnline } from '@/lib/connectivity'
+import { useOfflineMapNote } from '@/lib/offline-map'
 import { useAfterSending, useWaiting } from '@/lib/waiting'
 
 /**
@@ -250,6 +251,7 @@ export function TripWorkspace({
   const offlineTaps = useWaiting()
 
   const markers = markerQuery.rows
+  const offlineMapNote = useOfflineMapNote(trip.id, markers)
   const cities = cityQuery.rows
   const interest = interestQuery.rows
   const members = memberQuery.rows
@@ -1145,6 +1147,7 @@ export function TripWorkspace({
           />
 
           <TripSheet
+            offlineMapNote={offlineMapNote}
             open={tripsOpen}
             onClose={() => showSheet(setTripsOpen, false)}
             trip={trip}
@@ -1278,6 +1281,7 @@ export function TripWorkspace({
     >
       <Body
         mapRef={mapRef}
+        tripId={trip.id}
         centreRef={centreRef}
         dropping={sight !== null}
         draft={panel.kind === 'none' ? null : panel.position}
@@ -1463,8 +1467,11 @@ function Body({
   narrowed,
   onShowMatches,
   bottomRow,
+  tripId,
 }: {
   mapRef: Ref<TripMapRef>
+  /** Which trip this is, so the map can draw the streets it downloaded. */
+  tripId: string
   centreRef: { current: LngLat | null }
   dropping: boolean
   draft: LngLat | null
@@ -1536,6 +1543,7 @@ function Body({
     <>
       <TripMap
         ref={mapRef}
+        tripId={tripId}
         onSomethingToLookAt={setSomethingToLookAt}
         centreRef={centreRef}
         dropping={dropping}

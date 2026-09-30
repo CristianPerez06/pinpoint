@@ -511,6 +511,52 @@ export const SPANISH: Catalogue = {
   'offline.asOf': (v) => `Sin conexión · el viaje tal como estaba a las ${v.time}`,
   'offline.asOfDay': (v) =>
     `Sin conexión · el viaje tal como estaba el ${v.day} a las ${v.time}`,
+  'offlineMap.title': 'Mapa sin conexión',
+  'offlineMap.back': 'Volver',
+  'offlineMap.notDownloaded': 'Sin descargar',
+  'offlineMap.newAreas': (v) => (v.count === 1 ? '1 zona nueva' : `${v.count} zonas nuevas`),
+  'offlineMap.intro': (v) =>
+    v.count === 1
+      ? `Descargar las calles alrededor del lugar de ${v.trip}, para usar el mapa sin conexión.`
+      : `Descargar las calles alrededor de los ${v.count} lugares de ${v.trip}, para usar el mapa sin conexión.`,
+  'offlineMap.noPlaces': 'Agregar lugares al viaje para descargar el mapa a su alrededor.',
+  'offlineMap.areas': 'ZONAS',
+  'offlineMap.noCity': (v) =>
+    v.count === 1 ? '1 lugar sin ciudad' : `${v.count} lugares sin ciudad`,
+  'offlineMap.total': 'Total',
+  'offlineMap.mobileData':
+    'La conexión es por datos móviles. Para una descarga de este tamaño conviene el wifi.',
+  'offlineMap.download': (v) => `Descargar ${v.size}`,
+  'offlineMap.downloading': 'Descargando…',
+  'offlineMap.progress': (v) => `${v.done} de ${v.total}`,
+  'offlineMap.keepOnScreen':
+    'Mantener Pinpoint en pantalla hasta que termine. Si se sale, continúa al volver.',
+  'offlineMap.percent': (v) => `${v.percent}%`,
+  'offlineMap.waiting': 'En espera',
+  'offlineMap.cancel': 'Cancelar la descarga',
+  'offlineMap.ready': 'Listo para usar sin conexión',
+  'offlineMap.readyDetail': (v) => `${v.size} en este teléfono · descargado el ${v.day}`,
+  'offlineMap.remove': 'Quitar de este teléfono',
+  'offlineMap.newSince': (v) =>
+    v.count === 1 ? '1 zona nueva desde la descarga' : `${v.count} zonas nuevas desde la descarga`,
+  'offlineMap.newIn': (v) => `Se agregaron lugares en ${v.places}`,
+  'offlineMap.newAway': 'Se agregaron lugares lejos de los demás',
+  'offlineMap.updateAll': (v) => `Actualizar · ${v.size}`,
+  'offlineMap.newerStreets':
+    'El mapa tiene calles más recientes desde la descarga, así que Actualizar descarga todo el viaje de nuevo. Lo que ya está en el teléfono sigue funcionando hasta que termine.',
+  'offlineMap.newBadge': 'Nueva',
+  'offlineMap.update': (v) => `Actualizar · ${v.size} más`,
+  'offlineMap.needsConnection': 'Descargar requiere conexión',
+  'offlineMap.stopped': 'La descarga se detuvo',
+  'offlineMap.stoppedDetail':
+    'Una zona no se pudo descargar. Las que terminaron se conservan.',
+  'offlineMap.stoppedOffline': 'Se perdió la conexión. Continúa al recuperarla.',
+  'offlineMap.failedArea': 'Falló',
+  'offlineMap.tryAgain': 'Reintentar',
+  'offlineMap.megabytes': (v) => `${v.size} MB`,
+  'offlineMap.gigabytes': (v) => `${v.size} GB`,
+  'offlineMap.aboutMegabytes': (v) => `unos ${v.size} MB`,
+  'offlineMap.aboutGigabytes': (v) => `unos ${v.size} GB`,
   'map.placesHere': (v) => `${v.count} lugares aquí`,
   'map.placeOfType': (v) => `${v.name} (${v.type})`,
   'map.draftPin': 'Lugar nuevo, sin guardar',

@@ -46,6 +46,8 @@ import { type ExtraAction, MarkerDetails, type Selection } from '@/components/ma
 import { DraftPin, Pin } from '@/components/pin'
 import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
+import { useTripEdition } from '@/lib/offline-map'
+import { useOnline } from '@/lib/connectivity'
 import { useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
 
@@ -430,6 +432,7 @@ export interface TripMapRef {
 
 export function TripMap({
   ref,
+  tripId,
   markers,
   held,
   members,
@@ -455,6 +458,11 @@ export function TripMap({
   onSomethingToLookAt,
 }: {
   ref?: Ref<TripMapRef>
+  /**
+   * Which trip this is. A trip with a download draws the edition of the
+   * streets it downloaded (`offline-use`).
+   */
+  tripId: string
   /**
    * Already narrowed by the filter. The map draws what it is given and knows
    * nothing about why something is missing — which is what stops it and the
@@ -629,6 +637,7 @@ export function TripMap({
     extraAction?: ExtraAction
   } | null>(null)
   const theme = useTheme()
+  const online = useOnline()
   const say = useSay()
   const mode = useThemeMode()
 
@@ -639,7 +648,7 @@ export function TripMap({
    * without remounting it — so the camera stays exactly where the person left
    * it and the markers are not rebuilt.
    */
-  const basemap = useThemedBasemap(mode)
+  const basemap = useThemedBasemap(mode, useTripEdition(tripId))
 
   /**
    * Measured once and then frozen. `onLayout` fires again on rotation, and
@@ -1277,14 +1286,20 @@ export function TripMap({
             failed while the device was offline has no browser reload to fall
             back on here.
           */}
+          {/*
+            Greyed with no signal (`offline-use`): a re-read then has nothing to
+            reach, and pressed it spun until the request gave up. The offline
+            note at the top already says why.
+          */}
           <Pressable
             onPress={onReread}
             accessibilityRole="button"
             accessibilityLabel={say(message('map.reread'))}
-            accessibilityState={{ busy: rereading, disabled: rereading }}
-            disabled={rereading}
+            accessibilityState={{ busy: rereading, disabled: rereading || !online }}
+            disabled={rereading || !online}
             style={[
               styles.reread,
+              !online && { opacity: 0.5 },
               {
                 backgroundColor: theme.colour.surface,
                 borderColor: theme.colour.line,
