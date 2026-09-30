@@ -58,8 +58,9 @@ import { useTheme, useThemeMode } from '@/lib/theme'
  * It works, with one correction to what it originally claimed. `mapStyle` is
  * typed `string | StyleSpecification`, so the same `styleUrl()` web used could
  * go straight in, and for a while that meant no fetching and no per-platform
- * patching. Theming ended that: OpenFreeMap publishes no dark style, so the
- * document has to be transformed before either renderer sees it.
+ * patching. Theming ended that: OpenFreeMap's styles are cool where this
+ * interface is warm, so the document has to be transformed before either
+ * renderer sees it.
  *
  * What the original claim was actually about survived. Both platforms still
  * fetch the same document and pass it through the same shared function, so
