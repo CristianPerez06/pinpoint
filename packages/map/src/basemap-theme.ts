@@ -5,11 +5,15 @@ import { BASEMAP_COLOUR, type ThemeMode } from '@pinpoint/tokens'
  *
  * WHY THE MAP IS PATCHED AT ALL
  *
- * Two reasons, and the second is the one that forces it. The interface's
- * neutrals are warm, and positron's are cool — left alone, the map reads as a
- * stranger's map with our panels floating over it rather than as one object.
- * And OpenFreeMap publishes no dark style at all, so a dark interface would
- * otherwise sit around a white slab, which reads as a bug rather than a theme.
+ * The interface's neutrals are warm, and positron's are cool — left alone, the
+ * map reads as a stranger's map with our panels floating over it rather than as
+ * one object. And a dark interface needs a dark map, or it sits around a white
+ * slab, which reads as a bug rather than a theme.
+ *
+ * OpenFreeMap now publishes a dark style of its own (#237), and it is
+ * deliberately not used: it is a neutral near-black with dim grey labels, cool
+ * in the same way positron is, and switching to it would not retire this
+ * function, because the light ground is repainted too.
  *
  * WHY THIS TAKES A DOCUMENT INSTEAD OF FETCHING ONE
  *

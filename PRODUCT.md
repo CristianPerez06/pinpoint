@@ -74,8 +74,11 @@ a direction already travelled.
   reverse of the laptop.
 - **The map is the interface.** The majority of what a person looks at is rendered from
   a map style document, not from application styling. Tiles come from OpenFreeMap;
-  attribution is required and is a permanent part of the layout. OpenFreeMap publishes
-  no dark style, so the document is fetched and patched before either renderer sees it.
+  attribution is required and is a permanent part of the layout. The document is fetched
+  and repainted in the interface's warm colours before either renderer sees it, on both
+  grounds. OpenFreeMap now publishes a dark style too (checked 2026-09-30, #237), and it
+  is not used: it is a neutral near-black with dim grey labels, so it would read as a
+  stranger's map under a warm interface, and the light map would still need repainting.
 - **Places arrive one at a time**, from a recommendation or a video, after the initial
   list is in.
 - **Every price is in US dollars.** A trip may cross borders, but one fixed currency is

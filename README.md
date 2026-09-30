@@ -21,8 +21,9 @@ reachable from only one of them.
 The founding risk was one zero-dependency package producing the same map through two
 bundlers and two renderers, and it holds. The original form of the claim does not:
 `@maplibre/maplibre-react-native` does accept the same style **URL** as `maplibre-gl`, but
-neither app uses one any more. OpenFreeMap publishes no dark style, so the document is
-fetched and patched before either renderer sees it.
+neither app uses one any more. OpenFreeMap's styles are cool greys where this interface is
+warm — its dark one included — so the document is fetched and repainted before either
+renderer sees it.
 
 What survived is the part that mattered. Both apps fetch the same document and pass it
 through the **same shared transformation**, so there is still one style source rather than

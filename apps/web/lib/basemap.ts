@@ -22,8 +22,8 @@ export class BasemapFailure extends Error {
  * Fetching the style document, so the shared transformation can repaint it.
  *
  * The URL used to go straight to MapLibre, which fetched it itself. It cannot
- * any more: OpenFreeMap publishes no dark style and its light one is cool where
- * this interface is warm, so the document has to be transformed before the
+ * any more: OpenFreeMap's styles, light and dark, are cool where this
+ * interface is warm, so the document has to be transformed before the
  * renderer sees it — and `@pinpoint/map` cannot fetch, because it declares no
  * third-party dependencies.
  *
