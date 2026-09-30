@@ -125,6 +125,24 @@ export async function signOut(client: PinpointClient): Promise<AuthOutcome> {
 }
 
 /**
+ * Ask the service whether this session still stands.
+ *
+ * A stored session says nothing about whether the service still honours it:
+ * changing a password ends every other session, and a device only learns that
+ * when it next asks. `getUser` asks. When the answer is that the session is
+ * gone, the client removes it and emits `SIGNED_OUT`, keyed on the service's
+ * error code — so there is nothing here for a caller to read, and whoever needs
+ * to act on the session ending listens for that event.
+ *
+ * Any other failure, no connection above all, leaves the session where it was.
+ * That is the client's behaviour too, and `session-ending.test.ts` in
+ * `@pinpoint/supabase` fails if it changes.
+ */
+export async function confirmSession(client: PinpointClient): Promise<void> {
+  await client.auth.getUser()
+}
+
+/**
  * Send a reset code to an address.
  *
  * Succeeds for any well-formed address, registered or not: the service answers
