@@ -22,7 +22,9 @@ cancel; cancelling SHALL remove what was downloaded so far. The download SHALL c
 the application is on screen, on any of its screens. When the application leaves the screen
 the download SHALL pause, and SHALL continue when the person returns, without downloading
 again what was finished. When an area cannot be downloaded, the screen SHALL say so and offer
-to try again, keeping the areas that finished.
+to try again, keeping the areas that finished. When the connection is lost during a
+download, the screen SHALL say the download has stopped, and the download SHALL continue by
+itself when the connection returns.
 
 Once downloaded, the map of those areas SHALL draw with no signal, at every zoom from the area
 as a whole down to street level, with the map's attribution visible. The download SHALL
@@ -36,7 +38,10 @@ phone.
 When the trip has places outside every downloaded area, the screen SHALL mark the new areas
 and offer to download only those, stating how much more that is. The new areas SHALL be
 downloaded with the same edition of the streets as the rest, so the whole trip draws
-together.
+together. When the map service has published a newer edition since the trip was
+downloaded, Update SHALL instead download every area again with the current edition, SHALL
+state that size before it starts, and SHALL keep the areas already on the phone, drawing
+with no signal, until it has finished.
 
 While a trip's map is downloaded, its map SHALL draw from the edition of the streets that
 was downloaded, online as well as offline.
@@ -78,6 +83,12 @@ follows the new address can no longer find the streets it downloaded.
 - **WHEN** a person switches to another application during a download and comes back
 - **THEN** the download continues from where it stopped
 
+#### Scenario: Losing the connection during a download
+
+- **WHEN** the connection is lost partway through a download
+- **THEN** the screen says the download has stopped until the phone is back online
+- **AND** when the connection returns, it continues from where it stopped
+
 #### Scenario: Cancelling a download
 
 - **WHEN** a person cancels a download part way through
@@ -96,12 +107,19 @@ follows the new address can no longer find the streets it downloaded.
 - **THEN** the trip sheet line and the Offline map screen say there is one new area
 - **AND** Update downloads only that area
 
+#### Scenario: Updating in the same edition
+
+- **WHEN** a place is added somewhere new and the map service still publishes the edition
+  the trip was downloaded with
+- **THEN** Update downloads only the new area
+
 #### Scenario: Updating after the streets were republished
 
 - **WHEN** a place is added somewhere new after the map service has published a newer
   edition of the streets
-- **THEN** Update downloads only the new area
-- **AND** with no signal, the new area and the others draw together
+- **THEN** the screen says Update downloads the whole trip again, and states that size
+- **AND** until it finishes, the areas already downloaded still draw with no signal
+- **AND** afterwards every area draws with no signal, the new one included
 
 #### Scenario: Removing the download
 
@@ -119,6 +137,25 @@ follows the new address can no longer find the streets it downloaded.
 - **WHEN** the Offline map screen is opened with no signal
 - **THEN** Download and Update are disabled with a line saying downloading needs a connection
 - **AND** Remove from this phone still works
+
+### Requirement: Reading the trip again is unavailable with no signal
+
+While the device has no connection, the map's control for reading the trip again SHALL be
+shown disabled, not hidden, and SHALL become available again when the connection returns,
+without any action from the person. The offline note on the map says why.
+
+Rationale: pressed with no signal, it spun until the request gave up and then said nothing,
+so a person was left waiting on a control that could not succeed.
+
+#### Scenario: The map offline
+
+- **WHEN** the map is shown with no signal
+- **THEN** the control for reading the trip again is disabled
+
+#### Scenario: The connection returns
+
+- **WHEN** the connection returns
+- **THEN** the control for reading the trip again can be pressed
 
 ## MODIFIED Requirements
 

@@ -109,11 +109,27 @@ promises; a single constant cannot do better per area.
 
 ### Each area is one MapLibre offline pack, downloaded one at a time
 
-`createPack({ mapStyle: <pinned style file>, bounds, minZoom, maxZoom: 14, metadata: {
-tripId, areaKey, name, downloadedAt, edition } })`. Zoom 14 is the most OpenFreeMap serves,
-and MapLibre enlarges it to street level. The pack also stores the fonts and icons the style
-names. Packs are stored by address, not by trip, so two trips over the same city in the
-same edition share tiles on disk.
+`createPack({ mapStyle: styleUrl(), bounds, minZoom, maxZoom, metadata: { kind, tripId,
+areaKey, cityId, placeCount, downloadedOn, edition, maxZoom } })`, with `maxZoom` 14 for an
+area — the most OpenFreeMap serves; MapLibre enlarges it to street level. The pack also
+stores the fonts and icons the style names. Packs are stored by address, not by trip, so two
+trips over the same city in the same edition share tiles on disk.
+
+Packs are created one after another, so one area downloads while the rest say *Waiting*, as
+in the mock. Leaving the app (`AppState` → `background`) pauses the active pack; returning
+(`useActiveAgain`'s rule, `background` → `active`) resumes it and carries on with the rest.
+
+A lost connection is not reported by the renderer at all: on Android, with airplane mode
+turned on mid-download, the pack simply stopped receiving and the screen went on saying
+*Downloading…* (2026-09-30). So the module watches the connection itself (`expo-network`),
+pauses the active pack when it goes and resumes when it returns, and the screen shows
+*Download stopped* meanwhile.
+
+Cancel deletes the packs created by that press. Remove deletes every pack tagged with the
+trip. Both then clear the renderer's general cache, which is where a deleted pack's streets
+otherwise stay. The screen's state — nothing, downloading, downloaded, new areas — is read
+from `getPacks()` filtered by `tripId`, plus each pack's `status()`, so nothing else has to
+be kept in step with it. The trip sheet line reads the same.
 
 ### A trip with a download is pinned to its edition
 
@@ -125,28 +141,26 @@ never goes through the index:
 - **`pinnedStyle(document, edition)`** in `@pinpoint/map` replaces the vector source's `url`
   with those fields inline. Keeping `maxzoom: 14` matters: without it MapLibre would ask for
   zoom 15 tiles that do not exist and street level would be blank.
-- **Downloading** writes the pinned, unthemed document to a file in the app's document
-  directory and hands `createPack` its `file://` address; both MapLibre builds read local
-  styles. Update uses the trip's recorded edition, not the index, so the whole trip stays
-  one edition — the choice the user made on 2026-09-30.
+- **Downloading** hands `createPack` the style's own address, and records as the edition
+  what the tile index answers just before. Both platforms fetch the style through the
+  network and store it by address, so the pack's tiles are keyed by that week's template.
+  The first version wrote the pinned document to a `file://` style instead, which worked on
+  iOS and failed on Android: its downloader only takes web addresses (`Mbgl-HttpRequest:
+  Unable to parse resourceUrl file:///…`, 2026-09-30). OpenFreeMap has no index per past
+  week to point at instead — `…/planet/<old week>` answers the current one.
+- **Update** therefore downloads only the new areas while the index still answers the
+  trip's edition, and **every area again, with a new overview, once it answers a newer
+  one** — decided with the user on 2026-09-30, after the Android failure. The old packs
+  stay, and the map stays pinned to them, until the new run finishes; then they are
+  deleted.
 - **Drawing**: when the open trip has packs, `useThemedBasemap` pins the document to their
   edition before theming it, online and offline. Online, that trip shows streets as of its
   download, which is the price of the rest drawing offline.
 
-OpenFreeMap answers any week's address, including one it no longer publishes, from its
-current data (`x-ofm-debug: wildcard PBF planet` for `…/20200101_000000_pt/0/0/0.pbf`,
-checked 2026-09-30). So an old edition never refuses an Update. The fallback discussed with
-the user — downloading the whole trip again when the edition is gone — is not built, because
-there is no state in which it would run.
-
-Packs are created one after another, so one area downloads while the rest say *Waiting*, as
-in the mock. Leaving the app (`AppState` → `background`) pauses the active pack; returning
-(`useActiveAgain`) resumes it and then carries on with the rest.
-
-Cancel deletes the packs created by that press. Remove deletes every pack tagged with the
-trip. The screen's state — nothing, downloading, downloaded, new areas — is read from
-`getPacks()` filtered by `tripId`, plus each pack's `status()`, so nothing else has to be
-kept in step with it. The trip sheet line reads the same.
+OpenFreeMap answers any week's tile address, including one it no longer publishes, from
+its current data (`x-ofm-debug: wildcard PBF planet`, checked 2026-09-30), so a trip pinned
+to an old week keeps drawing online. It does not answer an old week's *index*, which is why
+Update cannot add an area in the old week.
 
 ### The screen is a route, like the calendar
 

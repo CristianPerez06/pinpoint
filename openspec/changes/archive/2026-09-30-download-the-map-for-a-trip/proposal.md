@@ -28,7 +28,8 @@ Phone only.
 - **Once downloaded**, the map of those areas draws with no signal down to street level. The
   screen says *Ready for no signal*, the size on the phone and the day it was downloaded, and
   offers **Remove from this phone**.
-- **Places added somewhere new** show as new areas, and **Update** downloads only those.
+- **Places added somewhere new** show as new areas, and **Update** downloads only those —
+  or the whole trip again, said up front, if OpenFreeMap has published newer streets since.
 - **With no signal**, Download and Update are greyed out with *Downloading needs a
   connection*. Remove still works.
 - **Signing out keeps the downloaded map**, because it holds only streets.
@@ -41,7 +42,9 @@ Not being done:
 - **Refreshing a downloaded map to OpenFreeMap's newer streets.** OpenFreeMap republishes its
   streets every week at a new address. A downloaded trip keeps drawing the edition it
   downloaded, online too, because following the new address loses what was downloaded.
-  Update adds new areas in that same edition. Remove and download again gets the latest.
+  Update adds new areas in that same edition while OpenFreeMap still serves it; once it has
+  published a newer one, Update downloads the whole trip again, saying so and its size first.
+  Remove and download again also gets the latest.
 
 ## Capabilities
 
