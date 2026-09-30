@@ -123,6 +123,23 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  /*
+   * The map's own area, and the edge anything it draws is cut off at.
+   *
+   * On Android a pin is not drawn in the map's canvas: the library adds it as an
+   * ordinary view inside the map and turns clipping off there on purpose, so a
+   * pin can hang past its own anchor. Nothing inside the map then stops at the
+   * map's edge, and React Native leaves `overflow` visible by default, so a pin
+   * pressed against the top was drawn over the header and the offline note —
+   * and was handed presses meant for them. iOS clips to the map's bounds on its
+   * own, which is why this held there and nowhere said so. `map-rendering`
+   * requires it now, on every edge.
+   *
+   * Not in conflict with the zoom group's warning about `overflow: 'hidden'`:
+   * that is about clipping the view that casts the shadow. Here every control
+   * we draw over the map sits inset from this edge, shadow included.
+   */
+  frame: { flex: 1, overflow: 'hidden' },
   attribution: {
     position: 'absolute',
     left: SPACE.sm,
@@ -1013,7 +1030,7 @@ export function TripMap({
 
   return (
     <View
-      style={styles.fill}
+      style={styles.frame}
       onLayout={(event) => {
         if (viewport) return
         const { width, height } = event.nativeEvent.layout
