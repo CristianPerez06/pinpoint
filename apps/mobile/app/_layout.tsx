@@ -7,6 +7,7 @@ import { View } from 'react-native'
 import { ConnectivityProvider } from '@/lib/connectivity'
 import { PreferencesProvider } from '@/lib/preferences'
 import { SessionProvider } from '@/lib/session'
+import { SessionWatch } from '@/lib/session-watch'
 import { useTheme } from '@/lib/theme'
 import { TripChoiceProvider } from '@/lib/trip-choice'
 import { WaitingProvider } from '@/lib/waiting'
@@ -57,11 +58,12 @@ export default function RootLayout() {
               screens show one — the map and the calendar — and a choice held in
               either of them is invisible to the other. Signing out does not
               unmount it — `SessionProvider` keeps rendering its children and the
-              map only redirects — so the choice is forgotten by `useSignOut` in
-              `lib/sign-out.ts`, not by leaving the tree.
+              map only redirects — so the choice is forgotten by `useForgetPerson` in
+              `lib/sign-out.ts`, which `SessionWatch` runs whenever a session ends.
             */}
             <WaitingProvider>
               <TripChoiceProvider>
+                <SessionWatch />
                 <Stack screenOptions={{ headerShown: false }} />
               </TripChoiceProvider>
             </WaitingProvider>

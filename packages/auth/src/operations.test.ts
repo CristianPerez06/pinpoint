@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   changePassword,
   claimTripMemberships,
+  confirmSession,
   isResetSession,
   requestPasswordReset,
   setNewPassword,
@@ -201,6 +202,24 @@ describe('signOut', () => {
     const { client } = stubClient({ signOut: { error: { code: 'unexpected' } } })
 
     expect(await signOut(client)).toMatchObject({ ok: false, failure: 'generic' })
+  })
+})
+
+describe('confirmSession', () => {
+  it('asks the service once', async () => {
+    const { client, calls } = stubClient({})
+
+    await confirmSession(client)
+
+    expect(calls.getUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not throw when the service refuses the session', async () => {
+    const { client } = stubClient({
+      getUser: { data: { user: null }, error: { code: 'session_not_found' } },
+    })
+
+    await expect(confirmSession(client)).resolves.toBeUndefined()
   })
 })
 

@@ -63,9 +63,9 @@ export function WaitingProvider({ children }: { children: ReactNode }) {
 
   /*
     Forgotten in memory when nobody is signed in, and read back from the file
-    when somebody is again. Signing out with the button has already deleted the
-    file; a session that ended some other way — a token that could not be
-    refreshed — has not, and those taps are still the person's to send.
+    when somebody is again. However the session ended, the file has been deleted
+    by then (`useForgetPerson` in `lib/sign-out.ts`), so the next sign-in reads
+    back nothing from before it.
   */
   const [queueFor, setQueueFor] = useState(signedIn)
   if (queueFor !== signedIn) {
