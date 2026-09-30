@@ -1,4 +1,3 @@
-import { signOut } from '@pinpoint/auth'
 import {
   type CalendarView,
   calendarViewShown,
@@ -42,6 +41,9 @@ import { supabase } from '@/lib/supabase'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
+import { signOutHere } from '@/lib/sign-out'
+import { useOnline } from '@/lib/connectivity'
+import { useAfterSending, useWaiting } from '@/lib/waiting'
 
 /**
  * A trip's places, arranged by the day they are planned for.
@@ -107,10 +109,18 @@ export function TripCalendar({
    * edit form's chooser, and a city renamed on the map would otherwise stay stale
    * here.
    */
-  const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id])
-  const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id])
-  const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id])
-  const memberQuery = useQuery(() => fetchTripMembers(supabase, trip.id), [trip.id])
+  const markerQuery = useQuery(() => fetchTripMarkers(supabase, trip.id), [trip.id], {
+    keep: `markers-${trip.id}`,
+  })
+  const cityQuery = useQuery(() => fetchTripCities(supabase, trip.id), [trip.id], {
+    keep: `cities-${trip.id}`,
+  })
+  const interestQuery = useQuery(() => fetchTripInterest(supabase, trip.id), [trip.id], {
+    keep: `interest-${trip.id}`,
+  })
+  const memberQuery = useQuery(() => fetchTripMembers(supabase, trip.id), [trip.id], {
+    keep: `members-${trip.id}`,
+  })
 
   const markers = markerQuery.rows
   const cities = cityQuery.rows
@@ -159,6 +169,9 @@ export function TripCalendar({
     report: setProblem,
   })
 
+  const online = useOnline()
+  const offlineTaps = useWaiting()
+
   /** Every list this screen shows, read again. */
   function rereadEverything(options?: { force?: boolean }) {
     return Promise.all([
@@ -176,6 +189,12 @@ export function TripCalendar({
    * this costing a round of reads for a notification pull.
    */
   useActiveAgain(() => void rereadEverything())
+
+  /*
+    Taps made offline have all been sent: read the trip again however recently
+    it was read, so what is shown is what the database made of them.
+  */
+  useAfterSending(() => void rereadEverything({ force: true }))
 
   /**
    * Opening a sheet is somebody saying "show me this", which is the return
@@ -287,6 +306,11 @@ export function TripCalendar({
       rows.map((each) => (each.id === marker.id ? { ...each, visited } : each)),
     )
 
+    if (!online) {
+      offlineTaps.add({ kind: 'visited', markerId: marker.id, visited })
+      return
+    }
+
     const outcome = await setMarkerVisited(supabase, marker.id, visited)
     if (!outcome.ok) {
       markerQuery.set(() => previous)
@@ -316,6 +340,18 @@ export function TripCalendar({
       },
     ])
 
+    // With no signal the tap is kept and sent later; what it changed is
+    // already on screen (`offline-use`).
+    if (!online) {
+      offlineTaps.add({
+        kind: 'interest',
+        markerId: marker.id,
+        memberId: ownMemberId,
+        interested,
+      })
+      return
+    }
+
     const outcome = await recordInterest(supabase, {
       markerId: marker.id,
       memberId: ownMemberId,
@@ -342,6 +378,16 @@ export function TripCalendar({
           !(record.markerId === marker.id && record.memberId === ownMemberId),
       ),
     )
+
+    if (!online) {
+      offlineTaps.add({
+        kind: 'interest',
+        markerId: marker.id,
+        memberId: ownMemberId,
+        interested: null,
+      })
+      return
+    }
 
     const outcome = await withdrawInterest(supabase, marker.id, ownMemberId)
     if (!outcome.ok) {
@@ -560,7 +606,7 @@ export function TripCalendar({
       <MenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onSignOut={() => void signOut(supabase)}
+        onSignOut={() => void signOutHere()}
         member={ownMemberOf(members, userId) ?? null}
       />
     </CalendarScreen>

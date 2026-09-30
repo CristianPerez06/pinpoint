@@ -721,6 +721,20 @@ map.reread
   Read everything again
 map.loading
   Loading the map
+offline.sendsLater
+  Sends when you are back online
+offline.editingNeedsConnection
+  Editing needs a connection.
+offline.searchAndDropNeedConnection
+  Searching and adding places need a connection.
+offline.savingNeedsConnection
+  Saving needs a connection. What you typed is kept.
+offline.changesNeedConnection
+  Changing a trip needs a connection.
+offline.asOf
+  Offline · the trip as of {time}
+offline.asOfDay
+  Offline · the trip as of {day}, {time}
 map.placesHere
   {count} places here
 map.placeOfType
@@ -1636,6 +1650,20 @@ map.reread
   Volver a leer todo
 map.loading
   Cargando el mapa
+offline.sendsLater
+  Se envía al recuperar la conexión
+offline.editingNeedsConnection
+  Editar requiere conexión.
+offline.searchAndDropNeedConnection
+  Buscar y agregar lugares requiere conexión.
+offline.savingNeedsConnection
+  Guardar requiere conexión. Lo escrito se conserva.
+offline.changesNeedConnection
+  Cambiar un viaje requiere conexión.
+offline.asOf
+  Sin conexión · el viaje tal como estaba a las {time}
+offline.asOfDay
+  Sin conexión · el viaje tal como estaba el {day} a las {time}
 map.placesHere
   {count} lugares aquí
 map.placeOfType

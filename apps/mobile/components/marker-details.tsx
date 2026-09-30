@@ -31,9 +31,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { InterestRows, VisitedToggle } from '@/components/interest'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { Question } from '@/components/ui'
+import { NeedsConnection } from '@/components/needs-connection'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
+import { useWaiting } from '@/lib/waiting'
 
 /**
  * What was recorded about a place, as a sheet rising from the bottom.
@@ -456,6 +459,8 @@ export function MarkerDetails({
   const theme = useTheme()
   const language = useLanguage()
   const say = useSay()
+  const online = useOnline()
+  const { waitingFor } = useWaiting()
   /**
    * Whether the question is standing in place of the footer.
    *
@@ -566,6 +571,10 @@ export function MarkerDetails({
           ownMemberId={ownMemberId}
           onRecord={(interested) => onRecordInterest(marker, interested)}
           onWithdraw={() => onWithdrawInterest(marker)}
+          waiting={
+            ownMemberId !== null &&
+            waitingFor({ kind: 'interest', markerId: marker.id, memberId: ownMemberId })
+          }
         />
       </View>
 
@@ -576,6 +585,7 @@ export function MarkerDetails({
         <VisitedToggle
           visited={marker.visited}
           onChange={(visited) => onSetVisited(marker, visited)}
+          waiting={waitingFor({ kind: 'visited', markerId: marker.id })}
         />
       </View>
 
@@ -661,31 +671,47 @@ export function MarkerDetails({
           onDecline={() => setAsking(false)}
         />
       ) : (
-        <View style={styles.rowActions}>
-          <Pressable
-            onPress={() => onEdit(marker)}
-            accessibilityRole="button"
-            accessibilityLabel={say(message('common.editNamed', { name: marker.name }))}
-            style={[styles.action, { borderColor: theme.colour.lineStrong }]}
-          >
-            <Text style={[styles.actionText, { color: theme.colour.ink }]}>
-              {say(message('common.edit'))}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAsking(true)}
-            accessibilityRole="button"
-            accessibilityLabel={say(message('common.removeNamed', { name: marker.name }))}
-            style={[
-              styles.action,
-              { backgroundColor: theme.colour.dangerSurface },
-            ]}
-          >
-            <Text style={[styles.actionText, { color: theme.colour.danger }]}>
-              {say(message('common.remove'))}
-            </Text>
-          </Pressable>
-        </View>
+        <>
+          <View style={styles.rowActions}>
+            <Pressable
+              onPress={() => onEdit(marker)}
+              disabled={!online}
+              accessibilityState={{ disabled: !online }}
+              accessibilityRole="button"
+              accessibilityLabel={say(message('common.editNamed', { name: marker.name }))}
+              style={[
+                styles.action,
+                { borderColor: theme.colour.lineStrong, opacity: online ? 1 : 0.5 },
+              ]}
+            >
+              <Text style={[styles.actionText, { color: theme.colour.ink }]}>
+                {say(message('common.edit'))}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setAsking(true)}
+              disabled={!online}
+              accessibilityState={{ disabled: !online }}
+              accessibilityRole="button"
+              accessibilityLabel={say(message('common.removeNamed', { name: marker.name }))}
+              style={[
+                styles.action,
+                { backgroundColor: theme.colour.dangerSurface, opacity: online ? 1 : 0.5 },
+              ]}
+            >
+              <Text style={[styles.actionText, { color: theme.colour.danger }]}>
+                {say(message('common.remove'))}
+              </Text>
+            </Pressable>
+          </View>
+          {/*
+            Disabled rather than hidden, with the reason under them: a control
+            that disappears reads as a feature that has gone (`offline-use`).
+          */}
+          {online ? null : (
+            <NeedsConnection>{say(message('offline.editingNeedsConnection'))}</NeedsConnection>
+          )}
+        </>
       )}
 
       {extraAction ? (

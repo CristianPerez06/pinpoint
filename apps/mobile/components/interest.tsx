@@ -6,6 +6,8 @@ import {
 } from '@pinpoint/core'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
+// Deep import, not the package root — see marker-icon.tsx.
+import Clock from 'lucide-react-native/icons/clock'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useSay } from '@/lib/language'
@@ -59,6 +61,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   visitedText: { ...role(TYPE.control) },
+  visitedField: { gap: 6 },
+  sendsLater: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
 })
 
 export function InterestRows({
@@ -67,6 +71,7 @@ export function InterestRows({
   ownMemberId,
   onRecord,
   onWithdraw,
+  waiting = false,
 }: {
   members: readonly TripMember[]
   /** This marker's records only, already narrowed by the caller. */
@@ -75,6 +80,8 @@ export function InterestRows({
   ownMemberId: string | null
   onRecord: (interested: boolean) => void
   onWithdraw: () => void
+  /** The reader's own answer was given offline and has not been sent yet. */
+  waiting?: boolean
 }) {
   const theme = useTheme()
   const say = useSay()
@@ -138,6 +145,8 @@ export function InterestRows({
                 {say(OWN_STATE_LABEL[state])}
               </Text>
             ) : null}
+
+            {isOwn && waiting ? <SendsLater /> : null}
           </View>
         )
       })}
@@ -194,34 +203,61 @@ function Choice({
 export function VisitedToggle({
   visited,
   onChange,
+  waiting = false,
 }: {
   visited: boolean
   onChange: (visited: boolean) => void
+  /** Changed offline and not sent yet. */
+  waiting?: boolean
 }) {
   const theme = useTheme()
   const say = useSay()
 
   return (
-    <Pressable
-      onPress={() => onChange(!visited)}
-      accessibilityRole="button"
-      accessibilityState={{ selected: visited }}
-      style={[
-        styles.visited,
-        {
-          borderColor: visited ? theme.colour.accent : theme.colour.lineStrong,
-          backgroundColor: visited ? theme.colour.accentWash : 'transparent',
-        },
-      ]}
-    >
-      <Text
+    <View style={styles.visitedField}>
+      <Pressable
+        onPress={() => onChange(!visited)}
+        accessibilityRole="button"
+        accessibilityState={{ selected: visited }}
         style={[
-          styles.visitedText,
-          { color: visited ? theme.colour.accentInk : theme.colour.ink },
+          styles.visited,
+          {
+            borderColor: visited ? theme.colour.accent : theme.colour.lineStrong,
+            backgroundColor: visited ? theme.colour.accentWash : 'transparent',
+          },
         ]}
       >
-        {say(visited ? message('visited.on') : message('visited.mark'))}
+        <Text
+          style={[
+            styles.visitedText,
+            { color: visited ? theme.colour.accentInk : theme.colour.ink },
+          ]}
+        >
+          {say(visited ? message('visited.on') : message('visited.mark'))}
+        </Text>
+      </Pressable>
+      {waiting ? <SendsLater /> : null}
+    </View>
+  )
+}
+
+/**
+ * A tap made with no signal, not sent yet (`offline-use`).
+ *
+ * Said under the control rather than on it: the control already shows the
+ * choice as made, which it is on this phone, and the line says the one thing
+ * that is not true yet — that anybody else can see it.
+ */
+function SendsLater() {
+  const theme = useTheme()
+  const say = useSay()
+
+  return (
+    <View style={styles.sendsLater}>
+      <Clock size={14} color={theme.colour.inkMuted} strokeWidth={2} />
+      <Text style={[styles.state, { color: theme.colour.inkMuted }]}>
+        {say(message('offline.sendsLater'))}
       </Text>
-    </Pressable>
+    </View>
   )
 }

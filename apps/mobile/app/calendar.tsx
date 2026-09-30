@@ -32,7 +32,9 @@ export default function CalendarRoute() {
   const say = useSay()
   const { chosenTripId, chooseTrip } = useTripChoice()
 
-  const trips = useQuery(() => fetchTrips(supabase), [session])
+  const trips = useQuery(() => fetchTrips(supabase), [session], {
+    keep: session ? 'trips' : null,
+  })
 
   /*
    * Where to open, when the map sends somebody back after showing them a place.

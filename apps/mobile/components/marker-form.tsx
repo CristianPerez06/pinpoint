@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CurrencyField } from '@/components/currency-field'
 import { HoursField } from '@/components/hours-field'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
+import { NeedsConnection } from '@/components/needs-connection'
 import {
   Button,
   DayField,
@@ -43,6 +44,7 @@ import { useLanguage, useSay } from '@/lib/language'
 import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
 
 /**
  * The one form places are saved and edited through, on a phone.
@@ -204,6 +206,7 @@ export function MarkerFormSheet({
   const insets = useSafeAreaInsets()
   const language = useLanguage()
   const say = useSay()
+  const online = useOnline()
 
   /**
    * A field's refusal, in words, and nothing when there is no refusal.
@@ -682,7 +685,7 @@ export function MarkerFormSheet({
                       creatingCity ? message('common.creating') : message('city.create'),
                     )}
                     tone="primary"
-                    disabled={creatingCity || newCity.name.trim() === ''}
+                    disabled={!online || creatingCity || newCity.name.trim() === ''}
                     onPress={createCity}
                   />
                 </View>
@@ -849,6 +852,7 @@ export function MarkerFormSheet({
               <Button
                 label={say(message('placeForm.remove'))}
                 tone="danger"
+                disabled={!online}
                 onPress={() => setAsking(true)}
               />
             )
@@ -873,16 +877,25 @@ export function MarkerFormSheet({
             },
           ]}
         >
-          <View style={styles.grow}>
-            <Button
-              label={say(saving ? message('common.saving') : message('placeForm.save'))}
-              tone="primary"
-              disabled={saving}
-              onPress={() => startSave(() => onSubmit(values()))}
-            />
-          </View>
-          <View style={styles.grow}>
-            <Button label={say(message('common.cancel'))} onPress={onCancel} />
+          {/*
+            The form stays open and keeps what was typed when the connection
+            drops, so nothing is lost; only saving waits (`offline-use`).
+          */}
+          {online ? null : (
+            <NeedsConnection>{say(message('offline.savingNeedsConnection'))}</NeedsConnection>
+          )}
+          <View style={styles.actionRow}>
+            <View style={styles.grow}>
+              <Button
+                label={say(saving ? message('common.saving') : message('placeForm.save'))}
+                tone="primary"
+                disabled={!online || saving}
+                onPress={() => startSave(() => onSubmit(values()))}
+              />
+            </View>
+            <View style={styles.grow}>
+              <Button label={say(message('common.cancel'))} onPress={onCancel} />
+            </View>
           </View>
         </View>
       </Animated.View>
@@ -1037,10 +1050,10 @@ const styles = StyleSheet.create({
   },
   adjustText: { ...role(TYPE.control), fontWeight: '700' },
   actions: {
-    flexDirection: 'row',
     gap: SPACE.sm,
     paddingHorizontal: SPACE.md,
     paddingTop: SPACE.sm,
     borderTopWidth: 1,
   },
+  actionRow: { flexDirection: 'row', gap: SPACE.sm },
 })

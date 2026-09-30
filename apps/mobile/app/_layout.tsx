@@ -4,10 +4,12 @@ import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { View } from 'react-native'
 
+import { ConnectivityProvider } from '@/lib/connectivity'
 import { PreferencesProvider } from '@/lib/preferences'
 import { SessionProvider } from '@/lib/session'
 import { useTheme } from '@/lib/theme'
 import { TripChoiceProvider } from '@/lib/trip-choice'
+import { WaitingProvider } from '@/lib/waiting'
 
 /**
  * Nothing renders until the typeface has loaded and the stored preferences have
@@ -48,18 +50,22 @@ export default function RootLayout() {
       {!preferencesRead || (!loaded && !error) ? (
         <Blank />
       ) : (
-        <SessionProvider>
-          {/*
-            Which trip is being read sits above the navigator, because two of its
-            screens show one — the map and the calendar — and a choice held in
-            either of them is invisible to the other. Inside `SessionProvider`
-            rather than outside it: signing out unmounts everything below, which
-            is also how the choice is forgotten when it stops meaning anything.
-          */}
-          <TripChoiceProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-          </TripChoiceProvider>
-        </SessionProvider>
+        <ConnectivityProvider>
+          <SessionProvider>
+            {/*
+              Which trip is being read sits above the navigator, because two of its
+              screens show one — the map and the calendar — and a choice held in
+              either of them is invisible to the other. Inside `SessionProvider`
+              rather than outside it: signing out unmounts everything below, which
+              is also how the choice is forgotten when it stops meaning anything.
+            */}
+            <WaitingProvider>
+              <TripChoiceProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+              </TripChoiceProvider>
+            </WaitingProvider>
+          </SessionProvider>
+        </ConnectivityProvider>
       )}
     </PreferencesProvider>
   )

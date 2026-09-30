@@ -37,6 +37,7 @@ export type {
 
 export {
   formatDay,
+  formatClock,
   formatDayCompact,
   formatDayFull,
   formatDayNumeric,

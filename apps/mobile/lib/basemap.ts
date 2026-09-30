@@ -3,6 +3,8 @@ import type { ThemeMode } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
 import { useEffect, useState } from 'react'
 
+import { readKeptText, writeNow } from '@/lib/kept'
+
 /**
  * A style fetch that failed for a reason worth telling the person.
  *
@@ -33,6 +35,22 @@ class BasemapFailure extends Error {
  */
 let cached: Promise<StyleDocument> | null = null
 
+/** The name the last fetched style document is kept under on the phone. */
+const KEPT_STYLE = 'style'
+
+function keptStyle(): StyleDocument | null {
+  const text = readKeptText(KEPT_STYLE)
+  if (text === null) return null
+  try {
+    const document: unknown = JSON.parse(text)
+    return typeof document === 'object' && document !== null
+      ? (document as StyleDocument)
+      : null
+  } catch {
+    return null
+  }
+}
+
 function fetchStyleDocument(): Promise<StyleDocument> {
   cached ??= fetch(styleUrl())
     .then((response) => {
@@ -41,11 +59,21 @@ function fetchStyleDocument(): Promise<StyleDocument> {
       }
       return response.json() as Promise<StyleDocument>
     })
+    .then((document) => {
+      writeNow(KEPT_STYLE, JSON.stringify(document))
+      return document
+    })
     .catch((cause: unknown) => {
       // Cleared so a later attempt can succeed — a cached rejection would make
       // one flaky request permanent for the life of the process, which on a
       // phone is a great deal longer than a page load.
       cached = null
+
+      // With no signal, the document kept from the last fetch draws the map
+      // instead (`offline-use`). It is the untransformed one, so a change of
+      // ground offline still repaints it.
+      const kept = keptStyle()
+      if (kept !== null) return kept
       throw cause
     })
 

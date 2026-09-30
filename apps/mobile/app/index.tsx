@@ -37,7 +37,9 @@ export default function Index() {
    * missing function rather than a dependency. The function exists now, so
    * everything that changes the list asks for it directly.
    */
-  const trips = useQuery(() => fetchTrips(supabase), [session])
+  const trips = useQuery(() => fetchTrips(supabase), [session], {
+    keep: session ? 'trips' : null,
+  })
 
   /**
    * Which trip is being looked at, or null for "whichever is first".

@@ -6,7 +6,9 @@ import {
   readyOrEmpty,
   type SettledQueryState,
 } from '@pinpoint/data'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import { readKept, writeKept } from '@/lib/kept'
 
 /**
  * A list this screen is showing: what the read is doing, what it holds, a way to
@@ -46,6 +48,32 @@ export interface Query<T> {
    * call site is what lets one function serve both.
    */
   readonly refetch: (options?: { force?: boolean }) => Promise<ReadOutcome>
+  /**
+   * When what is held was last read from the database, or null when it has not
+   * been — still loading, or failed with nothing kept. What the offline note
+   * says the trip is "as of". A write does not move it: it says when the
+   * database last spoke, not when this device last changed something.
+   */
+  readonly asOf: number | null
+}
+
+export interface QueryOptions {
+  /**
+   * The name to keep this list under on the phone, or null not to keep it.
+   *
+   * A kept list is drawn at once when the screen opens, before the read that
+   * replaces it — see `offline-use`. The name has to change with whatever the
+   * list is for (`markers-<trip id>`), or one trip's copy would be drawn as
+   * another's.
+   */
+  readonly keep?: string | null
+}
+
+/** What is held, for which dependencies, and when the database last said so. */
+interface Entry<T> {
+  readonly deps: readonly unknown[]
+  readonly state: SettledQueryState<readonly T[]>
+  readonly asOf: number | null
 }
 
 /**
@@ -69,7 +97,9 @@ export interface Query<T> {
 export function useQuery<T>(
   run: () => Promise<SettledQueryState<readonly T[]>>,
   deps: readonly unknown[],
+  options?: QueryOptions,
 ): Query<T> {
+  const keep = options?.keep ?? null
   /**
    * The result is stored with the dependencies it was fetched for, rather than
    * as bare state reset by the effect. Two reasons, and the second is the one
@@ -83,10 +113,17 @@ export function useQuery<T>(
    *   instead means the very first render after a change already says loading.
    *
    */
-  const [entry, setEntry] = useState<{
-    deps: readonly unknown[]
-    state: SettledQueryState<readonly T[]>
-  } | null>(null)
+  const [entry, setEntry] = useState<Entry<T> | null>(null)
+
+  /**
+   * The copy kept on the phone for these dependencies, read once per name.
+   *
+   * It stands in for the entry until one exists for these dependencies, and is
+   * never written to: the entry is the one place the list is held, and the copy
+   * is only ever written from it (`data-freshness`).
+   */
+  const kept = useMemo(() => (keep === null ? null : readKept<T>(keep)), [keep])
+  const keptRef = useRef<{ deps: readonly unknown[]; kept: typeof kept }>({ deps, kept })
 
   /**
    * The current query and dependencies, reachable from `refetch` — which is one
@@ -103,7 +140,18 @@ export function useQuery<T>(
   useEffect(() => {
     runRef.current = run
     depsRef.current = deps
+    keptRef.current = { deps, kept }
   })
+
+  /**
+   * The kept copy as an entry for `forDeps`, or null when there is none for
+   * those dependencies.
+   */
+  const keptEntry = useCallback((forDeps: readonly unknown[]): Entry<T> | null => {
+    const { deps: keptDeps, kept: copy } = keptRef.current
+    if (copy === null || !sameDeps(keptDeps, forDeps)) return null
+    return { deps: forDeps, state: readyOrEmpty(copy.rows), asOf: copy.readAt }
+  }, [])
 
   /**
    * When the answer on screen arrived, which is what the floor is measured
@@ -150,20 +198,31 @@ export function useQuery<T>(
         from the silence and hands it to `write-feedback`. The rows are still
         left alone either way; what the read did is now told to whoever asked.
       */
-      if (
-        settled.status === 'failed' &&
-        current !== null &&
-        current.state.status !== 'failed'
-      ) {
-        return current
+      if (settled.status === 'failed') {
+        if (
+          current !== null &&
+          sameDeps(current.deps, forDeps) &&
+          current.state.status !== 'failed'
+        ) {
+          return current
+        }
+        // Nothing read yet for these dependencies, but a copy is kept: that is
+        // what is on screen, and it stays there.
+        const fromKept = keptEntry(forDeps)
+        if (fromKept !== null) return fromKept
       }
 
-      readAt.current = Date.now()
-      return { deps: forDeps, state: settled }
+      const now = Date.now()
+      readAt.current = now
+      return {
+        deps: forDeps,
+        state: settled,
+        asOf: settled.status === 'failed' ? null : now,
+      }
     })
 
     return settled.status === 'failed' ? 'failed' : 'read'
-  }, [])
+  }, [keptEntry])
 
   useEffect(() => {
     let active = true
@@ -182,8 +241,25 @@ export function useQuery<T>(
         // The screen went away, or the dependencies changed and a newer run is
         // already in flight. Writing here would show the older answer.
         if (!active) return 'declined'
-        readAt.current = Date.now()
-        setEntry({ deps, state: settled })
+
+        // A first read that fails over a kept copy is a re-read that failed:
+        // the copy stays on screen and nothing is reported (`offline-use`).
+        // `readAt` is left alone so the next trigger is not declined as fresh.
+        if (settled.status === 'failed') {
+          const fromKept = keptEntry(deps)
+          if (fromKept !== null) {
+            setEntry(fromKept)
+            return 'failed'
+          }
+        }
+
+        const now = Date.now()
+        readAt.current = now
+        setEntry({
+          deps,
+          state: settled,
+          asOf: settled.status === 'failed' ? null : now,
+        })
         return settled.status === 'failed' ? 'failed' : 'read'
       })
       .finally(() => {
@@ -216,14 +292,22 @@ export function useQuery<T>(
   )
 
   const set = useCallback((update: (rows: readonly T[]) => readonly T[]) => {
-    setEntry((current) => ({
+    setEntry((held) => {
       // A write against a list that never arrived still belongs to the
       // dependencies on screen now — there is nothing else it could be for.
-      deps: current?.deps ?? depsRef.current,
-      state: readyOrEmpty(
-        update(current?.state.status === 'ready' ? current.state.data : []),
-      ),
-    }))
+      // What it changes is what is on screen for them: the entry when there is
+      // one, otherwise the kept copy standing in for it.
+      const forDeps = depsRef.current
+      const current =
+        held !== null && sameDeps(held.deps, forDeps) ? held : keptEntry(forDeps)
+      return {
+        deps: forDeps,
+        state: readyOrEmpty(
+          update(current?.state.status === 'ready' ? current.state.data : []),
+        ),
+        asOf: current?.asOf ?? null,
+      }
+    })
     /*
       A write does not make the list fresh, and `readAt` is deliberately left
       alone.
@@ -232,17 +316,43 @@ export function useQuery<T>(
       as a read would let one write suppress the re-read that was going to bring
       somebody else's changes in.
     */
-  }, [])
+  }, [keptEntry])
 
   const isCurrent = entry !== null && sameDeps(entry.deps, deps)
 
-  const state: QueryState<readonly T[]> = isCurrent ? entry.state : LOADING
+  /*
+    Before anything has been read for these dependencies, the kept copy is what
+    is on screen. Worked out here rather than through `keptEntry`, which reads a
+    ref that is only brought up to date after this render.
+  */
+  const shown: Entry<T> | null = isCurrent
+    ? entry
+    : kept === null
+      ? null
+      : { deps, state: readyOrEmpty(kept.rows), asOf: kept.readAt }
+
+  const state: QueryState<readonly T[]> = shown === null ? LOADING : shown.state
+
+  /*
+    The copy is written from what is held, whenever that changes — a read or a
+    write — and from nothing else. A failed list is not kept: there is nothing
+    in it worth drawing later.
+  */
+  useEffect(() => {
+    if (keep === null || entry === null || !isCurrent || entry.asOf === null) return
+    if (entry.state.status === 'failed') return
+    writeKept(keep, {
+      readAt: entry.asOf,
+      rows: entry.state.status === 'ready' ? entry.state.data : [],
+    })
+  }, [keep, isCurrent, entry])
 
   return {
     state,
     rows: state.status === 'ready' ? state.data : [],
     set,
     refetch,
+    asOf: shown?.asOf ?? null,
   }
 }
 

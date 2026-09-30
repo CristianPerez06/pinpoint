@@ -26,10 +26,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateTripForm } from '@/components/trip-setup'
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
+import { NeedsConnection } from '@/components/needs-connection'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
 import { role } from '@/lib/type'
+import { useOnline } from '@/lib/connectivity'
 
 /**
  * The trips, reached by tapping the trip's name.
@@ -133,6 +135,9 @@ export function TripSheet({
 }) {
   const theme = useTheme()
   const say = useSay()
+  const online = useOnline()
+  /** A row that changes the trip, with no connection: half opacity, as `Button` draws one. */
+  const offlineDim = online ? null : { opacity: 0.5 }
   const insets = useSafeAreaInsets()
   const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
 
@@ -264,11 +269,21 @@ export function TripSheet({
                 which is where it was at first and is half the requirement: any
                 signed-in person may create a trip, not only somebody with none.
               */}
+              {/*
+                Every change to a trip needs a connection; reading it does not.
+                The rows stay where they are, greyed, with this to say why
+                (`offline-use`).
+              */}
+              {online ? null : (
+                <NeedsConnection>{say(message('offline.changesNeedConnection'))}</NeedsConnection>
+              )}
+
               <Pressable
                 onPress={() => openDetour(creating ? null : 'create')}
+                disabled={!online}
                 accessibilityRole="button"
-                accessibilityState={{ expanded: creating }}
-                style={styles.row}
+                accessibilityState={{ expanded: creating, disabled: !online }}
+                style={[styles.row, offlineDim]}
               >
                 <Plus size={18} color={theme.colour.accentInk} strokeWidth={2.4} />
                 <Text style={[styles.rowName, { color: theme.colour.accentInk }]}>
@@ -303,9 +318,10 @@ export function TripSheet({
                   setName(trip.name)
                   openDetour(renaming ? null : 'rename')
                 }}
+                disabled={!online}
                 accessibilityRole="button"
-                accessibilityState={{ expanded: renaming }}
-                style={styles.row}
+                accessibilityState={{ expanded: renaming, disabled: !online }}
+                style={[styles.row, offlineDim]}
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>
                   {say(message('trip.rename'))}
@@ -322,7 +338,10 @@ export function TripSheet({
                         label={say(saving ? message('common.saving') : message('common.save'))}
                         tone="primary"
                         disabled={
-                          saving || name.trim() === '' || name.trim() === trip.name
+                          !online ||
+                          saving ||
+                          name.trim() === '' ||
+                          name.trim() === trip.name
                         }
                         onPress={() =>
                           // The detour closes when the write settles, not when
@@ -354,9 +373,10 @@ export function TripSheet({
                   setDateErrors({})
                   openDetour(dating ? null : 'dates')
                 }}
+                disabled={!online}
                 accessibilityRole="button"
-                accessibilityState={{ expanded: dating }}
-                style={styles.row}
+                accessibilityState={{ expanded: dating, disabled: !online }}
+                style={[styles.row, offlineDim]}
               >
                 <Text style={[styles.rowName, { color: theme.colour.ink }]}>
                   {say(message('trip.dates'))}
@@ -395,7 +415,7 @@ export function TripSheet({
                       <Button
                         label={say(saving ? message('common.saving') : message('common.save'))}
                         tone="primary"
-                        disabled={saving}
+                        disabled={!online || saving}
                         onPress={() =>
                           startSave(async () => {
                             const errors = await onSetDates({ startsOn, endsOn })
@@ -461,10 +481,12 @@ export function TripSheet({
                   close()
                   onSetArchived(trip.id, true)
                 }}
+                disabled={!online}
+                accessibilityState={{ disabled: !online }}
                 accessibilityRole="button"
                 accessibilityLabel={say(message('trip.archiveNamed', { name: trip.name }))}
                 accessibilityHint={say(message('trip.archiveHint'))}
-                style={styles.row}
+                style={[styles.row, offlineDim]}
               >
                 <Archive size={18} color={theme.colour.danger} strokeWidth={2} />
                 <Text style={[styles.rowName, { color: theme.colour.danger }]}>
@@ -518,10 +540,12 @@ export function TripSheet({
                     </Text>
                     <Pressable
                       onPress={() => onSetArchived(each.id, false)}
+                      disabled={!online}
+                      accessibilityState={{ disabled: !online }}
                       accessibilityRole="button"
                       accessibilityLabel={say(message('trip.restoreNamed', { name: each.name }))}
                       hitSlop={8}
-                      style={styles.restore}
+                      style={[styles.restore, offlineDim]}
                     >
                       <Text
                         style={[styles.restoreText, { color: theme.colour.accentInk }]}
