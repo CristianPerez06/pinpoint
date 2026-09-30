@@ -1,4 +1,10 @@
-import { styleUrl, themeStyle, type StyleDocument } from '@pinpoint/map'
+import {
+  pinnedStyle,
+  styleUrl,
+  themeStyle,
+  type StreetEdition,
+  type StyleDocument,
+} from '@pinpoint/map'
 import type { ThemeMode } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
 import { useEffect, useState } from 'react'
@@ -80,6 +86,17 @@ function fetchStyleDocument(): Promise<StyleDocument> {
   return cached
 }
 
+/**
+ * The untransformed style document, fetched once, or the kept one offline.
+ *
+ * What a download pins to its edition and hands to the renderer's offline
+ * packs (`lib/offline-map.ts`) — the same document the map draws from, so the
+ * two ask for the same fonts and icons.
+ */
+export function styleDocument(): Promise<StyleDocument> {
+  return fetchStyleDocument()
+}
+
 export interface BasemapState {
   /** The document to hand the renderer, or null while it is being fetched. */
   style: StyleDocument | null
@@ -99,15 +116,24 @@ export interface BasemapState {
  * over it — which is the exact symptom of a defect already fixed once here,
  * from an entirely different cause.
  */
-export function useThemedBasemap(mode: ThemeMode): BasemapState {
+export function useThemedBasemap(
+  mode: ThemeMode,
+  /** The edition to pin to, null for none, or undefined while not yet known. */
+  edition: StreetEdition | null | undefined = null,
+): BasemapState {
   const [state, setState] = useState<BasemapState>({ style: null, error: null })
 
   useEffect(() => {
     let live = true
+    if (edition === undefined) return
 
     fetchStyleDocument().then(
       (document) => {
-        if (live) setState({ style: themeStyle(document, mode), error: null })
+        // A trip with a download draws the edition it downloaded, online too:
+        // following the tile index would lose it the week after
+        // (`offline-use`).
+        const streets = edition === null ? document : pinnedStyle(document, edition)
+        if (live) setState({ style: themeStyle(streets, mode), error: null })
       },
       (cause: unknown) => {
         if (!live) return
@@ -122,7 +148,7 @@ export function useThemedBasemap(mode: ThemeMode): BasemapState {
     return () => {
       live = false
     }
-  }, [mode])
+  }, [mode, edition])
 
   return state
 }

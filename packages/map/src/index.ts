@@ -44,6 +44,30 @@ export {
 } from './style'
 export type { MapCredit, StyleName } from './style'
 
+export {
+  AVERAGE_OVERVIEW_TILE_BYTES,
+  AVERAGE_TILE_BYTES,
+  estimateBytes,
+  estimateOverviewBytes,
+  newOfflineAreas,
+  OFFLINE_MAX_ZOOM,
+  offlineAreas,
+  offlineOverview,
+  STYLE_ASSETS_BYTES,
+  tileCount,
+} from './offline'
+export type { OfflineArea, OfflineOverview, OfflinePlace } from './offline'
+
+export {
+  editionName,
+  editionOf,
+  isStreetEdition,
+  pinnedStyle,
+  STREETS_SOURCE,
+  streetsIndexUrl,
+} from './edition'
+export type { StreetEdition } from './edition'
+
 export { BasemapThemeError, themeStyle } from './basemap-theme'
 export type { BasemapCategory, StyleDocument } from './basemap-theme'
 

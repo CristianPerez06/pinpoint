@@ -2,9 +2,8 @@
 
 ## Purpose
 Define what the phone application keeps from a trip so it can be used with no signal: what
-opens, what can still be done, and how what was done is sent later. Downloading the map
-around a trip's places ahead of time is not covered yet (#232). The laptop application is
-not covered.
+opens, what can still be done, how what was done is sent later, and how the map around a
+trip's places is downloaded ahead of time. The laptop application is not covered.
 
 ## Requirements
 
