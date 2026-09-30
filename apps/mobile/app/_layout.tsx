@@ -55,9 +55,10 @@ export default function RootLayout() {
             {/*
               Which trip is being read sits above the navigator, because two of its
               screens show one — the map and the calendar — and a choice held in
-              either of them is invisible to the other. Inside `SessionProvider`
-              rather than outside it: signing out unmounts everything below, which
-              is also how the choice is forgotten when it stops meaning anything.
+              either of them is invisible to the other. Signing out does not
+              unmount it — `SessionProvider` keeps rendering its children and the
+              map only redirects — so the choice is forgotten by `useSignOut` in
+              `lib/sign-out.ts`, not by leaving the tree.
             */}
             <WaitingProvider>
               <TripChoiceProvider>

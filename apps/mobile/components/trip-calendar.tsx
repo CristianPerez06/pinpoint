@@ -41,7 +41,7 @@ import { supabase } from '@/lib/supabase'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
-import { signOutHere } from '@/lib/sign-out'
+import { useSignOut } from '@/lib/sign-out'
 import { useOnline } from '@/lib/connectivity'
 import { useOfflineMapNote } from '@/lib/offline-map'
 import { useAfterSending, useWaiting } from '@/lib/waiting'
@@ -164,6 +164,7 @@ export function TripCalendar({
    */
   const [view, setView] = useState<CalendarView>(() => calendarViewShown(asked?.view))
 
+  const signOut = useSignOut()
   const tripActions = useTripActions({
     trip,
     trips,
@@ -609,7 +610,7 @@ export function TripCalendar({
       <MenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onSignOut={() => void signOutHere()}
+        onSignOut={() => void signOut()}
         member={ownMemberOf(members, userId) ?? null}
       />
     </CalendarScreen>
