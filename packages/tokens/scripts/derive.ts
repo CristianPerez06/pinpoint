@@ -31,6 +31,7 @@ import {
   RADIUS,
   SPACE,
 } from '../src/layout'
+import { DURATION, EASING } from '../src/motion'
 import { FONT_FAMILY, TYPE } from '../src/type'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -212,6 +213,17 @@ function invariantProperties(): string {
     lines.push(`  --pp-type-${name}-weight: ${spec.weight};`)
     lines.push(`  --pp-type-${name}-tracking: ${spec.letterSpacing}em;`)
     lines.push(`  --pp-type-${name}-leading: ${spec.lineHeight};`)
+  }
+
+  /* `cubic-bezier()` is a literal function of four numbers, not a reference the
+     host resolves, so it is as safe here as a hex colour. The phone reads the
+     same four numbers from the module and never sees this line. */
+  lines.push('', '  /* motion */')
+  for (const [key, value] of Object.entries(DURATION)) {
+    lines.push(`  --pp-duration-${kebab(key)}: ${value}ms;`)
+  }
+  for (const [key, points] of Object.entries(EASING)) {
+    lines.push(`  --pp-ease-${kebab(key)}: cubic-bezier(${points.join(', ')});`)
   }
 
   return lines.join('\n')

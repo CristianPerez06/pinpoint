@@ -12,6 +12,8 @@
  * disagreed on size because each was cut against its own file.
  */
 
+import { pathBounds } from './icon-mark.mjs'
+
 /** The drop, as a fraction of whatever the host actually draws. */
 export const DROP_OF_RENDERED = 0.41
 
@@ -31,8 +33,22 @@ export const ANDROID_RENDERED = 72 / 108
  */
 export const DROP_OF_FAVICON = 0.5
 
+/**
+ * The phone's still launch image, and why its drop is sized against the pin's
+ * height rather than its width.
+ *
+ * It is the first frame of the animated opening: an amber sphere with the pin
+ * standing half the sphere's height, centred. The animated opening draws that
+ * same frame from the same number, so the handover cannot jump. The canvas *is*
+ * the sphere — a circle to the edge, transparent outside it — so the drop's
+ * width as a fraction of the canvas is half the pin's width-to-height ratio.
+ */
+export const SPLASH_PIN_OF_SPHERE = 0.5
+
 /** The favicon's corner radius, as a fraction of its size — `icon.svg`'s rx 7 of 32. */
 export const FAVICON_RADIUS = 7 / 32
+
+const drop = pathBounds()
 
 export const ASSETS = [
   {
@@ -92,5 +108,14 @@ export const ASSETS = [
     dropWidth: DROP_OF_RENDERED * ANDROID_RENDERED,
     transparent: true,
     note: 'The Android adaptive foreground. No tile: the ground is the background layer `app.json` names, and painting one here would hide it.',
+  },
+  {
+    path: 'apps/mobile/assets/splash-icon.png',
+    kind: 'png',
+    contract: 'drawn as given',
+    size: 1024,
+    dropWidth: SPLASH_PIN_OF_SPHERE * (drop.width / drop.height),
+    radius: 0.5,
+    note: 'The still launch image: the drop on an amber circle, transparent outside it. `expo-splash-screen` draws it on the ground, and the animated opening starts from exactly this frame.',
   },
 ]

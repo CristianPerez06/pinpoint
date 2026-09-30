@@ -78,10 +78,28 @@ export const BOX = { width: 32, height: 42 }
  *
  * `icon.svg` expresses this as a second subpath under `fill-rule="evenodd"`, so
  * the pin stays one path and the hole cannot land a half-pixel off the fill at
- * 16px. Same reasoning here, same numbers: radius 6 at (16, 15), inside the
- * head circle of radius 13 at the same centre.
+ * 16px. Same reasoning here.
+ *
+ * Read from `MARKER_HOLE` in `packages/tokens/src/layout.ts`, the way the path
+ * is, because the phone's opening drills the same hole through its 3D pin and
+ * the two must not be able to disagree. Fails loudly for the same reason too.
  */
-export const HOLE = { cx: 16, cy: 15, r: 6 }
+export const HOLE = markerHole()
+
+function markerHole() {
+  const source = readFileSync(join(ROOT, 'packages/tokens/src/layout.ts'), 'utf8')
+  const match = source.match(
+    /export const MARKER_HOLE\s*=\s*\{\s*cx:\s*([\d.]+),\s*cy:\s*([\d.]+),\s*r:\s*([\d.]+)\s*\}/,
+  )
+  if (!match) {
+    throw new Error(
+      'Could not read MARKER_HOLE from packages/tokens/src/layout.ts. ' +
+        'The hole is cut from that constant; if it has moved or been reformatted, ' +
+        'update this reader rather than pasting the numbers back in here.',
+    )
+  }
+  return { cx: Number(match[1]), cy: Number(match[2]), r: Number(match[3]) }
+}
 
 /**
  * Flatten the pin's outline to a polygon.

@@ -16,7 +16,7 @@
     "typecheck:mobile": "pnpm --filter mobile typecheck",
     "typecheck:packages": "pnpm --filter \"./packages/*\" typecheck",
     "lint:packages": "eslint --config eslint.config.packages.mjs packages",
-    "test": "pnpm --filter \"./packages/*\" test",
+    "test": "pnpm --filter \"./packages/*\" --filter mobile test",
     "check:cycles": "node .github/scripts/check-cycles.mjs",
     "check:fonts": "node .github/scripts/check-fonts.mjs",
     "check:tables": "node .github/scripts/check-tables.mjs",

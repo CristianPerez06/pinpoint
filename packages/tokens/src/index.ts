@@ -48,12 +48,16 @@ export {
   MARKER_BADGE_SIZE,
   MARKER_GLYPH_CENTRE,
   MARKER_GLYPH_SIZE,
+  MARKER_HOLE,
   MARKER_PATH,
   MARKER_SELECTED_SCALE,
   MARKER_SIZE,
   RADIUS,
   SPACE,
 } from './layout'
+
+export { DURATION, EASING, SPRING } from './motion'
+export type { DurationName, EasingName, SpringName } from './motion'
 
 export { FONT_FAMILY, TYPE } from './type'
 export type { TypeRole, TypeRoleName } from './type'

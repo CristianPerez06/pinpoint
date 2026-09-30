@@ -41,12 +41,23 @@ import {
 const PREFIX = 'pinpoint.preference.'
 const THEME_KEY = `${PREFIX}theme`
 const LANGUAGE_KEY = `${PREFIX}language`
+/**
+ * Whether the full opening has played on this install.
+ *
+ * Not a choice anybody makes, but it has exactly a preference's shape: read once
+ * inside the launch gate, before the first frame, and it must not outlive the
+ * install — which is the property that put these here rather than in the
+ * Keychain. A reinstall is a first launch again, and plays the full opening.
+ */
+const OPENING_KEY = `${PREFIX}openingPlayed`
 
 type PreferencesState = {
   theme: ThemePreference
   chooseTheme: (next: ThemePreference) => void
   language: LanguagePreference
   chooseLanguage: (next: LanguagePreference) => void
+  openingPlayed: boolean
+  markOpeningPlayed: () => void
 }
 
 /**
@@ -79,16 +90,20 @@ export function PreferencesProvider({
   // `'system'` for the same reason the ground's default is: it is what the
   // product does before anybody chooses, so a failed read costs nothing new.
   const [language, setLanguage] = useState<LanguagePreference>('system')
+  // `true` until read: a failed read then plays the short opening rather than
+  // making somebody sit through the long one again.
+  const [openingPlayed, setOpeningPlayed] = useState(true)
 
   useEffect(() => {
     let active = true
 
-    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY])
+    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY, OPENING_KEY])
       .then((stored) => {
         if (!active) return
         const read = new Map(stored)
         setTheme(parseThemePreference(read.get(THEME_KEY)))
         setLanguage(parseLanguagePreference(read.get(LANGUAGE_KEY)))
+        setOpeningPlayed(read.get(OPENING_KEY) === 'true')
       })
       .catch(() => {
         // Deliberately swallowed, and deliberately still ready.
@@ -126,9 +141,18 @@ export function PreferencesProvider({
     void AsyncStorage.setItem(LANGUAGE_KEY, next).catch(() => {})
   }, [])
 
+  /*
+   * Only the stored value changes, not this launch's state: the opening that is
+   * playing has already chosen its version, and flipping the flag under it
+   * would change nothing it reads. The next launch reads the stored value.
+   */
+  const markOpeningPlayed = useCallback(() => {
+    void AsyncStorage.setItem(OPENING_KEY, 'true').catch(() => {})
+  }, [])
+
   const value = useMemo(
-    () => ({ theme, chooseTheme, language, chooseLanguage }),
-    [theme, chooseTheme, language, chooseLanguage],
+    () => ({ theme, chooseTheme, language, chooseLanguage, openingPlayed, markOpeningPlayed }),
+    [theme, chooseTheme, language, chooseLanguage, openingPlayed, markOpeningPlayed],
   )
 
   return <Context value={value}>{children}</Context>
