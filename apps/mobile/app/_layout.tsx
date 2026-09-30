@@ -4,6 +4,7 @@ import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { View } from 'react-native'
 
+import { Opening } from '@/components/opening'
 import { ConnectivityProvider } from '@/lib/connectivity'
 import { PreferencesProvider } from '@/lib/preferences'
 import { SessionProvider } from '@/lib/session'
@@ -39,6 +40,9 @@ export default function RootLayout() {
   })
   const [preferencesRead, setPreferencesRead] = useState(false)
   const onReady = useCallback(() => setPreferencesRead(true), [])
+  const [opening, setOpening] = useState(true)
+  const onOpeningDone = useCallback(() => setOpening(false), [])
+  const ready = preferencesRead && (loaded || !!error)
 
   /*
    * The provider sits outside the gate rather than inside it: it is what does
@@ -48,7 +52,7 @@ export default function RootLayout() {
    */
   return (
     <PreferencesProvider onReady={onReady}>
-      {!preferencesRead || (!loaded && !error) ? (
+      {!ready ? (
         <Blank />
       ) : (
         <ConnectivityProvider>
@@ -70,16 +74,23 @@ export default function RootLayout() {
           </SessionProvider>
         </ConnectivityProvider>
       )}
+      {/*
+        The opening plays over the app rather than instead of it, so the app
+        mounts and loads underneath while the globe finishes. It waits for the
+        preferences — it needs the ground and whether it has played before — and
+        until then the operating system's still launch image is still up.
+      */}
+      {opening && preferencesRead ? <Opening ready={ready} onDone={onOpeningDone} /> : null}
     </PreferencesProvider>
   )
 }
 
 /**
- * The ground, and nothing else.
+ * The ground, and nothing else, under the opening while the gate is shut.
  *
- * Deliberately not a spinner: this is a few frames at launch, and a spinner
- * that appears and vanishes reads as a stutter. Painting the theme's ground
- * makes the transition into the app invisible instead.
+ * Nobody sees it on a launch that goes well: the operating system's still image
+ * and then the opening cover it. It is what shows if the opening has already
+ * given up — no 3D on this phone — and the font is still loading.
  *
  * `error` is treated as loaded above rather than blocking. A font that will not
  * load is a broken build, and refusing to render the app leaves somebody

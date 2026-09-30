@@ -143,11 +143,18 @@ textarea {
  * rather than kept in reserve.
  */
 
+/*
+ * Reduce motion: every change lands at once (`motion` spec). The iteration count
+ * matters as much as the duration — an infinite animation cut to 0.01ms does not
+ * stop, it loops a hundred times a frame, so a spinner jitters at a random angle
+ * instead of standing still.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

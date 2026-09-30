@@ -85,6 +85,21 @@ export const MARKER_PATH =
   'M16 41 C 16 41 6.6 27.8 5 24.4 A 13 13 0 1 1 27 24.4 C 25.4 27.8 16 41 16 41 Z' as const
 
 /**
+ * The hole in the pin's head, drawn in the same `MARKER_SIZE` box.
+ *
+ * Every icon asset knocks this circle out of the drop, and the phone's opening
+ * drills it through the 3D pin's head. It lived in the icon tooling alone until
+ * the opening needed it too: a second copy would have been a second definition
+ * of the mark, which `product-mark` forbids for the same reason it forbids a
+ * second copy of the path.
+ *
+ * Radius 6 at (16, 15). Note that (16, 15) is *not* the head's true centre,
+ * which the arc above puts at (16, 17.47) — the hole sits high in the head, and
+ * the mark has always drawn it there.
+ */
+export const MARKER_HOLE = { cx: 16, cy: 15, r: 6 } as const
+
+/**
  * Where the glyph sits inside the pin, normalised the same way.
  *
  * Not the centre of the box: the teardrop's head is the round part at the top,

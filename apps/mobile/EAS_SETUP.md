@@ -245,8 +245,6 @@ only by testing in this order:
 - **No `development` or `preview` profile.** A dev build comes from
   `pnpm --filter mobile ios|android` locally, at no EAS cost. A `developmentClient`
   profile earns its place when a device needs one and cannot be plugged in.
-- **No splash screen.** In SDK 57 that is the `expo-splash-screen` config plugin, not a
-  bare `splash` key, and the plugin is not a dependency here.
 - **No iOS build yet.** The configuration is in place and untried. Note that the Xcode
   26.2 defect described in `AGENTS.md` is a property of a *toolchain*, not of this
   machine — if an EAS image ever ships it, an EAS iOS build meets the same ambiguous
