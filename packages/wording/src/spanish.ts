@@ -541,12 +541,16 @@ export const SPANISH: Catalogue = {
     v.count === 1 ? '1 zona nueva desde la descarga' : `${v.count} zonas nuevas desde la descarga`,
   'offlineMap.newIn': (v) => `Se agregaron lugares en ${v.places}`,
   'offlineMap.newAway': 'Se agregaron lugares lejos de los demás',
+  'offlineMap.updateAll': (v) => `Actualizar · ${v.size}`,
+  'offlineMap.newerStreets':
+    'El mapa tiene calles más recientes desde la descarga, así que Actualizar descarga todo el viaje de nuevo. Lo que ya está en el teléfono sigue funcionando hasta que termine.',
   'offlineMap.newBadge': 'Nueva',
   'offlineMap.update': (v) => `Actualizar · ${v.size} más`,
   'offlineMap.needsConnection': 'Descargar requiere conexión',
   'offlineMap.stopped': 'La descarga se detuvo',
   'offlineMap.stoppedDetail':
     'Una zona no se pudo descargar. Las que terminaron se conservan.',
+  'offlineMap.stoppedOffline': 'Se perdió la conexión. Continúa al recuperarla.',
   'offlineMap.failedArea': 'Falló',
   'offlineMap.tryAgain': 'Reintentar',
   'offlineMap.megabytes': (v) => `${v.size} MB`,

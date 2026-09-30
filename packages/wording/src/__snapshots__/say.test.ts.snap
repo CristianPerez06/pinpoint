@@ -781,6 +781,10 @@ offlineMap.newIn
   Places were added in {places}
 offlineMap.newAway
   Places were added away from the others
+offlineMap.updateAll
+  Update · {size}
+offlineMap.newerStreets
+  The map has newer streets since you downloaded, so Update downloads the whole trip again. What is on the phone keeps working until it finishes.
 offlineMap.newBadge
   New
 offlineMap.update
@@ -791,6 +795,8 @@ offlineMap.stopped
   Download stopped
 offlineMap.stoppedDetail
   An area could not be downloaded. The ones that finished are kept.
+offlineMap.stoppedOffline
+  The phone lost its connection. It continues when it is back online.
 offlineMap.failedArea
   Failed
 offlineMap.tryAgain
@@ -1778,6 +1784,10 @@ offlineMap.newIn
   Se agregaron lugares en {places}
 offlineMap.newAway
   Se agregaron lugares lejos de los demás
+offlineMap.updateAll
+  Actualizar · {size}
+offlineMap.newerStreets
+  El mapa tiene calles más recientes desde la descarga, así que Actualizar descarga todo el viaje de nuevo. Lo que ya está en el teléfono sigue funcionando hasta que termine.
 offlineMap.newBadge
   Nueva
 offlineMap.update
@@ -1788,6 +1798,8 @@ offlineMap.stopped
   La descarga se detuvo
 offlineMap.stoppedDetail
   Una zona no se pudo descargar. Las que terminaron se conservan.
+offlineMap.stoppedOffline
+  Se perdió la conexión. Continúa al recuperarla.
 offlineMap.failedArea
   Falló
 offlineMap.tryAgain

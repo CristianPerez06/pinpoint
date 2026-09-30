@@ -1,5 +1,6 @@
 import { type City, formatDayCompact, formatSize, type Marker, type Trip } from '@pinpoint/core'
 import {
+  editionName,
   estimateBytes,
   estimateOverviewBytes,
   newOfflineAreas,
@@ -29,6 +30,8 @@ import {
   areaBounds,
   cancelDownload,
   type DownloadedArea,
+  tripEdition,
+  useCurrentEdition,
   onPhone,
   removeDownload,
   retryDownload,
@@ -89,6 +92,18 @@ export function OfflineMapScreen({
     return fresh.length > 0 && !fresh.every(reaches) ? overview : null
   }, [downloaded, fresh, overview])
   const listed = downloaded.filter((area) => !area.overview)
+
+  /*
+   * Whether the map's streets have been republished since this trip was
+   * downloaded. Then a new area cannot join the old ones — the download follows
+   * the current week — so Update brings the whole trip down again, and the old
+   * areas go only once it has.
+   */
+  const current = useCurrentEdition(online)
+  const held = downloaded.length === 0 ? null : tripEdition(trip.id)
+  const republished =
+    current !== null && held !== null && editionName(current) !== editionName(held)
+  const wholeAgain = fresh.length > 0 && republished
 
   const cityName = (cityId: string | null, count: number): string =>
     cities.find((city) => city.id === cityId)?.name ?? say(message('offlineMap.noCity', { count }))
@@ -177,9 +192,11 @@ export function OfflineMapScreen({
         />
       )
   } else {
-    const extra =
-      fresh.reduce((sum, area) => sum + estimateBytes(area), 0) +
-      (outgrown === null ? 0 : estimateOverviewBytes(outgrown))
+    const extra = wholeAgain
+      ? planned.reduce((sum, area) => sum + estimateBytes(area), 0) +
+        (overview === null ? 0 : estimateOverviewBytes(overview))
+      : fresh.reduce((sum, area) => sum + estimateBytes(area), 0) +
+        (outgrown === null ? 0 : estimateOverviewBytes(outgrown))
     body = (
       <>
         {fresh.length === 0 ? (
@@ -202,6 +219,11 @@ export function OfflineMapScreen({
             })),
           ]}
         />
+        {wholeAgain ? (
+          <Text style={[styles.rowNote, { color: theme.colour.inkMuted }]}>
+            {say(message('offlineMap.newerStreets'))}
+          </Text>
+        ) : null}
         {fresh.length > 0 && onMobileData ? <MobileData /> : null}
       </>
     )
@@ -209,10 +231,23 @@ export function OfflineMapScreen({
       <View style={styles.footer}>
         {fresh.length > 0 ? (
           <Button
-            label={say(message('offlineMap.update', { size: size(extra, true) }))}
+            label={say(
+              wholeAgain
+                ? message('offlineMap.updateAll', { size: size(extra, true) })
+                : message('offlineMap.update', { size: size(extra, true) }),
+            )}
             tone="primary"
             disabled={!online}
-            onPress={() => startDownload(trip.id, fresh, outgrown)}
+            onPress={() =>
+              wholeAgain
+                ? startDownload(
+                    trip.id,
+                    planned,
+                    overview,
+                    downloaded.map((area) => area.packId),
+                  )
+                : startDownload(trip.id, fresh, outgrown)
+            }
           />
         ) : null}
         <Button
@@ -367,7 +402,11 @@ function Downloading({
   const theme = useTheme()
   const say = useSay()
 
-  const stopped = run.areas.some((entry) => entry.status === 'failed')
+  const online = useOnline()
+  const failed = run.areas.some((entry) => entry.status === 'failed')
+  // A lost connection stops a download without the renderer saying so; the
+  // download itself is paused and carries on when the connection returns.
+  const stopped = failed || !online
   const total =
     run.areas.reduce((sum, entry) => sum + entry.estimate, 0) +
     (run.first ? STYLE_ASSETS_BYTES : 0)
@@ -378,7 +417,7 @@ function Downloading({
 
   return (
     <>
-      <View style={[styles.card, styles.panel, { backgroundColor: theme.colour.surface, borderColor: stopped ? theme.colour.danger : theme.colour.line }]}>
+      <View style={[styles.card, styles.panel, { backgroundColor: theme.colour.surface, borderColor: failed ? theme.colour.danger : theme.colour.line }]}>
         <View style={styles.progressHead}>
           <Text style={[styles.panelTitle, { color: theme.colour.ink }]}>
             {say(message(stopped ? 'offlineMap.stopped' : 'offlineMap.downloading'))}
@@ -396,7 +435,13 @@ function Downloading({
           />
         </View>
         <Text style={[styles.rowNote, { color: theme.colour.inkMuted }]}>
-          {say(message(stopped ? 'offlineMap.stoppedDetail' : 'offlineMap.keepOnScreen'))}
+          {say(
+            failed
+              ? message('offlineMap.stoppedDetail')
+              : online
+                ? message('offlineMap.keepOnScreen')
+                : message('offlineMap.stoppedOffline'),
+          )}
         </Text>
       </View>
       <AreaList

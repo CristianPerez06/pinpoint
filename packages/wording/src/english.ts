@@ -674,11 +674,17 @@ export const ENGLISH = {
   'offlineMap.newIn': (v: { places: string }) => `Places were added in ${v.places}`,
   /** The same, when none of the new places is filed under a city. */
   'offlineMap.newAway': 'Places were added away from the others',
+  /** Update after the map's streets were republished: the whole trip comes down again. */
+  'offlineMap.updateAll': (v: { size: string }) => `Update · ${v.size}`,
+  'offlineMap.newerStreets':
+    'The map has newer streets since you downloaded, so Update downloads the whole trip again. What is on the phone keeps working until it finishes.',
   'offlineMap.newBadge': 'New',
   'offlineMap.update': (v: { size: string }) => `Update · ${v.size} more`,
   'offlineMap.needsConnection': 'Downloading needs a connection',
   'offlineMap.stopped': 'Download stopped',
   'offlineMap.stoppedDetail': 'An area could not be downloaded. The ones that finished are kept.',
+  /** A download paused because the connection went. */
+  'offlineMap.stoppedOffline': 'The phone lost its connection. It continues when it is back online.',
   'offlineMap.failedArea': 'Failed',
   'offlineMap.tryAgain': 'Try again',
   /** A size on the phone, and an estimate of one. */

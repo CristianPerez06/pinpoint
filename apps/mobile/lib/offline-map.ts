@@ -8,8 +8,8 @@ import {
   isStreetEdition,
   newOfflineAreas,
   OFFLINE_MAX_ZOOM,
-  pinnedStyle,
   streetsIndexUrl,
+  styleUrl,
   type Bounds,
   type OfflineArea,
   type OfflineOverview,
@@ -17,9 +17,9 @@ import {
   type StreetEdition,
 } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
-import { Directory, File, Paths } from 'expo-file-system'
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
+import { addNetworkStateListener } from 'expo-network'
 
 import { styleDocument } from '@/lib/basemap'
 import { useLanguage } from '@/lib/language'
@@ -86,6 +86,8 @@ export interface Run {
    * icons every area shares. An Update finds them already on the phone.
    */
   first: boolean
+  /** Packs to delete once this run has finished: a whole trip being replaced. */
+  replaces: readonly string[]
   /** The edition every area of this trip is downloaded in. */
   edition: StreetEdition | null
 }
@@ -232,6 +234,7 @@ function ensureLoaded(): Promise<void> {
           ...current,
           run: {
             first: trip.areas.every((area) => !area.complete),
+            replaces: [],
             edition: unfinished[0]!.edition,
             areas: unfinished.map((area) => ({
               area: {
@@ -264,19 +267,8 @@ function ensureLoaded(): Promise<void> {
 
 // ── Downloading ─────────────────────────────────────────────────────────────
 
-/** Pinned styles, one file per edition, handed to the packs by address. */
-const styles = new Directory(Paths.document, 'offline-map-styles')
-
-async function styleFileFor(edition: StreetEdition): Promise<string> {
-  const document = pinnedStyle(await styleDocument(), edition)
-  styles.create({ intermediates: true, idempotent: true })
-  const file = new File(styles, `${editionName(edition)}.json`)
-  file.write(JSON.stringify(document))
-  return file.uri
-}
-
 /** The edition the style's tile index points at today. */
-async function currentEdition(): Promise<StreetEdition> {
+export async function currentEdition(): Promise<StreetEdition> {
   const url = streetsIndexUrl(await styleDocument())
   if (url === null) throw new Error('the map style names no tile index')
   const response = await fetch(url)
@@ -304,22 +296,16 @@ const active = new Map<string, OfflinePack>()
 async function advance(tripId: string): Promise<void> {
   const run = state.trips[tripId]?.run
   if (!run || active.has(tripId)) return
-  if (AppState.currentState !== 'active') return
+  if (AppState.currentState !== 'active' || !connected) return
 
   const next = run.areas.find((entry) => entry.status === 'waiting')
   if (next === undefined) {
     const failed = run.areas.some((entry) => entry.status === 'failed')
     if (!failed) {
       updateTrip(tripId, (trip) => ({ ...trip, run: null }))
-      // A new overview replaces the one it outgrew, once it is on the phone.
-      const replacing = run.areas.find((entry) => entry.overview)?.packId
-      if (replacing) {
-        await deletePacks(
-          (state.trips[tripId]?.areas ?? [])
-            .filter((area) => area.overview && area.packId !== replacing)
-            .map((area) => area.packId),
-        )
-      }
+      // What this run replaces goes only now that the replacement is on the
+      // phone, so the trip draws offline throughout.
+      await deletePacks(run.replaces)
     }
     await reload()
     return
@@ -354,14 +340,22 @@ async function advance(tripId: string): Promise<void> {
       await OfflineManager.addListener(pack.id, onProgress, onError)
       await pack.resume()
     } else {
-      const edition = run.edition ?? (await currentEdition())
+      // The pack follows the tile index, so it downloads whatever week the
+      // index answers now. That has to be the week this run is in, or the area
+      // would be keyed to a week the map does not draw.
+      const edition = await currentEdition()
       if (run.edition === null) {
         updateTrip(tripId, (trip) => (trip.run ? { ...trip, run: { ...trip.run, edition } } : trip))
+      } else if (editionName(edition) !== editionName(run.edition)) {
+        // The week turned over since the run started. Stopping lets the
+        // screen offer what the new week needs instead: the whole trip again.
+        await cancelDownload(tripId)
+        return
       }
       const { west, south, east, north } = next.area.bounds
       pack = await OfflineManager.createPack(
         {
-          mapStyle: await styleFileFor(edition),
+          mapStyle: styleUrl(),
           bounds: [west, south, east, north],
           minZoom: next.area.minZoom,
           maxZoom: next.maxZoom,
@@ -387,8 +381,8 @@ async function advance(tripId: string): Promise<void> {
       return
     }
     active.set(tripId, pack)
-    // Left the app while the pack was being created: pause it now.
-    if (AppState.currentState !== 'active') await pack.pause()
+    // Left the app, or lost the connection, while the pack was being created.
+    if (AppState.currentState !== 'active' || !connected) await pack.pause()
   } catch {
     updateRunArea(tripId, key, { status: 'failed' })
   }
@@ -396,13 +390,15 @@ async function advance(tripId: string): Promise<void> {
 
 /**
  * Start downloading a trip's areas: every area on a first download, the new
- * ones on Update. An Update uses the edition the trip already has, so the whole
- * trip is one edition and draws together.
+ * ones on an Update in the same week, and every area again on an Update after
+ * the week has turned over — then `replaces` names the packs to delete once the
+ * new ones are all on the phone.
  */
 export function startDownload(
   tripId: string,
   areas: readonly OfflineArea[],
   overview: OfflineOverview | null,
+  replaces: readonly string[] = [],
 ): void {
   const trip = state.trips[tripId] ?? EMPTY
   if (trip.run !== null || areas.length === 0) return
@@ -435,7 +431,10 @@ export function startDownload(
     ...current,
     run: {
       first: trip.areas.length === 0,
-      edition: tripEdition(tripId),
+      // A same-week Update must stay in the trip's week; anything else takes
+      // the week the index answers when the first pack is made.
+      edition: replaces.length > 0 ? null : tripEdition(tripId),
+      replaces,
       areas: entries.map((entry) => ({
         ...entry,
         status: 'waiting',
@@ -514,9 +513,35 @@ AppState.addEventListener('change', (next) => {
   if (left) {
     for (const pack of active.values()) void pack.pause().catch(() => {})
   }
-  if (returned) {
+  if (returned && connected) {
     for (const pack of active.values()) void pack.resume().catch(() => {})
     // A trip whose next area was due while the app was away starts it now.
+    for (const tripId of Object.keys(state.trips)) void advance(tripId)
+  }
+})
+
+// ── Losing the connection and getting it back ───────────────────────────────
+
+/**
+ * Whether the phone can reach anything, as the downloads see it.
+ *
+ * The renderer does not report a lost connection as a failure: a pack simply
+ * stops receiving and waits, so the screen went on saying *Downloading…* over
+ * a download that was going nowhere. Watching the connection here pauses the
+ * active pack and says so, and carries on when it returns — the same as leaving
+ * the app and coming back. Unknown counts as connected, as in
+ * `ConnectivityProvider`.
+ */
+let connected = true
+
+addNetworkStateListener(({ isConnected, isInternetReachable }) => {
+  const now = isConnected !== false && isInternetReachable !== false
+  if (now === connected) return
+  connected = now
+  if (!now) {
+    for (const pack of active.values()) void pack.pause().catch(() => {})
+  } else {
+    for (const pack of active.values()) void pack.resume().catch(() => {})
     for (const tripId of Object.keys(state.trips)) void advance(tripId)
   }
 })
@@ -550,7 +575,14 @@ const editions = new Map<string, StreetEdition>()
 /** The edition a trip's map is pinned to, or null when it has no download. */
 export function tripEdition(tripId: string): StreetEdition | null {
   const trip = state.trips[tripId]
-  const edition = trip?.run?.edition ?? trip?.areas[0]?.edition ?? null
+  // While a whole trip is being replaced, the map stays on the week being
+  // replaced: the new areas are not all there yet.
+  const replacing = trip?.run?.replaces ?? []
+  const held =
+    replacing.length > 0
+      ? trip?.areas.find((area) => replacing.includes(area.packId))
+      : trip?.areas[0]
+  const edition = held?.edition ?? trip?.run?.edition ?? null
   if (edition === null) return null
   const name = editionName(edition)
   if (!editions.has(name)) editions.set(name, edition)
@@ -614,4 +646,29 @@ export function onPhone(
     areas.reduce((sum, area) => sum + area.bytes, 0) +
     areas.reduce((most, area) => Math.max(most, area.sharedBytes), 0)
   )
+}
+
+/**
+ * The week the tile index answers now, read once per screen while online, or
+ * null while it is not known — offline, or not answered yet.
+ *
+ * What decides whether an Update can add just the new areas or has to download
+ * the whole trip again.
+ */
+export function useCurrentEdition(online: boolean): StreetEdition | null {
+  const [edition, setEdition] = useState<StreetEdition | null>(null)
+  useEffect(() => {
+    if (!online) return
+    let live = true
+    currentEdition().then(
+      (answer) => {
+        if (live) setEdition(answer)
+      },
+      () => {},
+    )
+    return () => {
+      live = false
+    }
+  }, [online])
+  return edition
 }
