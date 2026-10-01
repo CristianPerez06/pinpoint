@@ -279,6 +279,10 @@ export const SPANISH: Catalogue = {
   'dayField.spokenEmpty': (v) => `${v.label}, sin día todavía`,
   'dayField.spokenDay': (v) => `${v.label}, ${v.day}`,
   'dayField.clear': (v) => `Borrar ${v.label.toLowerCase()}`,
+  'dayField.previousMonth': 'Mes anterior',
+  'dayField.nextMonth': 'Mes siguiente',
+  'dayField.months': 'Meses',
+  'dayField.dayChosen': (v) => `${v.day}, elegido`,
 
   'credits.title': 'Sobre este mapa',
   'credits.blurb': 'Cuatro proyectos, ninguno nuestro.',

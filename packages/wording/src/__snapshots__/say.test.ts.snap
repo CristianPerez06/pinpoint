@@ -397,6 +397,14 @@ dayField.spokenDay
   {label}, {day}
 dayField.clear
   Clear {label}
+dayField.previousMonth
+  Previous month
+dayField.nextMonth
+  Next month
+dayField.months
+  Months
+dayField.dayChosen
+  {day}, chosen
 credits.title
   About this map
 credits.blurb
@@ -1400,6 +1408,14 @@ dayField.spokenDay
   {label}, {day}
 dayField.clear
   Borrar {label}
+dayField.previousMonth
+  Mes anterior
+dayField.nextMonth
+  Mes siguiente
+dayField.months
+  Meses
+dayField.dayChosen
+  {day}, elegido
 credits.title
   Sobre este mapa
 credits.blurb

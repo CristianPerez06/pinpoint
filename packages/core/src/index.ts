@@ -44,7 +44,10 @@ export {
   formatDayRange,
   formatDayShort,
   formatDayStretch,
+  formatMonth,
   formatRunPosition,
+  formatWeekday,
+  formatWeekdayShort,
 } from './day-wording'
 
 export { CITY_NEEDS_A_NAME, cityNameTaken } from './city-wording'

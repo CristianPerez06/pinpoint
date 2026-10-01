@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
 import { useSay } from '@/app/_components/language'
-import { Button, FormError, TextField } from '@/app/_components/ui'
+import { Button, DayField, FormError, TextField } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
 
 import styles from './trip-setup.module.css'
@@ -142,18 +142,16 @@ export function CreateTripForm({
         day the calendar opens on.
       */}
       <div className={styles.dates}>
-        <TextField
+        <DayField
           label={say(message('trip.startDate'))}
-          type="date"
-          value={startsOn}
-          onChange={setStartsOn}
+          value={startsOn === '' ? null : startsOn}
+          onChange={(day) => setStartsOn(day ?? '')}
           error={fieldErrors.startsOn}
         />
-        <TextField
+        <DayField
           label={say(message('trip.endDate'))}
-          type="date"
-          value={endsOn}
-          onChange={setEndsOn}
+          value={endsOn === '' ? null : endsOn}
+          onChange={(day) => setEndsOn(day ?? '')}
           error={fieldErrors.endsOn}
         />
       </div>

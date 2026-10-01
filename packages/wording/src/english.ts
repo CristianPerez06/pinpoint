@@ -362,6 +362,10 @@ export const ENGLISH = {
   'dayField.spokenEmpty': (v: { label: string }) => `${v.label}, no day yet`,
   'dayField.spokenDay': (v: { label: string; day: string }) => `${v.label}, ${v.day}`,
   'dayField.clear': (v: { label: string }) => `Clear ${v.label.toLowerCase()}`,
+  'dayField.previousMonth': 'Previous month',
+  'dayField.nextMonth': 'Next month',
+  'dayField.months': 'Months',
+  'dayField.dayChosen': (v: { day: string }) => `${v.day}, chosen`,
 
   // ── Who made the map ─────────────────────────────────────────────────────
   'credits.title': 'About this map',

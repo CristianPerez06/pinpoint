@@ -10,7 +10,10 @@ import {
   formatDayRange as formatDayRangeMessage,
   formatDayShort,
   formatDayStretch,
+  formatMonth,
   formatRunPosition,
+  formatWeekday,
+  formatWeekdayShort,
 } from './day-wording'
 import type { IsoDay } from './marker-day'
 
@@ -43,6 +46,16 @@ describe('day wording in English', () => {
     // Day first, zero-padded — what the laptop's date input reads.
     expect(formatDayNumeric('2026-04-03')).toBe('03/04/2026')
     expect(formatDayNumeric('2026-12-31')).toBe('31/12/2026')
+  })
+
+  it('heads a calendar with its month and its weekdays', () => {
+    // 2 August 2027 is a Monday, so the week below is Mon to Sun.
+    expect(formatMonth('en', '2027-08-03')).toBe('August 2027')
+    const week = ['02', '03', '04', '05', '06', '07', '08'].map((d) =>
+      formatWeekdayShort('en', `2027-08-${d}`),
+    )
+    expect(week).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    expect(formatWeekday('en', '2027-08-02')).toBe('Monday')
   })
 
   it('is the same wording whatever the runtime prefers', () => {
@@ -175,6 +188,15 @@ describe('a stretch of days in English', () => {
  * reason the specification lists them.
  */
 describe('day wording in Spanish', () => {
+  it('heads a calendar with its month and its weekdays', () => {
+    expect(formatMonth('es', '2027-08-03')).toBe('agosto de 2027')
+    const week = ['02', '03', '04', '05', '06', '07', '08'].map((d) =>
+      formatWeekdayShort('es', `2027-08-${d}`),
+    )
+    expect(week).toEqual(['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'])
+    expect(formatWeekday('es', '2027-08-02')).toBe('lunes')
+  })
+
   it('writes the five forms of a day', () => {
     expect(formatDay('es', '2026-04-03')).toBe('viernes, 3 de abril')
     expect(formatDayShort('es', '2026-04-03')).toBe('vie, 3 abr')

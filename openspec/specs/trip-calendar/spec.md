@@ -57,7 +57,7 @@ in, to obtain a value that constrains nothing.
 - **AND** the refusal names the offending field
 - **AND** everything else entered is preserved
 
-### Requirement: A place is given its day on the place itself
+### Requirement: A place is given its day on the place itself, from a centred calendar
 
 The day a place is planned for SHALL be set and changed on the place, in the same form
 that captures what else is known about it, offered beside the city rather than as a
@@ -68,12 +68,47 @@ for a place, neither inside the other. Changing a place's day should therefore w
 way changing its city already works, so that there is nothing new to learn and only one
 place to look.
 
-The control SHALL be a field within that form. It SHALL NOT raise a further panel over
-the form, because the form is itself already raised over what the person was reading, and
-a second layer buries the thing being edited underneath two.
+The control SHALL be a field within that form, showing the day it holds in the numeric
+form, or `No day yet` when it holds none, with a calendar icon at its far end. Pressing it
+SHALL open a calendar **centred on the screen**, over a dimmed backdrop, drawn in the
+product's colours on whichever ground is being shown. Choosing a day SHALL close the
+calendar and put that day in the field. Pressing outside the calendar, or Escape where
+there is a keyboard, SHALL close it and leave the field as it was. Moving between months
+SHALL NOT close it.
+
+The calendar SHALL open on the month of the day the field holds, or on today's month when
+the field holds none — never on a day remembered from an earlier use, because a date
+nobody chose should not be the one a control offers next.
+
+The calendar SHALL be the only thing a date field raises over the form, and it SHALL be
+raised only while a day is being chosen. Nothing else about choosing a date — no second
+panel, no menu, no confirmation — SHALL stand over the form.
+
+The calendar SHALL be usable by keyboard alone: moving between days and months, and
+choosing a day, without a pointer. The day being moved to SHALL be announced to a screen
+reader, with its weekday, date, month and year.
+
+Everything said here SHALL hold for every date field either application offers — a
+place's day and its last day, a trip's start and end dates, and the day the calendar
+screen is reading — so that choosing a date works one way wherever it is done. The two
+applications SHALL draw the field and the calendar each in its own way and SHALL NOT share
+rendered markup, as with everything else this specification describes.
+
+Rationale for a centred calendar rather than none: the earlier rule raised nothing over
+the form, because the form is already raised over what the person was reading, and the
+browser's own control was accepted in exchange. That control opened its calendar wherever
+the browser chose — on a narrow window, away from the field it belonged to — and in the
+browser's colours rather than the product's. The phone met the same failure with the
+operating system's control and replaced it with a calendar centred on the screen, which is
+what this states for both. A centred calendar opened for one choice and closed by making
+it does not bury the form the way a standing panel does: it is gone the moment its one
+question is answered, and the form is exactly as it was left.
 
 Clearing the date SHALL be possible from the same field, and SHALL return the place to
-having no day rather than to any particular one.
+having no day rather than to any particular one. It SHALL be offered as `Clear`, beside the
+field, shown only while the field holds a day: a `Clear` beside an empty field is a control
+that can do nothing. The same SHALL hold for a trip's dates. The day the calendar screen is
+reading SHALL offer no `Clear`, because there is no "no day" for that screen to be on.
 
 Saving a change of date SHALL be governed by the same rules as any other change to a
 place, including the refusal of a save based on a stale read.
@@ -89,8 +124,10 @@ rather than from anywhere else. The offer SHALL be made as follows:
 - **Neither the offer nor the second field SHALL name a kind of place.** A run of days is
   a fact about days, and any place may have one. The offer SHALL read `More than one day`
   and the field SHALL be labelled `Until`.
-- Revealing the second field SHALL NOT raise a panel over the form, for the reason stated
-  above, and SHALL NOT discard or disturb anything already entered.
+- Revealing the second field SHALL NOT raise a panel over the form, and SHALL NOT discard
+  or disturb anything already entered. The second field's calendar SHALL open on the month
+  of the first day when the second field holds none, because the last day of a run is
+  almost always near its first.
 - Clearing the last day SHALL put the second field away and return the place to a single
   day. This SHALL be the way back out, so that revealing the field is undoable by the same
   person who revealed it.
@@ -147,11 +184,50 @@ somewhere you sleep.
 - **THEN** the place carries no date
 - **AND** it appears among the places waiting for a day
 
-#### Scenario: The date field raises nothing over the form
+#### Scenario: Choosing a day in the centred calendar
 
-- **WHEN** the date field is used
-- **THEN** no panel of the product's own is raised over the form
-- **AND** what has been typed into the form remains visible or is preserved
+- **WHEN** a person presses a date field, on a wide or a narrow screen, on either ground
+- **THEN** a calendar opens centred on the screen, drawn in the product's colours
+- **AND** choosing a day closes it and puts that day in the field
+- **AND** everything already entered in the form is as it was
+
+#### Scenario: Closing the calendar without choosing
+
+- **WHEN** a person opens the calendar and presses outside it, or presses Escape
+- **THEN** the calendar closes
+- **AND** the field holds what it held before
+
+#### Scenario: The calendar opens on the field's month
+
+- **WHEN** a person opens the calendar on a field holding a day
+- **THEN** the month shown is that day's month, with that day marked as chosen
+- **AND** on a field holding no day, the month shown is today's
+
+#### Scenario: Choosing a day by keyboard alone
+
+- **WHEN** a person opens the calendar from the keyboard and moves between days with the
+  arrow keys
+- **THEN** each day moved to is announced to a screen reader with its weekday, date, month
+  and year
+- **AND** a day can be chosen, and the calendar closed, without a pointer
+
+#### Scenario: Nothing but the calendar stands over the form
+
+- **WHEN** a date field is used
+- **THEN** the centred calendar is the only thing raised over the form
+- **AND** it is gone once a day is chosen or the choice is abandoned
+
+#### Scenario: The same field wherever a date is chosen
+
+- **WHEN** a person chooses a trip's start or end date, in the trip's menu or while
+  creating it, or the day the calendar screen is reading
+- **THEN** the field and its calendar look and behave as a place's day field does
+
+#### Scenario: Until opens near the first day
+
+- **WHEN** a person reveals `Until` on a place planned for a day in another month and
+  opens its calendar
+- **THEN** the calendar shows the month of the place's first day
 
 #### Scenario: A date change based on a stale read
 
@@ -1175,12 +1251,24 @@ omits here and Spanish does not, and a full form that carries `de` before its ye
 of that can be arrived at from the English; all of it has to be stated, and stating it is
 what lets a reviewer tell a wording decision from a runtime's default.
 
+A calendar the product draws itself for choosing a day SHALL word its month and its
+weekdays from the same definition:
+
+- Its month SHALL read as the month's name and the year, for example `August 2027`, and in
+  Spanish `agosto de 2027`.
+- Each weekday column SHALL be headed by the weekday's abbreviation, for example `Mon`,
+  and in Spanish `lun`.
+- Its weeks SHALL start on Monday in both languages, matching the day-first order of the
+  numeric form.
+
 **A date control supplied by the platform is the one exception, and it is accepted rather
-than overlooked.** Where a person is choosing a date in a control the operating system or
-the browser draws — its calendar grid, its month and weekday names — that control words
-the date in its own way and cannot be told otherwise. The product SHALL NOT be read as
-requiring otherwise, and SHALL word the field's own value itself, so that what is shown
-before and after the control is opened follows the definition above.
+than overlooked.** Where a person is choosing a date in a control the operating system
+draws — its calendar grid, its month and weekday names — that control words the date in
+its own way and cannot be told otherwise. This applies to the phone, whose calendars are
+the operating system's. The laptop's calendar is the product's own and is not covered by
+this exception. The product SHALL NOT be read as requiring otherwise of a platform's
+control, and SHALL word the field's own value itself, so that what is shown before and
+after the control is opened follows the definition above.
 
 #### Scenario: One day across two applications
 
@@ -1220,6 +1308,13 @@ before and after the control is opened follows the definition above.
 
 #### Scenario: A date chosen in the platform's own control
 
-- **WHEN** a person opens a date control drawn by the operating system or the browser
+- **WHEN** a person opens a date control drawn by the phone's operating system
 - **THEN** that control wording the date its own way is not a failure
 - **AND** the value shown in the field it belongs to follows the product's wording
+
+#### Scenario: The laptop's calendar in Spanish
+
+- **WHEN** the laptop is being read in Spanish and a person opens a date field's calendar
+- **THEN** its month reads like `agosto de 2027`
+- **AND** its weekday columns read `lun` to `dom`, starting on Monday
+- **AND** this holds whatever language the browser is set to
