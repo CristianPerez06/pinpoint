@@ -15,7 +15,6 @@ import { message, type Language, type Message } from '@pinpoint/wording'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import { type ReactNode, useState } from 'react'
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { markerTypeMessage } from '@/components/marker-icon'
+import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -267,10 +267,8 @@ export function FilterSheet({
         : say(wordList([...chosenDays].sort().map((day) => formatDayShort(language, day))))
 
   return (
-    <Modal
-      visible={open}
-      animationType="slide"
-      transparent
+    <Sheet
+      open={open}
       onRequestClose={close}
       // Android's back gesture reaches `onRequestClose`; on iOS the backdrop and
       // the Done button are the ways out.
@@ -526,7 +524,7 @@ export function FilterSheet({
           </View>
         </Pressable>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

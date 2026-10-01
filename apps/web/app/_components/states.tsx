@@ -1,5 +1,6 @@
 'use client'
 
+import { COLOUR, MARKER_HOLE, MARKER_PATH, MARKER_SIZE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
 import type { ReactNode } from 'react'
 
@@ -22,6 +23,51 @@ import styles from './states.module.css'
  * "nothing saved yet" while a request is in flight — those are logic bugs,
  * identical on both platforms, and none of them live in a spinner.
  */
+
+/**
+ * The product's globe, turning, where the map will be (`motion`, *The map's
+ * waiting area shows the turning globe*).
+ *
+ * The sphere and its continents are a sheet of frames cut by the icon tooling
+ * (`.github/scripts/icon-globe.mjs`) and stepped through by the stylesheet. The
+ * pin is drawn here, on top, from the mark's own definition — the teardrop with
+ * its hole knocked out — so the globe turns behind the hole, and so there is no
+ * second copy of the mark in a picture. Its colour is the mark's, the same on
+ * both grounds.
+ */
+/**
+ * The outline round the globe's pin, in the pin's own units (its 32 × 42 box).
+ * Half of it shows outside the pin: about a point and a half at this size.
+ */
+const GLOBE_PIN_OUTLINE = 4
+
+function Globe() {
+  const { cx, cy, r } = MARKER_HOLE
+  const hole = `M${cx + r} ${cy} A${r} ${r} 0 1 0 ${cx - r} ${cy} A${r} ${r} 0 1 0 ${cx + r} ${cy} Z`
+  return (
+    <span aria-hidden className={styles.globe}>
+      <span className={styles.sphere} />
+      <svg
+        className={styles.globePin}
+        viewBox={`0 0 ${MARKER_SIZE.width} ${MARKER_SIZE.height}`}
+      >
+        {/* The outline first, in the sphere's own amber, then the pin over it.
+            Over the sphere the outline disappears into it; where the head rises
+            above the sphere it traces the pin against the ground — which on the
+            dark ground is nearly the pin's own colour, and the head was lost in
+            it. The same drawing on both grounds, as the mark is. */}
+        <path
+          d={`${MARKER_PATH} ${hole}`}
+          fill="none"
+          stroke={COLOUR.accent.light}
+          strokeWidth={GLOBE_PIN_OUTLINE}
+          strokeLinejoin="round"
+        />
+        <path d={`${MARKER_PATH} ${hole}`} fill={COLOUR.inkOnAccent.light} fillRule="evenodd" />
+      </svg>
+    </span>
+  )
+}
 
 /**
  * Still loading. Deliberately says so in words as well as motion: an animation
@@ -52,7 +98,7 @@ export function LoadingState({
 
   return (
     <div className={`${styles.panel} ${bare ? '' : styles.loading}`}>
-      <span aria-hidden className={styles.spinner} />
+      <Globe />
       <p role="status" className={styles.message}>
         {say(label)}
       </p>

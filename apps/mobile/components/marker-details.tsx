@@ -16,7 +16,7 @@ import { message } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
 import X from 'lucide-react-native/icons/x'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   Linking,
   Pressable,
@@ -26,6 +26,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { InterestRows, VisitedToggle } from '@/components/interest'
@@ -36,6 +37,7 @@ import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useOnline } from '@/lib/connectivity'
+import { SHEET_ENTERING, SHEET_EXITING } from '@/lib/motion'
 import { useWaiting } from '@/lib/waiting'
 
 /**
@@ -105,11 +107,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: { ...role(TYPE.control), fontWeight: '700' },
-  sheet: {
+  // The sheet's place on the screen, and the thing that slides. Separate from
+  // the surface so that changing from the list of places on one point to one
+  // of them — two different surfaces — happens in place rather than as one
+  // sheet leaving and another arriving.
+  positioner: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
@@ -393,6 +401,22 @@ export type ExtraAction = { label: string; onPress: () => void }
  * front of the same view — the same two steps as web, because the mechanism is
  * shared even though none of the markup is.
  */
+/**
+ * Where the sheet stands, and what slides it in and out (`motion`, *A surface
+ * opening over a screen arrives and leaves with the shared timing*).
+ *
+ * The root of both the list of places on one point and a single place's
+ * details, so moving between the two keeps this element and does not replay
+ * the slide: only mounting and unmounting the sheet does.
+ */
+function SheetSurface({ children }: { children: ReactNode }) {
+  return (
+    <Animated.View entering={SHEET_ENTERING} exiting={SHEET_EXITING} style={styles.positioner}>
+      {children}
+    </Animated.View>
+  )
+}
+
 export function MarkerDetails({
   selection,
   members,
@@ -503,40 +527,42 @@ export function MarkerDetails({
 
   if (index === null) {
     return (
-      <View style={sheet}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.colour.ink }]}>
-            {say(message('placeGroup.count', { count: group.count }))}
+      <SheetSurface>
+        <View style={sheet}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, { color: theme.colour.ink }]}>
+              {say(message('placeGroup.count', { count: group.count }))}
+            </Text>
+            <Dismiss onDismiss={onDismiss} />
+          </View>
+          <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+            {say(message('placeGroup.note'))}
           </Text>
-          <Dismiss onDismiss={onDismiss} />
+          {hidden ? <HiddenNote /> : null}
+          {/* Same reasoning as the fields below: a ScrollView here reports almost
+              no height to a sheet that is asking how tall its children are, and
+              takes the list down with it. Markers sharing one point come in twos
+              and threes, so nothing needs scrolling. */}
+          <View>
+            {group.markers.map((marker, i) => (
+              <Pressable
+                key={marker.id}
+                onPress={() => onChoose(i)}
+                style={styles.choice}
+                accessibilityRole="button"
+              >
+                <TypeChip view={group.views[i]!} size={26} />
+                <Text style={[styles.choiceName, { color: theme.colour.ink }]}>
+                  {marker.name}
+                </Text>
+                <Text style={[styles.choiceType, { color: theme.colour.inkMuted }]}>
+                  {say(markerTypeMessage(group.views[i]!.type))}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-        <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-          {say(message('placeGroup.note'))}
-        </Text>
-        {hidden ? <HiddenNote /> : null}
-        {/* Same reasoning as the fields below: a ScrollView here reports almost
-            no height to a sheet that is asking how tall its children are, and
-            takes the list down with it. Markers sharing one point come in twos
-            and threes, so nothing needs scrolling. */}
-        <View>
-          {group.markers.map((marker, i) => (
-            <Pressable
-              key={marker.id}
-              onPress={() => onChoose(i)}
-              style={styles.choice}
-              accessibilityRole="button"
-            >
-              <TypeChip view={group.views[i]!} size={26} />
-              <Text style={[styles.choiceName, { color: theme.colour.ink }]}>
-                {marker.name}
-              </Text>
-              <Text style={[styles.choiceType, { color: theme.colour.inkMuted }]}>
-                {say(markerTypeMessage(group.views[i]!.type))}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      </SheetSurface>
     )
   }
 
@@ -739,74 +765,76 @@ export function MarkerDetails({
   )
 
   return (
-    <View
-      // A definite height once the contents are known not to fit, and content-
-      // sized until then. A marker with a one-line note gets a small sheet; only
-      // one that would be cut off gets a tall one.
-      style={[sheet, scrolls ? { height: cap } : null]}
-      onLayout={(event) => {
-        const height = event.nativeEvent.layout.height
+    <SheetSurface>
+      <View
+        // A definite height once the contents are known not to fit, and content-
+        // sized until then. A marker with a one-line note gets a small sheet; only
+        // one that would be cut off gets a tall one.
+        style={[sheet, scrolls ? { height: cap } : null]}
+        onLayout={(event) => {
+          const height = event.nativeEvent.layout.height
 
-        // Reaching the cap is the measurement. The sheet grows to its content,
-        // so a height equal to the ceiling means the content wanted more —
-        // there is no other way for it to end up exactly there.
-        if (!scrolls && height >= cap - 1) setOverflowed(marker.id)
-      }}
-    >
-      <View style={styles.headerRow}>
-        <TypeChip view={view} />
-        <Text style={[styles.title, { color: theme.colour.ink }]}>{marker.name}</Text>
-        <Dismiss onDismiss={onDismiss} />
-      </View>
-
-      <View style={styles.tags}>
-        <View
-          style={[styles.tag, { backgroundColor: theme.markerType[view.type] }]}
-        >
-          <Text style={[styles.tagText, { color: theme.markerForeground }]}>
-            {say(markerTypeMessage(view.type))}
-          </Text>
+          // Reaching the cap is the measurement. The sheet grows to its content,
+          // so a height equal to the ceiling means the content wanted more —
+          // there is no other way for it to end up exactly there.
+          if (!scrolls && height >= cap - 1) setOverflowed(marker.id)
+        }}
+      >
+        <View style={styles.headerRow}>
+          <TypeChip view={view} />
+          <Text style={[styles.title, { color: theme.colour.ink }]}>{marker.name}</Text>
+          <Dismiss onDismiss={onDismiss} />
         </View>
-        {prices === null ? null : (
-          <View style={[styles.tag, { backgroundColor: theme.colour.surfaceMuted }]}>
-            {/* `USD 25 · JPY 3,800`, either alone, or `Free`. Formatted by the
-                shared helper so the phone and the laptop cannot disagree. */}
-            <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>
-              {say(prices)}
+
+        <View style={styles.tags}>
+          <View
+            style={[styles.tag, { backgroundColor: theme.markerType[view.type] }]}
+          >
+            <Text style={[styles.tagText, { color: theme.markerForeground }]}>
+              {say(markerTypeMessage(view.type))}
             </Text>
           </View>
+          {prices === null ? null : (
+            <View style={[styles.tag, { backgroundColor: theme.colour.surfaceMuted }]}>
+              {/* `USD 25 · JPY 3,800`, either alone, or `Free`. Formatted by the
+                  shared helper so the phone and the laptop cannot disagree. */}
+              <Text style={[styles.tagText, { color: theme.colour.inkMuted }]}>
+                {say(prices)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {hidden ? <HiddenNote /> : null}
+
+        {/*
+          A ScrollView only once the sheet has a height to give it.
+
+          This is the whole shape of the fix. A ScrollView has no intrinsic
+          content height in React Native, so inside a parent that is asking its
+          children how tall they are it answers with almost nothing — which is how
+          an earlier attempt at this collapsed the sheet around its header and
+          clipped every field below the first. Nothing was failing to render;
+          there was simply no room allotted to draw it in.
+
+          So the sheet measures itself first. While the content fits, this is a
+          plain view and the sheet is exactly as tall as it needs to be. When the
+          content does not fit, the sheet takes a definite height and `flex: 1`
+          here finally resolves to the space left over, which is what a ScrollView
+          needs to scroll.
+        */}
+        {scrolls ? (
+          <ScrollView
+            style={styles.scroller}
+            contentContainerStyle={styles.scrollerContent}
+            showsVerticalScrollIndicator
+          >
+            {fields}
+          </ScrollView>
+        ) : (
+          <View>{fields}</View>
         )}
       </View>
-
-      {hidden ? <HiddenNote /> : null}
-
-      {/*
-        A ScrollView only once the sheet has a height to give it.
-
-        This is the whole shape of the fix. A ScrollView has no intrinsic
-        content height in React Native, so inside a parent that is asking its
-        children how tall they are it answers with almost nothing — which is how
-        an earlier attempt at this collapsed the sheet around its header and
-        clipped every field below the first. Nothing was failing to render;
-        there was simply no room allotted to draw it in.
-
-        So the sheet measures itself first. While the content fits, this is a
-        plain view and the sheet is exactly as tall as it needs to be. When the
-        content does not fit, the sheet takes a definite height and `flex: 1`
-        here finally resolves to the space left over, which is what a ScrollView
-        needs to scroll.
-      */}
-      {scrolls ? (
-        <ScrollView
-          style={styles.scroller}
-          contentContainerStyle={styles.scrollerContent}
-          showsVerticalScrollIndicator
-        >
-          {fields}
-        </ScrollView>
-      ) : (
-        <View>{fields}</View>
-      )}
-    </View>
+    </SheetSurface>
   )
 }

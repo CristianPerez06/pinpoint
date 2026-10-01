@@ -15,7 +15,6 @@ import Plus from 'lucide-react-native/icons/plus'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CreateTripForm } from '@/components/trip-setup'
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
+import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -177,7 +177,7 @@ export function TripSheet({
   }
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+    <Sheet open={open} onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
@@ -586,7 +586,7 @@ export function TripSheet({
           </View>
         </KeyboardAvoidingView>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

@@ -7,11 +7,19 @@ import {
   RADIUS,
 } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
+import { useEffect } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
 import Svg, { Circle, Path } from 'react-native-svg'
 
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { useSay } from '@/lib/language'
+import { DROP_DISTANCE, DROP_TIMING, LEAVING_SCALE, SURFACE_TIMING } from '@/lib/motion'
 import { useTheme } from '@/lib/theme'
 
 /**
@@ -85,6 +93,7 @@ export function DraftPin() {
   const theme = useTheme()
   const say = useSay()
   const { width, height } = { width: 32, height: 42 }
+  const drop = useDrop()
 
   return (
     <View
@@ -93,37 +102,80 @@ export function DraftPin() {
       style={{ width, height }}
       accessibilityLabel={say(message('pin.draft'))}
     >
-      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <Path
-          d={MARKER_PATH}
-          fill={theme.colour.surface}
-          stroke={theme.colour.ink}
-          strokeWidth={2}
-          strokeDasharray="4 3"
-        />
-        <Path
-          d="M16 11v8M12 15h8"
-          stroke={theme.colour.ink}
-          strokeWidth={2.4}
-          strokeLinecap="round"
-          fill="none"
-        />
-      </Svg>
+      {/* The drawing falls into the box; the box itself stays put, so the
+          annotation's frame and anchor never move. */}
+      <Animated.View style={drop}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          <Path
+            d={MARKER_PATH}
+            fill={theme.colour.surface}
+            stroke={theme.colour.ink}
+            strokeWidth={2}
+            strokeDasharray="4 3"
+          />
+          <Path
+            d="M16 11v8M12 15h8"
+            stroke={theme.colour.ink}
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            fill="none"
+          />
+        </Svg>
+      </Animated.View>
     </View>
   )
+}
+
+/**
+ * The pin being put down drops onto its point (`motion`, *A pin being put down
+ * drops onto the map*): it falls the laptop's 14 points, lands a little past
+ * its point and settles, on the same tokens the laptop's `drop` keyframes read.
+ *
+ * Played once, when the pin is mounted. Moving it changes only the marker's
+ * coordinate, and saving the place replaces it with a saved pin that has no
+ * drop, so neither plays it again. With reduce motion on it is simply there.
+ */
+function useDrop() {
+  const reduce = useReducedMotion()
+  const landed = useSharedValue(reduce ? 1 : 0)
+
+  useEffect(() => {
+    if (reduce) {
+      landed.value = 1
+      return
+    }
+    landed.value = withTiming(1, DROP_TIMING)
+    // Mount only: the drop belongs to the moment the pin is put down.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return useAnimatedStyle(() => ({
+    // Faded in on the same curve as the fall, as the laptop's keyframes do;
+    // past 1 the curve is overshooting, and opacity simply stays full.
+    opacity: Math.min(1, landed.value),
+    transform: [{ translateY: (landed.value - 1) * DROP_DISTANCE }],
+  }))
 }
 
 export function Pin({
   view,
   count = 1,
   selected = false,
+  leaving = false,
 }: {
   view: MarkerView
   count?: number
   selected?: boolean
+  /**
+   * This pin's place has just been deleted here, and the pin is on its way out
+   * (`motion`, *A deleted place fades from the map*): it fades while shrinking
+   * toward its point. The map keeps it drawn for as long as that takes.
+   */
+  leaving?: boolean
 }) {
   const theme = useTheme()
   const say = useSay()
+  const leave = useLeave(leaving)
 
   /*
    * A selected pin is drawn larger, by the shared amount, so that the pin the
@@ -153,8 +205,8 @@ export function Pin({
      * width or height — which leaves the pin anchored wrong and its tap target
      * somewhere other than where it is drawn.
      */
-    <View
-      style={{ width, height }}
+    <Animated.View
+      style={[{ width, height }, leave]}
       accessibilityLabel={
         count > 1
           ? say(message('placeGroup.count', { count }))
@@ -242,6 +294,28 @@ export function Pin({
           </Text>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   )
+}
+
+/**
+ * A deleted pin's way out: it fades and shrinks toward its point, over the
+ * standard duration and curve, on the same tokens the laptop's `leave`
+ * keyframes read. With reduce motion on it only fades, and only for `brief`.
+ */
+function useLeave(leaving: boolean) {
+  const reduce = useReducedMotion()
+  const present = useSharedValue(1)
+
+  useEffect(() => {
+    if (!leaving) return
+    present.value = withTiming(0, reduce ? SURFACE_TIMING.reduced : SURFACE_TIMING.close)
+  }, [leaving, reduce, present])
+
+  return useAnimatedStyle(() => ({
+    opacity: present.value,
+    transform: [{ scale: reduce ? 1 : LEAVING_SCALE + (1 - LEAVING_SCALE) * present.value }],
+    // Toward its point, which is the bottom of the box: the pin's anchor.
+    transformOrigin: 'bottom',
+  }))
 }

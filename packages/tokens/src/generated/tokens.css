@@ -93,6 +93,7 @@
   --pp-duration-quick: 150ms;
   --pp-duration-standard: 180ms;
   --pp-duration-arrive: 420ms;
+  --pp-duration-turn: 4000ms;
   --pp-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
   --pp-ease-settle: cubic-bezier(0.2, 0.8, 0.3, 1);
   --pp-ease-overshoot: cubic-bezier(0.2, 1.2, 0.4, 1);

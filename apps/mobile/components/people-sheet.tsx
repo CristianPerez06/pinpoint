@@ -10,7 +10,6 @@ import { message, type Message } from '@pinpoint/wording'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
+import { Sheet } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -123,7 +123,7 @@ export function PeopleSheet({
   }
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+    <Sheet open={open} onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
@@ -302,7 +302,7 @@ export function PeopleSheet({
           </View>
         </KeyboardAvoidingView>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

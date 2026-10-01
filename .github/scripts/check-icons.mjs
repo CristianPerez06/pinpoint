@@ -29,9 +29,10 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, relative as relativePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { bytesFor } from './build-icons.mjs'
+import { bytesFor, describe } from './build-icons.mjs'
 import { ASSETS } from './icon-assets.mjs'
 import { decodeIco, decodePng, meanDifference } from './icon-pixels.mjs'
+import { LAND } from './icon-globe.mjs'
 import { DROP, markerPath, TILE } from './icon-mark.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -147,6 +148,15 @@ for (const [name, literal, what] of [
   }
 }
 
+// The globe's continents, against the one token that is not a themed pair.
+const markLand = colour.match(/export const MARK_LAND = '(#[0-9A-Fa-f]{6})'/)?.[1]
+if (markLand?.toUpperCase() !== LAND.toUpperCase()) {
+  problems.push(
+    `the globe's continents are ${LAND}, but \`MARK_LAND\` is ${markLand ?? 'unreadable'}. ` +
+      `The waiting area's globe would no longer match the opening's.`,
+  )
+}
+
 /**
  * The Android background layer.
  *
@@ -192,10 +202,7 @@ for (const asset of ASSETS) {
           `Run \`node .github/scripts/build-icons.mjs\`.`,
       )
     }
-    console.log(
-      `  ${asset.path}\n    ${String(asset.size).padEnd(11)} ${asset.contract.padEnd(18)} ` +
-        `drop ${(asset.dropWidth * 100).toFixed(1)}% of canvas   text, exact`,
-    )
+    console.log(`  ${asset.path}\n    ${describe(asset)}   text, exact`)
     continue
   }
 
@@ -229,11 +236,7 @@ for (const asset of ASSETS) {
     )
   }
 
-  const size = asset.kind === 'ico' ? asset.sizes.join('/') : asset.size
-  console.log(
-    `  ${asset.path}\n    ${String(size).padEnd(11)} ${asset.contract.padEnd(18)} ` +
-      `drop ${(asset.dropWidth * 100).toFixed(1)}% of canvas   difference ${worst.toFixed(2)}/255`,
-  )
+  console.log(`  ${asset.path}\n    ${describe(asset)}   difference ${worst.toFixed(2)}/255`)
 }
 
 if (problems.length > 0) {

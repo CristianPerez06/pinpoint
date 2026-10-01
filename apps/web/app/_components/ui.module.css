@@ -574,6 +574,58 @@
 }
 
 /*
+ * Surfaces arriving and leaving (`motion`, *A surface opening over a screen
+ * arrives and leaves with the shared timing*).
+ *
+ * On anything that carries `data-surface` — held on the page while it leaves by
+ * `usePresence` — beside its own class. It fades and moves `--surface-from` into
+ * its place: up into a corner by default, down from the bar for a menu, and in
+ * from the bottom edge where either has become a sheet (below).
+ *
+ * Opening takes `arrive` on the curve that settles; closing takes `standard` on
+ * the standard curve, so dismissing is always quicker than opening. The values
+ * are the tokens', never written here.
+ *
+ * `translate` rather than `transform`, for two reasons. It ends at `none`, and
+ * an element with any transform becomes the containing block of every `fixed`
+ * element inside it — the panels hold pickers that would then position against
+ * the panel instead of the screen. And the map measures the corner panel to keep
+ * pins clear of it, which reads this one property back to measure where the
+ * panel will stand rather than where its animation is drawing it.
+ *
+ * `@starting-style` is the first frame of a newly mounted element, so opening
+ * needs no JavaScript. A browser without it shows the surface at once, which is
+ * what reduce motion asks for anyway; `globals.css` collapses every transition
+ * under reduce motion, so neither direction moves there.
+ */
+.surface {
+  --surface-from: 0 16px;
+  transition:
+    opacity var(--pp-duration-arrive) var(--pp-ease-settle),
+    translate var(--pp-duration-arrive) var(--pp-ease-settle);
+}
+
+@starting-style {
+  .surface[data-surface='open']:not([data-entered]) {
+    opacity: 0;
+    translate: var(--surface-from);
+  }
+}
+
+.surface[data-surface='closing'] {
+  opacity: 0;
+  translate: var(--surface-from);
+  transition-duration: var(--pp-duration-standard);
+  transition-timing-function: var(--pp-ease-standard);
+}
+
+/* A menu hangs from the bar, and a list from its field, so they come down into place. */
+.menuPanel.surface,
+.surface.hangs {
+  --surface-from: 0 calc(-1 * var(--pp-space-sm));
+}
+
+/*
  * The phone shape. 700px, and the same literal as `trip-workspace.module.css`
  * — which is where it is explained, and which is the file to change first if it
  * ever moves. Custom properties do not resolve inside a media query, so a
@@ -1027,4 +1079,32 @@
 .questionControls > :last-child {
   border-color: var(--pp-danger);
   font-weight: 650;
+}
+
+/*
+ * Where the corner card and the menus have become sheets on the bottom edge,
+ * they slide in from that edge, as the phone's sheets do. The scrim behind a
+ * menu's sheet fades with it rather than vanishing a moment after it.
+ */
+@media (max-width: 700px) {
+  .panel.surface,
+  .menuPanel.surface {
+    --surface-from: 0 100%;
+  }
+
+  .menuAnchor:has(.menuPanel)::after {
+    transition: opacity var(--pp-duration-arrive) var(--pp-ease-settle);
+  }
+
+  @starting-style {
+    .menuAnchor:has(.menuPanel)::after {
+      opacity: 0;
+    }
+  }
+
+  .menuAnchor:has(.menuPanel[data-surface='closing'])::after {
+    opacity: 0;
+    transition-duration: var(--pp-duration-standard);
+    transition-timing-function: var(--pp-ease-standard);
+  }
 }

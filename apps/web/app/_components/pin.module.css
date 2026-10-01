@@ -92,7 +92,9 @@
 }
 
 .draft {
-  animation: drop 0.42s cubic-bezier(0.2, 1.2, 0.4, 1);
+  /* The pin being put down drops onto its point (`motion`, *A pin being put
+     down drops onto the map*), on the same token the phone's drop reads. */
+  animation: drop var(--pp-duration-arrive) var(--pp-ease-overshoot);
 }
 
 .dropDraft {

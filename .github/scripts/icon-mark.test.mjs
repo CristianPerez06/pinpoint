@@ -16,6 +16,7 @@ import { test } from 'node:test'
 
 import { ASSETS, ANDROID_RENDERED, DROP_OF_RENDERED } from './icon-assets.mjs'
 import { bytesFor } from './build-icons.mjs'
+import { COLUMNS, FRAMES, LAND, renderGlobe } from './icon-globe.mjs'
 import { decodeIco, decodePng, dropBounds } from './icon-pixels.mjs'
 import {
   encodePng,
@@ -297,4 +298,48 @@ test('the favicon centres the drop on the box the path actually draws', () => {
   assert.ok(svg.includes(`translate(-16 -${centreY.toFixed(4)})`), `centre ${centreY}`)
   assert.ok(svg.includes(markerPath()), 'carries the shared path')
   assert.ok(svg.includes(TILE) && svg.includes('#241703'), 'carries the token colours')
+})
+
+/**
+ * The globe, checked at two points whose answer is known without the renderer.
+ *
+ * At a frame's centre the view looks straight at the sphere, so the point shown
+ * is at the tilt's latitude (22°N) and the frame's longitude: 10°E on frame 0,
+ * moving 5° west a frame. 22°N 10°E is the Sahara; 22°N 150°W is open Pacific.
+ * At the centre the surface faces the viewer, so its light is the light's own
+ * z component, and the colour is the base colour scaled by that shade.
+ */
+test('the globe shows land and sea where the Earth has them', () => {
+  const frame = 32
+  const sheet = renderGlobe({ frame })
+  const light = [-0.45, 0.55, 0.7]
+  const shade = 0.8 + 0.28 * (light[2] / Math.hypot(...light))
+  const centre = (f) => {
+    const x = (f % COLUMNS) * frame + frame / 2
+    const y = Math.floor(f / COLUMNS) * frame + frame / 2
+    const i = (y * sheet.width + x) * 4
+    return [...sheet.data.slice(i, i + 4)]
+  }
+  const expect = (hex) => [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * shade))
+  const close = (actual, expected, what) =>
+    assert.ok(
+      expected.every((v, i) => Math.abs(v - actual[i]) <= 3) && actual[3] === 255,
+      `${what}: ${actual} is not ${expected}`,
+    )
+
+  assert.equal(FRAMES % COLUMNS, 0, 'the grid has no empty cells')
+  close(centre(0), expect(LAND), 'the Sahara on frame 0')
+  close(centre(32), expect(TILE), 'the Pacific on frame 32')
+})
+
+test('the globe is round: every frame is transparent in its corners', () => {
+  const frame = 32
+  const sheet = renderGlobe({ frame })
+  for (let f = 0; f < FRAMES; f++) {
+    const x = (f % COLUMNS) * frame
+    const y = Math.floor(f / COLUMNS) * frame
+    for (const [cx, cy] of [[x, y], [x + frame - 1, y], [x, y + frame - 1], [x + frame - 1, y + frame - 1]]) {
+      assert.equal(sheet.data[(cy * sheet.width + cx) * 4 + 3], 0, `frame ${f} corner (${cx}, ${cy})`)
+    }
+  }
 })

@@ -44,6 +44,7 @@ import { useSay } from '@/app/_components/language'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm } from '@/app/_components/marker-form'
 import { TripBar } from '@/app/_components/trip-bar'
+import { Presence } from '@/app/_components/ui'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
@@ -636,80 +637,95 @@ export function TripCalendar({
         onOpen: (marker) => setOpenMarkerId(marker.id),
       }}
     >
-      {selection && !editing ? (
-        <div className={styles.panel}>
-          <MarkerDetails
-            selection={selection}
-            members={members}
-            interestFor={interestFor}
-            // Resolved here, where the cities are, rather than handing the
-            // card the whole trip's — the same narrowness `interestFor` keeps.
-            cityNameOf={(marker) =>
-              cities.find((city) => city.id === marker.cityId)?.name ?? null
-            }
-            ownMemberId={ownMemberId}
-            onRecordInterest={(marker, interested) => void record(marker, interested)}
-            onWithdrawInterest={(marker) => void withdraw(marker)}
-            onSetVisited={(marker, visited) => void setVisited(marker, visited)}
-            // One place at a time here: nothing on this screen groups by
-            // position, so there is never a chooser to go back to.
-            onChoose={() => {}}
-            onBack={() => {}}
-            extraAction={{
-              label: say(message('calendar.viewOnMap')),
-              onClick: () => viewOnMap(selection.group.markers[0]!),
-            }}
-            onDismiss={() => setOpenMarkerId(null)}
-            onEdit={(marker) => setEditingId(marker.id)}
-            onDelete={(marker) => remove(marker)}
-          />
-        </div>
-      ) : null}
+      {/*
+        One surface at a time over the calendar, held on screen while it leaves
+        by `Presence` and drawn from `card` rather than from `selection` or
+        `editing`, which already say nothing is open by then.
+      */}
+      <Presence
+        value={
+          editing
+            ? ({ kind: 'form', editing } as const)
+            : selection
+              ? ({ kind: 'details', selection } as const)
+              : null
+        }
+      >
+        {(card) =>
+          card.kind === 'details' ? (
+            <div className={styles.panel}>
+              <MarkerDetails
+                selection={card.selection}
+                members={members}
+                interestFor={interestFor}
+                // Resolved here, where the cities are, rather than handing the
+                // card the whole trip's — the same narrowness `interestFor` keeps.
+                cityNameOf={(marker) =>
+                  cities.find((city) => city.id === marker.cityId)?.name ?? null
+                }
+                ownMemberId={ownMemberId}
+                onRecordInterest={(marker, interested) => void record(marker, interested)}
+                onWithdrawInterest={(marker) => void withdraw(marker)}
+                onSetVisited={(marker, visited) => void setVisited(marker, visited)}
+                // One place at a time here: nothing on this screen groups by
+                // position, so there is never a chooser to go back to.
+                onChoose={() => {}}
+                onBack={() => {}}
+                extraAction={{
+                  label: say(message('calendar.viewOnMap')),
+                  onClick: () => viewOnMap(card.selection.group.markers[0]!),
+                }}
+                onDismiss={() => setOpenMarkerId(null)}
+                onEdit={(marker) => setEditingId(marker.id)}
+                onDelete={(marker) => remove(marker)}
+              />
+            </div>
+          ) : (
+            <div className={styles.panel}>
+              <MarkerForm
+                title={say(message('calendar.editPlace'))}
+                capturing={false}
+                initial={{
+                  name: card.editing.name,
+                  note: card.editing.note,
+                  cityId: card.editing.cityId,
+                  type: card.editing.type,
+                  link: card.editing.link,
+                  price: card.editing.price,
+                  localPrice: card.editing.localPrice,
+                  localCurrency: card.editing.localCurrency,
+                  plannedOn: card.editing.plannedOn,
+                  plannedUntil: card.editing.plannedUntil,
+                  hours: card.editing.hours,
+                }}
+                cities={cities}
+                cityNotice={null}
+                fieldErrors={fieldErrors}
+                message={conflict && say(conflict)}
+                notice={null}
+                onSubmit={save}
+                onCancel={() => {
+                  setEditingId(null)
+                  setFieldErrors({})
+                  setConflict(null)
+                }}
+                /*
+                  No `onCreateCity`. Creating a city is the map's business: a city
+                  is where its places are, and this screen never shows where
+                  anything is, so it cannot show what it would be creating. The
+                  list is whatever the trip already holds.
 
-      {editing ? (
-        <div className={styles.panel}>
-          <MarkerForm
-            title={say(message('calendar.editPlace'))}
-            capturing={false}
-            initial={{
-              name: editing.name,
-              note: editing.note,
-              cityId: editing.cityId,
-              type: editing.type,
-              link: editing.link,
-              price: editing.price,
-              localPrice: editing.localPrice,
-              localCurrency: editing.localCurrency,
-              plannedOn: editing.plannedOn,
-              plannedUntil: editing.plannedUntil,
-              hours: editing.hours,
-            }}
-            cities={cities}
-            cityNotice={null}
-            fieldErrors={fieldErrors}
-            message={conflict && say(conflict)}
-            notice={null}
-            onSubmit={save}
-            onCancel={() => {
-              setEditingId(null)
-              setFieldErrors({})
-              setConflict(null)
-            }}
-            /*
-              No `onCreateCity`. Creating a city is the map's business: a city
-              is where its places are, and this screen never shows where
-              anything is, so it cannot show what it would be creating. The
-              list is whatever the trip already holds.
-
-              Absent rather than stubbed. This passed `async () => null` until
-              `#189`, which the form could only read as a creation that failed —
-              so it drew `+ New city…` and answered it with "Could not create
-              that city." every time. The offer and the ability to honour it are
-              now the same fact.
-            */
-          />
-        </div>
-      ) : null}
+                  Absent rather than stubbed. This passed `async () => null` until
+                  `#189`, which the form could only read as a creation that failed —
+                  so it drew `+ New city…` and answered it with "Could not create
+                  that city." every time. The offer and the ability to honour it are
+                  now the same fact.
+                */
+              />
+            </div>
+          )
+        }
+      </Presence>
     </CalendarScreen>
   )
 }

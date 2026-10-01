@@ -13,7 +13,6 @@ import Constants from 'expo-constants'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
   AccessibilityInfo,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +24,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
+import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
@@ -318,12 +318,7 @@ export function PlaceSearchScreen({
     source === 'typed' && (result?.status === 'ready' || result?.status === 'empty')
 
   return (
-    <Modal
-      visible={open}
-      animationType="slide"
-      onRequestClose={close}
-      presentationStyle="fullScreen"
-    >
+    <Sheet open={open} onRequestClose={close}>
       <View
         style={[
           styles.screen,
@@ -456,7 +451,7 @@ export function PlaceSearchScreen({
           )}
         </ScrollView>
       </View>
-    </Modal>
+    </Sheet>
   )
 }
 

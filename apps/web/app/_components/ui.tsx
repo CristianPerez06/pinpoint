@@ -2,16 +2,20 @@
 
 import { message, type Message } from '@pinpoint/wording'
 import {
+  createContext,
   type ReactNode,
   type RefObject,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
   useRef,
+  useState,
 } from 'react'
 
 import { useSay } from '@/app/_components/language'
+import { usePresence, type SurfaceProps } from '@/lib/use-presence'
 
 import styles from './ui.module.css'
 
@@ -30,6 +34,64 @@ import styles from './ui.module.css'
 
 /** A panel floating over the map. The details view and the form share it. */
 export const overlayPanelClass = styles.panel
+
+/**
+ * The class that makes an element arrive and leave like a surface (`motion`).
+ *
+ * Goes on the element that carries a surface's `data-surface`, beside its own
+ * class. Which way it moves is that class's business: it sets
+ * `--surface-from` (see `ui.module.css`).
+ */
+export const surfaceClass = styles.surface
+
+/** The same, for a surface that hangs below the control that opened it. */
+export const hangingSurfaceClass = `${styles.surface} ${styles.hangs}`
+
+/**
+ * Whether the surface being drawn is open or on its way out, for a component
+ * that draws its own root but is shown and hidden by somebody else — the
+ * details card and the form, which `Presence` holds in the map's corner.
+ *
+ * Outside a `Presence` it answers "open, and nothing to spread": the component
+ * then behaves exactly as it did before surfaces moved.
+ */
+const SurfaceContext = createContext<SurfaceProps | null>(null)
+
+export function useSurface(): { closing: boolean; props: Partial<SurfaceProps> } {
+  const surface = useContext(SurfaceContext)
+  return { closing: surface?.['data-surface'] === 'closing', props: surface ?? {} }
+}
+
+/**
+ * One slot that holds a surface, and keeps the last thing it held on screen
+ * while that leaves.
+ *
+ * `value` is what the slot shows, or `null` for nothing. While it is `null`
+ * after having been something, `children` is drawn once more with the last
+ * value, inert, for as long as the surface takes to close. That is why
+ * `children` is a function of the value rather than an element: the caller's
+ * own variables say "nothing is open" by then, and the closing surface must be
+ * drawn from what it was showing, not from them.
+ *
+ * Changing from one value to another — a different place, or details giving
+ * way to the edit form — is not an opening or a closing. The slot stays open
+ * and its contents change where they stand.
+ */
+export function Presence<T>({
+  value,
+  children,
+}: {
+  value: T | null
+  children: (value: T) => ReactNode
+}) {
+  const { mounted, surface } = usePresence(value !== null)
+  const [held, setHeld] = useState(value)
+  if (value !== null && value !== held) setHeld(value)
+
+  const shown = value ?? held
+  if (!mounted || shown === null) return null
+  return <SurfaceContext.Provider value={surface}>{children(shown)}</SurfaceContext.Provider>
+}
 
 /**
  * Marks the part of a trigger's label that is *only* shown at a phone width.
@@ -221,9 +283,9 @@ export function useFocusReturn(
    * Where to give focus back, found again at the moment it is needed.
    *
    * A function rather than an element, because the element that opened a panel
-   * over the map does not survive until the panel closes: selecting a marker
-   * redraws the marker layer, so the button that was pressed is detached and
-   * replaced by an equal one. Looking it up on the way out finds the
+   * over the map may not survive until the panel closes: any change to which
+   * places are drawn redraws the marker layer, so the button that was pressed
+   * is detached and replaced by an equal one. Looking it up on the way out finds the
    * replacement; holding it finds a node no longer in the document, and
    * focusing that silently drops focus to the body.
    *
@@ -535,6 +597,8 @@ export function Menu({
   const anchor = useRef<HTMLDivElement | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)
+  // Held on the page while it leaves; see `usePresence`.
+  const presence = usePresence(open && !disabled)
   /**
    * Whether this menu was open on the previous render.
    *
@@ -640,12 +704,13 @@ export function Menu({
         </svg>
       </button>
 
-      {open && !disabled ? (
+      {presence.mounted ? (
         <div
           ref={panel}
           role="group"
           aria-label={name}
-          className={`${styles.menuPanel} ${align === 'end' ? styles.menuPanelEnd : ''}`}
+          className={`${styles.menuPanel} ${styles.surface} ${align === 'end' ? styles.menuPanelEnd : ''}`}
+          {...presence.surface}
         >
           {children}
         </div>

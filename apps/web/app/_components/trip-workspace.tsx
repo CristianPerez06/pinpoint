@@ -62,7 +62,7 @@ import { useTripActions } from '@/app/_components/use-trip-actions'
 import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
-import { overlayPanelClass } from '@/app/_components/ui'
+import { overlayPanelClass, Presence } from '@/app/_components/ui'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
 import { useShownAgain } from '@/lib/use-shown-again'
@@ -285,6 +285,8 @@ export function TripWorkspace({
   const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)
   const [markers, setMarkers, refreshMarkers] = useRows<Marker>(initialMarkers)
   const [cities, setCities, refreshCities] = useRows<City>(initialCities)
+  /** The place deleted here last, for its pin to fade on the map. See `remove`. */
+  const [departing, setDeparting] = useState<string | null>(null)
   const [interest, setInterest, refreshInterest] =
     useRows<MarkerInterest>(initialInterest)
 
@@ -538,6 +540,10 @@ export function TripWorkspace({
     const standing = () =>
       [tools, stage.querySelector(`.${overlayPanelClass}`)]
         .filter((element): element is HTMLElement => element instanceof HTMLElement)
+        // A panel on its way out no longer stands on the floor. It stays on
+        // the page while it fades (see `usePresence`), and measuring it would
+        // hold the pins clear of a card nobody can see any more.
+        .filter((element) => element.dataset.surface !== 'closing')
         // A hidden element reports a rect of all zeros, which the intersection
         // below would discard anyway. Kept so that nothing invisible ends up in
         // the observer list either.
@@ -564,7 +570,7 @@ export function TripWorkspace({
       let bottom = -Infinity
 
       for (const element of standing()) {
-        const rect = element.getBoundingClientRect()
+        const rect = whereItStands(element)
         const overlapTop = Math.max(rect.top, box.top)
         const overlapLeft = Math.max(rect.left, box.left)
         const overlapRight = Math.min(rect.right, box.right)
@@ -1193,6 +1199,10 @@ export function TripWorkspace({
       )
       return
     }
+    // Told to the map in the same render that removes the place, so its pin
+    // fades while the details close (`motion`, *A deleted place fades from
+    // the map*).
+    setDeparting(marker.id)
     setMarkers((current) => current.filter((each) => each.id !== marker.id))
     cancel()
   }
@@ -1410,6 +1420,7 @@ export function TripWorkspace({
           onReread={() => void rereadByHand()}
           rereading={rereading}
           selectedKey={panel.kind === 'details' ? panel.groupKey : null}
+          departing={departing}
           onMarkersInView={setAnyInView}
         />
 
@@ -1530,78 +1541,123 @@ export function TripWorkspace({
           </MapOverlayNote>
         ) : null}
 
-        {open ? (
-          <MarkerDetails
-            selection={open}
-            members={members}
-            interestFor={interestFor}
-            // Resolved here, where the cities are, rather than handing the
-            // card the whole trip's — the same narrowness `interestFor` keeps.
-            cityNameOf={(marker) =>
-              cities.find((city) => city.id === marker.cityId)?.name ?? null
-            }
-            ownMemberId={ownMemberId}
-            onRecordInterest={(marker, interested) => void answer(marker, interested)}
-            onWithdrawInterest={(marker) => void unanswer(marker)}
-            onSetVisited={(marker, visited) => void markVisited(marker, visited)}
-            // Both of these move within the card that is already open, so they
-            // carry its own permission rather than granting or dropping one. A
-            // group revealed from a search match would otherwise close the
-            // moment somebody picked a place out of it.
-            onChoose={(index) =>
-              setPanel({
-                kind: 'details',
-                groupKey: open.group.key,
-                markerId: open.group.markers[index]!.id,
-                reveal: panel.kind === 'details' ? panel.reveal : false,
-              })
-            }
-            onBack={() =>
-              setPanel({
-                kind: 'details',
-                groupKey: open.group.key,
-                markerId: null,
-                reveal: panel.kind === 'details' ? panel.reveal : false,
-              })
-            }
-            extraAction={
-              panel.kind === 'details' && panel.fromCalendar
-                ? { label: say(message('map.backToCalendar')), onClick: () => router.back() }
-                : undefined
-            }
-            // Dismissal touches no map method, so the camera cannot move.
-            onDismiss={cancel}
-            onEdit={(marker) => {
-              setDraft({ lng: marker.lng, lat: marker.lat })
-              setFieldErrors({})
-              setProblem(null)
-              setConflict(null)
-              setPanel({ kind: 'edit', marker, initial: valuesOf(marker) })
-            }}
-            onDelete={remove}
-          />
-        ) : null}
-
-        {panel.kind === 'create' || panel.kind === 'edit' ? (
-          <MarkerForm
-            title={say(message(panel.kind === 'edit' ? 'map.editPlaceTitle' : 'map.savePlaceTitle'))}
-            capturing={panel.kind !== 'edit'}
-            initial={panel.initial}
-            cities={cities}
-            // Editing never carries one: the rule guesses where a place is
-            // filed as it is saved, and re-guessing it while somebody corrects a
-            // note would be the form arguing with a decision already made.
-            cityNotice={panel.kind === 'create' ? panel.cityNotice : null}
-            fieldErrors={fieldErrors}
-            message={problem && say(problem)}
-            notice={conflict && say(conflict)}
-            onSubmit={save}
-            onCancel={cancel}
-            onCreateCity={addCity}
-          />
-        ) : null}
+        {/*
+          The map's corner holds one surface at a time — a place's details or
+          the form — and `Presence` keeps the last one on screen while it
+          leaves. Drawn from `corner`, never from `open` or `panel`: while it
+          leaves, those already say that nothing is open.
+        */}
+        <Presence
+          value={
+            open
+              ? ({ kind: 'details', open } as const)
+              : panel.kind === 'create' || panel.kind === 'edit'
+                ? ({ kind: 'form', panel } as const)
+                : null
+          }
+        >
+          {(corner) =>
+            corner.kind === 'details' ? (
+              <MarkerDetails
+                selection={corner.open}
+                members={members}
+                interestFor={interestFor}
+                // Resolved here, where the cities are, rather than handing the
+                // card the whole trip's — the same narrowness `interestFor` keeps.
+                cityNameOf={(marker) =>
+                  cities.find((city) => city.id === marker.cityId)?.name ?? null
+                }
+                ownMemberId={ownMemberId}
+                onRecordInterest={(marker, interested) => void answer(marker, interested)}
+                onWithdrawInterest={(marker) => void unanswer(marker)}
+                onSetVisited={(marker, visited) => void markVisited(marker, visited)}
+                // Both of these move within the card that is already open, so they
+                // carry its own permission rather than granting or dropping one. A
+                // group revealed from a search match would otherwise close the
+                // moment somebody picked a place out of it.
+                onChoose={(index) =>
+                  setPanel({
+                    kind: 'details',
+                    groupKey: corner.open.group.key,
+                    markerId: corner.open.group.markers[index]!.id,
+                    reveal: panel.kind === 'details' ? panel.reveal : false,
+                  })
+                }
+                onBack={() =>
+                  setPanel({
+                    kind: 'details',
+                    groupKey: corner.open.group.key,
+                    markerId: null,
+                    reveal: panel.kind === 'details' ? panel.reveal : false,
+                  })
+                }
+                extraAction={
+                  panel.kind === 'details' && panel.fromCalendar
+                    ? { label: say(message('map.backToCalendar')), onClick: () => router.back() }
+                    : undefined
+                }
+                // Dismissal touches no map method, so the camera cannot move.
+                onDismiss={cancel}
+                onEdit={(marker) => {
+                  setDraft({ lng: marker.lng, lat: marker.lat })
+                  setFieldErrors({})
+                  setProblem(null)
+                  setConflict(null)
+                  setPanel({ kind: 'edit', marker, initial: valuesOf(marker) })
+                }}
+                onDelete={remove}
+              />
+            ) : (
+              <MarkerForm
+                title={say(
+                  message(corner.panel.kind === 'edit' ? 'map.editPlaceTitle' : 'map.savePlaceTitle'),
+                )}
+                capturing={corner.panel.kind !== 'edit'}
+                initial={corner.panel.initial}
+                cities={cities}
+                // Editing never carries one: the rule guesses where a place is
+                // filed as it is saved, and re-guessing it while somebody corrects a
+                // note would be the form arguing with a decision already made.
+                cityNotice={corner.panel.kind === 'create' ? corner.panel.cityNotice : null}
+                fieldErrors={fieldErrors}
+                message={problem && say(problem)}
+                notice={conflict && say(conflict)}
+                onSubmit={save}
+                onCancel={cancel}
+                onCreateCity={addCity}
+              />
+            )
+          }
+        </Presence>
       </main>
     </WorkspaceChrome>
+  )
+}
+
+/**
+ * Where an element stands once it has arrived, not where it is drawn now.
+ *
+ * A surface arrives by sliding the last short distance into place on `translate`
+ * (`ui.module.css`), and it is measured in the very render it mounts — so its
+ * drawn box is still that distance short of where it will stop. The camera
+ * would keep the pin clear of a card 16px lower than the card ends up, and
+ * since nothing resizes when the slide ends, nothing would measure it again.
+ * Taking the translation back out measures the place the card is going to.
+ */
+function whereItStands(element: HTMLElement): DOMRect {
+  const rect = element.getBoundingClientRect()
+  const translate = getComputedStyle(element).translate
+  if (translate === 'none' || translate === '') return rect
+  // `translate` reports lengths in px; a percentage is resolved against the
+  // element's own box, which is the only place this uses one.
+  const [x = '0px', y = '0px'] = translate.split(' ')
+  const offset = (value: string, size: number) =>
+    value.endsWith('%') ? (parseFloat(value) / 100) * size : parseFloat(value)
+  return new DOMRect(
+    rect.x - offset(x, rect.width),
+    rect.y - offset(y, rect.height),
+    rect.width,
+    rect.height,
   )
 }
 

@@ -10,7 +10,6 @@ import { useState } from 'react'
 import {
   FlatList,
   KeyboardAvoidingView,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { FieldLabel } from '@/components/ui'
+import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
@@ -150,7 +150,7 @@ function CurrencyPicker({
   }
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+    <Sheet open={open} onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/* A bare positioner; the surface is the `View` inside it. See `AGENTS.md`. */}
         <KeyboardAvoidingView behavior="padding">
@@ -226,7 +226,7 @@ function CurrencyPicker({
           </View>
         </KeyboardAvoidingView>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 
