@@ -2,9 +2,10 @@ import { MAP_CREDITS } from '@pinpoint/map'
 import { SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 import ExternalLink from 'lucide-react-native/icons/external-link'
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { Sheet } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -37,7 +38,7 @@ export function AttributionSheet({
   const say = useSay()
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
+    <Sheet open={open} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={say(message('common.close'))}>
         <View
           // The sheet swallows presses so that touching a row does not dismiss
@@ -108,7 +109,7 @@ export function AttributionSheet({
           })}
         </View>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

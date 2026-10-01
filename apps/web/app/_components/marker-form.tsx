@@ -31,8 +31,10 @@ import {
   Question,
   SelectField,
   TextField,
+  surfaceClass,
   useDismissible,
   useFocusReturn,
+  useSurface,
 } from '@/app/_components/ui'
 
 import styles from './marker-form.module.css'
@@ -286,7 +288,8 @@ export function MarkerForm({
     onCancel()
   }, [entered, onCancel])
 
-  useDismissible({ open: true, onDismiss: leave, panel, isDimmed: notDimmed })
+  const surface = useSurface()
+  useDismissible({ open: !surface.closing, onDismiss: leave, panel, isDimmed: notDimmed })
   useFocusReturn(panel)
 
   return (
@@ -295,7 +298,8 @@ export function MarkerForm({
       role="dialog"
       aria-label={title}
       tabIndex={-1}
-      className={`${overlayPanelClass} ${styles.form}`}
+      className={`${overlayPanelClass} ${surfaceClass} ${styles.form}`}
+      {...surface.props}
       /*
        * The browser does not get to refuse this form.
        *

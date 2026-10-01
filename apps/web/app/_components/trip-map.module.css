@@ -51,6 +51,29 @@
   z-index: 2;
 }
 
+/*
+ * A deleted place's pin, on its way out (`motion`, *A deleted place fades from
+ * the map*). It shrinks toward its point as it fades, so it is plain which pin
+ * went. On the pin inside rather than on this button, whose own `transform` is
+ * MapLibre's — it is how the marker is placed — and `scale` composes with the
+ * selected pin's enlargement instead of replacing it.
+ */
+.leaving {
+  pointer-events: none;
+}
+
+.leaving > * {
+  transform-origin: 50% 100%;
+  animation: leave var(--pp-duration-standard) var(--pp-ease-standard) forwards;
+}
+
+@keyframes leave {
+  to {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
 .draft {
   cursor: grab;
   /* Above every saved marker, so dropping one onto an existing pin leaves it

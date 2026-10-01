@@ -22,6 +22,14 @@ export const DURATION = {
   standard: 180,
   /** Something arriving with a little weight: a pin dropping onto the map. */
   arrive: 420,
+  /**
+   * One full turn of the globe in the map's waiting area.
+   *
+   * The one duration here that is a period rather than a transition: it is how
+   * long a loop takes to come round, not how long a change takes to happen.
+   * Slow on purpose — a wait that spins fast reads as a machine straining.
+   */
+  turn: 4000,
 } as const
 
 export type DurationName = keyof typeof DURATION

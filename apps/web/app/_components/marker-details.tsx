@@ -25,8 +25,10 @@ import {
   overlayPanelClass,
   Question,
   notDimmed,
+  surfaceClass,
   useDismissible,
   useFocusReturn,
+  useSurface,
 } from '@/app/_components/ui'
 import { usePending } from '@/lib/use-pending'
 
@@ -162,8 +164,9 @@ function Details({
    * Which point on the map this card was opened from.
    *
    * Carried so that focus can be given back to that pin when the card closes.
-   * The card cannot hold the button itself: selecting a marker redraws the
-   * marker layer, so the element pressed is gone by the time this closes.
+   * The card cannot hold the button itself: any change to which places are
+   * drawn while it is open — a filter, a save — redraws the marker layer, so
+   * the element pressed may be gone by the time this closes.
    */
   pointKey: string
   /** The current filter is not drawing this place. See `HiddenNote`. */
@@ -230,8 +233,11 @@ function Details({
    * this one is *on* it.
    */
   const panel = useRef<HTMLDivElement | null>(null)
+  // A closing card stops listening at once: a press after dismissing it belongs
+  // to whatever it lands on next, not to a card already on its way out.
+  const surface = useSurface()
   useDismissible({
-    open: true,
+    open: !surface.closing,
     onDismiss,
     panel,
     isDimmed: notDimmed,
@@ -250,7 +256,8 @@ function Details({
       // Focusable so that focus can be moved into it, and `-1` so it is not a
       // stop on the way through the page — it is a destination, not a step.
       tabIndex={-1}
-      className={overlayPanelClass}
+      className={`${overlayPanelClass} ${surfaceClass}`}
+      {...surface.props}
     >
       <div className={styles.head}>
         <TypeChip view={view} />
@@ -432,8 +439,9 @@ function Chooser({
   onDismiss: () => void
 }) {
   const say = useSay()
+  const surface = useSurface()
   return (
-    <div className={overlayPanelClass}>
+    <div className={`${overlayPanelClass} ${surfaceClass}`} {...surface.props}>
       <div className={styles.head}>
         <h2 className={styles.name}>
           {say(message('placeGroup.count', { count: group.count }))}

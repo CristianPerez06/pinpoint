@@ -10,7 +10,6 @@ import Plus from 'lucide-react-native/icons/plus'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
+import { Sheet } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -138,7 +138,7 @@ export function CitySheet({
   }
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+    <Sheet open={open} onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel={say(message('common.close'))}>
         {/*
           A positioner, and nothing else. The surface is the `View` inside it.
@@ -326,7 +326,7 @@ export function CitySheet({
           </View>
         </KeyboardAvoidingView>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

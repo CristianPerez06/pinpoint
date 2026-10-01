@@ -14,7 +14,6 @@ import DateTimePicker, {
 import Calendar from 'lucide-react-native/icons/calendar'
 import { useState } from 'react'
 import {
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   type TextInputProps,
 } from 'react-native'
 
+import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
@@ -581,12 +581,7 @@ export function DayField({
       ) : null}
 
       {Platform.OS === 'ios' ? (
-        <Modal
-          visible={picking}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setPicking(false)}
-        >
+        <Sheet open={picking} placement="floating" onRequestClose={() => setPicking(false)}>
           {/* Pressing beside the calendar closes it without choosing, as
               pressing outside iOS's own popup did. */}
           <Pressable
@@ -614,7 +609,7 @@ export function DayField({
               />
             </Pressable>
           </Pressable>
-        </Modal>
+        </Sheet>
       ) : null}
     </View>
   )

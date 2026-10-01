@@ -1,4 +1,4 @@
-import { COLOUR } from '@pinpoint/tokens'
+import { COLOUR, MARK_LAND } from '@pinpoint/tokens'
 import type { ExpoWebGLRenderingContext } from 'expo-gl'
 import {
   AmbientLight,
@@ -58,12 +58,12 @@ const SPHERE = COLOUR.accent.light
 const PIN = COLOUR.inkOnAccent.light
 
 /**
- * The two colours only the opening has, as literals, because nothing else in
- * either application draws them and `styling` keeps a token for values that are
- * shared. `LAND` is the continents: the sphere's amber taken darker. `PIN_LIT`
- * is the pin's body once light reaches it — `PIN` is what it looks like unlit.
+ * The continents are `MARK_LAND`, shared with the waiting area's globe. `PIN_LIT`
+ * is the pin's body once light reaches it — `PIN` is what it looks like unlit —
+ * and a literal, because nothing else in either application draws it and
+ * `styling` keeps a token for values that are shared.
  */
-const LAND = '#B8741A'
+const LAND = MARK_LAND
 const PIN_LIT = '#3A260A'
 
 /** Where the globe starts: facing South America. */

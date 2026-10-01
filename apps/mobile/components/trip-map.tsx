@@ -22,7 +22,7 @@ import {
   type MarkerGroup,
   type Viewport,
 } from '@pinpoint/map'
-import { ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+import { DURATION, ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 // One subpath each, like `marker-details.tsx` and for the same reason: Metro
 // does not tree-shake in development, so the package root would pull all 1767
@@ -463,6 +463,7 @@ export function TripMap({
   onEditMarker,
   onDeleteMarker,
   removingId,
+  departing = null,
   onAbandonCapture,
   onReread,
   rereading,
@@ -510,6 +511,13 @@ export function TripMap({
   onDeleteMarker: (marker: Marker) => void
   /** The place whose removal is in flight, so the details sheet can say so. */
   removingId: string | null
+  /**
+   * The place the person has just deleted here, once the deletion succeeded.
+   * Its pin fades away rather than vanishing (`motion`, *A deleted place fades
+   * from the map*) — and only its pin: a filter or somebody else's change is
+   * not a deletion made here, which is why this is told rather than inferred.
+   */
+  departing?: string | null
   /**
    * Give up on the place being added, because a saved one is being read instead.
    *
@@ -856,6 +864,41 @@ export function TripMap({
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
 
+  /*
+    The deleted place's pin, kept on the map while it fades (`motion`, *A
+    deleted place fades from the map*).
+
+    Worked out during render, against the groups drawn last time, so the pin is
+    never missing for a frame between the place going and its fade starting.
+    Only a pin that was the deleted place alone: one shared with other places is
+    still in `groups`, redrawn with its count lowered.
+  */
+  const [trail, setTrail] = useState<{
+    groups: readonly MarkerGroup<Marker>[]
+    leaving: MarkerGroup<Marker> | null
+  }>({ groups, leaving: null })
+  if (trail.groups !== groups) {
+    const gone =
+      departing === null
+        ? undefined
+        : trail.groups.find(
+            (group) =>
+              group.count === 1 &&
+              group.markers[0]!.id === departing &&
+              !groups.some((each) => each.key === group.key),
+          )
+    setTrail({ groups, leaving: gone ?? trail.leaving })
+  }
+  useEffect(() => {
+    if (trail.leaving === null) return
+    const gone = setTimeout(
+      () => setTrail((current) => ({ ...current, leaving: null })),
+      DURATION.standard,
+    )
+    return () => clearTimeout(gone)
+  }, [trail.leaving])
+  const drawn = trail.leaving === null ? groups : [...groups, trail.leaving]
+
   /**
    * The open sheet's marker, re-resolved against current state every render.
    *
@@ -1143,7 +1186,7 @@ export function TripMap({
             saved markers for exactly this reason. A second mechanism for the
             same thing on one surface is how they end up disagreeing.
           */}
-          {[...groups]
+          {[...drawn]
             .sort((a, b) =>
               Number(open?.groupKey === a.key) - Number(open?.groupKey === b.key),
             )
@@ -1157,6 +1200,8 @@ export function TripMap({
               // drift defect lived exactly in two apps choosing their own.
               anchor={anchorName(group.view.anchor)}
               onPress={() => {
+                // A pin on its way out answers nothing: its place is gone.
+                if (group === trail.leaving) return
                 // Whatever was being added is given up first, so that the
                 // selection this sets is never hidden behind a form or competing
                 // with an armed sight.
@@ -1172,7 +1217,10 @@ export function TripMap({
               <Pin
                 view={group.view}
                 count={group.count}
-                selected={open?.groupKey === group.key}
+                // The deleted place was the one open, so it leaves at the size
+                // it was drawn at rather than snapping smaller first.
+                selected={open?.groupKey === group.key || group === trail.leaving}
+                leaving={group === trail.leaving}
               />
             </MapLibreMarker>
           ))}

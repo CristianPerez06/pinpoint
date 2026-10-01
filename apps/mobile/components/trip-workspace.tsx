@@ -385,6 +385,8 @@ export function TripWorkspace({
 
   /** The place whose removal has been confirmed and is now in flight. */
   const [removingId, setRemovingId] = useState<string | null>(null)
+  /** The place deleted here last, for its pin to fade on the map. See `remove`. */
+  const [departing, setDeparting] = useState<string | null>(null)
 
   const [panel, setPanel] = useState<Panel>({ kind: 'none' })
   const [sight, setSight] = useState<Sight>(null)
@@ -952,6 +954,10 @@ export function TripWorkspace({
       )
       return
     }
+    // Told to the map in the same render that removes the place, so its pin
+    // fades while the details close (`motion`, *A deleted place fades from the
+    // map*).
+    setDeparting(marker.id)
     markerQuery.set((rows) => rows.filter((each) => each.id !== marker.id))
     cancelPanel()
   }
@@ -1301,6 +1307,7 @@ export function TripWorkspace({
         }}
         onDeleteMarker={(marker) => void remove(marker)}
         removingId={removingId}
+        departing={departing}
         /*
           Tapping a saved place gives up on the one being added.
 
@@ -1449,6 +1456,7 @@ function Body({
   onEditMarker,
   onDeleteMarker,
   removingId,
+  departing,
   onAbandonCapture,
   onReread,
   rereading,
@@ -1483,6 +1491,7 @@ function Body({
   onDeleteMarker: (marker: Marker) => void
   /** The place whose removal is in flight, so its control can say so. */
   removingId: string | null
+  departing: string | null
   onAbandonCapture: () => void
   /** Read every list again, because somebody pressed the control for it. */
   onReread: () => void
@@ -1555,6 +1564,7 @@ function Body({
         onEditMarker={onEditMarker}
         onDeleteMarker={onDeleteMarker}
         removingId={removingId}
+        departing={departing}
         onAbandonCapture={onAbandonCapture}
         onReread={onReread}
         rereading={rereading}

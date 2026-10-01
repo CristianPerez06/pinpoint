@@ -15,6 +15,8 @@ import { type CSSProperties, useEffect, useState } from 'react'
 import { useLanguage, useSay } from '@/app/_components/language'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
+import { hangingSurfaceClass } from '@/app/_components/ui'
+import { usePresence } from '@/lib/use-presence'
 
 import styles from './place-search.module.css'
 
@@ -291,6 +293,8 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
    * chosen from would stay open underneath an empty field.
    */
   const showing = trimmed !== '' && (result !== null || pending !== null || searching)
+  // Held on the page while the list leaves; see `usePresence`.
+  const resultsPresence = usePresence(showing)
 
   /**
    * Only under an answer to what is typed, and only a suggestion's answer.
@@ -326,8 +330,8 @@ function PlaceSearchInner({ biasRef, onChoose }: PlaceSearchLiveProps) {
         className={styles.input}
       />
 
-      {showing ? (
-        <div className={styles.results}>
+      {resultsPresence.mounted ? (
+        <div className={`${styles.results} ${hangingSurfaceClass}`} {...resultsPresence.surface}>
           {/*
             Above the list rather than in place of it, and outside the box that
             scrolls — `.scroll` carries the height cap, so a message inside it

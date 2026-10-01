@@ -4,9 +4,10 @@ import { message } from '@pinpoint/wording'
 import { useRouter } from 'expo-router'
 import LogOut from 'lucide-react-native/icons/log-out'
 import SettingsIcon from 'lucide-react-native/icons/settings'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { Sheet } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -64,7 +65,7 @@ export function MenuSheet({
   const say = useSay()
 
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
+    <Sheet open={open} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={say(message('common.close'))}>
         <View
           // The sheet swallows presses so that touching a row does not dismiss
@@ -149,7 +150,7 @@ export function MenuSheet({
           </Pressable>
         </View>
       </Pressable>
-    </Modal>
+    </Sheet>
   )
 }
 

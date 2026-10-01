@@ -1,6 +1,7 @@
 'use client'
 
 import type { Marker } from '@pinpoint/core'
+import { DURATION } from '@pinpoint/tokens'
 import {
   ATTRIBUTION,
   MAP_CREDITS,
@@ -30,8 +31,8 @@ import {
   setWorkerUrl,
   type StyleSpecification,
 } from 'maplibre-gl'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { createRoot } from 'react-dom/client'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
 
 import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { DraftPin, Pin } from '@/app/_components/pin'
@@ -201,6 +202,7 @@ export function TripMap({
   rereading,
   floor = 0,
   covered = null,
+  departing = null,
 }: {
   groups: readonly MarkerGroup<Marker>[]
   /**
@@ -289,6 +291,16 @@ export function TripMap({
    * Whoever narrowed them decides what to say.
    */
   onMarkersInView: (anyInView: boolean) => void
+  /**
+   * The place the person has just deleted here, once the deletion succeeded.
+   *
+   * Its pin fades away rather than vanishing (`motion`, *A deleted place fades
+   * from the map*) — and only its pin. Every other way a pin leaves the map,
+   * a filter or somebody else's change, is not a deletion made here and goes
+   * at once, which is why this is told rather than inferred from a pin having
+   * gone.
+   */
+  departing?: string | null
 }) {
   const say = useSay()
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -476,6 +488,23 @@ export function TripMap({
   useEffect(() => {
     handlers.current = { onSelectGroup, onDropAt, onDraftMove }
   })
+
+  // Read by the marker effect's cleanup, which runs in the passive phase of the
+  // very commit that deleted the place — so this is written in the layout
+  // phase, which comes first. A passive effect, like the one above, would
+  // still hold the previous value when the cleanup asks.
+  const departingRef = useRef(departing)
+  useLayoutEffect(() => {
+    departingRef.current = departing
+  })
+
+  // The selection the markers are first drawn with, read when they are created;
+  // every later change is rendered into them by the effect after theirs.
+  const selectedRef = useRef(selectedKey)
+  useLayoutEffect(() => {
+    selectedRef.current = selectedKey
+  })
+  const drawnRef = useRef<{ root: Root; group: MarkerGroup<Marker> }[]>([])
 
   /**
    * Framing happens from the markers present at mount, and afterwards only when
@@ -710,9 +739,10 @@ export function TripMap({
        *
        * Not for styling and not for tests: a panel opened from a pin has to
        * return focus to that pin when it closes, and it cannot hold the element
-       * to do it — selecting a marker redraws the whole marker layer, so the
-       * button that was pressed is detached and replaced by an equal one before
-       * the panel is dismissed. Focusing the detached one drops focus to the
+       * to do it — any change to which places are drawn while the panel is
+       * open redraws the whole marker layer, so the button that was pressed is
+       * detached and replaced by an equal one before the panel is dismissed.
+       * (Selection itself no longer does; see the effect after this one.) Focusing the detached one drops focus to the
        * body, which is the failure the return exists to prevent. `key` is
        * documented as stable across renders for the same position, so it
        * survives exactly the redraw that the element does not.
@@ -745,7 +775,7 @@ export function TripMap({
         <Pin
           view={group.view}
           count={group.count}
-          selected={group.key === selectedKey}
+          selected={group.key === selectedRef.current}
         />,
       )
 
@@ -756,18 +786,54 @@ export function TripMap({
         .setLngLat([group.lng, group.lat])
         .addTo(map)
 
-      return { marker, root }
+      return { marker, root, element, group }
     })
+    drawnRef.current = mounted
 
     return () => {
-      for (const { marker, root } of mounted) {
+      const departed = departingRef.current
+      for (const { marker, root, element, group } of mounted) {
+        /*
+          The deleted place's own pin fades and shrinks toward its point before
+          it goes. Only a pin that was that place alone: one shared with other
+          places is redrawn by the next run with its count lowered, and fading
+          the old copy would show two pins on one point.
+        */
+        if (departed !== null && group.count === 1 && group.markers[0]!.id === departed) {
+          element.classList.add(styles.leaving)
+          element.setAttribute('aria-hidden', 'true')
+          element.tabIndex = -1
+          window.setTimeout(() => {
+            marker.remove()
+            root.unmount()
+          }, DURATION.standard)
+          continue
+        }
         marker.remove()
         // Unmounting synchronously inside a cleanup runs while React may still
         // be rendering, which it warns about; a microtask puts it after.
         queueMicrotask(() => root.unmount())
       }
     }
-  }, [map, shown, selectedKey, say])
+  }, [map, shown, say])
+
+  /*
+    Selecting a pin redraws the pins where they stand rather than replacing them.
+
+    Selection used to be a dependency of the effect above, so every press on a
+    pin, and every dismissal of its details, removed every marker from the map
+    and mounted a fresh one in its place. A fresh root draws a frame later than
+    the marker it sits in is added, so for that frame every pin on the map was
+    gone, and the map blinked on each press. Rendering the new selection into
+    the roots that already exist changes only what the pins look like.
+  */
+  useEffect(() => {
+    for (const { root, group } of drawnRef.current) {
+      root.render(
+        <Pin view={group.view} count={group.count} selected={group.key === selectedKey} />,
+      )
+    }
+  }, [selectedKey])
 
   /**
    * Pointing at the map creates a place, but only when that was armed first.

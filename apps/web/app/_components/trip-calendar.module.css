@@ -729,6 +729,30 @@ button.pickerInput {
 }
 
 /*
+ * The wash behind the card arrives and leaves with it (`motion`). The card does
+ * its own moving (`ui.module.css`, `.surface`); this only fades, because a wash
+ * that covers the screen has no edge to slide from. Keyed on the card's state so
+ * the two cannot disagree, and only on a card that has not yet entered — the
+ * edit form taking the details card's place is a new element in an open
+ * surface, and must not fade the wash in again.
+ */
+.panel {
+  transition: opacity var(--pp-duration-arrive) var(--pp-ease-settle);
+}
+
+@starting-style {
+  .panel:has(> [data-surface='open']:not([data-entered])) {
+    opacity: 0;
+  }
+}
+
+.panel:has(> [data-surface='closing']) {
+  opacity: 0;
+  transition-duration: var(--pp-duration-standard);
+  transition-timing-function: var(--pp-ease-standard);
+}
+
+/*
  * The shared panel anchors itself, and here it must not.
  *
  * `overlayPanelClass` is `position: absolute; left: 16px; bottom: 16px` —

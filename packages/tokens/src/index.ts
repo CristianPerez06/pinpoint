@@ -37,6 +37,7 @@ export {
   COLOUR,
   MARKER_TYPE_COLOURS,
   MARKER_FOREGROUND,
+  MARK_LAND,
 } from './colour'
 export type { MarkerTypeColourKey, Themed, ThemeMode, ThemePreference } from './colour'
 

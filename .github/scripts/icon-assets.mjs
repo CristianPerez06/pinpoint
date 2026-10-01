@@ -12,6 +12,7 @@
  * disagreed on size because each was cut against its own file.
  */
 
+import { FRAME } from './icon-globe.mjs'
 import { pathBounds } from './icon-mark.mjs'
 
 /** The drop, as a fraction of whatever the host actually draws. */
@@ -117,5 +118,19 @@ export const ASSETS = [
     dropWidth: SPLASH_PIN_OF_SPHERE * (drop.width / drop.height),
     radius: 0.5,
     note: 'The still launch image: the drop on an amber circle, transparent outside it. `expo-splash-screen` draws it on the ground, and the animated opening starts from exactly this frame.',
+  },
+  {
+    path: 'apps/web/public/globe.png',
+    kind: 'globe',
+    contract: 'frames of a turn',
+    frame: 96,
+    note: 'The laptop\'s waiting area, at 2×: a browser downloads this while it waits, so it is cut no larger than a laptop screen needs.',
+  },
+  {
+    path: 'apps/mobile/assets/globe.png',
+    kind: 'globe',
+    contract: 'frames of a turn',
+    frame: FRAME,
+    note: 'The phone\'s waiting area, at 3×. The sphere and the continents only; each application draws the pin on top from the mark\'s own definition.',
   },
 ]

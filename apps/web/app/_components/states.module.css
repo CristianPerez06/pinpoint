@@ -13,19 +13,68 @@
   background: var(--pp-surface-muted);
 }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--pp-radius-pill);
-  border: 2px solid var(--pp-line);
-  border-top-color: var(--pp-accent);
-  animation: spin 0.8s linear infinite;
+/*
+ * The globe in the map's waiting area.
+ *
+ * `globe.png` is 72 frames of one turn in a 9 × 8 grid, cut by
+ * `.github/scripts/icon-globe.mjs` at twice this size. Two stepped animations
+ * walk it like a flip-book: across a row nine times faster than down the
+ * columns, so the frames come in order — row by row, each row in a ninth of the
+ * time a full turn takes over eight rows. One full turn takes `turn`, at a
+ * constant speed. Under reduce motion `globals.css` collapses both to a single
+ * instant, and the sheet is left on its first frame: the globe stands still.
+ *
+ * The pin stands on the middle of the sphere, its point at the centre, its
+ * head rising above the top edge as the opening's does — so the box is taller
+ * than the sphere by the part of the pin that clears it.
+ */
+.globe {
+  --globe: 48px;
+  position: relative;
+  width: var(--globe);
+  height: var(--globe);
+  margin-top: calc(var(--globe) * 0.14);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.sphere {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--pp-radius-pill);
+  background-image: url('/globe.png');
+  background-repeat: no-repeat;
+  background-size: calc(var(--globe) * 9) calc(var(--globe) * 8);
+  animation:
+    globe-across calc(var(--pp-duration-turn) / 8) steps(9) infinite,
+    globe-down var(--pp-duration-turn) steps(8) infinite;
+}
+
+@keyframes globe-across {
+  from {
+    background-position-x: 0;
   }
+  to {
+    background-position-x: calc(var(--globe) * -9);
+  }
+}
+
+@keyframes globe-down {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: calc(var(--globe) * -8);
+  }
+}
+
+.globePin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--globe) * 0.62 * 32 / 42);
+  height: calc(var(--globe) * 0.62);
+  translate: -50% -100%;
+  overflow: visible;
+  filter: drop-shadow(var(--pp-shadow-pin));
 }
 
 .message {

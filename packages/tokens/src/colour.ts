@@ -172,6 +172,16 @@ export type MarkerTypeColourKey = keyof typeof MARKER_TYPE_COLOURS
 export const MARKER_FOREGROUND: Themed = { light: '#FFFFFF', dark: '#171614' }
 
 /**
+ * The continents on the mark's globe: the sphere's amber taken darker.
+ *
+ * Not themed, because the mark carries its own ground and is the same on both
+ * (`product-mark`). It lived as a literal in the phone's opening while that was
+ * the only thing drawing it; the waiting area's globe draws it too, so it is a
+ * shared value now and belongs here.
+ */
+export const MARK_LAND = '#B8741A'
+
+/**
  * Neutrals and the accent, used by both applications for the surfaces around
  * the map.
  *
