@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto'
 
 import { createPinpointClient, type SessionStorage } from '@pinpoint/supabase'
 import * as SecureStore from 'expo-secure-store'
+import { AppState } from 'react-native'
 
 import { config } from '@/lib/config'
 
@@ -38,3 +39,22 @@ export const supabase = createPinpointClient(
     autoRefreshToken: true,
   },
 )
+
+/*
+  Keep the session fresh only while the app is in front (`auth`).
+
+  The client pauses its refresh timer for a hidden tab in a browser and nowhere
+  else — on a phone it would run, freeze or fire late at the platform's whim.
+  Starting it again runs one check at once, so a session that expired while the
+  app was away is renewed on return; a refresh that cannot reach the service
+  keeps the session and is tried again on the next tick.
+
+  Any state but `active` stops it, iOS's `inactive` included, unlike
+  `useActiveAgain`: here a brief pause costs one check on return and reads
+  nothing. Registered once, for the life of the client. The app is already in
+  front when this module loads, and `autoRefreshToken` starts the timer for that.
+*/
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') void supabase.auth.startAutoRefresh()
+  else void supabase.auth.stopAutoRefresh()
+})
