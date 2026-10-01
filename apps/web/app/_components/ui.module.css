@@ -1108,3 +1108,270 @@
     transition-timing-function: var(--pp-ease-standard);
   }
 }
+
+/*
+ * A day field, drawn as the phone's is: the date on the left and a calendar on
+ * the right, with `Clear` beside it while there is a day to clear. The field is
+ * a button wearing `.control`, so it sits among the text fields as one of them.
+ */
+.dayRow {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+}
+
+.dayValue {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.dayValue:focus-visible {
+  outline: none;
+  background: var(--pp-surface);
+  border-color: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.dayValue[aria-disabled='true'],
+.dayValue[aria-disabled='true']:hover {
+  border-color: transparent;
+  background: var(--pp-surface-sunk);
+  color: var(--pp-ink-muted);
+  cursor: default;
+}
+
+.dayValue[data-invalid] {
+  border-color: var(--pp-danger);
+}
+
+.dayText {
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayEmpty {
+  color: var(--pp-ink-muted);
+}
+
+.dayClear {
+  flex: 0 0 auto;
+  padding: var(--pp-space-sm) var(--pp-space-xs);
+  border: 0;
+  background: none;
+  color: var(--pp-ink-muted);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: var(--pp-type-control-weight);
+  cursor: pointer;
+}
+
+.dayClear:hover {
+  color: var(--pp-ink);
+}
+
+/*
+ * Standing among buttons rather than among fields — the calendar screen's day,
+ * between its two step buttons — and dressed as they are: the surface and the
+ * stronger line, at their height.
+ */
+.dayStandaloneField {
+  display: grid;
+  gap: 2px;
+}
+
+.dayStandaloneLabel {
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.dayValueStandalone {
+  height: 36px;
+  padding: 0 var(--pp-space-sm);
+  border-color: var(--pp-line-strong);
+  background: var(--pp-surface);
+}
+
+/*
+ * The calendar, centred on the screen in the top layer.
+ *
+ * The dialog is reset to nothing but a positioner: the browser gives it a
+ * border, padding and a canvas background, and its inside must be filled by the
+ * calendar's own panel so that a press landing on the dialog itself can only
+ * have been beside it. The rise into place is `.surface`'s, the same distance
+ * the corner card travels.
+ */
+.dayDialog {
+  max-width: calc(100vw - 2 * var(--pp-space-md));
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: var(--pp-ink);
+}
+
+/*
+ * The dimming, the same depth the sheets' scrim uses. It fades with the
+ * calendar, and leaves quicker than it came, as the surface does.
+ */
+.dayDialog::backdrop {
+  background: #00000063;
+  transition: opacity var(--pp-duration-arrive) var(--pp-ease-settle);
+}
+
+@starting-style {
+  .dayDialog[data-surface='open']:not([data-entered])::backdrop {
+    opacity: 0;
+  }
+}
+
+.dayDialog[data-surface='closing']::backdrop {
+  opacity: 0;
+  transition-duration: var(--pp-duration-standard);
+  transition-timing-function: var(--pp-ease-standard);
+}
+
+.dayPanel {
+  padding: var(--pp-space-sm) var(--pp-space-sm) var(--pp-space-md);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-lg);
+}
+
+/*
+ * The month grid. Seven columns of 38px, which is 266px plus the panel's
+ * padding — inside a 320px screen with its 16px gutters, and the same size on
+ * every screen, as the phone's calendar is.
+ */
+.dayPicker {
+  font-family: inherit;
+}
+
+.dayMonths {
+  position: relative;
+}
+
+.dayMonth {
+  display: grid;
+  gap: var(--pp-space-xs);
+}
+
+.dayCaption {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--pp-space-xs);
+}
+
+.dayCaptionLabel {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+}
+
+/* The arrows sit on the caption's row, at its far end. */
+.dayNav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: var(--pp-space-xs);
+}
+
+.dayNavButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: var(--pp-accent-ink);
+  cursor: pointer;
+}
+
+.dayNavButton:hover {
+  background: var(--pp-surface-muted);
+}
+
+.dayNavButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.dayGrid {
+  border-collapse: collapse;
+}
+
+.dayWeekday {
+  width: 38px;
+  padding: var(--pp-space-xs) 0 6px;
+  color: var(--pp-ink-muted);
+  font-size: var(--pp-type-label-size);
+  font-weight: var(--pp-type-label-weight);
+  letter-spacing: var(--pp-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.dayCell {
+  padding: 1px;
+  text-align: center;
+}
+
+.dayButton {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: none;
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-numeric-size);
+  font-weight: var(--pp-type-numeric-weight);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dayButton:hover {
+  background: var(--pp-surface-muted);
+}
+
+.dayButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pp-accent-ring);
+}
+
+.dayToday .dayButton {
+  color: var(--pp-accent-ink);
+}
+
+/*
+ * The chosen day fills with the accent and letters itself in `inkOnAccent`,
+ * never in `accentInk`: on the dark ground the two accents are the same colour,
+ * and a day drawn in one on the other would vanish (AGENTS.md).
+ */
+.daySelected .dayButton,
+.daySelected .dayButton:hover {
+  background: var(--pp-accent);
+  color: var(--pp-ink-on-accent);
+}
+
+.dayOutside,
+.dayHidden {
+  visibility: hidden;
+}
+
+.dayFocused {
+  position: relative;
+}

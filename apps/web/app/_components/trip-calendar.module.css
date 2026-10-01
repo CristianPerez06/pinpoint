@@ -162,27 +162,6 @@
   gap: 2px;
 }
 
-.pickerLabel {
-  color: var(--pp-ink-muted);
-  font-size: var(--pp-type-label-size);
-  font-weight: var(--pp-type-label-weight);
-  letter-spacing: var(--pp-type-label-tracking);
-  text-transform: uppercase;
-}
-
-.pickerInput {
-  width: 100%;
-  min-width: 0;
-  height: 36px;
-  padding: 0 var(--pp-space-sm);
-  border: 1px solid var(--pp-line-strong);
-  border-radius: var(--pp-radius-md);
-  background: var(--pp-surface);
-  color: var(--pp-ink);
-  font: inherit;
-  font-size: var(--pp-type-body-size);
-}
-
 /*
  * The switch between the day and the places waiting for one.
  *
@@ -674,7 +653,6 @@
  * its live state by more than colour: the outline goes and the fill sinks.
  */
 .step[aria-disabled='true'],
-.pickerInput[aria-disabled='true'],
 .back[aria-disabled='true'] {
   border-color: transparent;
   background: var(--pp-surface-sunk);
@@ -700,13 +678,6 @@
 .nameHolderInline {
   display: inline-block;
   vertical-align: top;
-}
-
-/* The field's waiting form is a button holding a bar, laid out as the field. */
-button.pickerInput {
-  display: flex;
-  align-items: center;
-  text-align: start;
 }
 
 /*

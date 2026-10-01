@@ -113,6 +113,35 @@ export function formatDayFull(language: Language, day: IsoDay): string {
   return `${named}${YEAR_JOIN[language]}${yearOf(day)}`
 }
 
+/**
+ * `August 2027` — the month a day falls in, as a calendar heads it.
+ *
+ * Spanish joins the year with `de` and keeps the month in lower case
+ * (`agosto de 2027`), which is what `es-ES` answers; nothing is substituted.
+ */
+export function formatMonth(language: Language, day: IsoDay): string {
+  return worded(language, day, { month: 'long', year: 'numeric' })
+}
+
+/**
+ * `Monday` — a weekday named in full, for a calendar's column heading heard
+ * rather than seen. `lunes` in Spanish.
+ */
+export function formatWeekday(language: Language, day: IsoDay): string {
+  return worded(language, day, { weekday: 'long' })
+}
+
+/**
+ * `Mon` — a weekday's abbreviation, as a calendar heads its column.
+ *
+ * `lun` in Spanish, lower case and without the full stop some runtimes add to
+ * an abbreviation. A column heading is a label rather than a sentence, and the
+ * stop is the one piece of it a runtime decides rather than the language.
+ */
+export function formatWeekdayShort(language: Language, day: IsoDay): string {
+  return worded(language, day, { weekday: 'short' }).replace(/\.$/, '')
+}
+
 /** What stands between a worded day and its year, per language. */
 const YEAR_JOIN: Readonly<Record<Language, string>> = {
   en: ' ',

@@ -1,6 +1,9 @@
 'use client'
 
+import { formatDay, formatDayNumeric, todayAsDay, type IsoDay } from '@pinpoint/core'
 import { message, type Message } from '@pinpoint/wording'
+import { Calendar } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import {
   createContext,
   type ReactNode,
@@ -14,7 +17,7 @@ import {
   useState,
 } from 'react'
 
-import { useSay } from '@/app/_components/language'
+import { useLanguage, useSay } from '@/app/_components/language'
 import { usePresence, type SurfaceProps } from '@/lib/use-presence'
 
 import styles from './ui.module.css'
@@ -796,13 +799,8 @@ export function TextField({
   onChange: (value: string) => void
   error?: Message
   placeholder?: string
-  /**
-   * `date` renders the browser's own date control, which anchors its picker to
-   * the field rather than raising a layer of ours over a form that is already
-   * raised over the map. Its value is a `YYYY-MM-DD` string in and out, which
-   * is the shape the day is stored and carried in everywhere.
-   */
-  type?: 'text' | 'url' | 'number' | 'email' | 'date'
+  /** A day is not typed: it is chosen in a `DayField`. */
+  type?: 'text' | 'url' | 'number' | 'email'
   multiline?: boolean
   autoFocus?: boolean
   hint?: string
@@ -843,6 +841,275 @@ export function TextField({
         <span className={styles.hint}>{hint}</span>
       ) : null}
     </label>
+  )
+}
+
+/**
+ * The month grid, loaded on first use; see `day-grid.tsx` for why. `loadDayGrid`
+ * is the same import, started early by a field the pointer or focus has reached,
+ * which `next/dynamic` then finds already under way.
+ */
+const loadDayGrid = () => import('./day-grid')
+const DayGrid = dynamic(loadDayGrid, { ssr: false })
+
+/**
+ * A day, chosen from a calendar centred on the screen — the phone's `DayField`,
+ * drawn for the laptop (`trip-calendar`, *A place is given its day on the place
+ * itself, from a centred calendar*).
+ *
+ * The field is a button rather than an input: the date reads `03/08/2027` from
+ * the shared numeric wording, or `No day yet`, and pressing it opens the
+ * calendar. Nothing can be typed, so nothing can be half-typed, which is the
+ * state the browser's own control used to leave a form in.
+ *
+ * `value` is the day or `null`, never `''`. The forms that still carry a day as
+ * a string convert where they call this, so there is one meaning of "no day" in
+ * here rather than two.
+ */
+export function DayField({
+  label,
+  value,
+  onChange,
+  error,
+  hint,
+  clearable = true,
+  standalone = false,
+  startFrom,
+  autoFocus,
+  waiting = false,
+}: {
+  label: string
+  value: IsoDay | null
+  onChange: (day: IsoDay | null) => void
+  error?: Message
+  hint?: string
+  /**
+   * Whether having no day is a state this field can reach. False for the
+   * calendar screen's own day, where there is no "no day" to be on and a
+   * `Clear` would be a control with nowhere to go.
+   */
+  clearable?: boolean
+  /**
+   * Drawn among buttons rather than among a form's fields: the calendar
+   * screen stands it between its two step buttons and dresses it as they are.
+   */
+  standalone?: boolean
+  /**
+   * The day an empty field's calendar opens near, instead of today. `Until`
+   * passes the place's first day, because the last day of a run is almost
+   * always close to it.
+   */
+  startFrom?: IsoDay | null
+  autoFocus?: boolean
+  /**
+   * The day is not known yet: the calendar screen before its trip is read.
+   *
+   * The same field, inert, as the phone's is. It stays in the tab order, is
+   * reported unavailable and does nothing when pressed, and it is drawn in the
+   * chrome's inert look with a bar where the date will be. A date written there
+   * would be a guess, since which day a trip opens on depends on its dates. It
+   * is this field rather than a lookalike, so it cannot change shape when the
+   * trip arrives.
+   */
+  waiting?: boolean
+}) {
+  const say = useSay()
+  const language = useLanguage()
+  const labelId = useId()
+  const opener = useRef<HTMLButtonElement | null>(null)
+  const [picking, setPicking] = useState(false)
+  const invalid = error !== undefined
+
+  return (
+    <div className={standalone ? styles.dayStandaloneField : styles.field}>
+      <span id={labelId} className={standalone ? styles.dayStandaloneLabel : styles.label}>
+        {label}
+      </span>
+
+      <div className={styles.dayRow}>
+        <button
+          ref={opener}
+          type="button"
+          onClick={() => {
+            if (!waiting) setPicking(true)
+          }}
+          onPointerEnter={loadDayGrid}
+          onFocus={loadDayGrid}
+          aria-disabled={waiting || undefined}
+          aria-haspopup="dialog"
+          // The refusal is spoken by the alert beneath; this only draws it.
+          data-invalid={invalid || undefined}
+          aria-label={
+            waiting
+              ? label
+              : value === null
+              ? say(message('dayField.spokenEmpty', { label }))
+              : say(message('dayField.spokenDay', { label, day: formatDay(language, value) }))
+          }
+          autoFocus={autoFocus}
+          className={`${styles.control} ${styles.dayValue} ${standalone ? styles.dayValueStandalone : ''}`}
+        >
+          {waiting ? (
+            <NamePlaceholder measure="10ch" />
+          ) : (
+            <span className={value === null ? styles.dayEmpty : styles.dayText}>
+              {value === null ? say(message('empty.day')) : formatDayNumeric(value)}
+            </span>
+          )}
+          <Calendar size={18} strokeWidth={2} aria-hidden />
+        </button>
+
+        {/*
+          Only where there is something to clear. A `Clear` beside an empty
+          field is a control that cannot do anything.
+        */}
+        {value !== null && clearable && !waiting ? (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label={say(message('dayField.clear', { label }))}
+            className={styles.dayClear}
+          >
+            {say(message('common.clear'))}
+          </button>
+        ) : null}
+      </div>
+
+      {invalid ? (
+        <span role="alert" className={styles.error}>
+          {say(error)}
+        </span>
+      ) : hint ? (
+        <span className={styles.hint}>{hint}</span>
+      ) : null}
+
+      <DayCalendar
+        open={picking}
+        labelId={labelId}
+        value={value}
+        startFrom={startFrom ?? null}
+        opener={opener}
+        onChoose={(day) => {
+          setPicking(false)
+          onChange(day)
+        }}
+        onClose={() => setPicking(false)}
+      />
+    </div>
+  )
+}
+
+/**
+ * The calendar a `DayField` opens, in a modal `<dialog>` nested in the field.
+ *
+ * WHY A DIALOG, AND WHY INSIDE THE FIELD
+ *
+ * Every surface here dismisses on a press outside it and on Escape
+ * (`useDismissible`), and decides "outside" by whether its element contains the
+ * press. Mounted anywhere else — a portal at the end of the body, say — the
+ * calendar would be outside the place form, and the first day pressed would
+ * close the form along with it. Nested here, it is inside whatever panel the
+ * field is in, so choosing a date dismisses nothing.
+ *
+ * `showModal()` is what lets it be nested *and* centred. It draws in the
+ * browser's top layer, which no ancestor's position, overflow or transform can
+ * reach, so the calendar centres on the screen from inside a corner card. It
+ * also makes the rest of the page inert while open, which keeps focus inside,
+ * and draws the dimming as `::backdrop`.
+ *
+ * WHY ESCAPE IS STOPPED HERE
+ *
+ * The form underneath listens for Escape on the document. Left to bubble, one
+ * press would close the calendar and then the form — or ask whether to discard
+ * what was typed into it. The calendar answers Escape itself and goes no
+ * further; see the effect below for why that is done natively.
+ *
+ * Held on the page while it leaves (`usePresence`), as every surface is. The
+ * dialog stays open for that time and is removed afterwards, and focus goes
+ * back to the field that opened it.
+ */
+function DayCalendar({
+  open,
+  labelId,
+  value,
+  startFrom,
+  opener,
+  onChoose,
+  onClose,
+}: {
+  open: boolean
+  labelId: string
+  value: IsoDay | null
+  startFrom: IsoDay | null
+  opener: RefObject<HTMLButtonElement | null>
+  onChoose: (day: IsoDay) => void
+  onClose: () => void
+}) {
+  const { mounted, surface } = usePresence(open)
+  const dialog = useRef<HTMLDialogElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (!mounted) return
+    const element = dialog.current
+    const field = opener.current
+    if (element && !element.open) element.showModal()
+
+    /*
+     * Escape stops at the calendar, and it has to be stopped natively, here.
+     *
+     * Next.js hydrates React onto the document itself, so React's own listener
+     * and the form's Escape listener are on the same node: a React handler's
+     * `stopPropagation` runs on the document and stops nothing there. One press
+     * closed the calendar and then asked whether to discard the form. Stopped on
+     * the dialog it never reaches the document. Closing is left to `cancel`,
+     * which the browser still fires for this press.
+     */
+    const contain = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') event.stopPropagation()
+    }
+    element?.addEventListener('keydown', contain)
+
+    return () => {
+      element?.removeEventListener('keydown', contain)
+      if (element?.open) element.close()
+      // A frame later, once the dialog is gone and the page is no longer inert.
+      requestAnimationFrame(() => {
+        const settled = document.activeElement
+        if (settled !== null && settled !== document.body) return
+        field?.focus()
+      })
+    }
+  }, [mounted, opener])
+
+  if (!mounted) return null
+
+  // What the calendar opens on. Today when there is nothing nearer, and never a
+  // day remembered from an earlier use: a date nobody chose should not be the
+  // one a control offers next.
+  const shown = value ?? startFrom ?? todayAsDay()
+
+  return (
+    <dialog
+      ref={dialog}
+      aria-labelledby={labelId}
+      {...surface}
+      className={`${styles.dayDialog} ${surfaceClass}`}
+      // The browser closes a modal dialog on Escape by itself, which would skip
+      // the closing motion and leave this out of step with `open`.
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      // The dialog itself is the backdrop and nothing else: the calendar fills
+      // its inside, so a press whose target is the dialog landed beside it.
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div className={styles.dayPanel}>
+        <DayGrid value={value} shown={shown} onChoose={onChoose} />
+      </div>
+    </dialog>
   )
 }
 

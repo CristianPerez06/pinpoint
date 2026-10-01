@@ -24,7 +24,7 @@ import { ChromeBar } from '@/app/_components/chrome-bar'
 import { useLanguage, useSay } from '@/app/_components/language'
 import { TypeChip } from '@/app/_components/pin'
 import { TripBar } from '@/app/_components/trip-bar'
-import { NamePlaceholder } from '@/app/_components/ui'
+import { DayField, NamePlaceholder } from '@/app/_components/ui'
 
 import styles from './trip-calendar.module.css'
 
@@ -219,19 +219,20 @@ export function CalendarScreen({
                 <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
               </button>
 
-              <label className={styles.picker}>
-                <span className={styles.pickerLabel}>{say(message('calendar.dayField'))}</span>
-                <input
-                  type="date"
+              <div className={styles.picker}>
+                <DayField
+                  label={say(message('calendar.dayField'))}
                   value={live.day}
-                  onChange={(event) => {
-                    // An emptied date control must not navigate to nowhere. There
-                    // is no "no day" to be on; the day being read is always a day.
-                    if (event.target.value !== '') live.onGoToDay(event.target.value)
+                  // The day being read is always a day: there is no "no day" to
+                  // be on, so this field offers no `Clear` and an emptied value
+                  // cannot arrive.
+                  clearable={false}
+                  standalone
+                  onChange={(day) => {
+                    if (day !== null) live.onGoToDay(day)
                   }}
-                  className={styles.pickerInput}
                 />
-              </label>
+              </div>
 
               <button
                 type="button"
@@ -263,16 +264,16 @@ export function CalendarScreen({
                 <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
               </button>
 
-              <label className={styles.picker}>
-                <span className={styles.pickerLabel}>{say(message('calendar.dayField'))}</span>
-                <button
-                  type="button"
-                  aria-disabled="true"
-                  className={styles.pickerInput}
-                >
-                  <NamePlaceholder className={styles.nameHolder} measure="10ch" />
-                </button>
-              </label>
+              <div className={styles.picker}>
+                <DayField
+                  label={say(message('calendar.dayField'))}
+                  value={null}
+                  clearable={false}
+                  standalone
+                  waiting
+                  onChange={() => {}}
+                />
+              </div>
 
               <button
                 type="button"

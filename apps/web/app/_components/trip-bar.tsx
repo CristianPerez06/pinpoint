@@ -21,6 +21,7 @@ import {
   FormError,
   Menu,
   Question,
+  DayField,
   TextField,
   WaitingMenu,
 } from '@/app/_components/ui'
@@ -458,19 +459,17 @@ function TripBarLive({
       {view === 'dates' ? (
         <>
           <p className={styles.heading}>{say(message('trip.dates'))}</p>
-          <TextField
+          <DayField
             label={say(message('trip.startDate'))}
-            type="date"
-            value={startsOn}
-            onChange={setStartsOn}
+            value={startsOn === '' ? null : startsOn}
+            onChange={(day) => setStartsOn(day ?? '')}
             error={dateErrors.startsOn}
             autoFocus
           />
-          <TextField
+          <DayField
             label={say(message('trip.endDate'))}
-            type="date"
-            value={endsOn}
-            onChange={setEndsOn}
+            value={endsOn === '' ? null : endsOn}
+            onChange={(day) => setEndsOn(day ?? '')}
             error={dateErrors.endsOn}
             hint={say(message('trip.datesHint'))}
           />
@@ -492,17 +491,6 @@ function TripBarLive({
               }
             >
               {say(saving ? message('common.saving') : message('common.save'))}
-            </Button>
-            <Button
-              tone="quiet"
-              disabled={saving || (startsOn === '' && endsOn === '')}
-              onClick={() => {
-                setStartsOn('')
-                setEndsOn('')
-                setDateErrors({})
-              }}
-            >
-              {say(message('common.clear'))}
             </Button>
             <Button tone="quiet" onClick={() => setView('root')}>
               {say(message('common.back'))}

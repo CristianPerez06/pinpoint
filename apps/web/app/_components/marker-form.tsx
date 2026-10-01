@@ -30,6 +30,7 @@ import {
   PriceField,
   Question,
   SelectField,
+  DayField,
   TextField,
   surfaceClass,
   useDismissible,
@@ -420,16 +421,15 @@ export function MarkerForm({
         ]}
       />
 
-      <TextField
+      <DayField
         label={say(message('placeField.day'))}
-        type="date"
-        value={plannedOn}
+        value={plannedOn === '' ? null : plannedOn}
         onChange={(value) => {
-          setPlannedOn(value)
+          setPlannedOn(value ?? '')
           // Clearing the day clears the run with it and puts the second field
           // away: a last day with nothing to start from is not something the
           // store will take, and leaving it on screen would offer it anyway.
-          if (value === '') {
+          if (value === null) {
             setPlannedUntil('')
             setExtended(false)
           }
@@ -458,16 +458,18 @@ export function MarkerForm({
       ) : null}
 
       {plannedOn !== '' && extended ? (
-        <TextField
+        <DayField
           label={say(message('placeField.until'))}
-          type="date"
-          value={plannedUntil}
+          value={plannedUntil === '' ? null : plannedUntil}
+          // An empty `Until` opens on the first day's month: the last day of a
+          // run is almost always close to its first.
+          startFrom={plannedOn}
           // Emptying the field is the way back out, so there is one act rather
           // than a separate control to find — and no question about what
           // happens to a date typed into a field being hidden.
           onChange={(value) => {
-            setPlannedUntil(value)
-            if (value === '') setExtended(false)
+            setPlannedUntil(value ?? '')
+            if (value === null) setExtended(false)
           }}
           error={fieldErrors.plannedUntil}
           hint={say(message('placeForm.untilHint'))}
