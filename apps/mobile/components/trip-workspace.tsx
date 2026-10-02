@@ -56,6 +56,7 @@ import {
   useState,
 } from 'react'
 import {
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -93,6 +94,7 @@ import { useSignOut } from '@/lib/sign-out'
 import { useOnline } from '@/lib/connectivity'
 import { useOfflineMapNote } from '@/lib/offline-map'
 import { useAfterSending, useWaiting } from '@/lib/waiting'
+import { useWhereAmI } from '@/lib/where-am-i'
 
 /**
  * Everything a trip can be doing on a phone, in one place.
@@ -1543,6 +1545,37 @@ function Body({
    * note appears.
    */
   const [somethingToLookAt, setSomethingToLookAt] = useState(true)
+  /**
+   * The person's position (`device-location`). Held here, above the early
+   * returns, so it outlives a re-read's loading state: the dot and the watch
+   * behind it survive the trip being read again.
+   */
+  const whereAmI = useWhereAmI()
+
+  /**
+   * A refused or missing position, said where every note over this map is
+   * said. While it stands the notes about the trip's places step aside: it
+   * answers a press made a moment ago, and two pills in the same slot would
+   * draw over each other.
+   */
+  const locationNote =
+    whereAmI.status === 'refused' ? (
+      <MarkersOverlayNote
+        onPress={() => {
+          // iOS will not ask a second time, so the way out is the app's own
+          // page in Settings. Dismissed as it opens: coming back to the note
+          // that sent you away says nothing new.
+          whereAmI.dismiss()
+          void Linking.openSettings()
+        }}
+      >
+        {say(message('map.locationOff'))}
+      </MarkersOverlayNote>
+    ) : whereAmI.status === 'notFound' ? (
+      <MarkersOverlayNote onPress={whereAmI.dismiss}>
+        {say(message('map.locationNotFound'))}
+      </MarkersOverlayNote>
+    ) : null
 
   if (failed !== null && total === 0) return <FailedState message={failed} />
   // The same wait the route draws before the trip is known, so the area changes
@@ -1554,6 +1587,7 @@ function Body({
       <TripMap
         ref={mapRef}
         tripId={tripId}
+        whereAmI={whereAmI}
         onSomethingToLookAt={setSomethingToLookAt}
         centreRef={centreRef}
         dropping={dropping}
@@ -1580,11 +1614,13 @@ function Body({
         onSetVisited={onSetVisited}
       />
 
-      {total === 0 ? (
+      {locationNote}
+
+      {locationNote === null && total === 0 ? (
         <MarkersOverlayNote>{say(message('map.noPlacesYet'))}</MarkersOverlayNote>
       ) : null}
 
-      {total > 0 && visible.length === 0 ? (
+      {locationNote === null && total > 0 && visible.length === 0 ? (
         <MarkersOverlayNote onPress={onClearFilter}>
           {say(message('map.noMatchesTap', { count: total }))}
         </MarkersOverlayNote>
@@ -1610,7 +1646,7 @@ function Body({
         `visible.length === 0` and this one needs the opposite, and the first
         needs no places at all.
       */}
-      {narrowed && visible.length > 0 && !somethingToLookAt ? (
+      {locationNote === null && narrowed && visible.length > 0 && !somethingToLookAt ? (
         <MarkersOverlayNote onPress={onShowMatches}>
           {say(message('map.matchesOutOfViewTap', { count: visible.length }))}
         </MarkersOverlayNote>

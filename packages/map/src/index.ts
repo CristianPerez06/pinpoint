@@ -4,6 +4,7 @@ export type {
   LngLat,
   Rect,
   Viewport,
+  WhereAmIStatus,
 } from './types'
 
 export {
@@ -27,6 +28,8 @@ export {
   fitBounds,
   frameAround,
   liftOffset,
+  accuracyRadiusPx,
+  isCentredOn,
   normalizeLongitude,
   offsetCenter,
   withinBounds,
@@ -101,3 +104,9 @@ export type {
   MarkerView,
   MarkerViewInput,
 } from './marker-view'
+
+export { locate, LOCATE_TIMEOUT_MS, LocationRefused } from './locate'
+export type { Fix, LocateOutcome } from './locate'
+
+export { LOCATION_SOURCE, locationFeature, locationLayers } from './location'
+export type { LocationLayer, PointFeature } from './location'

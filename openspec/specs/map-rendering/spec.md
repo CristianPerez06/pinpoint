@@ -123,7 +123,7 @@ than failing or showing an undefined region.
 When the trip has exactly one marker, the map SHALL centre on it at a zoom level that
 shows its surroundings rather than at maximum zoom.
 
-The map SHALL re-frame when, and only when, the person asks it to. Two things are such
+The map SHALL re-frame when, and only when, the person asks it to. Three things are such
 a request:
 
 - **Selecting a city**, which SHALL frame that city's markers using the same shared
@@ -135,11 +135,14 @@ a request:
   the camera still would put the place they just chose somewhere they cannot see, and
   the position they are being invited to confirm would be invisible while they
   confirmed it.
+- **Pressing "where am I"**, which SHALL move to the person's position, as
+  `device-location` describes. Asking where you are is asking to see it; a position
+  found and then left off screen would answer nothing.
 
 Nothing else SHALL move the camera. Panning or zooming SHALL NOT be overridden by
-re-framing, and markers arriving, changing, or being added SHALL NOT re-frame — the
-distinction being drawn is between a view the person put somewhere and a view the
-application moved on its own.
+re-framing, markers arriving, changing, or being added SHALL NOT re-frame, and the
+person's position changing SHALL NOT move the camera — the distinction being drawn is
+between a view the person put somewhere and a view the application moved on its own.
 
 #### Scenario: A trip with several markers
 
@@ -203,6 +206,18 @@ application moved on its own.
 - **WHEN** a marker is saved after the person has moved the view
 - **THEN** the view stays where they put it
 - **AND** the new marker is drawn wherever it falls, visible or not
+
+#### Scenario: "Where am I" is pressed
+
+- **WHEN** a person presses "where am I" and their position is found
+- **THEN** the map moves to that position
+- **AND** it uses the same shared logic as a single place, so it is close enough to show
+  what surrounds the position rather than at maximum zoom
+
+#### Scenario: The person walks while the map is elsewhere
+
+- **WHEN** the person's position changes after the map has moved to it
+- **THEN** the camera does not move
 
 ### Requirement: Markers at identical coordinates remain reachable
 

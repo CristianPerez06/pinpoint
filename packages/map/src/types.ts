@@ -46,6 +46,16 @@ export interface Rect {
   bottom: number
 }
 
+/**
+ * Where the attempt to find the person's position stands (`device-location`).
+ *
+ * Shared so both applications — and whatever later reads the position for
+ * distances — mean the same thing by each name. `refused` is the platform
+ * saying no; `notFound` is permission granted and no position arriving, which
+ * has a different fix and so a different sentence.
+ */
+export type WhereAmIStatus = 'idle' | 'finding' | 'found' | 'refused' | 'notFound'
+
 /** A camera position. Both platforms accept this shape after trivial mapping. */
 export interface Camera {
   center: LngLat

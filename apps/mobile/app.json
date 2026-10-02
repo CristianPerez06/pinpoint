@@ -17,6 +17,12 @@
       "@react-native-community/datetimepicker",
       "expo-localization",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pinpoint shows where you are on the trip's map."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
@@ -30,6 +36,9 @@
         }
       ]
     ],
+    "locales": {
+      "es": "./locales/es.json"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ar.com.pinpoint.app"

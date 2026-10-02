@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  accuracyRadiusPx,
+  isCentredOn,
   boundsOf,
   boundsWidth,
   coveredBandHeight,
@@ -591,5 +593,49 @@ describe('withinBounds', () => {
     expect(withinBounds(wide, { lng: 0, lat: 0 })).toBe(true)
     expect(withinBounds(wide, { lng: 179, lat: 0 })).toBe(true)
     expect(withinBounds(wide, { lng: -179, lat: 0 })).toBe(true)
+  })
+})
+
+describe('accuracyRadiusPx', () => {
+  it('converts metres at the equator by the tile scale', () => {
+    // At zoom 0 the whole circumference spans one 512-pixel tile.
+    expect(accuracyRadiusPx(40_075_016.686, 0, 0)).toBeCloseTo(512, 6)
+  })
+
+  it('grows away from the equator, as Mercator stretches the ground', () => {
+    const equator = accuracyRadiusPx(1000, 0, 14)
+    expect(accuracyRadiusPx(1000, 60, 14)).toBeCloseTo(equator * 2, 6)
+  })
+
+  it('doubles with each zoom step', () => {
+    const at14 = accuracyRadiusPx(1500, 35, 14)
+    expect(accuracyRadiusPx(1500, 35, 15)).toBeCloseTo(at14 * 2, 6)
+  })
+})
+
+describe('isCentredOn', () => {
+  const target = { lng: 135.773, lat: 35.001 }
+
+  it('holds at the target itself', () => {
+    expect(isCentredOn(target, target, 14.6)).toBe(true)
+  })
+
+  it('holds for a drift of a pixel or two, as a renderer settles', () => {
+    // About 2.5 m: under a pixel at zoom 14.6 in Kyoto.
+    expect(isCentredOn({ lng: 135.77302, lat: 35.00101 }, target, 14.6)).toBe(true)
+  })
+
+  it('fails once the view has been moved a visible distance', () => {
+    // About 90 m: dozens of pixels at street level.
+    expect(isCentredOn({ lng: 135.774, lat: 35.001 }, target, 14.6)).toBe(false)
+  })
+
+  it('judges the same distance by what can be seen at the zoom', () => {
+    const moved = { lng: 135.774, lat: 35.001 }
+    expect(isCentredOn(moved, target, 8)).toBe(true)
+  })
+
+  it('measures across the antimeridian the short way', () => {
+    expect(isCentredOn({ lng: 179.99999, lat: 0 }, { lng: -179.99999, lat: 0 }, 10)).toBe(true)
   })
 })

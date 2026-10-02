@@ -271,6 +271,56 @@
   }
 }
 
+/*
+ * "Where am I" (`device-location`): the re-read's object in every respect —
+ * size, border, lift, no fill, hover, press — and drawn at every width, since
+ * the browser has nothing that stands in for it. Worn alongside `.reread`, and
+ * declared after it so this `display` is the one that holds.
+ */
+.whereAmI {
+  position: relative;
+  display: grid;
+}
+
+.whereAmIGlyph {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+/* The centre filled while the map is on the person. Lucide's `locate` draws a
+   ring of radius 7 in a 24 box, so a 5px dot sits inside it with the ring's
+   stroke clear around it. */
+.onYou {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: var(--pp-radius-pill);
+  background: currentColor;
+  pointer-events: none;
+}
+
+/* Finding: a ring turning in place of the crosshair, which would read as the
+   map itself spinning if it were the thing turned. */
+.finding {
+  width: 15px;
+  height: 15px;
+  border-radius: var(--pp-radius-pill);
+  border: 2px solid var(--pp-line-strong);
+  border-top-color: var(--pp-ink-muted);
+  animation: rereadSpin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finding {
+    animation: none;
+    border-color: var(--pp-ink-muted);
+  }
+}
+
 .zoom {
   display: grid;
   /* A stacked pair reads as one segmented pill, so the round shape is on the

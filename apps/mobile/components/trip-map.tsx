@@ -1,9 +1,12 @@
 import {
   Camera,
+  GeoJSONSource,
+  Layer,
   Map,
   Marker as MapLibreMarker,
   type Anchor,
   type CameraRef,
+  type CircleLayerSpecification,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native'
 import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
@@ -12,6 +15,10 @@ import {
   DEFAULT_VIEWPORT,
   frameAround,
   groupCoincident,
+  isCentredOn,
+  LOCATION_SOURCE,
+  locationFeature,
+  locationLayers,
   MAX_ZOOM,
   MIN_ZOOM,
   offsetCenter,
@@ -22,11 +29,18 @@ import {
   type MarkerGroup,
   type Viewport,
 } from '@pinpoint/map'
-import { DURATION, ELEVATION, MARKER_ANCHOR, RADIUS, SPACE } from '@pinpoint/tokens'
+import {
+  DURATION,
+  ELEVATION,
+  MARKER_ANCHOR,
+  RADIUS,
+  SPACE,
+} from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 // One subpath each, like `marker-details.tsx` and for the same reason: Metro
 // does not tree-shake in development, so the package root would pull all 1767
 // glyphs into the bundle.
+import Locate from 'lucide-react-native/icons/locate'
 import Minus from 'lucide-react-native/icons/minus'
 import Plus from 'lucide-react-native/icons/plus'
 import RefreshCw from 'lucide-react-native/icons/refresh-cw'
@@ -50,6 +64,7 @@ import { useTripEdition } from '@/lib/offline-map'
 import { useOnline } from '@/lib/connectivity'
 import { useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
+import type { WhereAmI } from '@/lib/where-am-i'
 
 /**
  * The native half of the portability boundary — and the thing the map change
@@ -273,6 +288,17 @@ const styles = StyleSheet.create({
   /* The one hairline between them, on the second only — two adjacent borders
      would draw two lines. */
   zoomDivider: { borderTopWidth: 1 },
+  /* The filled centre of the "where am I" crosshair: Lucide's `locate` draws a
+     ring of radius 7 in a 24 box, so a 6-point dot in the 20-point glyph sits
+     inside it with the ring's stroke clear around it. */
+  onYou: {
+    position: 'absolute',
+    top: 7,
+    left: 7,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   failure: {
     flex: 1,
     alignItems: 'center',
@@ -475,8 +501,18 @@ export function TripMap({
   formHeight,
   centreRef,
   onSomethingToLookAt,
+  whereAmI,
 }: {
   ref?: Ref<TripMapRef>
+  /**
+   * The person's position and the press that finds it (`device-location`).
+   *
+   * Held by the workspace rather than here, because what a refusal says is a
+   * note over the map and the workspace is where those notes are arbitrated.
+   * Moving the camera, drawing the dot and the control are this component's,
+   * because the camera and the edge are.
+   */
+  whereAmI: WhereAmI
   /**
    * Which trip this is. A trip with a download draws the edition of the
    * streets it downloaded (`offline-use`).
@@ -733,6 +769,59 @@ export function TripMap({
    * `currentZoom` below.
    */
   const [zoom, setZoom] = useState<number | null>(null)
+
+  /**
+   * Where the last "where am I" press put the centre of the view, and whether it
+   * is still there (`device-location`).
+   *
+   * The target rather than the person's position, because the camera does not
+   * centre on the person: it centres where the person lands clear of the bar.
+   * Compared by the shared `isCentredOn` on every settle and every new
+   * position, which is what makes the zoom buttons — which keep the centre —
+   * leave the glyph filled while a pan, a pinch, a chosen city, a found place
+   * or simply walking on empty it.
+   */
+  const youPress = useRef<{ fix: LngLat; target: LngLat } | null>(null)
+  const [onYou, setOnYou] = useState(false)
+
+  /** Whether a view centred at `centre` is still on the person where they are now. */
+  const stillOnYou = (centre: LngLat, zoom: number): boolean => {
+    const press = youPress.current
+    const fix = whereAmI.fix
+    if (!press || !fix) return false
+    // Where the press would put the centre for the person's latest position:
+    // the same offset clear of the bar, carried along with them.
+    const wanted = {
+      lng: press.target.lng + (fix.lng - press.fix.lng),
+      lat: press.target.lat + (fix.lat - press.fix.lat),
+    }
+    return isCentredOn(centre, wanted, zoom)
+  }
+
+  useEffect(() => {
+    const centre = centreRef.current
+    const zoom = zoomRef.current
+    if (!youPress.current || !centre || zoom === null) return
+    setOnYou(stillOnYou(centre, zoom))
+    // Re-asked when the person moves; the settle handler asks when the map does.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [whereAmI.fix])
+
+  const findMe = async () => {
+    const fix = await whereAmI.locate()
+    if (!fix) return
+    // One point, framed by the shared derivation exactly as a searched place is
+    // (`map-rendering`), so it lands at the same closeness and clear of the bar.
+    // The bar alone: this control is not drawn while anything else stands on
+    // the floor.
+    const target = frameAround([fix], viewport ?? DEFAULT_VIEWPORT, barHeight)
+    youPress.current = { fix, target: target.center }
+    setOnYou(true)
+    cameraRef.current?.flyTo({
+      center: [target.center.lng, target.center.lat],
+      zoom: target.zoom,
+    })
+  }
 
   /**
    * What the map can see, from the same settle event as the centre and the zoom.
@@ -1129,6 +1218,7 @@ export function TripMap({
             // wrong distance.
             zoomRef.current = event.nativeEvent.zoom
             setZoom(event.nativeEvent.zoom)
+            if (youPress.current) setOnYou(stillOnYou({ lng, lat }, event.nativeEvent.zoom))
             // Checked rather than destructured, because the type is wrong about
             // this one. Android builds `bounds` inside a `try/catch` and returns
             // the view state early when the camera has no target
@@ -1173,6 +1263,25 @@ export function TripMap({
               minZoom={MIN_ZOOM}
               maxZoom={MAX_ZOOM}
             />
+          ) : null}
+
+          {/*
+            The person, once found (`device-location`). Drawn as style layers
+            from the shared description, so it sits beneath every pin, takes no
+            presses, and is the same dot the laptop draws — `locationLayers`
+            says why each of those holds.
+          */}
+          {whereAmI.fix ? (
+            <GeoJSONSource id={LOCATION_SOURCE} data={locationFeature(whereAmI.fix)}>
+              {locationLayers(whereAmI.fix, mode).map((layer) => (
+                <Layer
+                  key={layer.id}
+                  id={layer.id}
+                  type="circle"
+                  paint={layer.paint as CircleLayerSpecification['paint']}
+                />
+              ))}
+            </GeoJSONSource>
           ) : null}
 
           {/*
@@ -1383,6 +1492,49 @@ export function TripMap({
               <ActivityIndicator size="small" color={theme.colour.inkMuted} />
             ) : (
               <RefreshCw size={20} color={theme.colour.ink} strokeWidth={2} />
+            )}
+          </Pressable>
+
+          {/*
+            "Where am I", between the two (`device-location`): pressed far more
+            often than the re-read and less often than zoom, so it stands between
+            them and the re-read keeps the place furthest from a thumb.
+
+            The re-read's object exactly — size, border, lift, no fill — because
+            finding a position commits nothing either. Not greyed with no signal:
+            a phone finds itself without one.
+          */}
+          <Pressable
+            onPress={() => void findMe()}
+            accessibilityRole="button"
+            accessibilityLabel={say(message('map.whereAmI'))}
+            accessibilityState={{ busy: whereAmI.status === 'finding' }}
+            style={[
+              styles.reread,
+              {
+                backgroundColor: theme.colour.surface,
+                borderColor: theme.colour.line,
+                shadowColor: theme.elevation.sm.colour,
+              },
+            ]}
+          >
+            {whereAmI.status === 'finding' ? (
+              <ActivityIndicator size="small" color={theme.colour.inkMuted} />
+            ) : (
+              <View>
+                <Locate size={20} color={theme.colour.ink} strokeWidth={2} />
+                {/*
+                  The centre filled while the map is on the person. Drawn rather
+                  than taken from `locate-fixed`, whose centre is a ring: at this
+                  size the two glyphs read as the same one.
+                */}
+                {onYou ? (
+                  <View
+                    pointerEvents="none"
+                    style={[styles.onYou, { backgroundColor: theme.colour.ink }]}
+                  />
+                ) : null}
+              </View>
             )}
           </Pressable>
 

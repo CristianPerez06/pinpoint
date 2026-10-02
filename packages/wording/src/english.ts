@@ -629,6 +629,14 @@ export const ENGLISH = {
   'map.zoomIn': 'Zoom in',
   'map.zoomOut': 'Zoom out',
   'map.reread': 'Read everything again',
+  /** The control on the map's edge that moves the map to the person (`device-location`). */
+  'map.whereAmI': 'Show where you are',
+  /** The phone's note after location was refused; pressing it opens the app's settings. */
+  'map.locationOff': "Pinpoint can't see your location. Turn it on in Settings.",
+  /** The laptop's note after location was refused: a site cannot open the browser's settings. */
+  'map.locationBlocked': 'Your browser is blocking location for this site. Allow it from the address bar.',
+  /** Permission granted, and no position arrived in time. Pressing again retries. */
+  'map.locationNotFound': 'Could not find where you are. Try again in a moment.',
   'map.loading': 'Loading the map',
   /** The map's line while the phone has no connection: when the trip was last read. */
   /** Under a tap made with no signal, until it is sent. */

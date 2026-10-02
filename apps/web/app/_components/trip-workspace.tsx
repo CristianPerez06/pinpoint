@@ -67,6 +67,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
 import { useShownAgain } from '@/lib/use-shown-again'
 import { useVisibleAgain } from '@/lib/use-visible-again'
+import { useWhereAmI } from '@/lib/where-am-i'
 
 import styles from './trip-workspace.module.css'
 
@@ -400,6 +401,12 @@ export function TripWorkspace({
    * change of language instead of staying in the one it failed in.
    */
   const [problem, setProblem] = useState<Message | null>(null)
+  /**
+   * The person's position (`device-location`): the dot the map draws and the
+   * press that finds it. Here because a refused or missing position is said in
+   * the notes over the map, and this is where their precedence is decided.
+   */
+  const whereAmI = useWhereAmI()
   /**
    * A refusal from a write the trip panel started, kept apart from the note
    * over the map.
@@ -835,6 +842,8 @@ export function TripWorkspace({
    */
   const refusal =
     panel.kind === 'create' || panel.kind === 'edit' ? null : problem
+  /** Whether a refused or missing position is being said over the map. */
+  const locationSaid = whereAmI.status === 'refused' || whereAmI.status === 'notFound'
 
   const cityMarkers = useMemo(
     () => markersSelectedBy(selectedCityId, markers),
@@ -1422,6 +1431,7 @@ export function TripWorkspace({
           selectedKey={panel.kind === 'details' ? panel.groupKey : null}
           departing={departing}
           onMarkersInView={setAnyInView}
+          whereAmI={whereAmI}
         />
 
         {dropping ? (
@@ -1456,10 +1466,29 @@ export function TripWorkspace({
           </MapOverlayNote>
         ) : null}
 
+        {/*
+          A refused or missing position, answering a press made a moment ago.
+          Below a refused write and above everything the filter has to say,
+          which would otherwise be drawn in the same spot over it. A site cannot
+          open the browser's settings, so the refusal says where to look.
+        */}
+        {refusal === null && locationSaid ? (
+          <MapOverlayNote tone="muted">
+            {say(
+              message(
+                whereAmI.status === 'refused' ? 'map.locationBlocked' : 'map.locationNotFound',
+              ),
+            )}{' '}
+            <button type="button" onClick={whereAmI.dismiss} className={styles.inlineAction}>
+              {say(message('map.dismiss'))}
+            </button>
+          </MapOverlayNote>
+        ) : null}
+
         {/* Suppressed once the trip has places: it described the first read, and
             saying "nothing saved yet" beside a marker somebody just added would
             be false. */}
-        {refusal === null && notice && markers.length === 0 ? (
+        {refusal === null && !locationSaid && notice && markers.length === 0 ? (
           <MapOverlayNote tone={notice.tone}>{say(notice.text)}</MapOverlayNote>
         ) : null}
 
@@ -1471,7 +1500,7 @@ export function TripWorkspace({
           for" is not. The way back out is offered here rather than only in the
           toolbar, because this is where the absence is being read.
         */}
-        {refusal === null && markers.length > 0 && visibleMarkers.length === 0 ? (
+        {refusal === null && !locationSaid && markers.length > 0 && visibleMarkers.length === 0 ? (
           <MapOverlayNote tone="muted">
             {say(message('map.noMatches', { count: markers.length }))}{' '}
             <button
@@ -1518,6 +1547,7 @@ export function TripWorkspace({
           offer at all; `map-rendering` now states it for both.
         */}
         {refusal === null &&
+        !locationSaid &&
         isFiltered(filter) &&
         visibleMarkers.length > 0 &&
         !anyInView &&
