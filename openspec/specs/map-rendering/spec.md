@@ -123,7 +123,7 @@ than failing or showing an undefined region.
 When the trip has exactly one marker, the map SHALL centre on it at a zoom level that
 shows its surroundings rather than at maximum zoom.
 
-The map SHALL re-frame when, and only when, the person asks it to. Three things are such
+The map SHALL re-frame when, and only when, the person asks it to. Four things are such
 a request:
 
 - **Selecting a city**, which SHALL frame that city's markers using the same shared
@@ -138,6 +138,10 @@ a request:
 - **Pressing "where am I"**, which SHALL move to the person's position, as
   `device-location` describes. Asking where you are is asking to see it; a position
   found and then left off screen would answer nothing.
+- **Choosing a place from Nearby**, which SHALL move to that place, as `nearby-places`
+  describes. The list is read without the map, so the place chosen from it is as likely
+  as a searched one to be off screen, and opening it there would leave the person
+  reading about a place they cannot see.
 
 Nothing else SHALL move the camera. Panning or zooming SHALL NOT be overridden by
 re-framing, markers arriving, changing, or being added SHALL NOT re-frame, and the
@@ -218,6 +222,16 @@ between a view the person put somewhere and a view the application moved on its 
 
 - **WHEN** the person's position changes after the map has moved to it
 - **THEN** the camera does not move
+
+#### Scenario: A place chosen from Nearby
+
+- **WHEN** a person presses a row in the Nearby sheet
+- **THEN** the map moves to that place
+
+#### Scenario: Opening Nearby
+
+- **WHEN** a person opens Nearby, and their position is found because of it
+- **THEN** the map does not move
 
 ### Requirement: Markers at identical coordinates remain reachable
 

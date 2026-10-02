@@ -71,7 +71,10 @@ a direction already travelled.
 - **Two phases, two postures.** Planning happens over weeks, mostly at a laptop, mostly
   as capture. Using happens on the trip, on a phone, one-handed, standing up — where a
   distance-sorted list is arguably the primary view and the map is secondary, the
-  reverse of the laptop.
+  reverse of the laptop. Both applications now offer that list as **Nearby**: the
+  trip's places nearest first, measured from the person when the device knows where
+  they are and from the middle of the map when it does not, so the laptop has a list
+  too rather than the phone getting one alone.
 - **The map is the interface.** The majority of what a person looks at is rendered from
   a map style document, not from application styling. Tiles come from OpenFreeMap;
   attribution is required and is a permanent part of the layout. The document is fetched
@@ -155,9 +158,6 @@ types arrive over five colours.
   three routes, and none of them is a landing page.
 - **Onboarding for someone with no context.** Every existing first-run path assumes an
   invitation from someone who explained the product in person.
-- **A list view on web.** List and map have been called co-equal since the beginning
-  and web still has no list. The phone is expected to get one first, with distance
-  sorting.
 - **The disagreement pile.** "Places only one of you wants" is a real capability that
   was lost when the filter became a list of people, and no way of offering it has fitted
   without reintroducing a second control that made earlier attempts confusing.

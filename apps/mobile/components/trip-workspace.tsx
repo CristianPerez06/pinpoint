@@ -71,6 +71,7 @@ import { MenuSheet } from '@/components/menu-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { openingHeight as detailsOpeningHeight } from '@/components/marker-details'
+import { NearbySheet, type NearbyReturn } from '@/components/nearby-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState } from '@/components/states'
@@ -94,7 +95,7 @@ import { useSignOut } from '@/lib/sign-out'
 import { useOnline } from '@/lib/connectivity'
 import { useOfflineMapNote } from '@/lib/offline-map'
 import { useAfterSending, useWaiting } from '@/lib/waiting'
-import { useWhereAmI } from '@/lib/where-am-i'
+import { useWhereAmI, type WhereAmI } from '@/lib/where-am-i'
 
 /**
  * Everything a trip can be doing on a phone, in one place.
@@ -328,6 +329,25 @@ export function TripWorkspace({
   const [citiesOpen, setCitiesOpen] = useState(false)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [nearbyOpen, setNearbyOpen] = useState(false)
+  /**
+   * The place the Nearby sheet measures from when the person's position is not
+   * known: the middle of the visible map, read as the sheet opens. Kept through
+   * a detour to a place, so coming back measures from the same point rather
+   * than from the place the map flew to.
+   */
+  const [nearbyCentre, setNearbyCentre] = useState<LngLat | null>(null)
+  /** Where the list was left when a place was opened from it (`nearby-places`). */
+  const [nearbyReturn, setNearbyReturn] = useState<NearbyReturn | null>(null)
+  /** What the sheet picks up from on this opening, if it is a return. */
+  const [nearbyResume, setNearbyResume] = useState<NearbyReturn | null>(null)
+  /**
+   * The person's position (`device-location`). Held at the top of the
+   * workspace, so the dot on the map and the Nearby sheet read one position and
+   * cannot disagree about where the person is, and so it outlives a re-read's
+   * loading state.
+   */
+  const whereAmI = useWhereAmI()
   /**
    * A refusal that belongs to no field, shown over the map.
    *
@@ -444,6 +464,8 @@ export function TripWorkspace({
    */
   const centreRef = useRef<LngLat | null>(null)
 
+
+
   /**
    * Which member the reader is, or null when their account matches none.
    *
@@ -526,6 +548,51 @@ export function TripWorkspace({
    * control is what declares the filter.
    */
   const narrowed = isFiltered(filter)
+
+  /*
+    Opening anything else ends the way back to Nearby: closing the place then
+    leaves the map, as it always has (`nearby-places`).
+  */
+  const somethingElseOpen =
+    filterOpen || menuOpen || tripsOpen || citiesOpen || peopleOpen || searchOpen ||
+    sight !== null || panel.kind !== 'none'
+  // Adjusted during render rather than in an effect, as React recommends for
+  // state that follows other state: an effect would draw one frame in which
+  // the way back still stood.
+  if (somethingElseOpen && nearbyReturn !== null) setNearbyReturn(null)
+
+  function openNearby() {
+    setNearbyCentre(mapRef.current?.visibleCentre() ?? centreRef.current)
+    setNearbyResume(null)
+    showSheet(setNearbyOpen, true)
+  }
+
+  function closeNearby() {
+    showSheet(setNearbyOpen, false)
+    // A refusal said in the sheet has been said. Left standing, it would
+    // reappear as a note over the map that nobody pressed anything to get.
+    whereAmI.dismiss()
+  }
+
+  /** A place chosen from Nearby: open it, as the calendar's request is opened. */
+  function chooseNearby(marker: Marker, left: NearbyReturn) {
+    setNearbyOpen(false)
+    const group = groupCoincident([...held]).find((each) =>
+      each.markers.some((one) => one.id === marker.id),
+    )
+    if (!group) return
+    mapRef.current?.flyTo({ lng: marker.lng, lat: marker.lat }, detailsOpeningHeight(windowHeight))
+    mapRef.current?.openMarkers(group.key, [marker.id])
+    setNearbyReturn(left)
+  }
+
+  /** The place's sheet was dismissed: back to the list, as it was left. */
+  function detailsDismissed() {
+    if (nearbyReturn === null) return
+    setNearbyResume(nearbyReturn)
+    setNearbyReturn(null)
+    showSheet(setNearbyOpen, true)
+  }
 
   /**
    * Optimistic, like the laptop: a toggle that waited for a round trip would
@@ -1145,6 +1212,20 @@ export function TripWorkspace({
       }}
       overlays={
         <>
+          <NearbySheet
+            open={nearbyOpen}
+            onClose={closeNearby}
+            places={visible}
+            narrowed={narrowed}
+            whereAmI={whereAmI}
+            mapCentre={nearbyCentre}
+            cityNameOf={(marker) =>
+              cities.find((city) => city.id === marker.cityId)?.name ?? null
+            }
+            resume={nearbyResume}
+            onChoose={chooseNearby}
+          />
+
           <FilterSheet
             open={filterOpen}
             filter={filter}
@@ -1291,6 +1372,9 @@ export function TripWorkspace({
       <Body
         mapRef={mapRef}
         tripId={trip.id}
+        whereAmI={whereAmI}
+        quietLocation={nearbyOpen}
+        onDismissDetails={detailsDismissed}
         centreRef={centreRef}
         dropping={sight !== null}
         draft={panel.kind === 'none' ? null : panel.position}
@@ -1422,6 +1506,7 @@ export function TripWorkspace({
                   }
                 : null,
               onFilter: () => setFilterOpen(true),
+              onNearby: openNearby,
               narrowed,
             }}
           />
@@ -1479,8 +1564,20 @@ function Body({
   onShowMatches,
   bottomRow,
   tripId,
+  whereAmI,
+  quietLocation,
+  onDismissDetails,
 }: {
   mapRef: Ref<TripMapRef>
+  /** The person's position, held by the workspace so Nearby reads the same one. */
+  whereAmI: WhereAmI
+  /**
+   * The Nearby sheet is open and saying what is known about the position
+   * itself, so the same sentence is not also said over the map.
+   */
+  quietLocation: boolean
+  /** A place's sheet was dismissed by the person. */
+  onDismissDetails: () => void
   /** Which trip this is, so the map can draw the streets it downloaded. */
   tripId: string
   centreRef: { current: LngLat | null }
@@ -1546,20 +1643,12 @@ function Body({
    */
   const [somethingToLookAt, setSomethingToLookAt] = useState(true)
   /**
-   * The person's position (`device-location`). Held here, above the early
-   * returns, so it outlives a re-read's loading state: the dot and the watch
-   * behind it survive the trip being read again.
-   */
-  const whereAmI = useWhereAmI()
-
-  /**
    * A refused or missing position, said where every note over this map is
    * said. While it stands the notes about the trip's places step aside: it
    * answers a press made a moment ago, and two pills in the same slot would
    * draw over each other.
    */
-  const locationNote =
-    whereAmI.status === 'refused' ? (
+  const locationNote = quietLocation ? null : whereAmI.status === 'refused' ? (
       <MarkersOverlayNote
         onPress={() => {
           // iOS will not ask a second time, so the way out is the app's own
@@ -1588,6 +1677,7 @@ function Body({
         ref={mapRef}
         tripId={tripId}
         whereAmI={whereAmI}
+        onDismissDetails={onDismissDetails}
         onSomethingToLookAt={setSomethingToLookAt}
         centreRef={centreRef}
         dropping={dropping}

@@ -4,6 +4,7 @@ import {
   type Fix,
   locate,
   LOCATE_TIMEOUT_MS,
+  type LocationPermission,
   LocationRefused,
   type WhereAmIStatus,
 } from '@pinpoint/map'
@@ -23,6 +24,16 @@ export interface WhereAmI {
   locate: () => Promise<Fix | null>
   /** Clears a refused or not-found status, for dismissing its note. */
   dismiss: () => void
+  /**
+   * What asking would get, read without asking (`nearby-places`). Follows the
+   * browser's own change event, so allowing the site from the address bar is
+   * known at once. `unknown` where the browser cannot say for geolocation.
+   */
+  permission: LocationPermission
+}
+
+function permissionOf(state: PermissionState): LocationPermission {
+  return state === 'granted' ? 'granted' : state === 'denied' ? 'refused' : 'unknown'
 }
 
 function fixOf(position: GeolocationPosition): Fix {
@@ -76,6 +87,7 @@ function currentPosition(): Promise<Fix> {
 export function useWhereAmI(): WhereAmI {
   const [status, setStatus] = useState<WhereAmIStatus>('idle')
   const [fix, setFix] = useState<Fix | null>(null)
+  const [permission, setPermission] = useState<LocationPermission>('unknown')
 
   const following = useRef(false)
   const watch = useRef<number | null>(null)
@@ -108,6 +120,27 @@ export function useWhereAmI(): WhereAmI {
     }
   }, [stopWatching])
 
+  useEffect(() => {
+    let live = true
+    let status: PermissionStatus | null = null
+    const onChange = () => {
+      if (status) setPermission(permissionOf(status.state))
+    }
+    navigator.permissions
+      ?.query({ name: 'geolocation' })
+      .then((result) => {
+        if (!live) return
+        status = result
+        setPermission(permissionOf(result.state))
+        result.addEventListener('change', onChange)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      status?.removeEventListener('change', onChange)
+    }
+  }, [])
+
   useVisibleAgain(() => {
     if (following.current) startWatching()
   })
@@ -121,6 +154,10 @@ export function useWhereAmI(): WhereAmI {
 
     finding.current = false
     setStatus(outcome.status)
+    // A browser that cannot answer the permission query still learns the answer
+    // here, so the sheet stops offering a question that has been settled.
+    if (outcome.status === 'found') setPermission('granted')
+    if (outcome.status === 'refused') setPermission('refused')
     if (outcome.status !== 'found') return null
 
     setFix(outcome.fix)
@@ -133,5 +170,5 @@ export function useWhereAmI(): WhereAmI {
     setStatus((current) => (current === 'refused' || current === 'notFound' ? 'idle' : current))
   }, [])
 
-  return { status, fix, locate: press, dismiss }
+  return { status, fix, locate: press, dismiss, permission }
 }

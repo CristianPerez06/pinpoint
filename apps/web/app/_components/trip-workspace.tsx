@@ -59,6 +59,7 @@ import { useSay } from '@/app/_components/language'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm } from '@/app/_components/marker-form'
 import { useTripActions } from '@/app/_components/use-trip-actions'
+import type { NearbyReturn } from '@/app/_components/nearby-bar'
 import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
@@ -208,7 +209,7 @@ type Panel =
  * map from `overlayPanelClass` rather than hanging off the chrome, and they
  * are already mutually exclusive through `panel`.
  */
-type DetourPanel = 'none' | 'trip' | 'city' | 'filter' | 'account'
+type DetourPanel = 'none' | 'trip' | 'city' | 'filter' | 'nearby' | 'account'
 
 function valuesOf(marker: Marker): MarkerFormValues {
   return {
@@ -624,6 +625,8 @@ export function TripWorkspace({
   }, [panel.kind, dropping])
 
   const centreRef = useRef<DraftPosition | null>(null)
+  /** The middle of the part of the map nothing covers, for Nearby. */
+  const visibleCentreRef = useRef<DraftPosition | null>(null)
 
   /**
    * Every list this screen shows, read again.
@@ -843,7 +846,50 @@ export function TripWorkspace({
   const refusal =
     panel.kind === 'create' || panel.kind === 'edit' ? null : problem
   /** Whether a refused or missing position is being said over the map. */
-  const locationSaid = whereAmI.status === 'refused' || whereAmI.status === 'notFound'
+  const locationSaid =
+    (whereAmI.status === 'refused' || whereAmI.status === 'notFound') && detour !== 'nearby'
+
+  /*
+    Nearby (`nearby-places`).
+
+    `nearbyCentre` is what the panel measures from when the person's position
+    is not known — the middle of the visible map, read as the panel opens and
+    kept through a detour to a place, so coming back measures from the same
+    point rather than from the place the camera flew to. `nearbyReturn` is
+    where the list was left when a place was opened from it, and `nearbyResume`
+    is what this opening picks up from, if it is a return.
+  */
+  const [nearbyCentre, setNearbyCentre] = useState<LngLat | null>(null)
+  const [nearbyReturn, setNearbyReturn] = useState<NearbyReturn | null>(null)
+  const [nearbyResume, setNearbyResume] = useState<NearbyReturn | null>(null)
+
+  // Opening anything else ends the way back: closing the place then leaves the
+  // map, as it always has. Adjusted during render, as state following state is.
+  const somethingElseOpen =
+    (detour !== 'none' && detour !== 'nearby') ||
+    panel.kind === 'create' ||
+    panel.kind === 'edit' ||
+    dropping ||
+    searchOpen
+  if (somethingElseOpen && nearbyReturn !== null) setNearbyReturn(null)
+
+  function chooseNearby(marker: Marker, left: NearbyReturn) {
+    const group = groups.find((each) => each.markers.some((one) => one.id === marker.id))
+    if (!group) return
+    setDetour('none')
+    setDraft(null)
+    setProblem(null)
+    moveCameraTo({ lng: marker.lng, lat: marker.lat })
+    setPanel({ kind: 'details', groupKey: group.key, markerId: marker.id, reveal: false })
+    setNearbyReturn(left)
+  }
+
+  function changeDetour(next: DetourPanel) {
+    // A refusal said in the panel has been said; left standing it would
+    // reappear over the map as a note nobody pressed anything to get.
+    if (detour === 'nearby' && next !== 'nearby') whereAmI.dismiss()
+    setDetour(next)
+  }
 
   const cityMarkers = useMemo(
     () => markersSelectedBy(selectedCityId, markers),
@@ -1368,6 +1414,21 @@ export function TripWorkspace({
         ownMemberId,
         filterDays,
 
+        nearby: {
+          places: visibleMarkers,
+          narrowed: isFiltered(filter),
+          whereAmI,
+          mapCentre: nearbyCentre,
+          cityNameOf: (marker) =>
+            cities.find((city) => city.id === marker.cityId)?.name ?? null,
+          resume: nearbyResume,
+          onChoose: chooseNearby,
+        },
+        onOpenNearby: () => {
+          setNearbyCentre(visibleCentreRef.current ?? centreRef.current)
+          setNearbyResume(null)
+        },
+
         biasRef,
         onChooseCandidate: chooseCandidate,
 
@@ -1393,7 +1454,7 @@ export function TripWorkspace({
         you,
 
         detour,
-        onDetour: setDetour,
+        onDetour: changeDetour,
       }}
     >
 
@@ -1426,6 +1487,7 @@ export function TripWorkspace({
           frameTo={cameraTarget.points}
           frameToken={cameraTarget.token}
           centreRef={centreRef}
+          visibleCentreRef={visibleCentreRef}
           onReread={() => void rereadByHand()}
           rereading={rereading}
           selectedKey={panel.kind === 'details' ? panel.groupKey : null}
@@ -1627,7 +1689,15 @@ export function TripWorkspace({
                     : undefined
                 }
                 // Dismissal touches no map method, so the camera cannot move.
-                onDismiss={cancel}
+                // A place opened from Nearby hands back to the list, as it was
+                // left (`nearby-places`).
+                onDismiss={() => {
+                  cancel()
+                  if (nearbyReturn === null) return
+                  setNearbyResume(nearbyReturn)
+                  setNearbyReturn(null)
+                  setDetour('nearby')
+                }}
                 onEdit={(marker) => {
                   setDraft({ lng: marker.lng, lat: marker.lat })
                   setFieldErrors({})

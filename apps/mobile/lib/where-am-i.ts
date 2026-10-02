@@ -1,4 +1,4 @@
-import { type Fix, locate, type WhereAmIStatus } from '@pinpoint/map'
+import { type Fix, locate, type LocationPermission, type WhereAmIStatus } from '@pinpoint/map'
 import * as Location from 'expo-location'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState } from 'react-native'
@@ -17,6 +17,21 @@ export interface WhereAmI {
   locate: () => Promise<Fix | null>
   /** Clears a refused or not-found status, for dismissing its note. */
   dismiss: () => void
+  /**
+   * What asking would get, read without asking (`nearby-places`). Re-read on
+   * every return to the foreground, so a permission changed in Settings is
+   * known by the time the person is back.
+   */
+  permission: LocationPermission
+}
+
+function permissionOf(response: Location.LocationPermissionResponse): LocationPermission {
+  if (response.granted) return 'granted'
+  // iOS will not ask a second time once refused; Android may, and until it
+  // stops offering the question there is still something to offer.
+  return response.status === Location.PermissionStatus.DENIED && !response.canAskAgain
+    ? 'refused'
+    : 'unknown'
 }
 
 function fixOf(position: Location.LocationObject): Fix {
@@ -39,6 +54,7 @@ function fixOf(position: Location.LocationObject): Fix {
 export function useWhereAmI(): WhereAmI {
   const [status, setStatus] = useState<WhereAmIStatus>('idle')
   const [fix, setFix] = useState<Fix | null>(null)
+  const [permission, setPermission] = useState<LocationPermission>('unknown')
 
   /** Whether a position has been found this session, so a return resumes the watch. */
   const following = useRef(false)
@@ -80,7 +96,28 @@ export function useWhereAmI(): WhereAmI {
     }
   }, [stopWatching])
 
+  const readPermission = useCallback(async () => {
+    try {
+      setPermission(permissionOf(await Location.getForegroundPermissionsAsync()))
+    } catch {
+      setPermission('unknown')
+    }
+  }, [])
+
+  useEffect(() => {
+    let live = true
+    Location.getForegroundPermissionsAsync()
+      .then((response) => {
+        if (live) setPermission(permissionOf(response))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
+
   useActiveAgain(() => {
+    void readPermission()
     if (following.current) void startWatching()
   })
 
@@ -99,17 +136,18 @@ export function useWhereAmI(): WhereAmI {
 
     finding.current = false
     setStatus(outcome.status)
+    void readPermission()
     if (outcome.status !== 'found') return null
 
     setFix(outcome.fix)
     following.current = true
     void startWatching()
     return outcome.fix
-  }, [startWatching])
+  }, [startWatching, readPermission])
 
   const dismiss = useCallback(() => {
     setStatus((current) => (current === 'refused' || current === 'notFound' ? 'idle' : current))
   }, [])
 
-  return { status, fix, locate: press, dismiss }
+  return { status, fix, locate: press, dismiss, permission }
 }

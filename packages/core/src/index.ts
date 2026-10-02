@@ -102,7 +102,7 @@ export {
 export { formatMoney, formatPrice, formatPrices } from './price'
 
 export { formatSize } from './data-size'
-export { formatDistance } from './distance'
+export { formatDistance, formatWalkingDistance } from './distance'
 
 export { localPriceClearedBy, localPricesUnder, pricesFromDraft } from './price-draft'
 export type { DraftedPrices, PriceDraft } from './price-draft'

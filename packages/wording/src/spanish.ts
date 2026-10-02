@@ -627,6 +627,23 @@ export const SPANISH: Catalogue = {
     '¿No aparece? Tocar la lupa del teclado para buscar en todos los idiomas.',
   'search.distance': (v) => `${v.distance} km`,
 
+  // ── Cerca: los lugares del viaje, del más cercano al más lejano ────────────
+  'nearby.tool': 'Cerca',
+  'nearby.hint': 'Listar los lugares por cercanía',
+  'nearby.fromYou': 'Más cerca de la ubicación actual',
+  'nearby.fromMap': 'Más cerca del centro del mapa',
+  'nearby.filtered': 'Filtrado',
+  'nearby.offer': '¿Ordenar desde la ubicación actual?',
+  'nearby.offerHint': 'Se usa solo en este dispositivo y solo con pinpoint abierto.',
+  'nearby.useLocation': 'Usar la ubicación',
+  'nearby.finding': 'Buscando la ubicación…',
+  'nearby.rough': (v) =>
+    `La ubicación se conoce con un margen de unos ${v.distance}. Las distancias son aproximadas.`,
+  'nearby.resort': 'Reordenar',
+  'nearby.resortHint': 'Volver a ordenar los lugares por distancia',
+  'nearby.openSettings': 'Abrir Ajustes',
+  'nearby.metres': (v) => `${v.distance} m`,
+
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',
   'filter.hintNarrowed': 'Filtrar este viaje. Hay lugares ocultos',

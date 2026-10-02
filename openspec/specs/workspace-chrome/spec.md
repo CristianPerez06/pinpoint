@@ -50,8 +50,8 @@ that has any other route to the same outcome does not meet it.
 #### Scenario: The session's own controls stay reachable
 
 - **WHEN** a trip workspace is shown
-- **THEN** finding a place, placing one by hand, and narrowing the trip are each
-  reachable without first opening something
+- **THEN** finding a place, placing one by hand, narrowing the trip, and listing the
+  places nearest first are each reachable without first opening something
 
 #### Scenario: Signing out is kept away from the frequent controls
 
@@ -841,7 +841,8 @@ governs the controls that are standing there as tools, not what may stand in the
 ### Requirement: The session's tools weigh the same at every width
 
 The controls that make up a session — beginning a place from search, beginning one from the
-map, and narrowing what the map shows — SHALL be drawn at the same visual weight as each
+map, narrowing what the map shows, and listing the places nearest first (`nearby-places`) —
+SHALL be drawn at the same visual weight as each
 other, at every width and on both platforms.
 
 Same weight means none of them is given a fill, a border, a lettering weight or a size **as
@@ -861,9 +862,14 @@ Rationale: these controls are equals. Each fires an action and none navigates, a
 neither is a fallback for the other. Drawing one of them more strongly asserts a hierarchy
 that no requirement anywhere describes — and asserts it in colour, which no review reads.
 
+Nearby joins them on the same terms: it opens a list rather than beginning an act, but it
+is used throughout a session on the trip, and *Controls are placed by how often they are
+used* gives it the same permanent place. Being the newest is not a reason to draw it
+louder.
+
 Rationale for stating it at every width rather than for one shape: this equality was
 already true of the phone-shaped bar and already written down there, but only as the reason
-its three names are lettered at one size. The laptop bar drew one of the three as a filled
+its names are lettered at one size. The laptop bar drew one of the tools as a filled
 control for the life of the project without contradicting any requirement, because no
 requirement reached it. A rule that holds at one breakpoint is a rule the other breakpoint
 is free to break while type-checking, rendering, and looking deliberate.
@@ -888,7 +894,7 @@ what stands in their place.
 
 - **WHEN** a trip workspace is shown on a phone-shaped screen and no tool is declaring a
   state
-- **THEN** the three tools are drawn at the same weight as each other
+- **THEN** the four tools are drawn at the same weight as each other
 
 #### Scenario: A tool is a field rather than a button
 

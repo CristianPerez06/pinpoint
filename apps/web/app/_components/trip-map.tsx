@@ -211,7 +211,15 @@ export function TripMap({
   covered = null,
   departing = null,
   whereAmI,
+  visibleCentreRef,
 }: {
+  /**
+   * The middle of the part of the map nothing covers, kept current the way
+   * `centreRef` is — what Nearby measures from when the person's position is
+   * not known (`nearby-places`). Differs from the camera's centre only below
+   * 700px, where the bar of tools stands over the bottom of the map.
+   */
+  visibleCentreRef?: { current: DraftPosition | null }
   /**
    * The person's position and the press that finds it (`device-location`).
    *
@@ -658,6 +666,14 @@ export function TripMap({
     const report = () => {
       const centre = map.getCenter()
       centreRef.current = { lng: centre.lng, lat: centre.lat }
+      if (visibleCentreRef) {
+        const canvas = map.getCanvas()
+        const seen = map.unproject([
+          canvas.clientWidth / 2,
+          (canvas.clientHeight - floorRef.current) / 2,
+        ])
+        visibleCentreRef.current = { lng: seen.lng, lat: seen.lat }
+      }
     }
 
     report()
@@ -665,7 +681,7 @@ export function TripMap({
     return () => {
       map.off('move', report)
     }
-  }, [map, centreRef])
+  }, [map, centreRef, visibleCentreRef])
 
   /**
    * How far in the map is, read when it stops rather than while it moves.

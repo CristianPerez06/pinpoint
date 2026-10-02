@@ -56,6 +56,16 @@ export interface Rect {
  */
 export type WhereAmIStatus = 'idle' | 'finding' | 'found' | 'refused' | 'notFound'
 
+/**
+ * What the platform will say if the position is asked for, read without asking
+ * (`nearby-places`).
+ *
+ * `unknown` covers both "never asked" and "this browser cannot say": either way
+ * the sheet offers *Use my location*, and the press finds out. `granted` is what
+ * lets opening Nearby find the person with no press at all.
+ */
+export type LocationPermission = 'unknown' | 'granted' | 'refused'
+
 /** A camera position. Both platforms accept this shape after trivial mapping. */
 export interface Camera {
   center: LngLat

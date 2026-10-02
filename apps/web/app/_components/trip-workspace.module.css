@@ -170,6 +170,23 @@
   width: 124px;
 }
 
+/* Nearby's slot: the filter's construction and width, so the two read as one
+   pair and its panel hangs from a trigger that never changes size. */
+.nearby {
+  display: flex;
+  flex: none;
+  width: 124px;
+}
+
+.nearby > div,
+.nearby button[aria-haspopup] {
+  width: 100%;
+}
+
+.nearby button[aria-haspopup] {
+  justify-content: center;
+}
+
 /* `Menu`'s anchor, then its trigger. Two levels rather than `.drop`'s one,
    because the panel needs a positioned wrapper and `Menu` supplies it. Both
    fill the slot, so the trigger's own edges are the slot's edges and the label

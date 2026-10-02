@@ -451,6 +451,13 @@ export interface TripMapRef {
    */
   closeDetails: () => void
   /**
+   * The middle of the part of the map the bar does not cover, as the map last
+   * settled — what Nearby measures from when the person's position is not
+   * known (`nearby-places`). The camera's own centre is behind the bar's
+   * half-height, which at a street zoom is a couple of hundred metres.
+   */
+  visibleCentre: () => LngLat | null
+  /**
    * Frame a group of positions, the way the map frames a trip when it opens.
    *
    * Separate from `flyTo` rather than an overload of it, because they answer
@@ -502,8 +509,15 @@ export function TripMap({
   centreRef,
   onSomethingToLookAt,
   whereAmI,
+  onDismissDetails,
 }: {
   ref?: Ref<TripMapRef>
+  /**
+   * The details sheet was dismissed by the person, rather than closed by the
+   * workspace — what tells a place opened from Nearby to hand back to the list
+   * (`nearby-places`).
+   */
+  onDismissDetails?: () => void
   /**
    * The person's position and the press that finds it (`device-location`).
    *
@@ -947,8 +961,14 @@ export function TripMap({
         })
       },
       closeDetails: () => setOpen(null),
+      visibleCentre: () => {
+        const centre = centreRef.current
+        const zoom = zoomRef.current
+        if (!centre || zoom === null) return centre
+        return offsetCenter(centre, zoom, 0, -barHeight / 2)
+      },
     }),
-    [viewport, barHeight, formSheet, formHeight],
+    [viewport, barHeight, formSheet, formHeight, centreRef],
   )
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
@@ -1676,7 +1696,10 @@ export function TripMap({
           }
           // Nothing here touches the camera, so dismissing cannot move it.
           extraAction={open?.extraAction}
-          onDismiss={() => setOpen(null)}
+          onDismiss={() => {
+            setOpen(null)
+            onDismissDetails?.()
+          }}
         />
       ) : null}
     </View>

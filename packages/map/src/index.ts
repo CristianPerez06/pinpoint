@@ -2,6 +2,7 @@ export type {
   Bounds,
   Camera,
   LngLat,
+  LocationPermission,
   Rect,
   Viewport,
   WhereAmIStatus,
@@ -20,6 +21,16 @@ export {
 } from './constants'
 
 export { distanceKm } from './distance'
+
+export {
+  driftTolerance,
+  hasDrifted,
+  NEARBY_DRIFT_FLOOR_KM,
+  NEARBY_FAR_KM,
+  NEARBY_ROUGH_METRES,
+  orderByDistance,
+} from './nearby'
+export type { NearbyPlace, NearbyRow } from './nearby'
 
 export {
   boundsOf,

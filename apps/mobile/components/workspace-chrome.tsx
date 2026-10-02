@@ -6,11 +6,11 @@ import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import MapPinPlus from 'lucide-react-native/icons/map-pin-plus'
 import Search from 'lucide-react-native/icons/search'
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
-import type { LucideIcon } from 'lucide-react-native'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { NearbyGlyph } from '@/components/nearby-glyph'
 import { LoadingState } from '@/components/states'
 import { NamePlaceholder } from '@/components/ui'
 import { useSay } from '@/lib/language'
@@ -293,14 +293,16 @@ export type ToolBindings = {
   /** Null while there is no connection: a dropped place cannot be saved. */
   onDrop: (() => void) | null
   onFilter: () => void
+  /** Opens the trip's places, nearest first (`nearby-places`). */
+  onNearby: () => void
   /** Whether a filter is hiding some of the trip's places. */
   narrowed: boolean
 }
 
 /**
- * The row a thumb reaches: search, drop and filter.
+ * The row a thumb reaches: search, drop, filter and nearby.
  *
- * `null` is the waiting form. All three are inert until the map is there: two
+ * `null` is the waiting form. All four are inert until the map is there: two
  * need nothing fetched to be drawn and still cannot act — search moves a camera
  * that does not exist yet, and drop arms one — which is exactly the case
  * `waiting-screens` warns about.
@@ -319,12 +321,14 @@ export function SessionTools({ tools }: { tools: ToolBindings | null }) {
         a finger — quiet taken as far as absent, which is why it read as
         unfinished rather than as restrained.
 
-        Three, not four: `Clear` has moved into the filter sheet, and the
-        filter tool declares the narrowing in its place. Four targets
-        across a phone leaves each one narrow, and `Clear` was the least
-        earned of them — it does nothing at all most of the time.
+        `Clear` moved into the filter sheet, and the filter tool declares
+        the narrowing in its place: four targets across a phone leaves each
+        one narrow, and `Clear` was the least earned of them — it does
+        nothing at all most of the time. The fourth place went to Nearby
+        instead (`nearby-places`), which is the opposite case: on the trip
+        it is the tool reached for most.
 
-        All three weigh the same. An earlier pass drew `Drop` in the
+        All of them weigh the same. An earlier pass drew `Drop` in the
         accent, on the argument that dropping a pin is what somebody
         opened the application to do while standing in a street. It was
         rejected on sight, and the reason given at the time was local to
@@ -374,6 +378,12 @@ export function SessionTools({ tools }: { tools: ToolBindings | null }) {
         icon={SlidersHorizontal}
         marked={tools?.narrowed ?? false}
         onPress={tools?.onFilter ?? null}
+      />
+      <Tool
+        label={say(message('nearby.tool'))}
+        hint={say(message('nearby.hint'))}
+        icon={NearbyGlyph}
+        onPress={tools?.onNearby ?? null}
       />
     </View>
   )
@@ -437,7 +447,7 @@ function Tool({
 }: {
   label: string
   hint: string
-  icon: LucideIcon
+  icon: ComponentType<{ size: number; color: string; strokeWidth: number }>
   /** Whether this tool is declaring a state — today, that a filter is applied. */
   marked?: boolean
   onPress: (() => void) | null
