@@ -506,6 +506,11 @@ export const SPANISH: Catalogue = {
   'map.zoomIn': 'Acercar',
   'map.zoomOut': 'Alejar',
   'map.reread': 'Volver a leer todo',
+  'map.whereAmI': 'Mostrar la ubicación actual',
+  'map.locationOff': 'Pinpoint no tiene acceso a la ubicación. Activarla en Ajustes.',
+  'map.locationBlocked':
+    'El navegador bloquea la ubicación para este sitio. Permitirla desde la barra de direcciones.',
+  'map.locationNotFound': 'No se pudo encontrar la ubicación. Volver a intentar en un momento.',
   'map.loading': 'Cargando el mapa',
   'offline.sendsLater': 'Se envía al recuperar la conexión',
   'offline.editingNeedsConnection': 'Editar requiere conexión.',

@@ -51,6 +51,16 @@ export const MARKER_SIZE = { width: 32, height: 42 } as const
 export const MARKER_ANCHOR = { x: 0.5, y: 1 } as const
 
 /**
+ * The dot drawn at the person's own position, outer diameter including its ring
+ * (`device-location`).
+ *
+ * Here beside the pin for the same reason the pin is: both applications draw it
+ * and the shared map package decides when the uncertainty circle around it is
+ * worth drawing, by comparing against its radius. One number, three readers.
+ */
+export const LOCATION_DOT_SIZE = 22
+
+/**
  * The teardrop itself, as an SVG path drawn in the `MARKER_SIZE` box.
  *
  * One definition, consumed by both applications and by the tooling that cuts

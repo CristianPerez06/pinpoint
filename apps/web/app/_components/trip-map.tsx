@@ -6,7 +6,11 @@ import {
   ATTRIBUTION,
   MAP_CREDITS,
   frameAround,
+  isCentredOn,
   liftOffset,
+  LOCATION_SOURCE,
+  locationFeature,
+  locationLayers,
   offsetCenter,
   withinBounds,
   DEFAULT_VIEWPORT,
@@ -20,12 +24,14 @@ import {
   type StyleDocument,
 } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
-import { RefreshCw } from 'lucide-react'
+import { Locate, RefreshCw } from 'lucide-react'
 // Named imports, not a default: maplibre-gl v6 has no default export, and the
 // `import maplibregl from 'maplibre-gl'` written all over the internet is v4
 // advice. `Map` and `Marker` are both aliased — the first collides with the
 // global, the second with our own domain type.
 import {
+  type CircleLayerSpecification,
+  type GeoJSONSource,
   MapLibreMap,
   Marker as MapLibreMarker,
   setWorkerUrl,
@@ -40,6 +46,7 @@ import { Menu } from '@/app/_components/ui'
 import { useSay } from '@/app/_components/language'
 import { BasemapFailure, themedBasemap } from '@/lib/basemap'
 import { useColourScheme } from '@/lib/use-colour-scheme'
+import type { WhereAmI } from '@/lib/where-am-i'
 
 import styles from './trip-map.module.css'
 
@@ -203,7 +210,16 @@ export function TripMap({
   floor = 0,
   covered = null,
   departing = null,
+  whereAmI,
 }: {
+  /**
+   * The person's position and the press that finds it (`device-location`).
+   *
+   * Held by the workspace, which is where notes over the map are arbitrated
+   * and so where a refusal is said. The camera, the dot and the control are
+   * this component's, because the camera and the edge are.
+   */
+  whereAmI: WhereAmI
   groups: readonly MarkerGroup<Marker>[]
   /**
    * One point the filter is not drawing, shown anyway because the person named
@@ -673,6 +689,121 @@ export function TripMap({
   }, [map])
 
   /**
+   * Where the last "where am I" press put the centre of the view, and whether
+   * it is still there (`device-location`).
+   *
+   * The target rather than the person's position: the camera centres where the
+   * person lands clear of the floor. Asked by the shared `isCentredOn` on every
+   * settle and every new position, so the zoom buttons — which keep the centre
+   * — leave the glyph filled while a pan, a wheel, a chosen city, a found place
+   * or simply walking on empty it, without this listing which instrument moved
+   * the camera.
+   */
+  const youPress = useRef<{ fix: LngLat; target: LngLat } | null>(null)
+  const [onYou, setOnYou] = useState(false)
+  const latestFix = whereAmI.fix
+
+  useEffect(() => {
+    if (!map) return
+
+    const report = () => {
+      const press = youPress.current
+      if (!press || !latestFix) return
+      // Where the press would put the centre for the person's latest position:
+      // the same offset clear of the floor, carried along with them.
+      const wanted = {
+        lng: press.target.lng + (latestFix.lng - press.fix.lng),
+        lat: press.target.lat + (latestFix.lat - press.fix.lat),
+      }
+      const centre = map.getCenter()
+      setOnYou(isCentredOn({ lng: centre.lng, lat: centre.lat }, wanted, map.getZoom()))
+    }
+
+    // Asked now as well, because the person moving is the other way off them.
+    report()
+    map.on('moveend', report)
+    return () => {
+      map.off('moveend', report)
+    }
+  }, [map, latestFix])
+
+  const findMe = async () => {
+    const fix = await whereAmI.locate()
+    if (!fix || !map) return
+
+    const rect = map.getContainer().getBoundingClientRect()
+    const viewport =
+      rect.width > 0 && rect.height > 0
+        ? { width: rect.width, height: rect.height }
+        : DEFAULT_VIEWPORT
+    // One point, framed by the shared derivation exactly as a searched place is
+    // (`map-rendering`), so it lands at the same closeness and clear of the floor.
+    const target = frameAround([fix], viewport, floorRef.current)
+    youPress.current = { fix, target: target.center }
+    setOnYou(true)
+    map.flyTo({ center: [target.center.lng, target.center.lat], zoom: target.zoom })
+  }
+
+  /**
+   * The person, drawn as style layers from the shared description — beneath
+   * every pin, taking no clicks, and the same dot the phone draws.
+   *
+   * Re-applied on `styledata` as well as on a new position, because a theme
+   * change goes through `setStyle`, and a swapped document carries none of the
+   * layers this added to the last one. Idempotent, so the event's repeats cost
+   * a lookup each.
+   */
+  const fix = whereAmI.fix
+  useEffect(() => {
+    if (!map) return
+
+    const apply = () => {
+      if (!map.isStyleLoaded()) return
+      const source = map.getSource(LOCATION_SOURCE) as GeoJSONSource | undefined
+      if (!fix) {
+        for (const layer of locationLayers({ lng: 0, lat: 0, accuracy: 1 }, mode)) {
+          if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+        }
+        if (source) map.removeSource(LOCATION_SOURCE)
+        return
+      }
+
+      if (source) source.setData(locationFeature(fix))
+      else map.addSource(LOCATION_SOURCE, { type: 'geojson', data: locationFeature(fix) })
+
+      const layers = locationLayers(fix, mode)
+      // A precise position after an uncertain one: the circle it no longer has.
+      const accuracyId = `${LOCATION_SOURCE}-accuracy`
+      if (!layers.some((layer) => layer.id === accuracyId) && map.getLayer(accuracyId)) {
+        map.removeLayer(accuracyId)
+      }
+      for (const [index, layer] of layers.entries()) {
+        const paint = layer.paint as CircleLayerSpecification['paint']
+        if (map.getLayer(layer.id)) {
+          // The shared description's own keys, which the renderer's per-key
+          // types cannot see through a loop.
+          for (const [key, value] of Object.entries(layer.paint)) {
+            map.setPaintProperty(layer.id, key as never, value as never)
+          }
+        } else {
+          // Bottom first: each goes beneath the one above it, if that exists.
+          const above = layers[index + 1]?.id
+          map.addLayer(
+            { id: layer.id, type: 'circle', source: LOCATION_SOURCE, paint },
+            above && map.getLayer(above) ? above : undefined,
+          )
+        }
+      }
+    }
+
+    apply()
+    map.on('styledata', apply)
+    return () => {
+      map.off('styledata', apply)
+    }
+  }, [map, fix, mode])
+
+  /**
    * Whether anything drawn is on screen, answered after the camera settles and
    * again whenever the drawn set changes.
    *
@@ -1115,6 +1246,34 @@ export function TripMap({
             aria-disabled={rereading || undefined}
           >
             <RefreshCw aria-hidden className={styles.rereadGlyph} />
+          </button>
+
+          {/*
+            "Where am I" (`device-location`), between the re-read and zoom: at a
+            phone width the edge reads zoom, this, re-read from the bottom, and
+            at a laptop width — where the re-read is withdrawn — it stands
+            directly above zoom. Separate from both, across the same gap.
+          */}
+          <button
+            type="button"
+            className={`${styles.reread} ${styles.whereAmI}`}
+            onClick={whereAmI.status === 'finding' ? undefined : () => void findMe()}
+            aria-label={say(message('map.whereAmI'))}
+            title={say(message('map.whereAmI'))}
+            aria-busy={whereAmI.status === 'finding'}
+            // `aria-disabled` rather than `disabled`, as the re-read and the
+            // spent zoom button do: a press while it works is declined by the
+            // handler, and the control stays in the tab order.
+            aria-disabled={whereAmI.status === 'finding' || undefined}
+          >
+            {whereAmI.status === 'finding' ? (
+              <span aria-hidden className={styles.finding} />
+            ) : (
+              <>
+                <Locate aria-hidden className={styles.whereAmIGlyph} />
+                {onYou ? <span aria-hidden className={styles.onYou} /> : null}
+              </>
+            )}
           </button>
 
           <div className={styles.zoom} role="group" aria-label={say(message('map.zoom'))}>

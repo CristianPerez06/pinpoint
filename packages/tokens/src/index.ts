@@ -45,6 +45,7 @@ export { ELEVATION } from './elevation'
 export type { Elevation, ElevationLevel } from './elevation'
 
 export {
+  LOCATION_DOT_SIZE,
   MARKER_ANCHOR,
   MARKER_BADGE_SIZE,
   MARKER_GLYPH_CENTRE,

@@ -397,3 +397,52 @@ export function frameAround(
     zoom: camera.zoom,
   }
 }
+
+/** The Earth's circumference at the equator, in metres, on the sphere Web Mercator uses. */
+const EQUATOR_METRES = 40_075_016.686
+
+/**
+ * How many screen pixels a distance on the ground covers, at a latitude and zoom.
+ *
+ * For the circle drawn around the person's position when the device is unsure of
+ * it (`device-location`): the device reports its uncertainty in metres, the
+ * renderer draws in pixels, and the two platforms have to agree on the
+ * conversion or the same uncertainty is a different circle on each.
+ *
+ * Mercator stretches the ground by `1 / cos(latitude)`, so a metre covers more
+ * pixels away from the equator; each zoom step doubles it. `TILE_SIZE` is the
+ * one both renderers use for their zoom scale, as the framing above already
+ * assumes.
+ */
+export function accuracyRadiusPx(metres: number, latitude: number, zoom: number): number {
+  const metresPerPixel =
+    (EQUATOR_METRES * Math.cos((latitude * Math.PI) / 180)) / (TILE_SIZE * 2 ** zoom)
+  return metres / metresPerPixel
+}
+
+/**
+ * Whether the view is still centred where a camera move put it, within a few
+ * pixels.
+ *
+ * For the "where am I" control's glyph (`device-location`), which is filled
+ * while the map is on the person and an outline once it is moved away. Asked
+ * of the camera's centre on settle rather than of how the move began: a pan, a
+ * pinch, a city chosen and a place found all move the centre, and the zoom
+ * buttons — which zoom about the centre — do not, so the one comparison answers
+ * every instrument without either application listing them.
+ *
+ * Pixels rather than degrees, because the tolerance that matters is what a
+ * person could see: a few metres at street level is a long way at city level.
+ */
+export function isCentredOn(
+  center: LngLat,
+  target: LngLat,
+  zoom: number,
+  tolerancePx = 4,
+): boolean {
+  const latitude = (center.lat + target.lat) / 2
+  const east =
+    normalizeLongitude(center.lng - target.lng) * 111_320 * Math.cos((latitude * Math.PI) / 180)
+  const north = (center.lat - target.lat) * 110_574
+  return accuracyRadiusPx(Math.hypot(east, north), latitude, zoom) <= tolerancePx
+}
