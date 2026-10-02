@@ -781,6 +781,30 @@ export const ENGLISH = {
   /** `distance` is already formatted for the language — see `formatDistance`. */
   'search.distance': (v: { distance: string }) => `${v.distance} km`,
 
+  // ── Nearby: the trip's places, nearest first (`nearby-places`) ─────────────
+  'nearby.tool': 'Nearby',
+  'nearby.hint': 'List the places nearest first',
+  /** The sheet's heading: what the order is measured from. */
+  'nearby.fromYou': 'Nearest to you',
+  'nearby.fromMap': 'Nearest to the middle of the map',
+  /** Beside the count, while the filter is narrowing the trip. */
+  'nearby.filtered': 'Filtered',
+  /** The line offering location, before the person has ever been asked. */
+  'nearby.offer': 'Sort from where you are?',
+  'nearby.offerHint': 'Used only on this device, and only while pinpoint is open.',
+  'nearby.useLocation': 'Use my location',
+  'nearby.finding': 'Finding where you are…',
+  /** `distance` is already formatted for the language — see `formatWalkingDistance`. */
+  'nearby.rough': (v: { distance: string }) =>
+    `Your position is only known to about ${v.distance}. Distances are approximate.`,
+  /** Appears once the distances no longer agree with the order. */
+  'nearby.resort': 'Re-sort',
+  'nearby.resortHint': 'Put the places back in order of distance',
+  /** On the phone, beside the refused line: opens the app's page in the device's settings. */
+  'nearby.openSettings': 'Open Settings',
+  /** A distance under a kilometre. `distance` is already formatted for the language. */
+  'nearby.metres': (v: { distance: string }) => `${v.distance} m`,
+
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',
   'filter.hint': 'Filter this trip',

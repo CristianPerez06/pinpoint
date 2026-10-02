@@ -8,6 +8,7 @@ import { AccountMenu, type AccountMenuLiveProps } from '@/app/_components/accoun
 import { ChromeBar } from '@/app/_components/chrome-bar'
 import { CityBar, type CityBarLiveProps } from '@/app/_components/city-bar'
 import { FilterBar, type FilterBarLiveProps } from '@/app/_components/filter-bar'
+import { NearbyBar, type NearbyBarLiveProps } from '@/app/_components/nearby-bar'
 import { useSay } from '@/app/_components/language'
 import { PlaceSearch, type PlaceSearchLiveProps } from '@/app/_components/place-search'
 import { TripBar, type TripBarLiveProps } from '@/app/_components/trip-bar'
@@ -21,7 +22,7 @@ import styles from './trip-workspace.module.css'
  * one open at a time" is a rule about the whole bar and no single control can
  * enforce it about panels it cannot see.
  */
-export type DetourPanel = 'none' | 'trip' | 'city' | 'filter' | 'account'
+export type DetourPanel = 'none' | 'trip' | 'city' | 'filter' | 'nearby' | 'account'
 
 /**
  * Everything the bar needs in order to be *usable*, and nothing it needs in
@@ -71,6 +72,11 @@ export type ChromeBindings = {
   ownMemberId: FilterBarLiveProps['ownMemberId']
   /** The days this trip can be narrowed by — see `daysOffered`. */
   filterDays: FilterBarLiveProps['days']
+
+  /** The trip's places, nearest first (`nearby-places`), less its open state. */
+  nearby: Omit<NearbyBarLiveProps, 'open' | 'onOpen' | 'waiting'>
+  /** Nearby is being opened rather than closed, for the workspace to read the map's centre. */
+  onOpenNearby: () => void
 
   biasRef: PlaceSearchLiveProps['biasRef']
   /**
@@ -392,6 +398,26 @@ export function WorkspaceChrome({
               />
             ) : (
               <FilterBar waiting />
+            )}
+          </span>
+
+          {/*
+            Nearby's slot, the filter's width, for the filter's reason: its
+            panel hangs from the trigger's edge, and a trigger that changed
+            width would walk the panel sideways (`nearby-places`).
+          */}
+          <span className={styles.nearby}>
+            {live ? (
+              <NearbyBar
+                {...live.nearby}
+                open={live.detour === 'nearby'}
+                onOpen={(open) => {
+                  if (open) live.onOpenNearby()
+                  live.onDetour(open ? 'nearby' : 'none')
+                }}
+              />
+            ) : (
+              <NearbyBar waiting />
             )}
           </span>
         </span>

@@ -921,6 +921,34 @@ search.everyLanguageKey
   Not here? Tap the magnifying glass on the keyboard to search in every language.
 search.distance
   {distance} km
+nearby.tool
+  Nearby
+nearby.hint
+  List the places nearest first
+nearby.fromYou
+  Nearest to you
+nearby.fromMap
+  Nearest to the middle of the map
+nearby.filtered
+  Filtered
+nearby.offer
+  Sort from where you are?
+nearby.offerHint
+  Used only on this device, and only while pinpoint is open.
+nearby.useLocation
+  Use my location
+nearby.finding
+  Finding where you are…
+nearby.rough
+  Your position is only known to about {distance}. Distances are approximate.
+nearby.resort
+  Re-sort
+nearby.resortHint
+  Put the places back in order of distance
+nearby.openSettings
+  Open Settings
+nearby.metres
+  {distance} m
 filter.name
   Filter
 filter.hint
@@ -1940,6 +1968,34 @@ search.everyLanguageKey
   ¿No aparece? Tocar la lupa del teclado para buscar en todos los idiomas.
 search.distance
   {distance} km
+nearby.tool
+  Cerca
+nearby.hint
+  Listar los lugares por cercanía
+nearby.fromYou
+  Más cerca de la ubicación actual
+nearby.fromMap
+  Más cerca del centro del mapa
+nearby.filtered
+  Filtrado
+nearby.offer
+  ¿Ordenar desde la ubicación actual?
+nearby.offerHint
+  Se usa solo en este dispositivo y solo con pinpoint abierto.
+nearby.useLocation
+  Usar la ubicación
+nearby.finding
+  Buscando la ubicación…
+nearby.rough
+  La ubicación se conoce con un margen de unos {distance}. Las distancias son aproximadas.
+nearby.resort
+  Reordenar
+nearby.resortHint
+  Volver a ordenar los lugares por distancia
+nearby.openSettings
+  Abrir Ajustes
+nearby.metres
+  {distance} m
 filter.name
   Filtro
 filter.hint

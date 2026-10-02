@@ -1,0 +1,235 @@
+/*
+ * The Nearby panel (`nearby-places`). `Menu` draws the surface, positions it and
+ * scrolls it; this lays out what is inside.
+ */
+
+.body {
+  display: grid;
+  gap: var(--pp-space-sm);
+}
+
+/*
+ * The heading stays while the list scrolls under it, so `Re-sort` is reachable
+ * from anywhere in a long list. Pulled up over `Menu`'s padding so nothing
+ * scrolls visibly above it.
+ */
+.head {
+  position: sticky;
+  top: calc(-1 * var(--pp-space-md));
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-sm);
+  margin: calc(-1 * var(--pp-space-md)) calc(-1 * var(--pp-space-md)) 0;
+  padding: var(--pp-space-md) var(--pp-space-md) var(--pp-space-xs);
+  background: var(--pp-surface);
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--pp-type-title-size);
+  font-weight: var(--pp-type-title-weight);
+  letter-spacing: var(--pp-type-title-tracking);
+  line-height: var(--pp-type-title-leading);
+  text-wrap: balance;
+}
+
+.sub {
+  margin: 2px 0 0;
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+.filtered {
+  color: var(--pp-accent-ink);
+  font-weight: 600;
+}
+
+.resort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-accent-wash);
+  color: var(--pp-accent-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-sm);
+  padding: var(--pp-space-sm) 12px;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-muted);
+}
+
+.lineText {
+  flex: 1;
+  font-size: var(--pp-type-note-size);
+  line-height: var(--pp-type-note-leading);
+}
+
+.lineHint {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  color: var(--pp-ink-muted);
+}
+
+.lineAction {
+  flex: none;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-accent);
+  color: var(--pp-ink-on-accent);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid var(--pp-line-strong);
+  border-top-color: var(--pp-ink-muted);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--pp-type-body-size);
+  color: var(--pp-ink-muted);
+}
+
+.rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: var(--pp-space-sm) 6px;
+  border: 0;
+  border-bottom: 1px solid var(--pp-line);
+  background: none;
+  color: var(--pp-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--pp-surface-muted);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-marker-foreground);
+}
+
+.rowText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+
+.name {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visitedName {
+  color: var(--pp-ink-muted);
+}
+
+.meta {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visited {
+  color: var(--pp-ink);
+  font-weight: 600;
+}
+
+.distance {
+  flex: none;
+  min-width: 52px;
+  text-align: right;
+  font-size: var(--pp-type-numeric-size);
+  font-weight: var(--pp-type-numeric-weight);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.far {
+  color: var(--pp-ink-muted);
+  font-weight: 500;
+}
+
+/* The trigger's two spellings, as `filter-bar.module.css` explains. */
+.wideLabel {
+  display: inline;
+}
+
+.mark {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .mark {
+    display: block;
+    flex: none;
+  }
+
+  .wideLabel {
+    display: none;
+  }
+}

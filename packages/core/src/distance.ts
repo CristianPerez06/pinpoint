@@ -38,3 +38,25 @@ export function formatDistance(language: Language, km: number): Message {
 
   return message('search.distance', { distance })
 }
+
+/**
+ * A distance as somebody on foot reads it: `350 m`, `1.2 km`, `34 km`
+ * (`nearby-places`).
+ *
+ * Metres under a kilometre, rounded to ten, because `0.3 km` is read as a
+ * calculation and `300 m` as a distance. Beside `formatDistance` rather than
+ * replacing it: a search result's distance answers "is this the right
+ * continent", where a tenth of a kilometre is already more than enough.
+ *
+ * The switch is on the rounded figure, so `999 m` never reads `1000 m`.
+ */
+export function formatWalkingDistance(language: Language, km: number): Message {
+  const metres = Math.round(km * 100) * 10
+  if (metres >= 1000) return formatDistance(language, km)
+
+  const distance = new Intl.NumberFormat(DISTANCE_LOCALE[language], {
+    maximumFractionDigits: 0,
+  }).format(metres)
+
+  return message('nearby.metres', { distance })
+}

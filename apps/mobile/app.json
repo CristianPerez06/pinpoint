@@ -19,7 +19,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Pinpoint shows where you are on the trip's map."
+          "locationWhenInUsePermission": "Pinpoint shows where you are on the trip's map and how far you are from the trip's places."
         }
       ],
       [

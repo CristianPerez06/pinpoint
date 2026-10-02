@@ -1,5 +1,5 @@
 {
   "ios": {
-    "NSLocationWhenInUseUsageDescription": "Pinpoint muestra la ubicación actual en el mapa del viaje."
+    "NSLocationWhenInUseUsageDescription": "Pinpoint muestra la ubicación actual en el mapa del viaje y a qué distancia están los lugares del viaje."
   }
 }
