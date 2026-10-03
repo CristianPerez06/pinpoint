@@ -497,6 +497,9 @@ export function TripCalendar({
             onPress: () => viewOnMap(selection.group.markers[0]!),
           }}
           onDismiss={() => setOpenMarkerId(null)}
+          // The calendar holds no pin for the sheet to describe, so it steps
+          // back behind it instead (`trip-calendar`).
+          dimBehind
           onEdit={(marker) => {
             setFieldErrors({})
             setConflict(null)
@@ -555,6 +558,7 @@ export function TripCalendar({
           */
           onDelete={() => void remove(editing)}
           removing={removingId === editing.id}
+          dimBehind
         />
       ) : null}
 

@@ -686,6 +686,13 @@
  * Centred rather than beside a control: unlike the map, there is no pin for it
  * to open next to, and a list row is not a place a panel can hang off without
  * moving every row under it.
+ *
+ * The calendar behind is set back with the scrim (`trip-calendar`, *A place
+ * opened over the calendar sets the calendar back*). It was a wash in the
+ * ground's own colour, which on the light ground faded the calendar to white —
+ * toward the card's surface rather than away from it, so the two read as one.
+ * Nothing on this screen is a pin the card describes, so the map's reason for
+ * not dimming does not reach here.
  */
 .panel {
   position: fixed;
@@ -696,7 +703,7 @@
   justify-content: center;
   padding: var(--pp-space-md);
   overflow-y: auto;
-  background: color-mix(in srgb, var(--pp-ground) 72%, transparent);
+  background: var(--pp-scrim);
 }
 
 /*

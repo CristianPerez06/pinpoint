@@ -789,7 +789,7 @@
      * in the nearest one that does, in the order their numbers ask for.
      */
     z-index: 8;
-    background: #00000063;
+    background: var(--pp-scrim);
   }
 
   /*
@@ -1243,7 +1243,7 @@
  * calendar, and leaves quicker than it came, as the surface does.
  */
 .dayDialog::backdrop {
-  background: #00000063;
+  background: var(--pp-scrim);
   transition: opacity var(--pp-duration-arrive) var(--pp-ease-settle);
 }
 

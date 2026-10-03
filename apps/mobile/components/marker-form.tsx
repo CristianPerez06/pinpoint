@@ -25,6 +25,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import Reanimated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CurrencyField } from '@/components/currency-field'
@@ -45,6 +46,7 @@ import { usePending } from '@/lib/use-pending'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useOnline } from '@/lib/connectivity'
+import { SCRIM_ENTERING, SCRIM_EXITING } from '@/lib/motion'
 
 /**
  * The one form places are saved and edited through, on a phone.
@@ -117,6 +119,7 @@ export function MarkerFormSheet({
   onDelete,
   removing = false,
   onHeight,
+  dimBehind = false,
 }: {
   title: string
   /**
@@ -156,6 +159,17 @@ export function MarkerFormSheet({
    */
   onSubmit: (values: MarkerFormValues) => Promise<unknown>
   onCancel: () => void
+  /**
+   * Sets the screen behind the sheet back with the scrim (`trip-calendar`, *A
+   * place opened over the calendar sets the calendar back*). Only the calendar
+   * asks for it: over the map this form is placing a pin, and the map must stay
+   * readable and keep taking the touches that adjust it.
+   *
+   * A press on the scrim does nothing but stop there. This form does not ask
+   * before discarding what was typed, so a press that dismissed it would throw
+   * that away on a stray tap.
+   */
+  dimBehind?: boolean
   /**
    * Hands the current values back so nothing is lost on the way to the sight.
    *
@@ -410,496 +424,507 @@ export function MarkerFormSheet({
   }
 
   return (
-    <KeyboardAvoidingView
-      // Height on Android, padding on iOS: the two platforms report the keyboard
-      // differently and the wrong one leaves the save action under it.
-      // Padding on both platforms. `height` used to be the Android value here;
-      // `padding` is what the rest of the app now uses, measured rather than
-      // assumed — see the sheets.
-      behavior="padding"
-      /*
-        Fills the map and passes touches through everywhere it is not the sheet.
+    <>
+      {dimBehind ? (
+        <Reanimated.View
+          entering={SCRIM_ENTERING}
+          exiting={SCRIM_EXITING}
+          style={[StyleSheet.absoluteFill, { backgroundColor: theme.colour.scrim }]}
+          // Takes the press so nothing beneath acts on it, and does nothing else.
+          onStartShouldSetResponder={() => true}
+        />
+      ) : null}
+      <KeyboardAvoidingView
+        // Height on Android, padding on iOS: the two platforms report the keyboard
+        // differently and the wrong one leaves the save action under it.
+        // Padding on both platforms. `height` used to be the Android value here;
+        // `padding` is what the rest of the app now uses, measured rather than
+        // assumed — see the sheets.
+        behavior="padding"
+        /*
+          Fills the map and passes touches through everywhere it is not the sheet.
 
-        Both halves matter. It has to fill something, because a view that sizes to
-        its children measures an absolutely positioned child as nothing and
-        collapses — taking the sheet's bottom edge with it. And it has to be
-        `box-none`, or an invisible full-bleed view would swallow every touch
-        meant for the map showing above the sheet, which is the map this whole
-        change exists to keep visible.
-      */
-      pointerEvents="box-none"
-      style={styles.keyboardHost}
-    >
-      <Animated.View
-        style={[
-          styles.sheet,
-          {
-            height,
-            backgroundColor: theme.colour.ground,
-            borderColor: theme.colour.line,
-            shadowColor: theme.elevation.lg.colour,
-          },
-        ]}
+          Both halves matter. It has to fill something, because a view that sizes to
+          its children measures an absolutely positioned child as nothing and
+          collapses — taking the sheet's bottom edge with it. And it has to be
+          `box-none`, or an invisible full-bleed view would swallow every touch
+          meant for the map showing above the sheet, which is the map this whole
+          change exists to keep visible.
+        */
+        pointerEvents="box-none"
+        style={styles.keyboardHost}
       >
-        {/*
-          The affordance, and the thing that carries the drag.
-
-          Its own row rather than a mark inside the header, so the touch target is
-          the full width of the sheet — a grabber a thumb has to find precisely is
-          a grabber that gets missed.
-        */}
-        <View
-          {...pan.panHandlers}
-          style={styles.grabRow}
-          accessibilityRole="adjustable"
-          accessibilityLabel={say(message('placeForm.sheetHeight'))}
-          accessibilityValue={{
-            text: say(
-              detent === 0 ? message('placeForm.sheetHalf') : message('placeForm.sheetFull'),
-            ),
-          }}
-          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-          onAccessibilityAction={(event) => {
-            // The drag is a gesture a screen reader cannot perform, so the two
-            // heights are reachable as actions as well.
-            if (event.nativeEvent.actionName === 'increment') settle(1)
-            if (event.nativeEvent.actionName === 'decrement') settle(0)
-          }}
-        >
-          <View style={[styles.grabber, { backgroundColor: theme.colour.lineStrong }]} />
-        </View>
-
-        <View style={[styles.header, { borderColor: theme.colour.line }]}>
-          <Text style={[styles.title, { color: theme.colour.ink }]} numberOfLines={1}>
-            {title}
-          </Text>
-          <Pressable
-            onPress={onCancel}
-            accessibilityRole="button"
-            accessibilityLabel={say(message('common.discard'))}
-            hitSlop={10}
-            style={styles.dismiss}
-          >
-            <Text style={[styles.dismissGlyph, { color: theme.colour.inkMuted }]}>
-              ✕
-            </Text>
-          </Pressable>
-        </View>
-
-        {/*
-          A `ScrollView` whose parent has a definite height, which is what makes
-          this safe.
-
-          Every height the sheet takes is a fraction of the window, so `flex: 1`
-          here resolves to the space left between the header and the actions and
-          the scroller knows how tall it is. The `AGENTS.md` gotcha is about a
-          container that sizes to its *children* — this one never does, which is
-          why the fields can scroll here where `marker-details.tsx` had to measure
-          itself first to earn the same thing.
-        */}
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.fields}
-          keyboardShouldPersistTaps="handled"
-        >
-          {failure ? <FormNote tone="danger">{failure}</FormNote> : null}
-          {notice ? <FormNote tone="notice">{notice}</FormNote> : null}
-
-          <TextField
-            label={say(message('placeField.name'))}
-            value={name}
-            onChange={setName}
-            error={refusalWords(fieldErrors.name)}
-            placeholder={say(message('placeForm.namePlaceholder'))}
-          />
-
-          {/*
-            A grid of pins rather than a picker. A type's icon is a drawn
-            component, and the better reason is that this answers the question a
-            picker could not: what this place will look like once it is on the
-            map.
-          */}
-          <View>
-            <FieldLabel>{say(message('placeField.type'))}</FieldLabel>
-            <View
-              style={styles.types}
-              accessibilityRole="radiogroup"
-              accessibilityLabel={say(message('placeField.type'))}
-            >
-              {MARKER_TYPES.map((definition) => {
-                const chosen = definition.id === type
-
-                return (
-                  <Pressable
-                    key={definition.id}
-                    onPress={() => setType(definition.id)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: chosen }}
-                    accessibilityLabel={say(markerTypeMessage(definition.id))}
-                    style={[
-                      styles.type,
-                      {
-                        borderColor: chosen
-                          ? theme.colour.accent
-                          : theme.colour.line,
-                        backgroundColor: chosen
-                          ? theme.colour.accentWash
-                          : 'transparent',
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.typeChip,
-                        {
-                          backgroundColor: chosen
-                            ? theme.markerType[definition.id]
-                            : theme.colour.surfaceMuted,
-                        },
-                      ]}
-                    >
-                      <MarkerGlyph
-                        icon={definition.icon}
-                        size={15}
-                        colour={
-                          chosen ? theme.markerForeground : theme.colour.inkMuted
-                        }
-                      />
-                    </View>
-                    <Text
-                      style={[styles.typeLabel, { color: theme.colour.ink }]}
-                      numberOfLines={1}
-                    >
-                      {say(markerTypeMessage(definition.id))}
-                    </Text>
-                  </Pressable>
-                )
-              })}
-            </View>
-            {fieldErrors.type ? (
-              <Text
-                accessibilityRole="alert"
-                style={[styles.error, { color: theme.colour.danger }]}
-              >
-                {say(fieldErrors.type)}
-              </Text>
-            ) : null}
-          </View>
-
-          <View>
-            <FieldLabel>{say(message('placeField.city'))}</FieldLabel>
-            <View style={styles.cityRow}>
-              <CityChip
-                label={say(UNFILED_CITY_WORDING)}
-                chosen={cityId === null}
-                onPress={() => setCityId(null)}
-              />
-              {cities.map((city) => (
-                <CityChip
-                  key={city.id}
-                  label={city.name}
-                  chosen={cityId === city.id}
-                  onPress={() => setCityId(city.id)}
-                />
-              ))}
-              {/* Only where a city can actually be made. On the calendar there
-                  is nowhere to show where one is, so the offer is absent rather
-                  than present and inert. */}
-              {onCreateCity ? (
-                <CityChip
-                  label={say(message('placeForm.newCityChip'))}
-                  chosen={false}
-                  onPress={() => setNewCity({ name: '', currency: null })}
-                />
-              ) : null}
-            </View>
-            {cityNotice ? (
-              <View
-                style={[
-                  styles.cityNotice,
-                  {
-                    borderColor: theme.colour.line,
-                    backgroundColor: theme.colour.surfaceSunk,
-                  },
-                ]}
-              >
-                <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
-                  {say(cityNotice.message)}
-                </Text>
-                {cityNotice.offer && !newCity ? (
-                  <View style={styles.row}>
-                    <Button
-                      label={say(message('placeForm.createOffered', { name: cityNotice.offer }))}
-                      onPress={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
-                    />
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-            {fieldErrors.cityId ? (
-              <Text
-                accessibilityRole="alert"
-                style={[styles.error, { color: theme.colour.danger }]}
-              >
-                {say(fieldErrors.cityId)}
-              </Text>
-            ) : null}
-          </View>
-
-          {newCity ? (
-            <View
-              style={[
-                styles.newCity,
-                {
-                  borderColor: theme.colour.line,
-                  backgroundColor: theme.colour.surface,
-                },
-              ]}
-            >
-              <TextField
-                label={say(message('placeForm.newCityName'))}
-                value={newCity.name}
-                onChange={(value) => setNewCity({ ...newCity, name: value })}
-                placeholder={say(message('placeForm.newCityPlaceholder'))}
-                autoFocus
-              />
-              <CurrencyField
-                value={newCity.currency}
-                onChange={(code) => setNewCity({ ...newCity, currency: code })}
-                hint={say(
-                  newCity.name.trim() === ''
-                    ? message('placeForm.newCityCurrencyHintUnnamed', {
-                        currency: newCity.currency ?? '',
-                      })
-                    : message('placeForm.newCityCurrencyHint', {
-                        city: newCity.name.trim(),
-                        currency: newCity.currency ?? '',
-                      }),
-                )}
-              />
-              {cityError ? <FormNote tone="danger">{say(cityError)}</FormNote> : null}
-              <View style={styles.row}>
-                <View style={styles.grow}>
-                  <Button
-                    label={say(
-                      creatingCity ? message('common.creating') : message('city.create'),
-                    )}
-                    tone="primary"
-                    disabled={!online || creatingCity || newCity.name.trim() === ''}
-                    onPress={createCity}
-                  />
-                </View>
-                <View style={styles.grow}>
-                  <Button label={say(message('common.cancel'))} onPress={() => setNewCity(null)} />
-                </View>
-              </View>
-            </View>
-          ) : null}
-
-          {/*
-            The day, beside the city and not underneath it.
-
-            Two groupings of one set of places, neither inside the other — so it
-            sits next to the city in the form for the same reason it sits next to
-            it in the database. Left blank is the ordinary state of most places
-            on most trips, which is what `No day yet` says.
-          */}
-          <DayField
-            label={say(message('placeField.day'))}
-            value={plannedOn}
-            onChange={(day) => {
-              setPlannedOn(day)
-              // Clearing the day clears the run and puts the field away — a
-              // last day with nothing to start from is not storable, and
-              // leaving it on screen would go on offering it.
-              if (day === null) {
-                setPlannedUntil(null)
-                setExtended(false)
-              }
-            }}
-            error={refusalWords(fieldErrors.plannedOn)}
-          />
-
-          {/*
-            The offer, then the field — the laptop's arrangement in this
-            application's idiom. Nothing to extend before a day is chosen, so
-            neither appears until one is. Named for the days and not for a kind
-            of place: a rail pass or a festival has a run as readily as a hotel.
-          */}
-          {plannedOn !== null && !extended ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setExtended(true)}
-              style={styles.extendDay}
-            >
-              <Text style={[styles.extendDayText, { color: theme.colour.accentInk }]}>
-                {say(message('placeForm.moreThanOneDay'))}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {plannedOn !== null && extended ? (
-            <DayField
-              label={say(message('placeField.until'))}
-              value={plannedUntil}
-              onChange={(day) => {
-                setPlannedUntil(day)
-                if (day === null) setExtended(false)
-              }}
-              error={refusalWords(fieldErrors.plannedUntil)}
-            />
-          ) : null}
-
-          <HoursField
-            draft={hours}
-            onChange={setHours}
-            error={refusalWords(fieldErrors.hours)}
-          />
-
-          <TextField
-            label={say(message('placeField.note'))}
-            value={note}
-            onChange={setNote}
-            error={refusalWords(fieldErrors.note)}
-            placeholder={say(message('placeForm.notePlaceholder'))}
-            multiline
-          />
-
-          <TextField
-            label={say(message('placeField.link'))}
-            value={link}
-            onChange={setLink}
-            error={refusalWords(fieldErrors.link)}
-            placeholder={say(message('placeForm.linkPlaceholder'))}
-            keyboardType="url"
-            autoCapitalize="none"
-          />
-
-          <PriceField
-            value={price}
-            onChange={setPrice}
-            free={free}
-            onFreeChange={setFree}
-            error={refusalWords(fieldErrors.price)}
-            local={
-              currency === null || chosenCity === null
-                ? undefined
-                : {
-                    currency,
-                    value: local,
-                    onChange: (value) =>
-                      setLocalByCurrency((current) => ({ ...current, [currency]: value })),
-                    hint: say(
-                      message('placeForm.localPriceHint', { currency, city: chosenCity.name }),
-                    ),
-                    error: refusalWords(fieldErrors.localPrice),
-                  }
-            }
-            warning={
-              cleared === null
-                ? null
-                : chosenCity === null
-                  ? say(message('placeForm.localPriceClearedUnfiled', { amount: cleared }))
-                  : say(
-                      message('placeForm.localPriceClearedMoved', {
-                        city: chosenCity.name,
-                        amount: cleared,
-                      }),
-                    )
-            }
-          />
-
-          {/*
-            The way back to the map, and the only one from here.
-
-            The laptop never needs this — its form sits beside a pin that can be
-            dragged at any moment. Here the map is behind a full screen, so a
-            position arrived at by search can only be corrected through this.
-
-            Absent where the form was not opened over a map at all. The calendar
-            edits a place from a list, with no camera behind the sheet and
-            nowhere for this to lead.
-          */}
-          {onAdjustPosition ? (
-            <Pressable
-              onPress={() => onAdjustPosition(values())}
-              accessibilityRole="button"
-              style={[styles.adjust, { borderColor: theme.colour.lineStrong }]}
-            >
-              <Text style={[styles.adjustText, { color: theme.colour.accentInk }]}>
-                {say(message('placeForm.adjustPosition'))}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {/*
-            The question stands where the control was, inside the scroller,
-            because the form's own footer holds `Save place` — a different
-            write, which must not sit live beside a question about destroying
-            the record it would save.
-          */}
-          {onDelete ? (
-            asking ? (
-              <Question
-                question={say(message('placeForm.removeQuestion'))}
-                consequence={say(message('placeCard.cannotBeUndone'))}
-                confirm={say(message('common.remove'))}
-                waiting={removing}
-                onConfirm={onDelete}
-                onDecline={() => setAsking(false)}
-              />
-            ) : (
-              <Button
-                label={say(message('placeForm.remove'))}
-                tone="danger"
-                disabled={!online}
-                onPress={() => setAsking(true)}
-              />
-            )
-          ) : null}
-        </ScrollView>
-
-        <View
+        <Animated.View
           style={[
-            styles.actions,
+            styles.sheet,
             {
+              height,
+              backgroundColor: theme.colour.ground,
               borderColor: theme.colour.line,
-              backgroundColor: theme.colour.surface,
-              // `SPACE.md`, which is what every sheet in this application puts
-              // between its last thing and the bottom edge. This bar had
-              // `SPACE.sm`, and on a device with no inset to make up the
-              // difference — an older phone, one with hardware buttons — `Save
-              // place` was half as far off the edge here as anything else is.
-              // The asymmetry against `paddingTop` is intended: the top of this
-              // bar is a rule against scrolling content, the bottom is the end
-              // of the screen.
-              paddingBottom: SPACE.md + insets.bottom,
+              shadowColor: theme.elevation.lg.colour,
             },
           ]}
         >
           {/*
-            The form stays open and keeps what was typed when the connection
-            drops, so nothing is lost; only saving waits (`offline-use`).
+            The affordance, and the thing that carries the drag.
+
+            Its own row rather than a mark inside the header, so the touch target is
+            the full width of the sheet — a grabber a thumb has to find precisely is
+            a grabber that gets missed.
           */}
-          {online ? null : (
-            <NeedsConnection>{say(message('offline.savingNeedsConnection'))}</NeedsConnection>
-          )}
-          <View style={styles.actionRow}>
-            <View style={styles.grow}>
-              <Button
-                label={say(saving ? message('common.saving') : message('placeForm.save'))}
-                tone="primary"
-                disabled={!online || saving}
-                onPress={() => startSave(() => onSubmit(values()))}
-              />
+          <View
+            {...pan.panHandlers}
+            style={styles.grabRow}
+            accessibilityRole="adjustable"
+            accessibilityLabel={say(message('placeForm.sheetHeight'))}
+            accessibilityValue={{
+              text: say(
+                detent === 0 ? message('placeForm.sheetHalf') : message('placeForm.sheetFull'),
+              ),
+            }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(event) => {
+              // The drag is a gesture a screen reader cannot perform, so the two
+              // heights are reachable as actions as well.
+              if (event.nativeEvent.actionName === 'increment') settle(1)
+              if (event.nativeEvent.actionName === 'decrement') settle(0)
+            }}
+          >
+            <View style={[styles.grabber, { backgroundColor: theme.colour.lineStrong }]} />
+          </View>
+
+          <View style={[styles.header, { borderColor: theme.colour.line }]}>
+            <Text style={[styles.title, { color: theme.colour.ink }]} numberOfLines={1}>
+              {title}
+            </Text>
+            <Pressable
+              onPress={onCancel}
+              accessibilityRole="button"
+              accessibilityLabel={say(message('common.discard'))}
+              hitSlop={10}
+              style={styles.dismiss}
+            >
+              <Text style={[styles.dismissGlyph, { color: theme.colour.inkMuted }]}>
+                ✕
+              </Text>
+            </Pressable>
+          </View>
+
+          {/*
+            A `ScrollView` whose parent has a definite height, which is what makes
+            this safe.
+
+            Every height the sheet takes is a fraction of the window, so `flex: 1`
+            here resolves to the space left between the header and the actions and
+            the scroller knows how tall it is. The `AGENTS.md` gotcha is about a
+            container that sizes to its *children* — this one never does, which is
+            why the fields can scroll here where `marker-details.tsx` had to measure
+            itself first to earn the same thing.
+          */}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.fields}
+            keyboardShouldPersistTaps="handled"
+          >
+            {failure ? <FormNote tone="danger">{failure}</FormNote> : null}
+            {notice ? <FormNote tone="notice">{notice}</FormNote> : null}
+
+            <TextField
+              label={say(message('placeField.name'))}
+              value={name}
+              onChange={setName}
+              error={refusalWords(fieldErrors.name)}
+              placeholder={say(message('placeForm.namePlaceholder'))}
+            />
+
+            {/*
+              A grid of pins rather than a picker. A type's icon is a drawn
+              component, and the better reason is that this answers the question a
+              picker could not: what this place will look like once it is on the
+              map.
+            */}
+            <View>
+              <FieldLabel>{say(message('placeField.type'))}</FieldLabel>
+              <View
+                style={styles.types}
+                accessibilityRole="radiogroup"
+                accessibilityLabel={say(message('placeField.type'))}
+              >
+                {MARKER_TYPES.map((definition) => {
+                  const chosen = definition.id === type
+
+                  return (
+                    <Pressable
+                      key={definition.id}
+                      onPress={() => setType(definition.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: chosen }}
+                      accessibilityLabel={say(markerTypeMessage(definition.id))}
+                      style={[
+                        styles.type,
+                        {
+                          borderColor: chosen
+                            ? theme.colour.accent
+                            : theme.colour.line,
+                          backgroundColor: chosen
+                            ? theme.colour.accentWash
+                            : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.typeChip,
+                          {
+                            backgroundColor: chosen
+                              ? theme.markerType[definition.id]
+                              : theme.colour.surfaceMuted,
+                          },
+                        ]}
+                      >
+                        <MarkerGlyph
+                          icon={definition.icon}
+                          size={15}
+                          colour={
+                            chosen ? theme.markerForeground : theme.colour.inkMuted
+                          }
+                        />
+                      </View>
+                      <Text
+                        style={[styles.typeLabel, { color: theme.colour.ink }]}
+                        numberOfLines={1}
+                      >
+                        {say(markerTypeMessage(definition.id))}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+              {fieldErrors.type ? (
+                <Text
+                  accessibilityRole="alert"
+                  style={[styles.error, { color: theme.colour.danger }]}
+                >
+                  {say(fieldErrors.type)}
+                </Text>
+              ) : null}
             </View>
-            <View style={styles.grow}>
-              <Button label={say(message('common.cancel'))} onPress={onCancel} />
+
+            <View>
+              <FieldLabel>{say(message('placeField.city'))}</FieldLabel>
+              <View style={styles.cityRow}>
+                <CityChip
+                  label={say(UNFILED_CITY_WORDING)}
+                  chosen={cityId === null}
+                  onPress={() => setCityId(null)}
+                />
+                {cities.map((city) => (
+                  <CityChip
+                    key={city.id}
+                    label={city.name}
+                    chosen={cityId === city.id}
+                    onPress={() => setCityId(city.id)}
+                  />
+                ))}
+                {/* Only where a city can actually be made. On the calendar there
+                    is nowhere to show where one is, so the offer is absent rather
+                    than present and inert. */}
+                {onCreateCity ? (
+                  <CityChip
+                    label={say(message('placeForm.newCityChip'))}
+                    chosen={false}
+                    onPress={() => setNewCity({ name: '', currency: null })}
+                  />
+                ) : null}
+              </View>
+              {cityNotice ? (
+                <View
+                  style={[
+                    styles.cityNotice,
+                    {
+                      borderColor: theme.colour.line,
+                      backgroundColor: theme.colour.surfaceSunk,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.hint, { color: theme.colour.inkMuted }]}>
+                    {say(cityNotice.message)}
+                  </Text>
+                  {cityNotice.offer && !newCity ? (
+                    <View style={styles.row}>
+                      <Button
+                        label={say(message('placeForm.createOffered', { name: cityNotice.offer }))}
+                        onPress={() => setNewCity({ name: cityNotice.offer ?? '', currency: null })}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+              {fieldErrors.cityId ? (
+                <Text
+                  accessibilityRole="alert"
+                  style={[styles.error, { color: theme.colour.danger }]}
+                >
+                  {say(fieldErrors.cityId)}
+                </Text>
+              ) : null}
+            </View>
+
+            {newCity ? (
+              <View
+                style={[
+                  styles.newCity,
+                  {
+                    borderColor: theme.colour.line,
+                    backgroundColor: theme.colour.surface,
+                  },
+                ]}
+              >
+                <TextField
+                  label={say(message('placeForm.newCityName'))}
+                  value={newCity.name}
+                  onChange={(value) => setNewCity({ ...newCity, name: value })}
+                  placeholder={say(message('placeForm.newCityPlaceholder'))}
+                  autoFocus
+                />
+                <CurrencyField
+                  value={newCity.currency}
+                  onChange={(code) => setNewCity({ ...newCity, currency: code })}
+                  hint={say(
+                    newCity.name.trim() === ''
+                      ? message('placeForm.newCityCurrencyHintUnnamed', {
+                          currency: newCity.currency ?? '',
+                        })
+                      : message('placeForm.newCityCurrencyHint', {
+                          city: newCity.name.trim(),
+                          currency: newCity.currency ?? '',
+                        }),
+                  )}
+                />
+                {cityError ? <FormNote tone="danger">{say(cityError)}</FormNote> : null}
+                <View style={styles.row}>
+                  <View style={styles.grow}>
+                    <Button
+                      label={say(
+                        creatingCity ? message('common.creating') : message('city.create'),
+                      )}
+                      tone="primary"
+                      disabled={!online || creatingCity || newCity.name.trim() === ''}
+                      onPress={createCity}
+                    />
+                  </View>
+                  <View style={styles.grow}>
+                    <Button label={say(message('common.cancel'))} onPress={() => setNewCity(null)} />
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {/*
+              The day, beside the city and not underneath it.
+
+              Two groupings of one set of places, neither inside the other — so it
+              sits next to the city in the form for the same reason it sits next to
+              it in the database. Left blank is the ordinary state of most places
+              on most trips, which is what `No day yet` says.
+            */}
+            <DayField
+              label={say(message('placeField.day'))}
+              value={plannedOn}
+              onChange={(day) => {
+                setPlannedOn(day)
+                // Clearing the day clears the run and puts the field away — a
+                // last day with nothing to start from is not storable, and
+                // leaving it on screen would go on offering it.
+                if (day === null) {
+                  setPlannedUntil(null)
+                  setExtended(false)
+                }
+              }}
+              error={refusalWords(fieldErrors.plannedOn)}
+            />
+
+            {/*
+              The offer, then the field — the laptop's arrangement in this
+              application's idiom. Nothing to extend before a day is chosen, so
+              neither appears until one is. Named for the days and not for a kind
+              of place: a rail pass or a festival has a run as readily as a hotel.
+            */}
+            {plannedOn !== null && !extended ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setExtended(true)}
+                style={styles.extendDay}
+              >
+                <Text style={[styles.extendDayText, { color: theme.colour.accentInk }]}>
+                  {say(message('placeForm.moreThanOneDay'))}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {plannedOn !== null && extended ? (
+              <DayField
+                label={say(message('placeField.until'))}
+                value={plannedUntil}
+                onChange={(day) => {
+                  setPlannedUntil(day)
+                  if (day === null) setExtended(false)
+                }}
+                error={refusalWords(fieldErrors.plannedUntil)}
+              />
+            ) : null}
+
+            <HoursField
+              draft={hours}
+              onChange={setHours}
+              error={refusalWords(fieldErrors.hours)}
+            />
+
+            <TextField
+              label={say(message('placeField.note'))}
+              value={note}
+              onChange={setNote}
+              error={refusalWords(fieldErrors.note)}
+              placeholder={say(message('placeForm.notePlaceholder'))}
+              multiline
+            />
+
+            <TextField
+              label={say(message('placeField.link'))}
+              value={link}
+              onChange={setLink}
+              error={refusalWords(fieldErrors.link)}
+              placeholder={say(message('placeForm.linkPlaceholder'))}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+
+            <PriceField
+              value={price}
+              onChange={setPrice}
+              free={free}
+              onFreeChange={setFree}
+              error={refusalWords(fieldErrors.price)}
+              local={
+                currency === null || chosenCity === null
+                  ? undefined
+                  : {
+                      currency,
+                      value: local,
+                      onChange: (value) =>
+                        setLocalByCurrency((current) => ({ ...current, [currency]: value })),
+                      hint: say(
+                        message('placeForm.localPriceHint', { currency, city: chosenCity.name }),
+                      ),
+                      error: refusalWords(fieldErrors.localPrice),
+                    }
+              }
+              warning={
+                cleared === null
+                  ? null
+                  : chosenCity === null
+                    ? say(message('placeForm.localPriceClearedUnfiled', { amount: cleared }))
+                    : say(
+                        message('placeForm.localPriceClearedMoved', {
+                          city: chosenCity.name,
+                          amount: cleared,
+                        }),
+                      )
+              }
+            />
+
+            {/*
+              The way back to the map, and the only one from here.
+
+              The laptop never needs this — its form sits beside a pin that can be
+              dragged at any moment. Here the map is behind a full screen, so a
+              position arrived at by search can only be corrected through this.
+
+              Absent where the form was not opened over a map at all. The calendar
+              edits a place from a list, with no camera behind the sheet and
+              nowhere for this to lead.
+            */}
+            {onAdjustPosition ? (
+              <Pressable
+                onPress={() => onAdjustPosition(values())}
+                accessibilityRole="button"
+                style={[styles.adjust, { borderColor: theme.colour.lineStrong }]}
+              >
+                <Text style={[styles.adjustText, { color: theme.colour.accentInk }]}>
+                  {say(message('placeForm.adjustPosition'))}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {/*
+              The question stands where the control was, inside the scroller,
+              because the form's own footer holds `Save place` — a different
+              write, which must not sit live beside a question about destroying
+              the record it would save.
+            */}
+            {onDelete ? (
+              asking ? (
+                <Question
+                  question={say(message('placeForm.removeQuestion'))}
+                  consequence={say(message('placeCard.cannotBeUndone'))}
+                  confirm={say(message('common.remove'))}
+                  waiting={removing}
+                  onConfirm={onDelete}
+                  onDecline={() => setAsking(false)}
+                />
+              ) : (
+                <Button
+                  label={say(message('placeForm.remove'))}
+                  tone="danger"
+                  disabled={!online}
+                  onPress={() => setAsking(true)}
+                />
+              )
+            ) : null}
+          </ScrollView>
+
+          <View
+            style={[
+              styles.actions,
+              {
+                borderColor: theme.colour.line,
+                backgroundColor: theme.colour.surface,
+                // `SPACE.md`, which is what every sheet in this application puts
+                // between its last thing and the bottom edge. This bar had
+                // `SPACE.sm`, and on a device with no inset to make up the
+                // difference — an older phone, one with hardware buttons — `Save
+                // place` was half as far off the edge here as anything else is.
+                // The asymmetry against `paddingTop` is intended: the top of this
+                // bar is a rule against scrolling content, the bottom is the end
+                // of the screen.
+                paddingBottom: SPACE.md + insets.bottom,
+              },
+            ]}
+          >
+            {/*
+              The form stays open and keeps what was typed when the connection
+              drops, so nothing is lost; only saving waits (`offline-use`).
+            */}
+            {online ? null : (
+              <NeedsConnection>{say(message('offline.savingNeedsConnection'))}</NeedsConnection>
+            )}
+            <View style={styles.actionRow}>
+              <View style={styles.grow}>
+                <Button
+                  label={say(saving ? message('common.saving') : message('placeForm.save'))}
+                  tone="primary"
+                  disabled={!online || saving}
+                  onPress={() => startSave(() => onSubmit(values()))}
+                />
+              </View>
+              <View style={styles.grow}>
+                <Button label={say(message('common.cancel'))} onPress={onCancel} />
+              </View>
             </View>
           </View>
-        </View>
-      </Animated.View>
-    </KeyboardAvoidingView>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </>
   )
 }
 
