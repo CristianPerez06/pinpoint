@@ -13,7 +13,7 @@ import {
 } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
 import { RotateCw } from 'lucide-react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useLanguage, useSay } from '@/app/_components/language'
 import { MarkerGlyph } from '@/app/_components/marker-icon'
@@ -22,12 +22,6 @@ import { Menu, toolGlyphClass, toolLabelClass } from '@/app/_components/ui'
 import type { WhereAmI } from '@/lib/where-am-i'
 
 import styles from './nearby-bar.module.css'
-
-/** Where the list was left, for coming back to it after a place is closed. */
-export interface NearbyReturn {
-  order: readonly string[]
-  offset: number
-}
 
 export type NearbyBarLiveProps = {
   waiting?: false
@@ -40,9 +34,7 @@ export type NearbyBarLiveProps = {
   /** The middle of the visible map, read when the panel opens. */
   mapCentre: LngLat | null
   cityNameOf: (marker: Marker) => string | null
-  /** Where to pick up, when this opening is a return from a place. */
-  resume: NearbyReturn | null
-  onChoose: (marker: Marker, left: NearbyReturn) => void
+  onChoose: (marker: Marker) => void
 }
 
 export type NearbyBarProps = NearbyBarLiveProps | { waiting: true }
@@ -82,6 +74,7 @@ export function NearbyBar(props: NearbyBarProps) {
       align="end"
       open={props.open}
       onOpen={props.onOpen}
+      half
     >
       {props.open ? <NearbyList {...props} /> : null}
     </Menu>
@@ -131,7 +124,6 @@ function NearbyList({
   whereAmI,
   mapCentre,
   cityNameOf,
-  resume,
   onChoose,
 }: NearbyBarLiveProps) {
   const say = useSay()
@@ -171,26 +163,18 @@ function NearbyList({
     from ? orderByDistance(places, from).map((row) => row.id) : places.map((place) => place.id)
 
   /*
-    Held, not derived: fresh on opening (or as left, on a return), fresh again
-    when the point becomes the person, and fresh when the set itself changes.
+    Held, not derived: fresh on opening — closing a place chosen from here
+    leaves the map rather than coming back (`nearby-places`) — fresh again when
+    the point becomes the person, and fresh when the set itself changes.
     Between those the distances follow and the rows stay put.
   */
-  const [order, setOrder] = useState<readonly string[]>(() => resume?.order ?? fresh())
+  const [order, setOrder] = useState<readonly string[]>(fresh)
   const placeKey = places.map((place) => place.id).sort().join(',')
   const [heldFor, setHeldFor] = useState({ fromYou, placeKey })
   if (heldFor.fromYou !== fromYou || heldFor.placeKey !== placeKey) {
     setHeldFor({ fromYou, placeKey })
     setOrder(fresh())
   }
-
-  /* The list scrolls inside `Menu`'s panel, which this cannot hold a ref to. */
-  const root = useRef<HTMLDivElement | null>(null)
-  const scroller = () => root.current?.closest<HTMLElement>('[role="group"]') ?? null
-  useLayoutEffect(() => {
-    const element = scroller()
-    if (element && resume) element.scrollTop = resume.offset
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const byId = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
   const rows = order.map((id) => byId.get(id)).filter((place) => place !== undefined)
@@ -229,7 +213,7 @@ function NearbyList({
   }
 
   return (
-    <div ref={root} className={styles.body}>
+    <div className={styles.body}>
       <div className={styles.head}>
         <div className={styles.headText}>
           <h2 className={styles.title}>{say(message(fromYou ? 'nearby.fromYou' : 'nearby.fromMap'))}</h2>
@@ -283,9 +267,7 @@ function NearbyList({
               <button
                 type="button"
                 className={styles.row}
-                onClick={() =>
-                  onChoose(place, { order, offset: scroller()?.scrollTop ?? 0 })
-                }
+                onClick={() => onChoose(place)}
               >
                 <span
                   className={styles.glyph}

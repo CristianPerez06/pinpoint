@@ -262,6 +262,7 @@ function TripBarLive({
       open={open}
       onOpen={setOpen}
       tone="quiet"
+      half
     >
       {/*
         Above whichever face is showing, because it is about the write that was

@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet } from '@/components/sheet'
+import { Sheet, sheetHeight } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -62,8 +62,6 @@ import { useOnline } from '@/lib/connectivity'
  * this platform.
  */
 
-/** Fraction of the screen the sheet may grow to before it scrolls instead. */
-const SHEET_CAP = 0.8
 
 export function CitySheet({
   open,
@@ -113,7 +111,7 @@ export function CitySheet({
   const say = useSay()
   const online = useOnline()
   const insets = useSafeAreaInsets()
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
+  const height = sheetHeight(useWindowDimensions().height)
 
   const [editing, setEditing] = useState<string | null>(null)
   /** Whether the creator is open. Never open beside an editor. */
@@ -173,7 +171,7 @@ export function CitySheet({
                 // resolve `flex: 1` against. A sheet that sizes to its children
                 // reports almost nothing to a scroller and clips everything past
                 // the first row — see `AGENTS.md`.
-                maxHeight: cap,
+                height,
                 paddingBottom: SPACE.md + insets.bottom,
               },
             ]}
@@ -285,7 +283,7 @@ export function CitySheet({
               Outside the `ScrollView` on purpose, so it stays put while the
               list scrolls — `workspace-chrome` requires it be reachable on a
               trip holding more cities than fit. The sheet above has a definite
-              `maxHeight`, so this and the scroller divide that height between
+              `height`, so this and the scroller divide that height between
               them rather than this being pushed off the bottom.
             */}
             <View style={[styles.foot, { borderTopColor: theme.colour.line }]}>

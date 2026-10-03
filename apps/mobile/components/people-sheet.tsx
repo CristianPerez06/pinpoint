@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet } from '@/components/sheet'
+import { Sheet, sheetHeight } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -47,8 +47,6 @@ import { useOnline } from '@/lib/connectivity'
  * accident.
  */
 
-/** Fraction of the screen the sheet may grow to before it scrolls instead. */
-const SHEET_CAP = 0.85
 
 export function PeopleSheet({
   open,
@@ -78,7 +76,7 @@ export function PeopleSheet({
   const say = useSay()
   const online = useOnline()
   const insets = useSafeAreaInsets()
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
+  const height = sheetHeight(useWindowDimensions().height)
 
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -154,9 +152,9 @@ export function PeopleSheet({
               {
                 backgroundColor: theme.colour.surface,
                 borderColor: theme.colour.line,
-                // A definite ceiling, so the `ScrollView` inside has something to
+                // A definite height, so the `ScrollView` inside has something to
                 // resolve against — see `AGENTS.md` on content-sized containers.
-                maxHeight: cap,
+                height,
                 paddingBottom: SPACE.md + insets.bottom,
               },
             ]}

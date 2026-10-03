@@ -37,6 +37,8 @@ import styles from './ui.module.css'
 
 /** A panel floating over the map. The details view and the form share it. */
 export const overlayPanelClass = styles.panel
+/** Half the screen on a phone-shaped one, whatever the panel holds. */
+export const halfSheetClass = styles.half
 
 /**
  * The class that makes an element arrive and leave like a surface (`motion`).
@@ -527,6 +529,7 @@ export function Menu({
   tone = 'default',
   marked = false,
   disabled = false,
+  half = false,
 }: {
   /** What the trigger shows. May carry a count or a caret, so not a plain string. */
   label: ReactNode
@@ -596,6 +599,12 @@ export function Menu({
    * outside-press listeners would go on running for a panel nobody can see.
    */
   disabled?: boolean
+  /**
+   * Where the chrome takes its phone shape, stand at half the screen whatever
+   * the panel holds, rather than sizing to it (`workspace-chrome`). For the
+   * menus holding a list; a short one, like the account menu, leaves it off.
+   */
+  half?: boolean
 }) {
   const anchor = useRef<HTMLDivElement | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -712,7 +721,7 @@ export function Menu({
           ref={panel}
           role="group"
           aria-label={name}
-          className={`${styles.menuPanel} ${styles.surface} ${align === 'end' ? styles.menuPanelEnd : ''}`}
+          className={`${styles.menuPanel} ${styles.surface} ${align === 'end' ? styles.menuPanelEnd : ''} ${half ? styles.half : ''}`}
           {...presence.surface}
         >
           {children}

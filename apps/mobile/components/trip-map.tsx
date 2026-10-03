@@ -509,15 +509,8 @@ export function TripMap({
   centreRef,
   onSomethingToLookAt,
   whereAmI,
-  onDismissDetails,
 }: {
   ref?: Ref<TripMapRef>
-  /**
-   * The details sheet was dismissed by the person, rather than closed by the
-   * workspace — what tells a place opened from Nearby to hand back to the list
-   * (`nearby-places`).
-   */
-  onDismissDetails?: () => void
   /**
    * The person's position and the press that finds it (`device-location`).
    *
@@ -1696,10 +1689,7 @@ export function TripMap({
           }
           // Nothing here touches the camera, so dismissing cannot move it.
           extraAction={open?.extraAction}
-          onDismiss={() => {
-            setOpen(null)
-            onDismissDetails?.()
-          }}
+          onDismiss={() => setOpen(null)}
         />
       ) : null}
     </View>
