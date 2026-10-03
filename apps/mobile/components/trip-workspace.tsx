@@ -71,7 +71,7 @@ import { MenuSheet } from '@/components/menu-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
 import { openingHeight as detailsOpeningHeight } from '@/components/marker-details'
-import { NearbySheet, type NearbyReturn } from '@/components/nearby-sheet'
+import { NearbySheet } from '@/components/nearby-sheet'
 import { MarkersOverlayNote } from '@/components/overlay-note'
 import { PlaceSearchScreen } from '@/components/place-search'
 import { FailedState } from '@/components/states'
@@ -332,15 +332,9 @@ export function TripWorkspace({
   const [nearbyOpen, setNearbyOpen] = useState(false)
   /**
    * The place the Nearby sheet measures from when the person's position is not
-   * known: the middle of the visible map, read as the sheet opens. Kept through
-   * a detour to a place, so coming back measures from the same point rather
-   * than from the place the map flew to.
+   * known: the middle of the visible map, read as the sheet opens.
    */
   const [nearbyCentre, setNearbyCentre] = useState<LngLat | null>(null)
-  /** Where the list was left when a place was opened from it (`nearby-places`). */
-  const [nearbyReturn, setNearbyReturn] = useState<NearbyReturn | null>(null)
-  /** What the sheet picks up from on this opening, if it is a return. */
-  const [nearbyResume, setNearbyResume] = useState<NearbyReturn | null>(null)
   /**
    * The person's position (`device-location`). Held at the top of the
    * workspace, so the dot on the map and the Nearby sheet read one position and
@@ -549,21 +543,8 @@ export function TripWorkspace({
    */
   const narrowed = isFiltered(filter)
 
-  /*
-    Opening anything else ends the way back to Nearby: closing the place then
-    leaves the map, as it always has (`nearby-places`).
-  */
-  const somethingElseOpen =
-    filterOpen || menuOpen || tripsOpen || citiesOpen || peopleOpen || searchOpen ||
-    sight !== null || panel.kind !== 'none'
-  // Adjusted during render rather than in an effect, as React recommends for
-  // state that follows other state: an effect would draw one frame in which
-  // the way back still stood.
-  if (somethingElseOpen && nearbyReturn !== null) setNearbyReturn(null)
-
   function openNearby() {
     setNearbyCentre(mapRef.current?.visibleCentre() ?? centreRef.current)
-    setNearbyResume(null)
     showSheet(setNearbyOpen, true)
   }
 
@@ -574,8 +555,13 @@ export function TripWorkspace({
     whereAmI.dismiss()
   }
 
-  /** A place chosen from Nearby: open it, as the calendar's request is opened. */
-  function chooseNearby(marker: Marker, left: NearbyReturn) {
+  /**
+   * A place chosen from Nearby: open it, as the calendar's request is opened.
+   *
+   * Closing it leaves the map (`nearby-places`). It used to bring the list back,
+   * which put the sheet straight over the pin the person had gone to look at.
+   */
+  function chooseNearby(marker: Marker) {
     setNearbyOpen(false)
     const group = groupCoincident([...held]).find((each) =>
       each.markers.some((one) => one.id === marker.id),
@@ -583,15 +569,6 @@ export function TripWorkspace({
     if (!group) return
     mapRef.current?.flyTo({ lng: marker.lng, lat: marker.lat }, detailsOpeningHeight(windowHeight))
     mapRef.current?.openMarkers(group.key, [marker.id])
-    setNearbyReturn(left)
-  }
-
-  /** The place's sheet was dismissed: back to the list, as it was left. */
-  function detailsDismissed() {
-    if (nearbyReturn === null) return
-    setNearbyResume(nearbyReturn)
-    setNearbyReturn(null)
-    showSheet(setNearbyOpen, true)
   }
 
   /**
@@ -1222,7 +1199,6 @@ export function TripWorkspace({
             cityNameOf={(marker) =>
               cities.find((city) => city.id === marker.cityId)?.name ?? null
             }
-            resume={nearbyResume}
             onChoose={chooseNearby}
           />
 
@@ -1374,7 +1350,6 @@ export function TripWorkspace({
         tripId={trip.id}
         whereAmI={whereAmI}
         quietLocation={nearbyOpen}
-        onDismissDetails={detailsDismissed}
         centreRef={centreRef}
         dropping={sight !== null}
         draft={panel.kind === 'none' ? null : panel.position}
@@ -1566,7 +1541,6 @@ function Body({
   tripId,
   whereAmI,
   quietLocation,
-  onDismissDetails,
 }: {
   mapRef: Ref<TripMapRef>
   /** The person's position, held by the workspace so Nearby reads the same one. */
@@ -1576,8 +1550,6 @@ function Body({
    * itself, so the same sentence is not also said over the map.
    */
   quietLocation: boolean
-  /** A place's sheet was dismissed by the person. */
-  onDismissDetails: () => void
   /** Which trip this is, so the map can draw the streets it downloaded. */
   tripId: string
   centreRef: { current: LngLat | null }
@@ -1677,7 +1649,6 @@ function Body({
         ref={mapRef}
         tripId={tripId}
         whereAmI={whereAmI}
-        onDismissDetails={onDismissDetails}
         onSomethingToLookAt={setSomethingToLookAt}
         centreRef={centreRef}
         dropping={dropping}

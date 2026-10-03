@@ -292,36 +292,6 @@ with that noise is a control nobody can trust.
 - **WHEN** the sheet is closed and opened again
 - **THEN** it is ordered by the current distances
 
-### Requirement: Choosing a row opens the place and returns to the list
-
-Pressing a row SHALL close the sheet, open that place as selecting it on the map does,
-and move the map to it (`map-rendering`). Closing the place SHALL return to the Nearby
-sheet at the same scroll position and in the same order as when it was left.
-
-Opening anything else from the chrome while the place is open SHALL end that return:
-closing the place then leaves the map, as it always has.
-
-Rationale: on the street, Nearby is read a place at a time — open the nearest, decide
-not now, look at the next. Being dropped on the map after each one turns that into
-reopening the list and finding the place in it again, every time. *Only one thing opens
-at a time* still holds: the sheet is closed while the place is open, not drawn behind it.
-
-#### Scenario: Opening a place from the list
-
-- **WHEN** a person presses a row in Nearby
-- **THEN** the sheet closes, the place opens, and the map moves to it
-
-#### Scenario: Back to the list
-
-- **WHEN** the person closes a place opened from Nearby
-- **THEN** the Nearby sheet opens again at the same scroll position
-- **AND** its rows are in the same order as when it was left
-
-#### Scenario: Something else opened in between
-
-- **WHEN** a place opened from Nearby is open, and the person opens the filter
-- **THEN** closing the filter does not reopen Nearby
-
 ### Requirement: Nearby is drawn from the product's tokens on both grounds
 
 The sheet, its lines, its rows and the Nearby tool SHALL take every colour from the
@@ -332,3 +302,31 @@ applications. Text drawn on a filled control SHALL use the ink meant for that fi
 
 - **WHEN** the sheet is shown on the dark ground
 - **THEN** every line, row, distance and control is legible against what it is drawn on
+
+### Requirement: Choosing a row opens the place
+
+Pressing a row SHALL close the sheet, open that place as selecting it on the map does,
+and move the map to it (`map-rendering`). Closing the place SHALL leave the map, with
+the place still on screen where the map moved to, and SHALL NOT reopen the Nearby
+sheet. Opening Nearby again SHALL order it fresh, as every opening does.
+
+Rationale: a row is pressed to find out where a place is. Once the place is shown, the
+map is the answer; putting the list back over it on close covers the one thing the
+person went to look at. *Only one thing opens at a time* still holds: the sheet is closed
+while the place is open, not drawn behind it.
+
+#### Scenario: Opening a place from the list
+
+- **WHEN** a person presses a row in Nearby
+- **THEN** the sheet closes, the place opens, and the map moves to it
+
+#### Scenario: Closing the place
+
+- **WHEN** the person closes a place opened from Nearby
+- **THEN** the map is shown with the place on it
+- **AND** the Nearby sheet does not open again
+
+#### Scenario: Back to the list by hand
+
+- **WHEN** the person presses Nearby again after closing the place
+- **THEN** the sheet opens ordered by the current distances

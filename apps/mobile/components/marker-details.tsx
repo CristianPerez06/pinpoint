@@ -30,6 +30,7 @@ import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { InterestRows, VisitedToggle } from '@/components/interest'
+import { sheetHeight } from '@/components/sheet'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { Question } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
@@ -60,21 +61,6 @@ import { useWaiting } from '@/lib/waiting'
  */
 
 /**
- * How much of the screen the sheet may take before its contents start scrolling.
- *
- * A fraction of the *window* rather than of the sheet's parent, and definite
- * pixels rather than a percentage, because both matter to the fix below: the
- * sheet has to be able to compare its own measured height against a number it
- * already knows, and a percentage resolved against a parent nobody measured
- * cannot be compared to anything.
- *
- * Half rather than the 55% this used to be. The comparison only works while the
- * cap is reached before the parent's own bounds are, and the map area is the
- * window minus a header.
- */
-const SHEET_CAP = 0.5
-
-/**
  * The most of the map this sheet can cover, for whoever has to get a place out
  * from under it before it exists.
  *
@@ -84,16 +70,12 @@ const SHEET_CAP = 0.5
  * it is still being decided. A camera that centres on the map's own middle puts
  * the place exactly where the sheet is about to be.
  *
- * The **cap** rather than the height it will actually take. This sheet sizes to
- * its content and only reaches the cap when there is enough to fill it, so this
- * is an upper bound and a place will sometimes sit higher than it strictly had
- * to. That is the direction to be wrong in: a place lifted further than needed
- * is visible, and one lifted too little is behind the sheet and reads as never
- * having been drawn. There is no third option without measuring a sheet that
- * does not exist yet.
+ * Exact rather than an estimate: a place's sheet stands at the shared
+ * `sheetHeight` whatever it holds, so the height it will take is known before
+ * it exists.
  */
 export function openingHeight(windowHeight: number): number {
-  return Math.round(windowHeight * SHEET_CAP)
+  return sheetHeight(windowHeight)
 }
 
 const styles = StyleSheet.create({
@@ -503,16 +485,7 @@ export function MarkerDetails({
   // indicator, which is exactly where a thumb reaches for it.
   const insets = useSafeAreaInsets()
 
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
-
-  /**
-   * Which marker's contents were found not to fit.
-   *
-   * Held as an id rather than a boolean so that moving to another place resets
-   * it without an effect — a different marker is simply not the one that
-   * overflowed, and the sheet goes back to sizing itself to its content.
-   */
-  const [overflowed, setOverflowed] = useState<string | null>(null)
+  const cap = sheetHeight(useWindowDimensions().height)
 
   const sheet = [
     styles.sheet,
@@ -575,15 +548,6 @@ export function MarkerDetails({
       ? null
       : formatDayRange(language, marker.plannedOn, marker.plannedUntil)
   const removing = removingId === marker.id
-
-  /**
-   * Whether this marker's contents were too tall to show at once.
-   *
-   * Decided by measurement rather than by guessing at the content: a note can be
-   * any length, the interest rows grow with the trip's members, and no rule
-   * about characters or lines survives a second member joining.
-   */
-  const scrolls = overflowed === marker.id
 
   const fields = (
     <>
@@ -767,18 +731,9 @@ export function MarkerDetails({
   return (
     <SheetSurface>
       <View
-        // A definite height once the contents are known not to fit, and content-
-        // sized until then. A marker with a one-line note gets a small sheet; only
-        // one that would be cut off gets a tall one.
-        style={[sheet, scrolls ? { height: cap } : null]}
-        onLayout={(event) => {
-          const height = event.nativeEvent.layout.height
-
-          // Reaching the cap is the measurement. The sheet grows to its content,
-          // so a height equal to the ceiling means the content wanted more —
-          // there is no other way for it to end up exactly there.
-          if (!scrolls && height >= cap - 1) setOverflowed(marker.id)
-        }}
+        // One definite height whatever the place holds (`sheetHeight`), so the
+        // scroller below always has room to draw in.
+        style={[sheet, { height: cap }]}
       >
         <View style={styles.headerRow}>
           <TypeChip view={view} />
@@ -808,32 +763,17 @@ export function MarkerDetails({
         {hidden ? <HiddenNote /> : null}
 
         {/*
-          A ScrollView only once the sheet has a height to give it.
-
-          This is the whole shape of the fix. A ScrollView has no intrinsic
-          content height in React Native, so inside a parent that is asking its
-          children how tall they are it answers with almost nothing — which is how
-          an earlier attempt at this collapsed the sheet around its header and
-          clipped every field below the first. Nothing was failing to render;
-          there was simply no room allotted to draw it in.
-
-          So the sheet measures itself first. While the content fits, this is a
-          plain view and the sheet is exactly as tall as it needs to be. When the
-          content does not fit, the sheet takes a definite height and `flex: 1`
-          here finally resolves to the space left over, which is what a ScrollView
-          needs to scroll.
+          A ScrollView has no intrinsic content height in React Native, so it
+          is only given one inside the definite height above: `flex: 1` here
+          resolves to the space left under the header — see `AGENTS.md`.
         */}
-        {scrolls ? (
-          <ScrollView
-            style={styles.scroller}
-            contentContainerStyle={styles.scrollerContent}
-            showsVerticalScrollIndicator
-          >
-            {fields}
-          </ScrollView>
-        ) : (
-          <View>{fields}</View>
-        )}
+        <ScrollView
+          style={styles.scroller}
+          contentContainerStyle={styles.scrollerContent}
+          showsVerticalScrollIndicator
+        >
+          {fields}
+        </ScrollView>
       </View>
     </SheetSurface>
   )

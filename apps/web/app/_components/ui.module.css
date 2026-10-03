@@ -755,6 +755,24 @@
     z-index: 7;
   }
 
+  /*
+   * Half the screen, whatever it holds (`workspace-chrome`, *A panel raised on a
+   * phone-shaped screen rises from the edge*): the trips, the cities, Filter,
+   * Nearby and a place's details, as on the phone. A ceiling let each grow with
+   * what it held, so the same sheet stood at a different height every time and a
+   * long list left a sliver of map. The account menu and the map's credits are
+   * short and keep sizing to their contents.
+   *
+   * `align-content: start` because a menu sheet is a grid, and a grid taller
+   * than its rows stretches them to fill.
+   */
+  .menuPanel.half,
+  .panel.half {
+    height: 50dvh;
+    max-height: none;
+    align-content: start;
+  }
+
   .menuAnchor:has(.menuPanel)::after {
     content: '';
     position: fixed;

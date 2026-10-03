@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CreateTripForm } from '@/components/trip-setup'
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet } from '@/components/sheet'
+import { Sheet, sheetHeight } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -63,8 +63,6 @@ import { useOnline } from '@/lib/connectivity'
  * client and nothing to say about what a refusal means.
  */
 
-/** Fraction of the screen the sheet may grow to before it scrolls instead. */
-const SHEET_CAP = 0.85
 
 export function TripSheet({
   open,
@@ -144,7 +142,7 @@ export function TripSheet({
   /** A row that changes the trip, with no connection: half opacity, as `Button` draws one. */
   const offlineDim = online ? null : { opacity: 0.5 }
   const insets = useSafeAreaInsets()
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
+  const height = sheetHeight(useWindowDimensions().height)
 
   const [renaming, setRenaming] = useState(false)
   const [dating, setDating] = useState(false)
@@ -213,9 +211,9 @@ export function TripSheet({
               {
                 backgroundColor: theme.colour.surface,
                 borderColor: theme.colour.line,
-                // A definite ceiling, so the `ScrollView` inside has something to
+                // A definite height, so the `ScrollView` inside has something to
                 // resolve against rather than asking a parent that sizes to it.
-                maxHeight: cap,
+                height,
                 paddingBottom: SPACE.md + insets.bottom,
               },
             ]}

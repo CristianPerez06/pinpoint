@@ -160,6 +160,7 @@ function CityBarLive({
       open={open}
       onOpen={setOpen}
       tone="quiet"
+      half
     >
       <p className={styles.heading}>{say(message('city.workingOn'))}</p>
 

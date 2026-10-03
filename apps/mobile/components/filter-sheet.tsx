@@ -25,7 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { markerTypeMessage } from '@/components/marker-icon'
-import { Sheet } from '@/components/sheet'
+import { Sheet, sheetHeight } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -132,8 +132,6 @@ const styles = StyleSheet.create({
   clearTextInert: { ...role(TYPE.control), fontWeight: '400' },
 })
 
-/** Fraction of the screen the sheet may grow to before it scrolls instead. */
-const SHEET_CAP = 0.8
 
 /** Which question is open. One at a time, and none when the sheet is shown. */
 type OpenQuestion = 'interest' | 'kind' | 'day'
@@ -166,7 +164,7 @@ export function FilterSheet({
   const say = useSay()
   const language = useLanguage()
   const insets = useSafeAreaInsets()
-  const cap = Math.round(useWindowDimensions().height * SHEET_CAP)
+  const height = sheetHeight(useWindowDimensions().height)
 
   const [question, setQuestion] = useState<OpenQuestion | null>(null)
 
@@ -287,7 +285,7 @@ export function FilterSheet({
               // the foot. A container sizing to its children reports almost
               // nothing to a scroller and clips everything past the first row
               // — see `AGENTS.md`.
-              maxHeight: cap,
+              height,
               paddingBottom: SPACE.md + insets.bottom,
             },
           ]}
@@ -304,7 +302,7 @@ export function FilterSheet({
           {/*
             The questions scroll; the way out does not.
 
-            The sheet above has a definite `maxHeight`, so this and the foot
+            The sheet above has a definite `height`, so this and the foot
             divide that height between them. Without it this scroller would be
             asked how tall it is by a parent sizing to its children, answer
             almost nothing, and clip everything past the first row — see

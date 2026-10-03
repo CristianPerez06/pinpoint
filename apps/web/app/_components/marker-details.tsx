@@ -22,6 +22,7 @@ import { markerTypeMessage } from '@/app/_components/marker-type-name'
 import { TypeChip } from '@/app/_components/pin'
 import {
   Button,
+  halfSheetClass,
   overlayPanelClass,
   Question,
   notDimmed,
@@ -256,7 +257,7 @@ function Details({
       // Focusable so that focus can be moved into it, and `-1` so it is not a
       // stop on the way through the page — it is a destination, not a step.
       tabIndex={-1}
-      className={`${overlayPanelClass} ${surfaceClass}`}
+      className={`${overlayPanelClass} ${halfSheetClass} ${surfaceClass}`}
       {...surface.props}
     >
       <div className={styles.head}>

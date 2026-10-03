@@ -13,7 +13,7 @@ import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
 import RotateCw from 'lucide-react-native/icons/rotate-cw'
 import X from 'lucide-react-native/icons/x'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Linking,
@@ -27,7 +27,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MarkerGlyph } from '@/components/marker-icon'
-import { Sheet } from '@/components/sheet'
+import { Sheet, sheetHeight } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -38,9 +38,10 @@ import type { WhereAmI } from '@/lib/where-am-i'
  *
  * A modal sheet like the filter's rather than a positioned view like the
  * marker sheet: this is read instead of the map, not beside it, and dimming
- * what is behind says the map is waiting. Its height is a fixed fraction of the
- * window rather than a cap, because the list scrolls and a scroller inside a
- * container sizing to its children is given nowhere to draw (`AGENTS.md`).
+ * what is behind says the map is waiting. Its height is the shared one,
+ * `sheetHeight`, held as a definite height rather than a cap, because the list
+ * scrolls and a scroller inside a container sizing to its children is given
+ * nowhere to draw (`AGENTS.md`).
  *
  * The order is held, not derived. It is worked out when the sheet opens, when
  * the person asks for it again, and when the point it is measured from changes
@@ -49,14 +50,6 @@ import type { WhereAmI } from '@/lib/where-am-i'
  * the two disagree by more than the position itself is unsure of.
  */
 
-/** How much of the window the sheet stands in. */
-const SHEET_FRACTION = 0.62
-
-/** Where the list was left, for coming back to it after a place is closed. */
-export interface NearbyReturn {
-  order: readonly string[]
-  offset: number
-}
 
 export function NearbySheet({
   open,
@@ -66,7 +59,6 @@ export function NearbySheet({
   whereAmI,
   mapCentre,
   cityNameOf,
-  resume,
   onChoose,
 }: {
   open: boolean
@@ -78,9 +70,7 @@ export function NearbySheet({
   /** The middle of the uncovered map, read when the sheet opens. */
   mapCentre: LngLat | null
   cityNameOf: (marker: Marker) => string | null
-  /** Where to pick up, when this opening is a return from a place. */
-  resume: NearbyReturn | null
-  onChoose: (marker: Marker, left: NearbyReturn) => void
+  onChoose: (marker: Marker) => void
 }) {
   const theme = useTheme()
   const say = useSay()
@@ -124,31 +114,22 @@ export function NearbySheet({
   const freshOrder = () => (from ? orderByDistance(places, from).map((row) => row.id) : places.map((place) => place.id))
 
   /*
-    Fresh on every opening, or exactly as it was left when this opening is a
-    return from a place. Fresh again when the point stops being the map and
-    becomes the person, and when the set itself changes — a filter changed or a
-    place removed is a different list, not the same one drifting.
+    Fresh on every opening — closing a place chosen from here leaves the map
+    rather than coming back (`nearby-places`). Fresh again when the point stops
+    being the map and becomes the person, and when the set itself changes — a
+    filter changed or a place removed is a different list, not the same one
+    drifting.
+
+    Adjusted during render rather than in an effect, as the laptop's list does:
+    state that follows other state, without a frame drawn in the old order.
   */
   const placeKey = places.map((place) => place.id).sort().join(',')
-  const opened = useRef(false)
-  useEffect(() => {
-    if (!open) {
-      opened.current = false
-      return
-    }
-    if (!opened.current && resume) setOrder(resume.order)
-    else setOrder(freshOrder())
-    opened.current = true
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, fromYou, placeKey, from === null])
-
-  const scroller = useRef<ScrollView>(null)
-  const offset = useRef(0)
-  useEffect(() => {
-    if (open && resume) {
-      requestAnimationFrame(() => scroller.current?.scrollTo({ y: resume.offset, animated: false }))
-    }
-  }, [open, resume])
+  const orderKey = open ? `${fromYou}|${from === null}|${placeKey}` : null
+  const [orderedFor, setOrderedFor] = useState<string | null>(null)
+  if (orderKey !== orderedFor) {
+    setOrderedFor(orderKey)
+    if (orderKey !== null) setOrder(freshOrder())
+  }
 
   const byId = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
   const rows = order.map((id) => byId.get(id)).filter((place) => place !== undefined)
@@ -209,7 +190,7 @@ export function NearbySheet({
             {
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.line,
-              height: Math.round(windowHeight * SHEET_FRACTION),
+              height: sheetHeight(windowHeight),
               paddingBottom: insets.bottom,
             },
           ]}
@@ -282,14 +263,7 @@ export function NearbySheet({
             </View>
           ) : null}
 
-          <ScrollView
-            ref={scroller}
-            style={[styles.list, { borderTopColor: theme.colour.line }]}
-            onScroll={(event) => {
-              offset.current = event.nativeEvent.contentOffset.y
-            }}
-            scrollEventThrottle={64}
-          >
+          <ScrollView style={[styles.list, { borderTopColor: theme.colour.line }]}>
             {places.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colour.inkMuted }]}>
                 {say(message('map.noPlacesYet'))}
@@ -302,7 +276,7 @@ export function NearbySheet({
               return (
                 <Pressable
                   key={place.id}
-                  onPress={() => onChoose(place, { order, offset: offset.current })}
+                  onPress={() => onChoose(place)}
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.row,

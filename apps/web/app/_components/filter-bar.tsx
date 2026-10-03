@@ -378,6 +378,7 @@ function FilterBarLive({
         if (!next) setQuestion(null)
         onOpen(next)
       }}
+      half
     >
       {section(
         'interest',
