@@ -272,6 +272,17 @@ export const COLOUR = {
   accentWash: { light: '#FBF1DF', dark: '#33291A' },
   /** The focus ring. Alpha, so it reads over a surface or over the map. */
   accentRing: { light: '#E39A2B61', dark: '#F0AE4A6B' },
+  /**
+   * Laid over a screen while something raised over it is the one being used —
+   * a sheet that sets the screen back, a centred calendar, a place opened over
+   * the trip's calendar. Not for anything drawn on a surface.
+   *
+   * Darkening on both grounds, never the ground's own colour: a wash in the
+   * ground fades the screen toward the surface raised over it, and the two then
+   * read as one. A pair, though the halves start equal, so the dark ground can
+   * be taken deeper on its own if black at this depth is too faint over it.
+   */
+  scrim: { light: '#00000063', dark: '#00000063' },
 
   /** Failure. Distinct from every type colour, so a broken map never reads as a marker. */
   danger: { light: '#B3261E', dark: '#F2857C' },

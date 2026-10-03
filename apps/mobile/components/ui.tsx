@@ -359,16 +359,14 @@ export function NamePlaceholder({
 }
 
 /**
- * A day, chosen with the platform's own date control.
+ * A day, chosen from a calendar centred on the screen.
  *
- * WHY THE PLATFORM'S CONTROL AND NOT ONE OF OURS
+ * WHAT DRAWS THE CALENDAR
  *
- * `trip-calendar` says the date control is a field within the form and raises no
- * panel **of the product's own** over it, because the form is already raised over
- * whatever the person was reading and a second layer of ours would bury it under
- * two. The system's picker is not one of ours — which is the same reasoning that
- * lets the laptop use the browser's `<input type="date">`, and it is why this does
- * not wait on the question of replacing that one (#145).
+ * `trip-calendar` asks for a calendar centred on the screen, over a dimmed
+ * backdrop, in the product's colours. On iOS that is the library's inline
+ * calendar inside a floating `Sheet` of ours, over the scrim; on Android it is
+ * the system's own date dialog, which is centred and dims the screen by itself.
  *
  * WHY THE EMPTY STATE IS OURS
  *
@@ -585,7 +583,7 @@ export function DayField({
           {/* Pressing beside the calendar closes it without choosing, as
               pressing outside iOS's own popup did. */}
           <Pressable
-            style={styles.dayBackdrop}
+            style={[styles.dayBackdrop, { backgroundColor: theme.colour.scrim }]}
             onPress={() => setPicking(false)}
             accessibilityLabel={say(message('common.close'))}
           >

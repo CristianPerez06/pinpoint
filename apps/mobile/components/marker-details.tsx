@@ -38,7 +38,7 @@ import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useOnline } from '@/lib/connectivity'
-import { SHEET_ENTERING, SHEET_EXITING } from '@/lib/motion'
+import { SCRIM_ENTERING, SCRIM_EXITING, SHEET_ENTERING, SHEET_EXITING } from '@/lib/motion'
 import { useWaiting } from '@/lib/waiting'
 
 /**
@@ -391,11 +391,35 @@ export type ExtraAction = { label: string; onPress: () => void }
  * details, so moving between the two keeps this element and does not replay
  * the slide: only mounting and unmounting the sheet does.
  */
-function SheetSurface({ children }: { children: ReactNode }) {
+function SheetSurface({
+  onScrimPress,
+  children,
+}: {
+  /** Draws the scrim behind the sheet, and what a press on it does. */
+  onScrimPress?: () => void
+  children: ReactNode
+}) {
+  const theme = useTheme()
+  const say = useSay()
   return (
-    <Animated.View entering={SHEET_ENTERING} exiting={SHEET_EXITING} style={styles.positioner}>
-      {children}
-    </Animated.View>
+    <>
+      {onScrimPress ? (
+        <Animated.View
+          entering={SCRIM_ENTERING}
+          exiting={SCRIM_EXITING}
+          style={[StyleSheet.absoluteFill, { backgroundColor: theme.colour.scrim }]}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onScrimPress}
+            accessibilityLabel={say(message('common.close'))}
+          />
+        </Animated.View>
+      ) : null}
+      <Animated.View entering={SHEET_ENTERING} exiting={SHEET_EXITING} style={styles.positioner}>
+        {children}
+      </Animated.View>
+    </>
   )
 }
 
@@ -412,6 +436,7 @@ export function MarkerDetails({
   onBack,
   extraAction,
   onDismiss,
+  dimBehind = false,
   onEdit,
   onDelete,
   removingId,
@@ -439,6 +464,15 @@ export function MarkerDetails({
    */
   extraAction?: ExtraAction
   onDismiss: () => void
+  /**
+   * Sets the screen behind the sheet back with the scrim, and a press on it
+   * dismisses (`trip-calendar`, *A place opened over the calendar sets the
+   * calendar back*).
+   *
+   * Only the calendar asks for it. Over the map the sheet describes a pin the
+   * person is looking at, and dimming the map would hide it (`workspace-chrome`).
+   */
+  dimBehind?: boolean
   /**
    * Correcting or removing what this sheet is describing.
    *
@@ -500,7 +534,7 @@ export function MarkerDetails({
 
   if (index === null) {
     return (
-      <SheetSurface>
+      <SheetSurface onScrimPress={dimBehind ? onDismiss : undefined}>
         <View style={sheet}>
           <View style={styles.headerRow}>
             <Text style={[styles.title, { color: theme.colour.ink }]}>
@@ -729,7 +763,7 @@ export function MarkerDetails({
   )
 
   return (
-    <SheetSurface>
+    <SheetSurface onScrimPress={dimBehind ? onDismiss : undefined}>
       <View
         // One definite height whatever the place holds (`sheetHeight`), so the
         // scroller below always has room to draw in.

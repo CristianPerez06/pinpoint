@@ -1,5 +1,12 @@
 import { DURATION, EASING } from '@pinpoint/tokens'
-import { Easing, SlideInDown, SlideOutDown, type WithTimingConfig } from 'react-native-reanimated'
+import {
+  Easing,
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+  type WithTimingConfig,
+} from 'react-native-reanimated'
 
 /**
  * The phone's timings for something arriving and leaving, built once from the
@@ -47,5 +54,17 @@ export const SHEET_ENTERING = SlideInDown.duration(SURFACE_TIMING.open.duration)
   SURFACE_TIMING.open.easing,
 )
 export const SHEET_EXITING = SlideOutDown.duration(SURFACE_TIMING.close.duration).easing(
+  SURFACE_TIMING.close.easing,
+)
+
+/**
+ * The scrim behind such a sheet, where it has one: it fades on the same timings
+ * the sheet slides on, as the laptop's wash fades with its card. A scrim covers
+ * the screen and has no edge to slide from.
+ */
+export const SCRIM_ENTERING = FadeIn.duration(SURFACE_TIMING.open.duration).easing(
+  SURFACE_TIMING.open.easing,
+)
+export const SCRIM_EXITING = FadeOut.duration(SURFACE_TIMING.close.duration).easing(
   SURFACE_TIMING.close.easing,
 )

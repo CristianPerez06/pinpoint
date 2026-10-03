@@ -114,6 +114,7 @@
   --pp-ink-on-accent: #241703;
   --pp-accent-wash: #FBF1DF;
   --pp-accent-ring: #E39A2B61;
+  --pp-scrim: #00000063;
   --pp-danger: #B3261E;
   --pp-danger-surface: #FCEDEC;
 
@@ -162,6 +163,7 @@
     --pp-ink-on-accent: #171614;
     --pp-accent-wash: #33291A;
     --pp-accent-ring: #F0AE4A6B;
+    --pp-scrim: #00000063;
     --pp-danger: #F2857C;
     --pp-danger-surface: #33211F;
 
@@ -210,6 +212,7 @@
   --pp-ink-on-accent: #171614;
   --pp-accent-wash: #33291A;
   --pp-accent-ring: #F0AE4A6B;
+  --pp-scrim: #00000063;
   --pp-danger: #F2857C;
   --pp-danger-surface: #33211F;
 
