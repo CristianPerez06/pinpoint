@@ -42,6 +42,7 @@ import type { PlaceCandidate, SearchBias } from '@pinpoint/geocode'
 import {
   coveredBandHeight,
   DEFAULT_VIEWPORT,
+  distanceKm,
   FALLBACK_MARKER_TYPE,
   fitBounds,
   groupCoincident,
@@ -815,6 +816,57 @@ export function TripWorkspace({
   }, [panel, groups, allGroups])
 
   /**
+   * The line from the person to the open place (`place-route`).
+   *
+   * Held beside the selection, and kept only while it is about the place that
+   * is open: closing the card or opening another place drops it in the same
+   * pass, so a line can never outlive the place it was drawn to. `from` is
+   * copied from the position once, which is what keeps the line still while
+   * the dot goes on following the person.
+   */
+  const openMarker = open && open.index !== null ? open.group.markers[open.index]! : null
+  const openMarkerId = openMarker?.id ?? null
+  const [route, setRoute] = useState<{ markerId: string; from: LngLat } | null>(null)
+  const [routing, setRouting] = useState<string | null>(null)
+  // Reset while rendering rather than in an effect, as React recommends for
+  // state that follows another value: the place changing and the line going
+  // are then one render, never a frame with a line to a closed place.
+  const [routeFor, setRouteFor] = useState(openMarkerId)
+  if (routeFor !== openMarkerId) {
+    setRouteFor(openMarkerId)
+    setRoute(null)
+  }
+  const activeRoute = route && openMarker && route.markerId === openMarker.id ? route : null
+
+  const calculateRoute = async (markerId: string) => {
+    setRouting(markerId)
+    // The same press as "where am I": it asks the first time, and on a refusal
+    // or a timeout it has already set the status the note over the map reads.
+    const fix = await whereAmI.locate()
+    setRouting(null)
+    if (fix) setRoute({ markerId, from: { lng: fix.lng, lat: fix.lat } })
+  }
+
+  // Stable between renders, so the map draws and frames a route once rather
+  // than every time anything else in the workspace changes.
+  const routeTo = openMarker ? { lng: openMarker.lng, lat: openMarker.lat } : null
+  const routeLine = useMemo(
+    () => (activeRoute && routeTo ? { from: activeRoute.from, to: routeTo } : null),
+    // The place's coordinates, not the object: a re-read hands back a new one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeRoute, routeTo?.lng, routeTo?.lat],
+  )
+
+  const routeOffer = openMarker
+    ? {
+        finding: routing === openMarker.id,
+        km: activeRoute ? distanceKm(activeRoute.from, openMarker) : null,
+        onCalculate: () => void calculateRoute(openMarker.id),
+        onClear: () => setRoute(null),
+      }
+    : undefined
+
+  /**
    * The point a revealed card is standing on, when the filter is not drawing it.
    *
    * The problem this answers was found by looking, on the phone: the camera flew
@@ -1478,6 +1530,7 @@ export function TripWorkspace({
           departing={departing}
           onMarkersInView={setAnyInView}
           whereAmI={whereAmI}
+          route={routeLine}
         />
 
         {dropping ? (
@@ -1636,6 +1689,7 @@ export function TripWorkspace({
             corner.kind === 'details' ? (
               <MarkerDetails
                 selection={corner.open}
+                route={routeOffer}
                 members={members}
                 interestFor={interestFor}
                 // Resolved here, where the cities are, rather than handing the

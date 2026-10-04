@@ -644,6 +644,16 @@ export const SPANISH: Catalogue = {
   'nearby.openSettings': 'Abrir Ajustes',
   'nearby.metres': (v) => `${v.distance} m`,
 
+  'route.calculate': 'Calcular ruta',
+  'route.calculateNamed': (v) => `Calcular la ruta a ${v.name}`,
+  'route.finding': 'Buscando la ubicación…',
+  'route.straightLine': (v) => `${v.distance} en línea recta`,
+  'route.clear': 'Borrar',
+  'route.clearNamed': (v) => `Borrar la ruta a ${v.name}`,
+  'route.walkMinutes': (v) => `Unos ${v.minutes} min a pie`,
+  'route.walkHours': (v) => `Unas ${v.hours} h a pie`,
+  'route.walkHoursMinutes': (v) => `Unas ${v.hours} h ${v.minutes} min a pie`,
+
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',
   'filter.hintNarrowed': 'Filtrar este viaje. Hay lugares ocultos',

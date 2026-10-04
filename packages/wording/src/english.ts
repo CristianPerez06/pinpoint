@@ -805,6 +805,23 @@ export const ENGLISH = {
   /** A distance under a kilometre. `distance` is already formatted for the language. */
   'nearby.metres': (v: { distance: string }) => `${v.distance} m`,
 
+  // ── A route to a place (`place-route`) ──────────────────────────────────
+  /** The button in a place's details that draws the line from the person to it. */
+  'route.calculate': 'Calculate route',
+  'route.calculateNamed': (v: { name: string }) => `Calculate the route to ${v.name}`,
+  'route.finding': 'Finding where you are…',
+  /** Beneath the walking time. `distance` is already formatted for the language. */
+  'route.straightLine': (v: { distance: string }) => `${v.distance} in a straight line`,
+  'route.clear': 'Clear',
+  'route.clearNamed': (v: { name: string }) => `Clear the route to ${v.name}`,
+  /** An estimate on foot, under an hour. `minutes` is already formatted for the language. */
+  'route.walkMinutes': (v: { minutes: string }) => `About ${v.minutes} min walk`,
+  /** An estimate on foot, a whole number of hours. */
+  'route.walkHours': (v: { hours: string }) => `About ${v.hours} h walk`,
+  /** An estimate on foot, hours and minutes. */
+  'route.walkHoursMinutes': (v: { hours: string; minutes: string }) =>
+    `About ${v.hours} h ${v.minutes} min walk`,
+
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',
   'filter.hint': 'Filter this trip',

@@ -60,3 +60,22 @@ export function formatWalkingDistance(language: Language, km: number): Message {
 
   return message('nearby.metres', { distance })
 }
+
+/**
+ * A time on foot, as an estimate: `About 25 min walk`, `About 1 h 10 min walk`
+ * (`place-route`).
+ *
+ * Takes minutes already rounded by `walkingMinutes` in `@pinpoint/map`, so this
+ * only decides how they are written. Minutes under an hour, hours and minutes
+ * from an hour, and hours alone when the minutes come out at zero, because
+ * `2 h 0 min` reads as a stopwatch.
+ */
+export function formatWalkingTime(language: Language, minutes: number): Message {
+  const number = new Intl.NumberFormat(DISTANCE_LOCALE[language], { maximumFractionDigits: 0 })
+  if (minutes < 60) return message('route.walkMinutes', { minutes: number.format(minutes) })
+
+  const hours = number.format(Math.floor(minutes / 60))
+  const rest = minutes % 60
+  if (rest === 0) return message('route.walkHours', { hours })
+  return message('route.walkHoursMinutes', { hours, minutes: number.format(rest) })
+}

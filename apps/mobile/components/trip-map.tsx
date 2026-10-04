@@ -7,12 +7,14 @@ import {
   type Anchor,
   type CameraRef,
   type CircleLayerSpecification,
+  type LineLayerSpecification,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native'
 import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
 import {
   ATTRIBUTION,
   DEFAULT_VIEWPORT,
+  distanceKm,
   frameAround,
   groupCoincident,
   isCentredOn,
@@ -22,6 +24,9 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   offsetCenter,
+  ROUTE_SOURCE,
+  routeFeature,
+  routeLayers,
   withinBounds,
   zoomStep,
   type Bounds,
@@ -53,10 +58,22 @@ import {
   useRef,
   useState,
 } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 
 import { AttributionSheet } from '@/components/attribution-sheet'
-import { type ExtraAction, MarkerDetails, type Selection } from '@/components/marker-details'
+import {
+  type ExtraAction,
+  MarkerDetails,
+  openingHeight as detailsHeight,
+  type Selection,
+} from '@/components/marker-details'
 import { DraftPin, Pin } from '@/components/pin'
 import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
@@ -1051,6 +1068,61 @@ export function TripMap({
   }, [open, groups, heldGroups])
 
   /**
+   * The line from the person to the open place (`place-route`).
+   *
+   * Kept only while it is about the place that is open: closing the sheet or
+   * opening another place drops it in the same render, so a line can never
+   * outlive the place it was drawn to. `from` is copied from the position once,
+   * which is what keeps the line still while the dot goes on following the
+   * person.
+   */
+  const openPlace =
+    selection && selection.index !== null ? selection.group.markers[selection.index]! : null
+  const openPlaceId = openPlace?.id ?? null
+  const [route, setRoute] = useState<{ markerId: string; from: LngLat } | null>(null)
+  const [routing, setRouting] = useState<string | null>(null)
+  // Reset while rendering rather than in an effect, as React recommends for
+  // state that follows another value.
+  const [routeFor, setRouteFor] = useState(openPlaceId)
+  if (routeFor !== openPlaceId) {
+    setRouteFor(openPlaceId)
+    setRoute(null)
+  }
+  const activeRoute = route && openPlace && route.markerId === openPlace.id ? route : null
+  const windowHeight = useWindowDimensions().height
+
+  const calculateRoute = async (place: Marker) => {
+    setRouting(place.id)
+    // The same press as "where am I": it asks the first time, and on a refusal
+    // or a timeout it has already set the status the note over the map reads.
+    const fix = await whereAmI.locate()
+    setRouting(null)
+    if (!fix) return
+    const from = { lng: fix.lng, lat: fix.lat }
+    setRoute({ markerId: place.id, from })
+    // Both ends above the sheet, by the shared derivation — never camera
+    // padding, which the drop sight depends on staying zero (AGENTS.md).
+    const camera = frameAround(
+      [from, { lng: place.lng, lat: place.lat }],
+      viewport ?? DEFAULT_VIEWPORT,
+      detailsHeight(windowHeight),
+    )
+    cameraRef.current?.flyTo({
+      center: [camera.center.lng, camera.center.lat],
+      zoom: camera.zoom,
+    })
+  }
+
+  const routeOffer = openPlace
+    ? {
+        finding: routing === openPlace.id,
+        km: activeRoute ? distanceKm(activeRoute.from, openPlace) : null,
+        onCalculate: () => void calculateRoute(openPlace),
+        onClear: () => setRoute(null),
+      }
+    : undefined
+
+  /**
    * The point a revealed sheet is standing on, when the filter is not drawing it.
    *
    * Found by looking rather than by reasoning: the camera flew to a recognised
@@ -1291,6 +1363,28 @@ export function TripMap({
             presses, and is the same dot the laptop draws — `locationLayers`
             says why each of those holds.
           */}
+          {/*
+            The route, before the person so it is drawn beneath their dot and
+            every pin, from the same description the laptop draws
+            (`place-route`).
+          */}
+          {activeRoute && openPlace ? (
+            <GeoJSONSource
+              id={ROUTE_SOURCE}
+              data={routeFeature(activeRoute.from, { lng: openPlace.lng, lat: openPlace.lat })}
+            >
+              {routeLayers(mode).map((layer) => (
+                <Layer
+                  key={layer.id}
+                  id={layer.id}
+                  type="line"
+                  layout={layer.layout as LineLayerSpecification['layout']}
+                  paint={layer.paint as LineLayerSpecification['paint']}
+                />
+              ))}
+            </GeoJSONSource>
+          ) : null}
+
           {whereAmI.fix ? (
             <GeoJSONSource id={LOCATION_SOURCE} data={locationFeature(whereAmI.fix)}>
               {locationLayers(whereAmI.fix, mode).map((layer) => (
@@ -1682,6 +1776,7 @@ export function TripMap({
           onEdit={onEditMarker}
           onDelete={onDeleteMarker}
           removingId={removingId}
+          route={routeOffer}
           onChoose={(index) =>
             // Both of these move within the sheet that is already open, so they
             // carry its own permission rather than granting or dropping one. A

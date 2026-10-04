@@ -10,10 +10,12 @@ import {
   type Marker,
   type MarkerInterest,
   type TripMember,
+  formatWalkingDistance,
+  formatWalkingTime,
 } from '@pinpoint/core'
-import type { MarkerGroup, MarkerView } from '@pinpoint/map'
+import { walkingMinutes, type MarkerGroup, type MarkerView } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
-import { X } from 'lucide-react'
+import { Footprints, X } from 'lucide-react'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
@@ -141,6 +143,81 @@ function HoursLines({ lines }: { lines: ReturnType<typeof describeHours> }) {
 /** An action the card offers on behalf of the screen that opened it. */
 export type ExtraAction = { label: string; onClick: () => void }
 
+/**
+ * What the map offers about getting to the open place (`place-route`).
+ *
+ * Optional, and only the map's workspace passes it: the calendar opens this
+ * same card with no map on screen, and a line drawn on a map nobody can see
+ * would be a button that does nothing.
+ */
+export interface RouteOffer {
+  /** Waiting for the person's position, after a press. */
+  finding: boolean
+  /** The straight-line distance once the line is drawn, or null before. */
+  km: number | null
+  onCalculate: () => void
+  onClear: () => void
+}
+
+/**
+ * The button, and once pressed, how far and how long.
+ *
+ * Inert while finding rather than disabled, so it keeps its place in the tab
+ * order and its name (`Inert, not absent`).
+ */
+function Route({ offer, name }: { offer: RouteOffer; name: string }) {
+  const language = useLanguage()
+  const say = useSay()
+
+  if (offer.km === null) {
+    return (
+      <button
+        type="button"
+        className={styles.routeButton}
+        onClick={offer.finding ? undefined : offer.onCalculate}
+        aria-disabled={offer.finding || undefined}
+        aria-busy={offer.finding || undefined}
+        aria-label={offer.finding ? undefined : say(message('route.calculateNamed', { name }))}
+      >
+        {offer.finding ? (
+          <span className={styles.routeSpinner} aria-hidden="true" />
+        ) : (
+          <Footprints size={17} aria-hidden="true" />
+        )}
+        {say(message(offer.finding ? 'route.finding' : 'route.calculate'))}
+      </button>
+    )
+  }
+
+  const minutes = walkingMinutes(offer.km)
+  const distance = say(
+    message('route.straightLine', { distance: say(formatWalkingDistance(language, offer.km)) }),
+  )
+  return (
+    <div className={styles.route}>
+      <Footprints size={20} aria-hidden="true" className={styles.routeIcon} />
+      <p className={styles.routeText}>
+        {minutes === null ? (
+          <span className={styles.routeMain}>{distance}</span>
+        ) : (
+          <>
+            <span className={styles.routeMain}>{say(formatWalkingTime(language, minutes))}</span>
+            <span className={styles.routeSub}>{distance}</span>
+          </>
+        )}
+      </p>
+      <button
+        type="button"
+        className={styles.routeClear}
+        onClick={offer.onClear}
+        aria-label={say(message('route.clearNamed', { name }))}
+      >
+        {say(message('route.clear'))}
+      </button>
+    </div>
+  )
+}
+
 function Details({
   marker,
   view,
@@ -158,6 +235,7 @@ function Details({
   onDismiss,
   onEdit,
   onDelete,
+  route,
 }: {
   marker: Marker
   view: MarkerView
@@ -193,6 +271,8 @@ function Details({
   onEdit: () => void
   /** Awaited, so `Remove` can say what it is doing until the row is actually gone. */
   onDelete: () => Promise<unknown>
+  /** See `RouteOffer`. */
+  route?: RouteOffer
 }) {
   /**
    * Removing is pending rather than optimistic, and this flag is why the panel
@@ -279,6 +359,8 @@ function Details({
           <span className={`${styles.tag} ${styles.tagPrice}`}>{say(prices)}</span>
         )}
       </div>
+
+      {route ? <Route offer={route} name={marker.name} /> : null}
 
       {hidden ? <HiddenNote /> : null}
 
@@ -507,6 +589,7 @@ export function MarkerDetails({
   onDismiss,
   onEdit,
   onDelete,
+  route,
 }: {
   selection: Selection
   members: readonly TripMember[]
@@ -533,6 +616,8 @@ export function MarkerDetails({
   onDismiss: () => void
   onEdit: (marker: Marker) => void
   onDelete: (marker: Marker) => Promise<unknown>
+  /** See `RouteOffer`. Only the map passes it. */
+  route?: RouteOffer
 }) {
   const { group, index, hidden } = selection
 
@@ -567,6 +652,7 @@ export function MarkerDetails({
       onDismiss={onDismiss}
       onEdit={() => onEdit(marker)}
       onDelete={() => onDelete(marker)}
+      route={route}
     />
   )
 }

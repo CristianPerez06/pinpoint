@@ -248,3 +248,103 @@
   font-size: var(--pp-type-note-size);
   font-weight: 400;
 }
+
+/* ── The route to the place (`place-route`) ──────────────────────────────── */
+
+.routeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-sm);
+  width: 100%;
+  margin: 13px 0 0;
+  padding: 9px 15px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.routeButton:hover:not([aria-disabled='true']) {
+  background: var(--pp-surface-muted);
+}
+
+.routeButton[aria-disabled='true'] {
+  color: var(--pp-ink-muted);
+  cursor: default;
+}
+
+.routeSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--pp-line);
+  border-top-color: var(--pp-ink-muted);
+  border-radius: 50%;
+  animation: routeSpin 0.9s linear infinite;
+}
+
+@keyframes routeSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routeSpinner {
+    animation: none;
+  }
+}
+
+.route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 13px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-surface-muted);
+}
+
+.routeIcon {
+  flex: none;
+  color: var(--pp-ink);
+}
+
+.routeText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.routeMain {
+  font-size: var(--pp-type-row-name-size);
+  font-weight: var(--pp-type-row-name-weight);
+  letter-spacing: var(--pp-type-row-name-tracking);
+}
+
+.routeSub {
+  font-size: var(--pp-type-note-size);
+  color: var(--pp-ink-muted);
+}
+
+.routeClear {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  font: inherit;
+  font-size: var(--pp-type-control-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.routeClear:hover {
+  background: var(--pp-surface-sunk);
+}
