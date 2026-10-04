@@ -13,7 +13,7 @@ import {
 import { MARKER_TYPES } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Animated,
   KeyboardAvoidingView,
@@ -142,6 +142,7 @@ export function MarkerFormSheet({
   dimBehind = false,
   capturing = false,
   unsaved = false,
+  leaveRef,
 }: {
   title: string
   /**
@@ -210,6 +211,15 @@ export function MarkerFormSheet({
    * so comparing against `initial` alone forgets everything done before it.
    */
   unsaved?: boolean
+  /**
+   * Where this form puts its own way out, for a press it cannot see.
+   *
+   * A tap on a pin lands on the map, not on the form, and has to leave the form
+   * exactly as ✕ does — asking first where there is something to lose (#265).
+   * The form keeps deciding that, so the ways out cannot drift apart; the map
+   * only says when.
+   */
+  leaveRef?: RefObject<(() => void) | null>
   /**
    * Hands the current values back so nothing is lost on the way to the sight.
    *
@@ -463,6 +473,16 @@ export function MarkerFormSheet({
     }
     onCancel()
   }
+
+  // After every commit, so the map always reaches the `leave` that sees the
+  // values on screen now rather than the ones the form opened with.
+  useEffect(() => {
+    if (!leaveRef) return
+    leaveRef.current = leave
+    return () => {
+      leaveRef.current = null
+    }
+  })
 
   function createCity() {
     if (!newCity) return

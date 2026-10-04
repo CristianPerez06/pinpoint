@@ -457,6 +457,8 @@ export function TripWorkspace({
    * the moment of a press.
    */
   const centreRef = useRef<LngLat | null>(null)
+  /** The open place form's way out, for a pin tapped while it is open. */
+  const leaveForm = useRef<(() => void) | null>(null)
 
 
 
@@ -1151,6 +1153,7 @@ export function TripWorkspace({
         notice={conflict && say(conflict)}
         onSubmit={save}
         onCancel={cancelPanel}
+        leaveRef={leaveForm}
         capturing={panel.kind === 'create'}
         unsaved={
           panel.kind === 'edit' &&
@@ -1385,6 +1388,7 @@ export function TripWorkspace({
           was — which is what the specification asks of abandoning.
         */
         onAbandonCapture={cancelPanel}
+        onLeaveForm={() => leaveForm.current?.()}
         onReread={() => void rereadByHand()}
         rereading={rereading}
         confirmBar={
@@ -1527,6 +1531,7 @@ function Body({
   removingId,
   departing,
   onAbandonCapture,
+  onLeaveForm,
   onReread,
   rereading,
   loading,
@@ -1571,6 +1576,7 @@ function Body({
   removingId: string | null
   departing: string | null
   onAbandonCapture: () => void
+  onLeaveForm: () => void
   /** Read every list again, because somebody pressed the control for it. */
   onReread: () => void
   /** Whether that read is in flight, so the control can answer the press. */
@@ -1668,6 +1674,7 @@ function Body({
         removingId={removingId}
         departing={departing}
         onAbandonCapture={onAbandonCapture}
+        onLeaveForm={onLeaveForm}
         onReread={onReread}
         rereading={rereading}
         bottomRow={bottomRow}
