@@ -480,16 +480,21 @@ function Tool({
         <Glyph size={TOOL_GLYPH} color={ink} strokeWidth={2} />
         {/*
           The second signal. The accent alone would be a state carried by hue,
-          which this project forbids; a dot is a shape that survives greyscale.
-          Ringed in the bar's own surface so it reads as sitting on top of the
-          glyph rather than as part of it.
+          which this project forbids; a dot is a shape that survives greyscale —
+          once it is big and dark enough to be seen there. Read in greyscale it
+          was not: 7 points with a 2-point ring left a 3-point speck of light
+          amber, and the narrowed tool looked like the other three (#123). Now a
+          badge, in `accentInk`, which is dark on the light ground and bright on
+          the dark one, so it stands off the bar in lightness on both. Ringed in
+          the bar's own surface so it reads as sitting on top of the glyph rather
+          than as part of it.
         */}
         {marked ? (
           <View
             style={[
               styles.pip,
               {
-                backgroundColor: theme.colour.accent,
+                backgroundColor: theme.colour.accentInk,
                 borderColor: theme.colour.surface,
               },
             ]}
@@ -642,11 +647,11 @@ const styles = StyleSheet.create({
   toolLabel: { ...role(TYPE.label), textTransform: 'none', letterSpacing: 0.07 },
   pip: {
     position: 'absolute',
-    top: -1,
-    right: -5,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    top: -4,
+    right: -7,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
   },
   body: { flex: 1 },
