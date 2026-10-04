@@ -1500,11 +1500,13 @@ export function TripWorkspace({
       />
 
       {/* A refused write, said out loud. Dismissible, because the state it
-          described has already been put back. */}
+          described has already been put back. The note takes the press itself:
+          wrapped in a `Pressable` it was laid out below the screen and never
+          seen (#252, and `MarkersOverlayNote` on why). */}
       {problem !== null ? (
-        <Pressable onPress={() => setProblem(null)} accessibilityRole="button">
-          <MarkersOverlayNote tone="danger">{say(problem)}</MarkersOverlayNote>
-        </Pressable>
+        <MarkersOverlayNote tone="danger" onPress={() => setProblem(null)}>
+          {say(problem)}
+        </MarkersOverlayNote>
       ) : null}
     </WorkspaceChrome>
   )
