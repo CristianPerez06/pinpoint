@@ -318,7 +318,7 @@ export function PlaceSearchScreen({
     source === 'typed' && (result?.status === 'ready' || result?.status === 'empty')
 
   return (
-    <Sheet open={open} onRequestClose={close}>
+    <Sheet open={open} onRequestClose={close} dim={false}>
       <View
         style={[
           styles.screen,
