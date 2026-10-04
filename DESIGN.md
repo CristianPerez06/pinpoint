@@ -492,27 +492,26 @@ lettering's colour instead. **Sheets on the phone** are pinned to the bottom
 edge at one of two detents — 52% and 92% of the window — because half is enough map to
 recognise a street corner and enough sheet to show the fields being checked against it.
 
-**Responsive:** the web bar holds one row down to **1024px**, below which the tools take
+**Responsive:** the web bar holds one row down to **1108px**, below which the tools take
 a line of their own and the scope keeps the first with the account. That number is
 derived rather than picked: what cannot shrink in the bar — the two fixed scope names,
-the drop slot, the filter slot, the account, the gaps and the padding — and a search
-field stops being one at about 240px, so the single row runs out below that sum.
+the drop slot, the filter slot, the account, the gaps and the padding — measures
+**868px**, and a search field stops being one at about **240px**, so the single row runs
+out below their sum.
 
-*Measured, and the arithmetic no longer agrees with the breakpoint.* What cannot shrink
-is **868px**, not the 764px this paragraph used to claim, so the row runs out at about
-**1108px** — and at the 1024px breakpoint the search field is **156px**, well under the
-240px this same sentence calls the floor. Giving the filter a settled width moved this by
-41px (it was ~1067px when the filter sized itself to `Filter` alone), so the slot widened
-a gap that was already there rather than opening it: the stated 1004px was wrong before
-that change too. **Left as found, and recorded rather than fixed** — moving the breakpoint
-is a decision about the wrapped bar and not about the filter. Below **700px** the chrome takes its phone shape, which is an arrangement rather than a
+It was 1024px until #127, which by then was past its own derivation: the bar stayed one
+row for 84px in which the search field shrank to 156px, well under the floor named above.
+The wrapped bar was already the better arrangement there — measured at 720px and 760px it
+holds with nothing overlapping and the field at 292px and 332px — so the fix was to meet
+it sooner rather than to redesign it. **If anything in the bar changes width, re-measure
+the 868px and move this with it.** Below **700px** the chrome takes its phone shape, which is an arrangement rather than a
 narrower version of the bar: the trip's name and the city stack on two lines with a menu
 of rare actions at the far end, the map takes everything under them, and search, drop and
 filter become a toolbar standing on the bottom edge. Three bands, therefore — one bar, a
 wrapped bar, and the phone's shape — and the phone's is the only one of the three that
 changes what the controls *are* rather than where they sit.
 
-That last number is chosen rather than derived, and it is worth saying so. 1024 is
+That last number is chosen rather than derived, and it is worth saying so. 1108 is
 arithmetic: it is where the bar's incompressible contents stop fitting. Nothing fails at
 700 — the wrapped bar goes on working down to about 445px — so 700 is a judgement about
 what a screen that width is *for*, not a measurement of what fits on it. A breakpoint

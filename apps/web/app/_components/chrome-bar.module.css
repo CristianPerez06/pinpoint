@@ -8,8 +8,13 @@
  * field, the drop slot, the filter's slot — because those are what the map puts
  * *in* this bar rather than part of the bar itself.
  *
- * The breakpoints are here because the shape is: 1024px is where the bar wraps
+ * The breakpoints are here because the shape is: 1108px is where the bar wraps
  * and 700px is where it becomes a grid, and both are statements about the bar.
+ *
+ * 1108px is derived, not chosen: what cannot shrink in the bar measures 868px,
+ * and a search field stops being one at about 240px. It was 1024px, which left
+ * the bar one row between the two with the field down to 156px (#127).
+ * `DESIGN.md` § Responsive keeps the arithmetic.
  * Whatever a screen hands to the session position places itself, which is why
  * nothing here names it.
  */
@@ -137,7 +142,7 @@
  * Only the wrap and the account are stated here. Which element takes the
  * second line, and how wide it is, is said by whoever put it there.
  */
-@media (max-width: 1024px) {
+@media (max-width: 1108px) {
   .bar {
     flex-wrap: wrap;
   }
