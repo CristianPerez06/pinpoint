@@ -10,7 +10,7 @@
  * slots, the banner and the stage.
  *
  * Both media queries below therefore continue rules the bar's own stylesheet
- * opens. The 1024px one is where the session band takes a line of its own; the
+ * opens. The 1108px one is where the session band takes a line of its own; the
  * 700px one is where it leaves the bar for the bottom edge. The number is
  * decided and explained in `chrome-bar.module.css`.
  */
@@ -213,7 +213,7 @@
  * failure this replaces: the field kept its place in the row and gave up its
  * width instead, reaching 30px at 780px — present, focusable, and useless.
  */
-@media (max-width: 1024px) {
+@media (max-width: 1108px) {
   .tools {
     order: 1;
     width: 100%;
