@@ -145,8 +145,23 @@ export function useWhereAmI(): WhereAmI {
     if (following.current) startWatching()
   })
 
+  // The latest position, for `press` to read without depending on it.
+  const latest = useRef<Fix | null>(null)
+  useEffect(() => {
+    latest.current = fix
+  }, [fix])
+
   const press = useCallback(async () => {
     if (finding.current) return null
+    // Already following: the watch is what keeps the dot current, so its last
+    // position is the answer. Asking the browser for a fresh one while the
+    // watch runs is what failed — Chrome let the second request time out, and
+    // a second press read as "could not find where you are" beside a dot that
+    // had found them.
+    if (following.current && watch.current !== null && latest.current) {
+      setStatus('found')
+      return latest.current
+    }
     finding.current = true
     setStatus('finding')
 

@@ -5,6 +5,7 @@ import { DURATION } from '@pinpoint/tokens'
 import {
   ATTRIBUTION,
   MAP_CREDITS,
+  fitBounds,
   frameAround,
   isCentredOn,
   liftOffset,
@@ -12,6 +13,9 @@ import {
   locationFeature,
   locationLayers,
   offsetCenter,
+  ROUTE_SOURCE,
+  routeFeature,
+  routeLayers,
   withinBounds,
   DEFAULT_VIEWPORT,
   MAX_ZOOM,
@@ -32,6 +36,7 @@ import { Locate, RefreshCw } from 'lucide-react'
 import {
   type CircleLayerSpecification,
   type GeoJSONSource,
+  type LineLayerSpecification,
   MapLibreMap,
   Marker as MapLibreMarker,
   setWorkerUrl,
@@ -212,6 +217,7 @@ export function TripMap({
   departing = null,
   whereAmI,
   visibleCentreRef,
+  route = null,
 }: {
   /**
    * The middle of the part of the map nothing covers, kept current the way
@@ -228,6 +234,14 @@ export function TripMap({
    * this component's, because the camera and the edge are.
    */
   whereAmI: WhereAmI
+  /**
+   * A straight line from the person to the open place, or null (`place-route`).
+   *
+   * Held by the workspace beside the selection, so it goes when the place
+   * does. Drawn and framed here, because the camera and the layers are this
+   * component's.
+   */
+  route?: { from: LngLat; to: LngLat } | null
   groups: readonly MarkerGroup<Marker>[]
   /**
    * One point the filter is not drawing, shown anyway because the person named
@@ -463,6 +477,9 @@ export function TripMap({
 
   useEffect(() => {
     if (!map || !covered) return
+    // A drawn route frames both of its ends itself, clear of the card; lifting
+    // the place alone would undo that.
+    if (route) return
 
     const described =
       draft ??
@@ -489,7 +506,7 @@ export function TripMap({
       dy,
     )
     map.easeTo({ center: [target.lng, target.lat], duration: 260 })
-  }, [map, covered, draft, selectedKey, shown])
+  }, [map, covered, draft, selectedKey, shown, route])
 
   /**
    * The style has to be fetched and transformed before the renderer can be
@@ -818,6 +835,108 @@ export function TripMap({
       map.off('styledata', apply)
     }
   }, [map, fix, mode])
+
+  /**
+   * The route, drawn from the shared description beneath the person's dot and
+   * every pin, and taking no clicks (`place-route`).
+   *
+   * Re-applied on `styledata` for the reason the dot is: a theme change swaps
+   * the whole document, and the new one carries none of these layers.
+   */
+  useEffect(() => {
+    if (!map) return
+
+    const apply = () => {
+      // Busy for a frame after anything is added — the person's dot is added
+      // just before a route is — so a route that arrives then is drawn once
+      // the map settles rather than dropped.
+      if (!map.isStyleLoaded()) {
+        map.once('idle', apply)
+        return
+      }
+      const layers = routeLayers(mode)
+      const source = map.getSource(ROUTE_SOURCE) as GeoJSONSource | undefined
+      if (!route) {
+        for (const layer of layers) if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+        if (source) map.removeSource(ROUTE_SOURCE)
+        return
+      }
+
+      const data = routeFeature(route.from, route.to)
+      if (source) source.setData(data)
+      else map.addSource(ROUTE_SOURCE, { type: 'geojson', data })
+
+      // Beneath the person's dot when it is drawn, so the line runs into it
+      // rather than across it.
+      const dot = [`${LOCATION_SOURCE}-accuracy`, `${LOCATION_SOURCE}-halo`].find((id) =>
+        map.getLayer(id),
+      )
+      for (const layer of layers) {
+        if (map.getLayer(layer.id)) {
+          for (const [key, value] of Object.entries(layer.paint)) {
+            map.setPaintProperty(layer.id, key as never, value as never)
+          }
+        } else {
+          map.addLayer(
+            {
+              id: layer.id,
+              type: 'line',
+              source: ROUTE_SOURCE,
+              layout: layer.layout as LineLayerSpecification['layout'],
+              paint: layer.paint as LineLayerSpecification['paint'],
+            },
+            dot,
+          )
+        }
+      }
+    }
+
+    apply()
+    map.on('styledata', apply)
+    return () => {
+      map.off('styledata', apply)
+      map.off('idle', apply)
+    }
+  }, [map, route, mode])
+
+  /**
+   * Both ends of a new route in view, clear of whatever covers the map.
+   *
+   * A band across the bottom — the phone-width sheet — is `frameAround`'s case.
+   * The laptop's card stands in a corner instead and covers no band, so there
+   * the points are fitted into the part of the map beside the card and the
+   * centre is shifted by half the card's reach, the same correction
+   * `frameAround` makes vertically. Camera `padding` is not used (AGENTS.md).
+   */
+  useEffect(() => {
+    if (!map || !route) return
+
+    const rect = map.getContainer().getBoundingClientRect()
+    const viewport =
+      rect.width > 0 && rect.height > 0
+        ? { width: rect.width, height: rect.height }
+        : DEFAULT_VIEWPORT
+    const points = [route.from, route.to]
+
+    const side = floorRef.current === 0 && covered ? covered.right + LIFT_MARGIN : 0
+    let camera
+    if (side > 0 && side < viewport.width / 2) {
+      const fitted = fitBounds(points, {
+        viewport: { width: viewport.width - side, height: viewport.height },
+      })
+      camera = {
+        center: offsetCenter(fitted.center, fitted.zoom, -side / 2, 0),
+        zoom: fitted.zoom,
+      }
+    } else {
+      camera = frameAround(points, viewport, floorRef.current)
+    }
+    map.flyTo({ center: [camera.center.lng, camera.center.lat], zoom: camera.zoom })
+    // `covered` is read for the card's reach when the route arrives; the card
+    // growing by a line as the figures replace the button is not a reason to
+    // fly again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, route])
 
   /**
    * Whether anything drawn is on screen, answered after the camera settles and

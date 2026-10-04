@@ -59,8 +59,9 @@ available with no network connection: a device finds its position without one.
 ### Requirement: Location is asked for only when the person asks where they are
 
 An application SHALL NOT ask for the device's location before the person first asks for
-something that needs it: pressing "where am I", or pressing *Use my location* in the
-Nearby sheet (`nearby-places`). It SHALL NOT ask at launch, on opening a trip, on opening
+something that needs it: pressing "where am I", pressing *Use my location* in the
+Nearby sheet (`nearby-places`), or pressing *Calculate route* in a place's details
+(`place-route`). It SHALL NOT ask at launch, on opening a trip, on opening
 the map, or on opening Nearby.
 
 Once the person has allowed location, opening Nearby SHALL count as asking where they
@@ -69,8 +70,8 @@ cause the platform's prompt to be shown.
 
 The first such press SHALL ask through the platform's own permission prompt, with no
 screen of the application's own in front of it. The press is the explanation: the person
-has just asked where they are, or has just been offered a list of distances measured
-from where they are.
+has just asked where they are, has just been offered a list of distances measured
+from where they are, or has just asked how far a place is from them.
 
 On the phone, the sentence the platform shows inside its prompt SHALL be supplied in
 English and in Spanish, and SHALL say that the position is used to show the person
@@ -111,6 +112,11 @@ somebody on a street corner wants it ordered from them.
 - **WHEN** a person who has allowed location opens Nearby, in this session or a later one
 - **THEN** their position is found without a further press
 - **AND** no prompt is shown
+
+#### Scenario: Calculate route asks
+
+- **WHEN** a person who has never answered presses *Calculate route* in a place's details
+- **THEN** the platform's own location prompt is shown
 
 ### Requirement: A found position moves the map there and is marked
 

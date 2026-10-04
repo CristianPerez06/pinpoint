@@ -121,3 +121,13 @@ export type { Fix, LocateOutcome } from './locate'
 
 export { LOCATION_SOURCE, locationFeature, locationLayers } from './location'
 export type { LocationLayer, PointFeature } from './location'
+
+export {
+  ROUTE_DETOUR,
+  ROUTE_SOURCE,
+  routeFeature,
+  routeLayers,
+  walkingMinutes,
+  WALKING_KMH,
+} from './route'
+export type { LineFeature, RouteLayer } from './route'

@@ -9,15 +9,19 @@ import {
   type MarkerInterest,
   type OpeningHours,
   type TripMember,
+  formatWalkingDistance,
+  formatWalkingTime,
 } from '@pinpoint/core'
-import type { MarkerGroup, MarkerView } from '@pinpoint/map'
+import { walkingMinutes, type MarkerGroup, type MarkerView } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
+import Footprints from 'lucide-react-native/icons/footprints'
 import X from 'lucide-react-native/icons/x'
 import { type ReactNode, useState } from 'react'
 import {
+  ActivityIndicator,
   Linking,
   Pressable,
   ScrollView,
@@ -79,6 +83,34 @@ export function openingHeight(windowHeight: number): number {
 }
 
 const styles = StyleSheet.create({
+  routeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.sm,
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  routeButtonText: { ...role(TYPE.control), fontWeight: '600' },
+  route: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: RADIUS.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  routeText: { flex: 1, minWidth: 0 },
+  routeMain: { ...role(TYPE.rowName) },
+  routeSub: { ...role(TYPE.note) },
+  routeClear: {
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
   rowActions: { flexDirection: 'row', gap: SPACE.sm, paddingTop: SPACE.xs },
   action: {
     flex: 1,
@@ -423,6 +455,105 @@ function SheetSurface({
   )
 }
 
+/**
+ * What the map offers about getting to the open place (`place-route`).
+ *
+ * Optional, and only the map passes it: the calendar opens this same sheet with
+ * no map on screen, and a line drawn on a map nobody can see would be a button
+ * that does nothing.
+ */
+export interface RouteOffer {
+  /** Waiting for the person's position, after a press. */
+  finding: boolean
+  /** The straight-line distance once the line is drawn, or null before. */
+  km: number | null
+  onCalculate: () => void
+  onClear: () => void
+}
+
+/**
+ * The button, and once pressed, how far and how long — the laptop's card in
+ * the phone's idiom. Inert while finding rather than disabled, so it keeps its
+ * name for a screen reader (`Inert, not absent`).
+ */
+function Route({ offer, name }: { offer: RouteOffer; name: string }) {
+  const theme = useTheme()
+  const language = useLanguage()
+  const say = useSay()
+
+  if (offer.km === null) {
+    return (
+      <Pressable
+        onPress={offer.finding ? undefined : offer.onCalculate}
+        accessibilityRole="button"
+        accessibilityLabel={say(
+          offer.finding ? message('route.finding') : message('route.calculateNamed', { name }),
+        )}
+        accessibilityState={{ busy: offer.finding, disabled: offer.finding }}
+        style={({ pressed }) => [
+          styles.routeButton,
+          {
+            borderColor: theme.colour.lineStrong,
+            backgroundColor: pressed && !offer.finding ? theme.colour.surfaceMuted : theme.colour.surface,
+          },
+        ]}
+      >
+        {offer.finding ? (
+          <ActivityIndicator size="small" color={theme.colour.inkMuted} />
+        ) : (
+          <Footprints size={17} color={theme.colour.ink} />
+        )}
+        <Text
+          style={[
+            styles.routeButtonText,
+            { color: offer.finding ? theme.colour.inkMuted : theme.colour.ink },
+          ]}
+        >
+          {say(message(offer.finding ? 'route.finding' : 'route.calculate'))}
+        </Text>
+      </Pressable>
+    )
+  }
+
+  const minutes = walkingMinutes(offer.km)
+  const distance = say(
+    message('route.straightLine', { distance: say(formatWalkingDistance(language, offer.km)) }),
+  )
+  return (
+    <View style={[styles.route, { backgroundColor: theme.colour.surfaceMuted }]}>
+      <Footprints size={20} color={theme.colour.ink} />
+      <View style={styles.routeText}>
+        {minutes === null ? (
+          <Text style={[styles.routeMain, { color: theme.colour.ink }]}>{distance}</Text>
+        ) : (
+          <>
+            <Text style={[styles.routeMain, { color: theme.colour.ink }]}>
+              {say(formatWalkingTime(language, minutes))}
+            </Text>
+            <Text style={[styles.routeSub, { color: theme.colour.inkMuted }]}>{distance}</Text>
+          </>
+        )}
+      </View>
+      <Pressable
+        onPress={offer.onClear}
+        accessibilityRole="button"
+        accessibilityLabel={say(message('route.clearNamed', { name }))}
+        style={({ pressed }) => [
+          styles.routeClear,
+          {
+            borderColor: theme.colour.lineStrong,
+            backgroundColor: pressed ? theme.colour.surfaceSunk : theme.colour.surface,
+          },
+        ]}
+      >
+        <Text style={[styles.routeButtonText, { color: theme.colour.ink }]}>
+          {say(message('route.clear'))}
+        </Text>
+      </Pressable>
+    </View>
+  )
+}
+
 export function MarkerDetails({
   selection,
   members,
@@ -440,6 +571,7 @@ export function MarkerDetails({
   onEdit,
   onDelete,
   removingId,
+  route,
 }: {
   selection: Selection
   members: readonly TripMember[]
@@ -495,6 +627,8 @@ export function MarkerDetails({
    * the wrong one.
    */
   removingId: string | null
+  /** See `RouteOffer`. Only the map passes it. */
+  route?: RouteOffer
 }) {
   const theme = useTheme()
   const language = useLanguage()
@@ -793,6 +927,8 @@ export function MarkerDetails({
             </View>
           )}
         </View>
+
+        {route ? <Route offer={route} name={marker.name} /> : null}
 
         {hidden ? <HiddenNote /> : null}
 
