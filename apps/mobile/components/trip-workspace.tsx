@@ -66,7 +66,7 @@ import {
 
 import { CitySheet } from '@/components/city-sheet'
 import { FilterSheet } from '@/components/filter-sheet'
-import { MarkerFormSheet, openingHeight } from '@/components/marker-form'
+import { MarkerFormSheet, openingHeight, placeValuesDiffer } from '@/components/marker-form'
 import { MenuSheet } from '@/components/menu-sheet'
 import { TripSheet } from '@/components/trip-sheet'
 import { PeopleSheet } from '@/components/people-sheet'
@@ -1151,6 +1151,13 @@ export function TripWorkspace({
         notice={conflict && say(conflict)}
         onSubmit={save}
         onCancel={cancelPanel}
+        capturing={panel.kind === 'create'}
+        unsaved={
+          panel.kind === 'edit' &&
+          (panel.position.lng !== panel.marker.lng ||
+            panel.position.lat !== panel.marker.lat ||
+            placeValuesDiffer(panel.initial, valuesOf(panel.marker)))
+        }
         onAdjustPosition={adjustPosition}
         onCreateCity={addCity}
         onDelete={panel.kind === 'edit' ? () => void remove(panel.marker) : undefined}

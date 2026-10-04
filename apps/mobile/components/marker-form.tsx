@@ -103,6 +103,26 @@ function absentIfBlank(value: string): string | null {
   return trimmed === '' ? null : trimmed
 }
 
+/**
+ * Whether two sets of a place's values differ in anything somebody would mind
+ * losing.
+ *
+ * The laptop's comparison, field for field (`entered` in its `marker-form.tsx`),
+ * so the two applications ask in the same cases. Price and hours are not in it
+ * there and are not here.
+ */
+export function placeValuesDiffer(a: MarkerFormValues, b: MarkerFormValues): boolean {
+  return (
+    a.name.trim() !== b.name.trim() ||
+    (a.note ?? null) !== (b.note ?? null) ||
+    a.cityId !== b.cityId ||
+    a.type !== b.type ||
+    (a.link ?? null) !== (b.link ?? null) ||
+    (a.plannedOn ?? null) !== (b.plannedOn ?? null) ||
+    (a.plannedUntil ?? null) !== (b.plannedUntil ?? null)
+  )
+}
+
 export function MarkerFormSheet({
   title,
   initial,
@@ -120,6 +140,8 @@ export function MarkerFormSheet({
   removing = false,
   onHeight,
   dimBehind = false,
+  capturing = false,
+  unsaved = false,
 }: {
   title: string
   /**
@@ -165,11 +187,29 @@ export function MarkerFormSheet({
    * asks for it: over the map this form is placing a pin, and the map must stay
    * readable and keep taking the touches that adjust it.
    *
-   * A press on the scrim does nothing but stop there. This form does not ask
-   * before discarding what was typed, so a press that dismissed it would throw
-   * that away on a stray tap.
+   * A press on the scrim dismisses the form the way ✕ does, which asks first
+   * when there is something to lose. It used to do nothing but stop there,
+   * because the form could not ask and a press that dismissed it would have
+   * thrown what was typed away on a stray tap (#259).
    */
   dimBehind?: boolean
+  /**
+   * This form is saving a place that does not exist yet, at a spot somebody
+   * lined up on the map.
+   *
+   * It always asks before closing, typed or not: `marker-capture` argues that
+   * finding a spot again is worse than retyping a name, and the laptop treats a
+   * capture the same way.
+   */
+  capturing?: boolean
+  /**
+   * The form opens already holding changes it cannot see: an edit back from the
+   * map, whose pin was moved or whose values were changed before it went.
+   *
+   * Needed because a trip to the map hands the typed values back as `initial`,
+   * so comparing against `initial` alone forgets everything done before it.
+   */
+  unsaved?: boolean
   /**
    * Hands the current values back so nothing is lost on the way to the sight.
    *
@@ -287,6 +327,8 @@ export function MarkerFormSheet({
   const [saving, startSave] = usePending()
   /** Whether the removal question is standing in place of its control. */
   const [asking, setAsking] = useState(false)
+  /** Whether the discard question is standing in place of the footer. */
+  const [leaving, setLeaving] = useState(false)
   const [creatingCity, startCreateCity] = usePending()
 
   const chosenCity = cities.find((city) => city.id === cityId) ?? null
@@ -406,6 +448,22 @@ export function MarkerFormSheet({
     }
   }
 
+  /**
+   * Leaving, asked about where there is something to lose
+   * (`workspace-chrome`, *Anything that opens can be dismissed without hunting*).
+   *
+   * Every way out of the form comes here — ✕, Cancel and the dim behind it on
+   * the calendar — so none of them can discard what the others protect. They
+   * all called `onCancel` directly, and a stray tap lost everything typed (#259).
+   */
+  function leave() {
+    if (capturing || unsaved || placeValuesDiffer(values(), initial)) {
+      setLeaving(true)
+      return
+    }
+    onCancel()
+  }
+
   function createCity() {
     if (!newCity) return
     setCityError(null)
@@ -430,9 +488,15 @@ export function MarkerFormSheet({
           entering={SCRIM_ENTERING}
           exiting={SCRIM_EXITING}
           style={[StyleSheet.absoluteFill, { backgroundColor: theme.colour.scrim }]}
-          // Takes the press so nothing beneath acts on it, and does nothing else.
-          onStartShouldSetResponder={() => true}
-        />
+        >
+          {/* Takes the press so nothing beneath acts on it, and leaves through
+              the same question as ✕. */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={leave}
+            accessibilityLabel={say(message('common.discard'))}
+          />
+        </Reanimated.View>
       ) : null}
       <KeyboardAvoidingView
         // Height on Android, padding on iOS: the two platforms report the keyboard
@@ -498,7 +562,7 @@ export function MarkerFormSheet({
               {title}
             </Text>
             <Pressable
-              onPress={onCancel}
+              onPress={leave}
               accessibilityRole="button"
               accessibilityLabel={say(message('common.discard'))}
               hitSlop={10}
@@ -908,19 +972,38 @@ export function MarkerFormSheet({
             {online ? null : (
               <NeedsConnection>{say(message('offline.savingNeedsConnection'))}</NeedsConnection>
             )}
-            <View style={styles.actionRow}>
-              <View style={styles.grow}>
-                <Button
-                  label={say(saving ? message('common.saving') : message('placeForm.save'))}
-                  tone="primary"
-                  disabled={!online || saving}
-                  onPress={() => startSave(() => onSubmit(values()))}
-                />
+            {/*
+              The discard question stands in place of the footer, as the laptop's
+              does, so `Save place` is not live beside a question about throwing
+              away what it would save.
+            */}
+            {leaving ? (
+              <Question
+                question={say(message('placeForm.discardQuestion'))}
+                consequence={say(
+                  capturing
+                    ? message('placeForm.discardCapture')
+                    : message('placeForm.discardEdit'),
+                )}
+                confirm={say(message('common.discard'))}
+                onConfirm={onCancel}
+                onDecline={() => setLeaving(false)}
+              />
+            ) : (
+              <View style={styles.actionRow}>
+                <View style={styles.grow}>
+                  <Button
+                    label={say(saving ? message('common.saving') : message('placeForm.save'))}
+                    tone="primary"
+                    disabled={!online || saving}
+                    onPress={() => startSave(() => onSubmit(values()))}
+                  />
+                </View>
+                <View style={styles.grow}>
+                  <Button label={say(message('common.cancel'))} onPress={leave} />
+                </View>
               </View>
-              <View style={styles.grow}>
-                <Button label={say(message('common.cancel'))} onPress={onCancel} />
-              </View>
-            </View>
+            )}
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
