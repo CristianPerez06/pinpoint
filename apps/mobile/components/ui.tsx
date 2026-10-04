@@ -583,7 +583,7 @@ export function DayField({
           {/* Pressing beside the calendar closes it without choosing, as
               pressing outside iOS's own popup did. */}
           <Pressable
-            style={[styles.dayBackdrop, { backgroundColor: theme.colour.scrim }]}
+            style={styles.dayBackdrop}
             onPress={() => setPicking(false)}
             accessibilityLabel={say(message('common.close'))}
           >

@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated'
 
 import { FLOAT_DISTANCE, SURFACE_TIMING } from '@/lib/motion'
+import { useTheme } from '@/lib/theme'
 
 /**
  * How tall the sheets that hold a list or a place stand: Filter, Nearby, the
@@ -71,6 +72,18 @@ function release() {
  * rises a short way into place as it fades, for something drawn in the middle
  * of the screen, as the laptop's corner card does.
  *
+ * WHY IT DIMS WHAT IS BEHIND IT
+ *
+ * A sheet sets the rest of the screen back with the shared `scrim`
+ * (`workspace-chrome`, *A panel raised on a phone-shaped screen rises from the
+ * edge*). Drawn here, once, and beside the content rather than inside it: the
+ * content slides, and a dim that covers the screen has no edge to slide from, so
+ * it fades on the same value the slide runs on. It takes no touches — each
+ * sheet's own backdrop, above it, is what closes the sheet on a press outside,
+ * and inside a `Modal` nothing beneath is reachable either way. `dim={false}` is
+ * for a sheet that fills the screen itself and has nothing behind it to set
+ * back.
+ *
  * WHY IT HOLDS THE MODAL OPEN
  *
  * A `Modal` made invisible takes its children with it in the same frame, so a
@@ -92,12 +105,14 @@ export function Sheet({
   open,
   onRequestClose,
   placement = 'edge',
+  dim = true,
   children,
 }: {
   open: boolean
   /** Android's back button, as `Modal` names it. */
   onRequestClose: () => void
   placement?: 'edge' | 'floating'
+  dim?: boolean
   children: ReactNode
 }) {
   const [key] = useState(() => Symbol('sheet'))
@@ -138,6 +153,7 @@ export function Sheet({
     }
   }, [mounted, key])
 
+  const theme = useTheme()
   const reduce = useReducedMotion()
   const { height } = useWindowDimensions()
   const shown = useSharedValue(0)
@@ -163,9 +179,17 @@ export function Sheet({
     }
   })
 
+  const scrim = useAnimatedStyle(() => ({ opacity: shown.value }))
+
   if (!mounted) return null
   return (
     <Modal visible animationType="none" transparent onRequestClose={onRequestClose}>
+      {dim ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: theme.colour.scrim }, scrim]}
+        />
+      ) : null}
       <Animated.View
         style={[styles.fill, style]}
         pointerEvents={open ? 'auto' : 'none'}

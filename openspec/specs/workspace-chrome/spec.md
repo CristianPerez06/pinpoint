@@ -602,6 +602,14 @@ The tie between the panel and what opened it, which adjacency carries on a lapto
 be carried by something else: the rest of the screen SHALL be visibly set back while the
 panel is open, and dismissing the panel SHALL restore every control it covered.
 
+The setting back SHALL be the same darkening that everything else raised over a screen
+steps back with, on both grounds and in both applications. It SHALL fade in and out with
+the panel rather than moving with it, since it covers the screen and has no edge to
+arrive from. A press on it SHALL dismiss the panel and SHALL NOT act on anything beneath
+it: a press over a pin closes the panel and does not select the pin. A panel raised from
+inside one that is already setting the screen back sets it back again, so what is behind
+both steps further back.
+
 There is one exception, and it is a different kind of panel rather than a different
 position. A panel that **describes something drawn on the map** — a selected place, or
 the form saving one — SHALL NOT set the rest of the screen back, and SHALL leave enough
@@ -623,6 +631,22 @@ follows and the reason its marker sheet is built differently from its filter she
 - **THEN** it rises from the bottom edge and spans the width of the screen
 - **AND** the rest of the screen is visibly set back
 - **AND** dismissing it restores every control it covered
+
+#### Scenario: A press on the set-back map
+
+- **WHEN** the chrome takes its phone shape
+- **AND** Filter, Nearby, the trips, the cities or the people is open
+- **AND** a press lands on the darkened map, over a pin
+- **THEN** the panel closes
+- **AND** the pin is not selected by the same press
+
+#### Scenario: The same darkening everywhere
+
+- **WHEN** a panel that sets the screen back is opened on the phone, on the light
+  ground and on the dark ground
+- **THEN** the screen behind it is darkened to the same depth as behind the calendar's
+  centred date calendar
+- **AND** the darkening fades in as the panel rises and fades out as it leaves
 
 #### Scenario: A panel describing something on the map
 
