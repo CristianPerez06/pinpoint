@@ -214,30 +214,31 @@
    * bar; there is no fill behind it any more, so `surface` is what is actually
    * there.
    *
-   * `accent` and not `accent-ink`. The two are the same value on the dark
-   * ground, so this is a distinction without a difference there, and on the
-   * light ground the brighter of the two is the right one for a 7px shape that
-   * has to be *seen* rather than read — the same reason the caret is a drawn
-   * path at a declared size rather than a typed character.
+   * `accent-ink`, at badge size. It was `accent` at 7px, on the reasoning that
+   * the brighter amber is the one to be seen — and read in greyscale, it was
+   * not: the 2px ring left a 3px speck of light amber that matched the bar, and
+   * the narrowed tool looked like its neighbours (#123). Brightness is the wrong
+   * axis there; what survives greyscale is lightness against the ground, and
+   * `accent-ink` is dark on the light ground and bright on the dark one.
    *
-   * The 2px border is inside these 7px, because `globals.css` sets
+   * The 2px border is inside these 10px, because `globals.css` sets
    * `box-sizing: border-box` on everything — which is what makes these the
    * phone's numbers rather than merely numbers resembling them, since React
    * Native measures a border the same way.
    *
    * This is one of the two signals the declaration is carried by, and it is the
    * one that survives greyscale: the recolour is hue and the accessible name is
-   * not drawn at all. It has never been read in greyscale on either platform.
+   * not drawn at all.
    */
   .pip {
     position: absolute;
-    top: -1px;
-    right: -5px;
-    width: 7px;
-    height: 7px;
+    top: -4px;
+    right: -7px;
+    width: 10px;
+    height: 10px;
     border: 2px solid var(--pp-surface);
     border-radius: 50%;
-    background: var(--pp-accent);
+    background: var(--pp-accent-ink);
   }
 
   .wideLabel {
