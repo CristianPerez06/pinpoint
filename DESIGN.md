@@ -7,7 +7,7 @@ colors:
   surface-muted: "#F3F2EF"
   surface-sunk: "#EFEDE8"
   line: "#E4E2DC"
-  line-strong: "#D3D0C8"
+  line-strong: "#8F8C84"
   ink: "#1A1917"
   ink-muted: "#6E6A63"
   ink-faint: "#9C978E"
@@ -311,8 +311,11 @@ colour on screen.
 - **Sunk Fill** — `surface-sunk` (dark: `#1B1A17`): Anything that reads as *behind* —
   sticky headers, footers.
 - **Hairline** — `line` (dark: `#34302B`): The divider between rows.
-- **Stated Edge** — `line-strong` (dark: `#443F38`): A border meant to be seen — a
-  control's edge rather than a divider.
+- **Stated Edge** — `line-strong` (dark: `#767068`): A border meant to be seen — a
+  control's edge rather than a divider. Clears the 3:1 non-text floor against Raised
+  White, the ground and Muted Fill: 3.36:1 light, 3.40:1 dark against Raised White. It was
+  about 1.5:1 until #124, which made every outlined control an edge you had to know was
+  there.
 - **Ink** — `ink` (dark: `#F2F0EC`): Names and values. 16.8:1 on the light ground.
 - **Muted Ink** — `ink-muted` (dark: `#A09A91`): Notes, counts, secondary labels.
   5.16:1 light, 6.48:1 dark.

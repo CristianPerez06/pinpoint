@@ -202,8 +202,18 @@ export const COLOUR = {
   surfaceSunk: { light: '#EFEDE8', dark: '#1B1A17' },
   /** The hairline between rows. */
   line: { light: '#E4E2DC', dark: '#34302B' },
-  /** A border meant to be seen — a control's edge rather than a divider. */
-  lineStrong: { light: '#D3D0C8', dark: '#443F38' },
+  /**
+   * A border meant to be seen — a control's edge rather than a divider.
+   *
+   * Clears the 3:1 non-text floor against `surface`, `ground` and
+   * `surfaceMuted` on both grounds, because it is what shows where a control
+   * is (`styling`, *A control's edge clears the non-text contrast floor*). It
+   * was `#D3D0C8` / `#443F38`, about 1.5:1, which made every outlined control
+   * an edge you had to already know was there (#124). Mixed from that value
+   * toward `inkMuted`, so it stays the palette's own warm grey. For a line that
+   * only separates two things, use `line`.
+   */
+  lineStrong: { light: '#8F8C84', dark: '#767068' },
   /** Names and values. */
   ink: { light: '#1A1917', dark: '#F2F0EC' },
   /** Notes, counts, labels. */
