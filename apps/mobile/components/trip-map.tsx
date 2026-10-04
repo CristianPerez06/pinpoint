@@ -498,6 +498,7 @@ export function TripMap({
   removingId,
   departing = null,
   onAbandonCapture,
+  onLeaveForm,
   onReread,
   rereading,
   bottomRow,
@@ -562,19 +563,25 @@ export function TripMap({
    */
   departing?: string | null
   /**
-   * Give up on the place being added, because a saved one is being read instead.
+   * Give up on the sight, because a saved place is being read instead.
    *
    * Reading and adding cannot both be happening: they want the same bottom edge
-   * and they mean opposite things. Rather than letting a tap silently set a
-   * selection nobody can see — which is what it did, and which then produced a
-   * sheet out of nowhere when the form was cancelled — the tap ends the addition
-   * outright.
-   *
-   * Nothing is stored either way, so this costs whatever had been typed and no
-   * more. That is a real cost and it is the deliberate trade: a tap that appears
-   * to do nothing is worse than a tap that does the obvious thing.
+   * and they mean opposite things. With only the sight armed nothing has been
+   * typed and no panel is open, so the tap ends the addition and opens the pin.
    */
   onAbandonCapture: () => void
+  /**
+   * Leave the place form, because a pin was tapped while it was open.
+   *
+   * The form used to be abandoned here outright, and the tap then opened the
+   * pin: whatever was typed, and the spot lined up on the map, went with no
+   * question (#265). A press outside a panel that dismisses it does only that
+   * (`workspace-chrome`, *Anything that opens can be dismissed without
+   * hunting*), so this goes through the form's own way out, which asks where
+   * there is something to lose, and the pin is not opened by the same tap. The
+   * laptop does the same.
+   */
+  onLeaveForm: () => void
   /**
    * Read every list again, because somebody asked.
    *
@@ -1324,10 +1331,16 @@ export function TripMap({
               onPress={() => {
                 // A pin on its way out answers nothing: its place is gone.
                 if (group === trail.leaving) return
-                // Whatever was being added is given up first, so that the
-                // selection this sets is never hidden behind a form or competing
-                // with an armed sight.
-                if (formSheet !== null || dropping) onAbandonCapture()
+                // With the form open the tap leaves it, through its question
+                // where there is something to lose, and selects nothing — see
+                // `onLeaveForm`.
+                if (formSheet !== null) {
+                  onLeaveForm()
+                  return
+                }
+                // An armed sight is given up first, so the selection this sets is
+                // never competing with it.
+                if (dropping) onAbandonCapture()
                 setOpen({
                   groupKey: group.key,
                   markerId: group.count === 1 ? group.markers[0]!.id : null,
