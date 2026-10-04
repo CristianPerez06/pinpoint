@@ -178,6 +178,25 @@
   color: var(--pp-ink);
 }
 
+/*
+ * A trigger shaped like the value it shows — the trip, the city.
+ *
+ * Without a fill it reads as a title or a caption, and the caret alone was the
+ * only sign it opens anything (#256). `surface-muted` is the fill fields rest on,
+ * so a thing a person sets reads as one family. `line` on hover and while open is
+ * the next step deeper on both grounds, so rest, hover and open stay three
+ * different looks.
+ */
+.chooser {
+  background: var(--pp-surface-muted);
+  color: var(--pp-ink);
+}
+
+.chooser:hover:not([aria-disabled='true']),
+.chooser[aria-expanded='true'] {
+  background: var(--pp-line);
+}
+
 .danger {
   background: transparent;
   color: var(--pp-danger);

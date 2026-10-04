@@ -159,7 +159,7 @@ function CityBarLive({
       label={<span className={styles.name}>{selectionName}</span>}
       open={open}
       onOpen={setOpen}
-      tone="quiet"
+      tone="chooser"
       half
     >
       <p className={styles.heading}>{say(message('city.workingOn'))}</p>

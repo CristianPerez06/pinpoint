@@ -97,11 +97,16 @@ const styles = StyleSheet.create({
   tick: { fontSize: 13, fontWeight: '800' },
   divide: { height: 1, marginVertical: SPACE.xs },
   swatch: { width: 12, height: 12, borderRadius: 4 },
+  // On the field fill, so a question that opens does not read as a line of a
+  // list (#256). The gap keeps three filled rows from reading as one block.
   questionHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
     paddingVertical: 13,
+    paddingHorizontal: SPACE.sm,
+    marginVertical: 2,
+    borderRadius: RADIUS.md,
   },
   questionName: { ...role(TYPE.control), fontWeight: '600' },
   // `flex: 1` with `minWidth: 0` is what lets this truncate instead of pushing
@@ -638,7 +643,10 @@ function Question({
         /* The whole state in the name, for somebody who is not looking at it —
            the chevron and the colour are drawn and reach nobody else. */
         accessibilityLabel={say(message('filter.questionSpoken', { name, said }))}
-        style={styles.questionHead}
+        style={({ pressed }) => [
+          styles.questionHead,
+          { backgroundColor: pressed ? theme.colour.line : theme.colour.surfaceMuted },
+        ]}
       >
         <Text style={[styles.questionName, { color: theme.colour.ink }]}>{name}</Text>
         <Text
