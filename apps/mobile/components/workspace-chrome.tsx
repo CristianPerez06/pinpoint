@@ -110,7 +110,10 @@ export function WorkspaceChrome({
             )}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
-            style={styles.tripButton}
+            style={({ pressed }) => [
+              styles.tripButton,
+              { backgroundColor: pressed ? theme.colour.line : theme.colour.surfaceMuted },
+            ]}
           >
             {live ? (
               <Text style={[styles.tripName, { color: theme.colour.ink }]} numberOfLines={1}>
@@ -177,7 +180,10 @@ export function WorkspaceChrome({
             accessibilityLabel={live ? live.cityHint : say(message('city.menuName'))}
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
-            style={styles.cityButton}
+            style={({ pressed }) => [
+              styles.cityButton,
+              { backgroundColor: pressed ? theme.colour.line : theme.colour.surfaceMuted },
+            ]}
           >
             {live ? (
               <Text
@@ -534,12 +540,20 @@ const styles = StyleSheet.create({
    * looks like everywhere else, and it would sit two inches above `Filter` while
    * naming a control that deliberately hides nothing.
    *
-   * So it mirrors `tripButton` exactly — same padding, no fill, no border — and
-   * the hierarchy is carried by size and weight alone: `rowName` under the
-   * title, which is the nearest role below it. The laptop reaches the same
-   * arrangement from the other direction: both its trip and city triggers are
-   * `tone="quiet"`, so this is the one shape where the two platforms agree about
-   * the *relationship* between the two controls rather than only about each.
+   * So it mirrors `tripButton` exactly — same padding, same fill, no border —
+   * and the hierarchy is carried by size and weight alone: `rowName` under the
+   * title, which is the nearest role below it. The laptop's trip and city
+   * triggers are both `tone="chooser"`, so this is the one shape where the two
+   * platforms agree about the *relationship* between the two controls rather
+   * than only about each.
+   *
+   * Both rest on the field fill, with no border and a field's corner rather than
+   * a pill's. Without any fill a name that opens something read as a title and
+   * a caption, and the caret alone was the only sign it could be pressed (#256).
+   * The fill is the one fields rest on, so it reads as a thing a person sets
+   * rather than as the outlined filter chip described above. The padding is on
+   * both sides now, and the margin takes most of the left back, so the name
+   * moves four points rather than eight.
    */
   cityButton: {
     flexDirection: 'row',
@@ -547,7 +561,9 @@ const styles = StyleSheet.create({
     gap: SPACE.xs,
     flexShrink: 1,
     paddingVertical: SPACE.xs,
-    paddingRight: SPACE.xs,
+    paddingHorizontal: SPACE.sm,
+    marginLeft: -SPACE.xs,
+    borderRadius: RADIUS.md,
   },
   cityName: { ...role(TYPE.rowName), flexShrink: 1 },
   dot: { width: 9, height: 9, borderRadius: 5 },
@@ -560,7 +576,9 @@ const styles = StyleSheet.create({
     gap: 5,
     flexShrink: 1,
     paddingVertical: SPACE.xs,
-    paddingRight: SPACE.xs,
+    paddingHorizontal: SPACE.sm,
+    marginLeft: -SPACE.xs,
+    borderRadius: RADIUS.md,
   },
   // Padding for the inert tile, taken back by the margin so the glyph does not
   // move between the two states.

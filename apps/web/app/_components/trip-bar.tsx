@@ -261,7 +261,7 @@ function TripBarLive({
       label={<span className={styles.name}>{trip.name}</span>}
       open={open}
       onOpen={setOpen}
-      tone="quiet"
+      tone="chooser"
       half
     >
       {/*

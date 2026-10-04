@@ -158,7 +158,10 @@ export function CalendarScreen({
             }
             accessibilityState={live ? undefined : { disabled: true }}
             hitSlop={6}
-            style={styles.tripButton}
+            style={({ pressed }) => [
+              styles.tripButton,
+              { backgroundColor: pressed ? theme.colour.line : theme.colour.surfaceMuted },
+            ]}
           >
             {live ? (
               <Text
@@ -813,11 +816,16 @@ const styles = StyleSheet.create({
   /** The point, the trip and the account. The map's own first line. */
   headerLine: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   dot: { width: 9, height: 9, borderRadius: 5 },
+  // On the field fill, as the map's header draws the same control (#256).
   tripButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.xs,
     flexShrink: 1,
+    paddingVertical: SPACE.xs,
+    paddingHorizontal: SPACE.sm,
+    marginLeft: -SPACE.xs,
+    borderRadius: RADIUS.md,
   },
   tripName: { ...role(TYPE.title), flexShrink: 1 },
   menuButton: { marginLeft: 'auto' },

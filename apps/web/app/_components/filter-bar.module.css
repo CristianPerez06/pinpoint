@@ -284,6 +284,15 @@
   display: grid;
 }
 
+/* Rows on a fill need air between them, or three read as one block. */
+.section + .section {
+  margin-top: 3px;
+}
+
+/*
+ * On a fill at rest, as the trip and city choosers are: a question that opens
+ * and looks like a line of a list is a control nobody finds (#256).
+ */
 .sectionHead {
   display: flex;
   align-items: center;
@@ -292,7 +301,7 @@
   padding: 7px var(--pp-space-sm);
   border: 0;
   border-radius: var(--pp-radius-sm);
-  background: none;
+  background: var(--pp-surface-muted);
   color: var(--pp-ink);
   font: inherit;
   font-size: var(--pp-type-control-size);
@@ -301,7 +310,7 @@
 }
 
 .sectionHead:hover {
-  background: var(--pp-surface-muted);
+  background: var(--pp-line);
 }
 
 .sectionName {

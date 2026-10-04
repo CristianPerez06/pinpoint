@@ -216,7 +216,7 @@ export function WaitingMenu({
       label={<NamePlaceholder className={labelClassName} measure={measure} />}
       open={false}
       onOpen={() => {}}
-      tone="quiet"
+      tone="chooser"
       disabled
     >
       {null}
@@ -575,7 +575,14 @@ export function Menu({
   onOpen: (open: boolean) => void
   /** `end` hangs the panel from the right, for a trigger near the viewport edge. */
   align?: 'start' | 'end'
-  tone?: 'default' | 'primary' | 'danger' | 'quiet'
+  /**
+   * `chooser` is for a trigger shaped like the value it shows — the trip, the
+   * city. Such a trigger reads as a title or a caption, so it rests on a fill
+   * where `quiet` rests on nothing (`workspace-chrome`, *A control shaped like
+   * its value looks pressable at rest*). Not a change to `quiet`, which is every
+   * Cancel and Back as well.
+   */
+  tone?: 'default' | 'primary' | 'danger' | 'quiet' | 'chooser'
   /**
    * The trigger is declaring a state, not merely opening something.
    *

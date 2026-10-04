@@ -622,6 +622,10 @@ there shows the map through the corners.
 - **Selector pill:** Muted Fill, transparent border, 7×11 padding, `control` type, with a
   faint caret. The border appears in Stated Edge on hover or while open — the control
   states nothing at rest.
+- **Chooser:** A name that opens a choice of itself — the trip, the city, a Filter
+  question — rests on Muted Fill with Ink text and its caret, at a field's corner rather
+  than a pill's. Hover, press and open deepen it to Hairline. Without the fill it reads as
+  a title, a caption or a line of a list.
 - **Toggle pill:** Same construction, holding a checkbox tinted with the accent.
 - **Tag:** Muted Fill with Muted Ink at 3×9, `note` type. A type tag inverts to the
   type colour with the pin glyph foreground.
