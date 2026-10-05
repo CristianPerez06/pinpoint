@@ -61,9 +61,10 @@ export const ATTRIBUTION = '© OpenMapTiles © OpenStreetMap contributors'
  * invent its own account of where the map came from.
  *
  * Wider than the licence strictly demands. OpenStreetMap is the only entry that
- * is a condition — the data is ODbL — but a person reading this is asking who
- * made the map, and answering with one of four names would be a worse answer
- * than the question deserves.
+ * is a condition of the tiles — the data is ODbL — but a person reading this is
+ * asking who made the map, and answering with one name would be a worse answer
+ * than the question deserves. The routing entries are conditions of their
+ * services' terms.
  */
 export const MAP_CREDITS = [
   {
@@ -85,6 +86,27 @@ export const MAP_CREDITS = [
     name: 'MapLibre',
     role: 'credit.maplibre',
     url: 'https://maplibre.org/',
+  },
+  /*
+   * The street route (`place-route`). Valhalla's operators ask for credit to
+   * OpenStreetMap, Valhalla and FOSSGIS; OSRM's for "the required attribution"
+   * and a link to fix the map. OpenStreetMap is already first, the roles name
+   * FOSSGIS, and the last entry is that link.
+   */
+  {
+    name: 'Valhalla',
+    role: 'credit.valhalla',
+    url: 'https://github.com/valhalla/valhalla',
+  },
+  {
+    name: 'OSRM',
+    role: 'credit.osrm',
+    url: 'https://routing.openstreetmap.de/about.html',
+  },
+  {
+    name: 'openstreetmap.org/fixthemap',
+    role: 'credit.fixTheMap',
+    url: 'https://www.openstreetmap.org/fixthemap',
   },
 ] as const satisfies readonly MapCredit[]
 

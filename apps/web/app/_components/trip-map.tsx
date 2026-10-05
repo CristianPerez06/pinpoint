@@ -16,6 +16,7 @@ import {
   ROUTE_SOURCE,
   routeFeature,
   routeLayers,
+  type RouteForm,
   withinBounds,
   DEFAULT_VIEWPORT,
   MAX_ZOOM,
@@ -235,13 +236,14 @@ export function TripMap({
    */
   whereAmI: WhereAmI
   /**
-   * A straight line from the person to the open place, or null (`place-route`).
+   * The route from the person to the open place, or null (`place-route`):
+   * its two ends, and the street route's line once one has arrived.
    *
    * Held by the workspace beside the selection, so it goes when the place
    * does. Drawn and framed here, because the camera and the layers are this
    * component's.
    */
-  route?: { from: LngLat; to: LngLat } | null
+  route?: { from: LngLat; to: LngLat; line: readonly LngLat[] | null } | null
   groups: readonly MarkerGroup<Marker>[]
   /**
    * One point the filter is not drawing, shown anyway because the person named
@@ -843,26 +845,31 @@ export function TripMap({
    * Re-applied on `styledata` for the reason the dot is: a theme change swaps
    * the whole document, and the new one carries none of these layers.
    */
+  const drawnFormRef = useRef<RouteForm | null>(null)
   useEffect(() => {
     if (!map) return
 
     const apply = () => {
+      const source = map.getSource(ROUTE_SOURCE) as GeoJSONSource | undefined
       // Busy for a frame after anything is added — the person's dot is added
       // just before a route is — so a route that arrives then is drawn once
-      // the map settles rather than dropped.
-      if (!map.isStyleLoaded()) {
+      // the map settles rather than dropped. Only adding has to wait:
+      // `isStyleLoaded` stays false while any tile loads, which it does for
+      // the whole flight that frames a route, and a street route arriving
+      // during that flight would otherwise be drawn dotted until it landed.
+      if (!source && !map.isStyleLoaded()) {
         map.once('idle', apply)
         return
       }
-      const layers = routeLayers(mode)
-      const source = map.getSource(ROUTE_SOURCE) as GeoJSONSource | undefined
+      const layers = routeLayers(mode, route?.line ? 'street' : 'straight')
       if (!route) {
         for (const layer of layers) if (map.getLayer(layer.id)) map.removeLayer(layer.id)
         if (source) map.removeSource(ROUTE_SOURCE)
+        drawnFormRef.current = null
         return
       }
 
-      const data = routeFeature(route.from, route.to)
+      const data = route.line ? routeFeature(route.line) : routeFeature(route.from, route.to)
       if (source) source.setData(data)
       else map.addSource(ROUTE_SOURCE, { type: 'geojson', data })
 
@@ -871,6 +878,14 @@ export function TripMap({
       const dot = [`${LOCATION_SOURCE}-accuracy`, `${LOCATION_SOURCE}-halo`].find((id) =>
         map.getLayer(id),
       )
+      // Switching between the dotted and the solid line replaces the layers:
+      // MapLibre keeps drawing a dash it has been told to unset, so a street
+      // route painted over the straight line's layers stays dotted.
+      const form = route.line ? 'street' : 'straight'
+      if (drawnFormRef.current !== form) {
+        for (const layer of layers) if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+        drawnFormRef.current = form
+      }
       for (const layer of layers) {
         if (map.getLayer(layer.id)) {
           for (const [key, value] of Object.entries(layer.paint)) {
@@ -907,16 +922,32 @@ export function TripMap({
    * the points are fitted into the part of the map beside the card and the
    * centre is shifted by half the card's reach, the same correction
    * `frameAround` makes vertically. Camera `padding` is not used (AGENTS.md).
+   *
+   * Framed when a route is drawn, and again when its street route arrives,
+   * whose whole length is fitted because it may bend well outside the box its
+   * two ends make. Not when a street route gives way to the straight line again
+   * while another way of travelling is found: the ends have not moved, and a
+   * camera that swung back and forth on every choice would be hard to follow.
    */
+  const framedRef = useRef<{ ends: string; line: readonly LngLat[] | null } | null>(null)
   useEffect(() => {
-    if (!map || !route) return
+    if (!map || !route) {
+      framedRef.current = null
+      return
+    }
+    const ends = `${route.from.lng},${route.from.lat}|${route.to.lng},${route.to.lat}`
+    const last = framedRef.current
+    if (last && last.ends === ends && (route.line === null || route.line === last.line)) return
+    framedRef.current = { ends, line: route.line }
 
     const rect = map.getContainer().getBoundingClientRect()
     const viewport =
       rect.width > 0 && rect.height > 0
         ? { width: rect.width, height: rect.height }
         : DEFAULT_VIEWPORT
-    const points = [route.from, route.to]
+    // The place as well as the line: the line ends at the street nearest the
+    // place, which can sit well short of the pin.
+    const points = route.line ? [route.from, ...route.line, route.to] : [route.from, route.to]
 
     const side = floorRef.current === 0 && covered ? covered.right + LIFT_MARGIN : 0
     let camera

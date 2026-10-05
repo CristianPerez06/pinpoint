@@ -140,6 +140,13 @@ types arrive over five colours.
 - **Hours are one time range, the same on every open day** (#190). A second range and
   different hours on some days were offered with #176, never used, and removed because
   they made the form much busier.
+- **Routes are not computed on the device from the downloaded map.** Tested for #244
+  and rejected: the offline tiles are drawn for looking at, not walking on, so a
+  network joined from them came out in some 1,500 pieces per three tiles and the short
+  walks — the ones somebody standing in a street asks about — were wrong by half or
+  more (`docs/spikes/2026-10-04-routes-between-places.md`, approach 3). Revisit only if
+  a routing engine ships that runs in a web page and a phone app from a free,
+  downloadable data pack.
 - **Bulk import is not a feature.** A migration is not a product capability; nobody
   pastes sixty places twice.
 
@@ -153,7 +160,11 @@ types arrive over five colours.
   both look correct and only the inviter can fix it); **the geocoders are Photon's and
   Nominatim's free public instances** — Photon for suggestions while typing, Nominatim
   only on submit, to find names in every language — with the standing decision that
-  each search is withdrawn rather than billed if its service ever requires paying; and
+  each search is withdrawn rather than billed if its service ever requires paying;
+  **street routes come from FOSSGIS's free public Valhalla server**, falling back to
+  FOSSGIS's OSRM, both of which ask for non-commercial use and one request a second —
+  on the same terms: if either ever has to be paid for, the street route is withdrawn
+  and the straight-line estimate, which needs no service, remains; and
   **there is no acquisition surface of any kind** — the web application has exactly
   three routes, and none of them is a landing page.
 - **Onboarding for someone with no context.** Every existing first-run path assumes an

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { isTravelMode, type TravelMode } from '@pinpoint/map'
 import { parseThemePreference, type ThemePreference } from '@pinpoint/tokens'
 import { parseLanguagePreference, type LanguagePreference } from '@pinpoint/wording'
 import {
@@ -50,6 +51,8 @@ const LANGUAGE_KEY = `${PREFIX}language`
  * Keychain. A reinstall is a first launch again, and plays the full opening.
  */
 const OPENING_KEY = `${PREFIX}openingPlayed`
+/** The way of travelling chosen last, which a new route starts with (`place-route`). */
+const TRAVEL_MODE_KEY = `${PREFIX}travelMode`
 
 type PreferencesState = {
   theme: ThemePreference
@@ -58,6 +61,8 @@ type PreferencesState = {
   chooseLanguage: (next: LanguagePreference) => void
   openingPlayed: boolean
   markOpeningPlayed: () => void
+  travelMode: TravelMode
+  chooseTravelMode: (next: TravelMode) => void
 }
 
 /**
@@ -93,17 +98,21 @@ export function PreferencesProvider({
   // `true` until read: a failed read then plays the short opening rather than
   // making somebody sit through the long one again.
   const [openingPlayed, setOpeningPlayed] = useState(true)
+  // Walking until read, which is what a first route on a device starts with.
+  const [travelMode, setTravelMode] = useState<TravelMode>('walk')
 
   useEffect(() => {
     let active = true
 
-    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY, OPENING_KEY])
+    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY, OPENING_KEY, TRAVEL_MODE_KEY])
       .then((stored) => {
         if (!active) return
         const read = new Map(stored)
         setTheme(parseThemePreference(read.get(THEME_KEY)))
         setLanguage(parseLanguagePreference(read.get(LANGUAGE_KEY)))
         setOpeningPlayed(read.get(OPENING_KEY) === 'true')
+        const mode = read.get(TRAVEL_MODE_KEY)
+        if (isTravelMode(mode)) setTravelMode(mode)
       })
       .catch(() => {
         // Deliberately swallowed, and deliberately still ready.
@@ -150,9 +159,37 @@ export function PreferencesProvider({
     void AsyncStorage.setItem(OPENING_KEY, 'true').catch(() => {})
   }, [])
 
+  /*
+   * Called only from a person's own press. The application switching to
+   * walking when the connection drops does not come through here, so it never
+   * overwrites what they chose.
+   */
+  const chooseTravelMode = useCallback((next: TravelMode) => {
+    setTravelMode(next)
+    void AsyncStorage.setItem(TRAVEL_MODE_KEY, next).catch(() => {})
+  }, [])
+
   const value = useMemo(
-    () => ({ theme, chooseTheme, language, chooseLanguage, openingPlayed, markOpeningPlayed }),
-    [theme, chooseTheme, language, chooseLanguage, openingPlayed, markOpeningPlayed],
+    () => ({
+      theme,
+      chooseTheme,
+      language,
+      chooseLanguage,
+      openingPlayed,
+      markOpeningPlayed,
+      travelMode,
+      chooseTravelMode,
+    }),
+    [
+      theme,
+      chooseTheme,
+      language,
+      chooseLanguage,
+      openingPlayed,
+      markOpeningPlayed,
+      travelMode,
+      chooseTravelMode,
+    ],
   )
 
   return <Context value={value}>{children}</Context>

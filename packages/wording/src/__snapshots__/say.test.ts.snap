@@ -209,6 +209,12 @@ credit.openfreemap
   Serves the tiles, at no cost and without an account.
 credit.maplibre
   Draws the map on the screen.
+credit.valhalla
+  Finds the route along the streets. Run by FOSSGIS.
+credit.osrm
+  Finds the route when Valhalla cannot. Also run by FOSSGIS.
+credit.fixTheMap
+  Report something wrong on the map, where it is made.
 markerType.place
   Place
 markerType.temple
@@ -408,7 +414,7 @@ dayField.dayChosen
 credits.title
   About this map
 credits.blurb
-  Four projects, none of them ours.
+  What the map and its routes are made from. None of it is ours.
 credits.spoken
   {name}. {does}
 common.editNamed
@@ -967,6 +973,46 @@ route.walkHours
   About {hours} h walk
 route.walkHoursMinutes
   About {hours} h {minutes} min walk
+route.alongStreets
+  {distance} along the streets
+route.walkTimeMinutes
+  {minutes} min walk
+route.walkTimeHours
+  {hours} h walk
+route.walkTimeHoursMinutes
+  {hours} h {minutes} min walk
+route.bikeTimeMinutes
+  {minutes} min by bike
+route.bikeTimeHours
+  {hours} h by bike
+route.bikeTimeHoursMinutes
+  {hours} h {minutes} min by bike
+route.carTimeMinutes
+  {minutes} min drive
+route.carTimeHours
+  {hours} h drive
+route.carTimeHoursMinutes
+  {hours} h {minutes} min drive
+route.modeWalk
+  Walk
+route.modeBike
+  Bike
+route.modeCar
+  Car
+route.modes
+  How you are getting there
+route.findingStreets
+  Finding the way along the streets…
+route.noneWalk
+  No walking route along the streets was found.
+route.noneBike
+  No cycling route along the streets was found.
+route.noneCar
+  No driving route along the streets was found.
+route.needsConnection
+  Bike and car need a connection.
+route.switchedToWalk
+  No connection, so this is walking. Bike and car need a connection.
 filter.name
   Filter
 filter.hint
@@ -1274,6 +1320,12 @@ credit.openfreemap
   Sirve las teselas, sin costo y sin cuenta.
 credit.maplibre
   Dibuja el mapa en la pantalla.
+credit.valhalla
+  Encuentra el camino por las calles. Lo opera FOSSGIS.
+credit.osrm
+  Encuentra el camino cuando Valhalla no puede. También lo opera FOSSGIS.
+credit.fixTheMap
+  Informar un error del mapa, donde se hace.
 markerType.place
   Lugar
 markerType.temple
@@ -1473,7 +1525,7 @@ dayField.dayChosen
 credits.title
   Sobre este mapa
 credits.blurb
-  Cuatro proyectos, ninguno nuestro.
+  Con qué se hacen el mapa y sus rutas. Nada de esto es nuestro.
 credits.spoken
   {name}. {does}
 common.editNamed
@@ -2032,6 +2084,46 @@ route.walkHours
   Unas {hours} h a pie
 route.walkHoursMinutes
   Unas {hours} h {minutes} min a pie
+route.alongStreets
+  {distance} por las calles
+route.walkTimeMinutes
+  {minutes} min a pie
+route.walkTimeHours
+  {hours} h a pie
+route.walkTimeHoursMinutes
+  {hours} h {minutes} min a pie
+route.bikeTimeMinutes
+  {minutes} min en bici
+route.bikeTimeHours
+  {hours} h en bici
+route.bikeTimeHoursMinutes
+  {hours} h {minutes} min en bici
+route.carTimeMinutes
+  {minutes} min en auto
+route.carTimeHours
+  {hours} h en auto
+route.carTimeHoursMinutes
+  {hours} h {minutes} min en auto
+route.modeWalk
+  A pie
+route.modeBike
+  Bici
+route.modeCar
+  Auto
+route.modes
+  Cómo se va
+route.findingStreets
+  Buscando el camino por las calles…
+route.noneWalk
+  No se encontró un camino a pie por las calles.
+route.noneBike
+  No se encontró un camino en bici por las calles.
+route.noneCar
+  No se encontró un camino en auto por las calles.
+route.needsConnection
+  La bici y el auto requieren conexión.
+route.switchedToWalk
+  Sin conexión, se muestra a pie. La bici y el auto requieren conexión.
 filter.name
   Filtro
 filter.hint

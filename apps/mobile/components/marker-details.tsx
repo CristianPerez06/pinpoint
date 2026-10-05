@@ -9,15 +9,19 @@ import {
   type MarkerInterest,
   type OpeningHours,
   type TripMember,
-  formatWalkingDistance,
-  formatWalkingTime,
+  type RouteFigures,
+  TRAVEL_MODE_NAMES,
 } from '@pinpoint/core'
-import { walkingMinutes, type MarkerGroup, type MarkerView } from '@pinpoint/map'
+import { TRAVEL_MODES, type MarkerGroup, type MarkerView, type TravelMode } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
+import Bike from 'lucide-react-native/icons/bike'
+import Car from 'lucide-react-native/icons/car'
 import Footprints from 'lucide-react-native/icons/footprints'
+import Info from 'lucide-react-native/icons/info'
+import WifiOff from 'lucide-react-native/icons/wifi-off'
 import X from 'lucide-react-native/icons/x'
 import { type ReactNode, useState } from 'react'
 import {
@@ -95,13 +99,26 @@ const styles = StyleSheet.create({
   },
   routeButtonText: { ...role(TYPE.control), fontWeight: '600' },
   route: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderRadius: RADIUS.md,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
     paddingHorizontal: 12,
   },
+  routeFigures: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  routeModes: { flexDirection: 'row', gap: 6, marginTop: 10 },
+  routeMode: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 4,
+  },
+  routeNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 9 },
+  routeNoteText: { ...role(TYPE.note), flex: 1 },
   routeText: { flex: 1, minWidth: 0 },
   routeMain: { ...role(TYPE.rowName) },
   routeSub: { ...role(TYPE.note) },
@@ -465,23 +482,31 @@ function SheetSurface({
 export interface RouteOffer {
   /** Waiting for the person's position, after a press. */
   finding: boolean
-  /** The straight-line distance once the line is drawn, or null before. */
-  km: number | null
+  /** What the card says once the line is drawn, or null before (`routeFigures`). */
+  figures: RouteFigures | null
   onCalculate: () => void
   onClear: () => void
+  onChooseMode: (mode: TravelMode) => void
+}
+
+/** The glyph for each way of travelling, beside the figures and on its button. */
+const MODE_ICONS: Record<TravelMode, typeof Footprints> = {
+  walk: Footprints,
+  bike: Bike,
+  car: Car,
 }
 
 /**
- * The button, and once pressed, how far and how long — the laptop's card in
- * the phone's idiom. Inert while finding rather than disabled, so it keeps its
- * name for a screen reader (`Inert, not absent`).
+ * The button, and once pressed, how far and how long, and how the person is
+ * getting there — the laptop's card in the phone's idiom. Inert rather than
+ * disabled wherever something cannot be pressed, so each keeps its name for a
+ * screen reader (`Inert, not absent`).
  */
 function Route({ offer, name }: { offer: RouteOffer; name: string }) {
   const theme = useTheme()
-  const language = useLanguage()
   const say = useSay()
 
-  if (offer.km === null) {
+  if (offer.figures === null) {
     return (
       <Pressable
         onPress={offer.finding ? undefined : offer.onCalculate}
@@ -515,41 +540,114 @@ function Route({ offer, name }: { offer: RouteOffer; name: string }) {
     )
   }
 
-  const minutes = walkingMinutes(offer.km)
+  const figures = offer.figures
+  const amount = say(figures.distance)
   const distance = say(
-    message('route.straightLine', { distance: say(formatWalkingDistance(language, offer.km)) }),
+    figures.measured === 'streets'
+      ? message('route.alongStreets', { distance: amount })
+      : message('route.straightLine', { distance: amount }),
   )
+  const Icon = MODE_ICONS[figures.mode]
+  const NoteIcon = figures.note?.kind === 'offline' ? WifiOff : Info
+
   return (
     <View style={[styles.route, { backgroundColor: theme.colour.surfaceMuted }]}>
-      <Footprints size={20} color={theme.colour.ink} />
-      <View style={styles.routeText}>
-        {minutes === null ? (
-          <Text style={[styles.routeMain, { color: theme.colour.ink }]}>{distance}</Text>
-        ) : (
-          <>
-            <Text style={[styles.routeMain, { color: theme.colour.ink }]}>
-              {say(formatWalkingTime(language, minutes))}
-            </Text>
-            <Text style={[styles.routeSub, { color: theme.colour.inkMuted }]}>{distance}</Text>
-          </>
-        )}
+      <View style={styles.routeFigures}>
+        <Icon size={20} color={theme.colour.ink} />
+        <View style={styles.routeText}>
+          {figures.time === null ? (
+            <Text style={[styles.routeMain, { color: theme.colour.ink }]}>{distance}</Text>
+          ) : (
+            <>
+              <Text style={[styles.routeMain, { color: theme.colour.ink }]}>
+                {say(figures.time)}
+              </Text>
+              <Text style={[styles.routeSub, { color: theme.colour.inkMuted }]}>{distance}</Text>
+            </>
+          )}
+        </View>
+        <Pressable
+          onPress={offer.onClear}
+          accessibilityRole="button"
+          accessibilityLabel={say(message('route.clearNamed', { name }))}
+          style={({ pressed }) => [
+            styles.routeClear,
+            {
+              borderColor: theme.colour.lineStrong,
+              backgroundColor: pressed ? theme.colour.surfaceSunk : theme.colour.surface,
+            },
+          ]}
+        >
+          <Text style={[styles.routeButtonText, { color: theme.colour.ink }]}>
+            {say(message('route.clear'))}
+          </Text>
+        </Pressable>
       </View>
-      <Pressable
-        onPress={offer.onClear}
-        accessibilityRole="button"
-        accessibilityLabel={say(message('route.clearNamed', { name }))}
-        style={({ pressed }) => [
-          styles.routeClear,
-          {
-            borderColor: theme.colour.lineStrong,
-            backgroundColor: pressed ? theme.colour.surfaceSunk : theme.colour.surface,
-          },
-        ]}
+
+      {/*
+        The three ways of travelling. The chosen one is filled and the
+        unavailable ones are dashed, so neither state depends on colour; the
+        fill and its lettering are set together, so no theme can leave the word
+        the colour of what it sits on.
+      */}
+      <View
+        style={styles.routeModes}
+        accessibilityRole="radiogroup"
+        accessibilityLabel={say(message('route.modes'))}
       >
-        <Text style={[styles.routeButtonText, { color: theme.colour.ink }]}>
-          {say(message('route.clear'))}
-        </Text>
-      </Pressable>
+        {TRAVEL_MODES.map((mode) => {
+          const ModeIcon = MODE_ICONS[mode]
+          const chosen = figures.mode === mode
+          const available = figures.available[mode]
+          const ink = chosen
+            ? theme.colour.surface
+            : available
+              ? theme.colour.ink
+              : theme.colour.inkMuted
+          return (
+            <Pressable
+              key={mode}
+              onPress={available ? () => offer.onChooseMode(mode) : undefined}
+              accessibilityRole="radio"
+              accessibilityLabel={say(TRAVEL_MODE_NAMES[mode])}
+              accessibilityState={{ selected: chosen, disabled: !available }}
+              style={({ pressed }) => [
+                styles.routeMode,
+                chosen
+                  ? { borderColor: theme.colour.ink, backgroundColor: theme.colour.ink }
+                  : available
+                    ? {
+                        borderColor: theme.colour.lineStrong,
+                        backgroundColor: pressed ? theme.colour.surfaceSunk : theme.colour.surface,
+                      }
+                    : {
+                        borderColor: theme.colour.lineStrong,
+                        borderStyle: 'dashed',
+                        backgroundColor: 'transparent',
+                      },
+              ]}
+            >
+              <ModeIcon size={16} color={ink} />
+              <Text style={[styles.routeButtonText, { color: ink }]}>
+                {say(TRAVEL_MODE_NAMES[mode])}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
+      {figures.note ? (
+        <View style={styles.routeNote} accessibilityLiveRegion="polite">
+          {figures.note.kind === 'finding' ? (
+            <ActivityIndicator size="small" color={theme.colour.inkMuted} />
+          ) : (
+            <NoteIcon size={15} color={theme.colour.inkMuted} />
+          )}
+          <Text style={[styles.routeNoteText, { color: theme.colour.ink }]}>
+            {say(figures.note.message)}
+          </Text>
+        </View>
+      ) : null}
     </View>
   )
 }

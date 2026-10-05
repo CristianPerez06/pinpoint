@@ -9,7 +9,6 @@ import { formatDistance } from '@pinpoint/core'
 import { markerTypeOf } from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
-import Constants from 'expo-constants'
 import { type ReactNode, useEffect, useState } from 'react'
 import {
   AccessibilityInfo,
@@ -28,6 +27,7 @@ import { Sheet } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
+import { USER_AGENT } from '@/lib/user-agent'
 
 /**
  * Finding a place by name, on a phone.
@@ -78,21 +78,6 @@ const FAR_AWAY_KM = 100
  * `accessibilityLabel` — so it is named here rather than written into the tree.
  */
 const BACK_GLYPH = '‹'
-
-/**
- * Who is asking, as the geocoders' usage policies ask to be told.
- *
- * Nominatim refuses to be called by a stock HTTP library's `User-Agent`, and
- * the one React Native sends names the networking stack rather than this app.
- * A browser page cannot set this header and is identified by its `Referer`
- * instead; a phone has no `Referer`, so it says its name. Read from the app's
- * own config so a version bump or a new identifier cannot leave it stale.
- */
-const USER_AGENT = `Pinpoint/${Constants.expoConfig?.version ?? '0'} (${
-  Constants.expoConfig?.ios?.bundleIdentifier ??
-  Constants.expoConfig?.android?.package ??
-  'pinpoint'
-})`
 
 /**
  * `fetch` wrapped rather than handed over directly.

@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
     '@pinpoint/data',
     '@pinpoint/geocode',
     '@pinpoint/map',
+    '@pinpoint/routing',
     '@pinpoint/supabase',
     '@pinpoint/tokens',
     '@pinpoint/wording',

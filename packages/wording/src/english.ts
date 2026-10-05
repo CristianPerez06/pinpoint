@@ -225,6 +225,9 @@ export const ENGLISH = {
   'credit.openmaptiles': 'The schema the data is packed into.',
   'credit.openfreemap': 'Serves the tiles, at no cost and without an account.',
   'credit.maplibre': 'Draws the map on the screen.',
+  'credit.valhalla': 'Finds the route along the streets. Run by FOSSGIS.',
+  'credit.osrm': 'Finds the route when Valhalla cannot. Also run by FOSSGIS.',
+  'credit.fixTheMap': 'Report something wrong on the map, where it is made.',
 
   // ── What a marker's type is called ───────────────────────────────────────
   //
@@ -369,7 +372,7 @@ export const ENGLISH = {
 
   // ── Who made the map ─────────────────────────────────────────────────────
   'credits.title': 'About this map',
-  'credits.blurb': 'Four projects, none of them ours.',
+  'credits.blurb': 'What the map and its routes are made from. None of it is ours.',
   // A project's proper name, then what it does.
   'credits.spoken': (v: { name: string; does: string }) => `${v.name}. ${v.does}`,
 
@@ -821,6 +824,37 @@ export const ENGLISH = {
   /** An estimate on foot, hours and minutes. */
   'route.walkHoursMinutes': (v: { hours: string; minutes: string }) =>
     `About ${v.hours} h ${v.minutes} min walk`,
+  /** Beneath a street route's time. `distance` is already formatted for the language. */
+  'route.alongStreets': (v: { distance: string }) => `${v.distance} along the streets`,
+  /** A street route's time, under an hour, one per way of travelling. Not an estimate, so no *About*. */
+  'route.walkTimeMinutes': (v: { minutes: string }) => `${v.minutes} min walk`,
+  'route.walkTimeHours': (v: { hours: string }) => `${v.hours} h walk`,
+  'route.walkTimeHoursMinutes': (v: { hours: string; minutes: string }) =>
+    `${v.hours} h ${v.minutes} min walk`,
+  'route.bikeTimeMinutes': (v: { minutes: string }) => `${v.minutes} min by bike`,
+  'route.bikeTimeHours': (v: { hours: string }) => `${v.hours} h by bike`,
+  'route.bikeTimeHoursMinutes': (v: { hours: string; minutes: string }) =>
+    `${v.hours} h ${v.minutes} min by bike`,
+  'route.carTimeMinutes': (v: { minutes: string }) => `${v.minutes} min drive`,
+  'route.carTimeHours': (v: { hours: string }) => `${v.hours} h drive`,
+  'route.carTimeHoursMinutes': (v: { hours: string; minutes: string }) =>
+    `${v.hours} h ${v.minutes} min drive`,
+  /** The three ways of travelling, on their buttons. */
+  'route.modeWalk': 'Walk',
+  'route.modeBike': 'Bike',
+  'route.modeCar': 'Car',
+  /** Spoken name of the group of three. */
+  'route.modes': 'How you are getting there',
+  /** While the street route is being asked for, under the straight line's figures. */
+  'route.findingStreets': 'Finding the way along the streets…',
+  /** The routing service gave no route; the straight line stays. One per way of travelling. */
+  'route.noneWalk': 'No walking route along the streets was found.',
+  'route.noneBike': 'No cycling route along the streets was found.',
+  'route.noneCar': 'No driving route along the streets was found.',
+  /** With no connection, under the choices. */
+  'route.needsConnection': 'Bike and car need a connection.',
+  /** The connection dropped while bike or car was chosen, so the route changed to walking. */
+  'route.switchedToWalk': 'No connection, so this is walking. Bike and car need a connection.',
 
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',

@@ -10,7 +10,7 @@ import {
   type LineLayerSpecification,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native'
-import type { Marker, MarkerInterest, TripMember } from '@pinpoint/core'
+import { routeFigures, type Marker, type MarkerInterest, type TripMember } from '@pinpoint/core'
 import {
   ATTRIBUTION,
   DEFAULT_VIEWPORT,
@@ -32,6 +32,7 @@ import {
   type Bounds,
   type LngLat,
   type MarkerGroup,
+  type TravelMode,
   type Viewport,
 } from '@pinpoint/map'
 import {
@@ -79,7 +80,9 @@ import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
 import { useTripEdition } from '@/lib/offline-map'
 import { useOnline } from '@/lib/connectivity'
-import { useSay } from '@/lib/language'
+import { useLanguage, useSay } from '@/lib/language'
+import { usePreferences } from '@/lib/preferences'
+import { useStreetRoute } from '@/lib/street-route'
 import { useTheme, useThemeMode } from '@/lib/theme'
 import type { WhereAmI } from '@/lib/where-am-i'
 
@@ -731,6 +734,7 @@ export function TripMap({
   } | null>(null)
   const theme = useTheme()
   const online = useOnline()
+  const language = useLanguage()
   const say = useSay()
   const mode = useThemeMode()
 
@@ -1079,7 +1083,13 @@ export function TripMap({
   const openPlace =
     selection && selection.index !== null ? selection.group.markers[selection.index]! : null
   const openPlaceId = openPlace?.id ?? null
-  const [route, setRoute] = useState<{ markerId: string; from: LngLat } | null>(null)
+  const [route, setRoute] = useState<{
+    markerId: string
+    from: LngLat
+    mode: TravelMode
+    /** The connection dropped while cycling or driving, so this changed to walking. */
+    switched: boolean
+  } | null>(null)
   const [routing, setRouting] = useState<string | null>(null)
   // Reset while rendering rather than in an effect, as React recommends for
   // state that follows another value.
@@ -1090,6 +1100,28 @@ export function TripMap({
   }
   const activeRoute = route && openPlace && route.markerId === openPlace.id ? route : null
   const windowHeight = useWindowDimensions().height
+  const { travelMode, chooseTravelMode } = usePreferences()
+
+  // With no connection only walking is offered. Losing it while cycling or
+  // driving changes the route to walking and says why; getting it back keeps
+  // walking, and only the note goes. While rendering, so no frame shows a
+  // driving figure the phone can no longer have.
+  if (activeRoute && !online && activeRoute.mode !== 'walk') {
+    setRoute({ ...activeRoute, mode: 'walk', switched: true })
+  } else if (activeRoute && online && activeRoute.switched) {
+    setRoute({ ...activeRoute, switched: false })
+  }
+
+  /** Both ends, or the whole street route, above the sheet. */
+  const frameRoute = (points: readonly LngLat[]) => {
+    // By the shared derivation — never camera padding, which the drop sight
+    // depends on staying zero (AGENTS.md).
+    const camera = frameAround(points, viewport ?? DEFAULT_VIEWPORT, detailsHeight(windowHeight))
+    cameraRef.current?.flyTo({
+      center: [camera.center.lng, camera.center.lat],
+      zoom: camera.zoom,
+    })
+  }
 
   const calculateRoute = async (place: Marker) => {
     setRouting(place.id)
@@ -1099,26 +1131,55 @@ export function TripMap({
     setRouting(null)
     if (!fix) return
     const from = { lng: fix.lng, lat: fix.lat }
-    setRoute({ markerId: place.id, from })
-    // Both ends above the sheet, by the shared derivation — never camera
-    // padding, which the drop sight depends on staying zero (AGENTS.md).
-    const camera = frameAround(
-      [from, { lng: place.lng, lat: place.lat }],
-      viewport ?? DEFAULT_VIEWPORT,
-      detailsHeight(windowHeight),
-    )
-    cameraRef.current?.flyTo({
-      center: [camera.center.lng, camera.center.lat],
-      zoom: camera.zoom,
-    })
+    // A remembered bike or car starts as walking with no connection, and the
+    // remembered choice is left as it was.
+    setRoute({ markerId: place.id, from, mode: online ? travelMode : 'walk', switched: false })
+    frameRoute([from, { lng: place.lng, lat: place.lat }])
   }
+
+  const chooseMode = (mode: TravelMode) => {
+    if (!activeRoute || (!online && mode !== 'walk')) return
+    // Only a person's own choice is remembered.
+    chooseTravelMode(mode)
+    setRoute({ ...activeRoute, mode, switched: false })
+  }
+
+  const street = useStreetRoute(
+    activeRoute?.from ?? null,
+    activeRoute && openPlace ? { lng: openPlace.lng, lat: openPlace.lat } : null,
+    activeRoute?.mode ?? 'walk',
+    online,
+  )
+  const streetLine = online ? street.line : null
+
+  // The whole street route, framed once when it arrives: it may bend well
+  // outside the box its two ends make. Not again when it gives way to the
+  // straight line while another way of travelling is found.
+  useEffect(() => {
+    // The place as well as the line: the line ends at the street nearest the
+    // place, which can sit well short of the pin.
+    if (streetLine && activeRoute && openPlace) {
+      frameRoute([activeRoute.from, ...streetLine, { lng: openPlace.lng, lat: openPlace.lat }])
+    }
+    // Framed on arrival only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streetLine])
 
   const routeOffer = openPlace
     ? {
         finding: routing === openPlace.id,
-        km: activeRoute ? distanceKm(activeRoute.from, openPlace) : null,
+        figures: activeRoute
+          ? routeFigures(language, {
+              km: distanceKm(activeRoute.from, openPlace),
+              mode: activeRoute.mode,
+              street: street.state,
+              online,
+              switched: activeRoute.switched,
+            })
+          : null,
         onCalculate: () => void calculateRoute(openPlace),
         onClear: () => setRoute(null),
+        onChooseMode: chooseMode,
       }
     : undefined
 
@@ -1371,12 +1432,21 @@ export function TripMap({
           {activeRoute && openPlace ? (
             <GeoJSONSource
               id={ROUTE_SOURCE}
-              data={routeFeature(activeRoute.from, { lng: openPlace.lng, lat: openPlace.lat })}
+              data={
+                streetLine
+                  ? routeFeature(streetLine)
+                  : routeFeature(activeRoute.from, { lng: openPlace.lng, lat: openPlace.lat })
+              }
             >
-              {routeLayers(mode).map((layer) => (
+              {routeLayers(mode, streetLine ? 'street' : 'straight').map((layer) => (
                 <Layer
-                  key={layer.id}
-                  id={layer.id}
+                  // Named for the form too, so switching between the dotted and
+                  // the solid line replaces the layer rather than unsetting a
+                  // dash the renderer keeps drawing. The name and not only the
+                  // key: a new layer under the old one's id can be added before
+                  // the old one is removed, and is then refused.
+                  key={`${layer.id}-${streetLine ? 'street' : 'straight'}`}
+                  id={`${layer.id}-${streetLine ? 'street' : 'straight'}`}
                   type="line"
                   layout={layer.layout as LineLayerSpecification['layout']}
                   paint={layer.paint as LineLayerSpecification['paint']}

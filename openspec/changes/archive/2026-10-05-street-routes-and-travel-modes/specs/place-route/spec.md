@@ -1,83 +1,12 @@
-# place-route Specification
+## RENAMED Requirements
 
-## Purpose
-Lets a person on the trip see how far a saved place is from where they are standing and
-how long it takes to get there, on foot, by bike or by car, on the phone and on the
-laptop. With a connection the route follows the streets; without one, it is a straight
-line with its distance and an estimated walking time.
+- FROM: `### Requirement: The route is a straight line from the person to the place`
+- TO: `### Requirement: The route is drawn from the person to the place`
 
-## Requirements
+- FROM: `### Requirement: The details say how far it is and how long on foot`
+- TO: `### Requirement: The details say how far it is and how long it takes`
 
-### Requirement: A selected place offers to calculate the route to it
-
-When a place's details are open over the map, each application SHALL offer a button
-reading *Calculate route*, in the application's language. It SHALL stand directly under the place's name and
-tags, above the place's fields, so that on the phone it is visible without scrolling the
-details.
-
-It SHALL carry an accessible name from the product's named sentences that names the place.
-It SHALL remain available with no network connection.
-
-The calendar SHALL NOT offer it when it opens a place's details over the calendar, because
-no map is on screen to draw the line on.
-
-Rationale for the position: the phone's details take half the window and scroll, and the
-actions at their foot are below that half. A button for something done standing in the
-street belongs where it is seen when the place opens.
-
-#### Scenario: Opening a place
-
-- **WHEN** a person selects a pin and its details open
-- **THEN** a *Calculate route* button stands under the place's name and tags
-
-#### Scenario: Opened over the calendar
-
-- **WHEN** a place's details open over the calendar
-- **THEN** no *Calculate route* button is offered
-
-#### Scenario: The phone's details
-
-- **WHEN** a place's details open on the phone
-- **THEN** the button is visible without scrolling
-
-#### Scenario: No connection
-
-- **WHEN** the phone has no connection and a place's details are open
-- **THEN** the button is shown and can be pressed
-
-### Requirement: Pressing it finds where the person is
-
-Pressing *Calculate route* SHALL find the person's position as *where am I* does
-(`device-location`): asking for permission the first time, showing that it is working, and
-ending after a bounded wait. While it is working the button SHALL be inert, SHALL say that
-the position is being found, and SHALL be announced as busy. A press while it is working
-SHALL NOT start a second attempt.
-
-When permission is refused or no position is found, the line SHALL NOT be drawn, the camera
-SHALL NOT move, and the same note *where am I* shows for that case SHALL be shown. The
-button SHALL stay, and pressing it again SHALL try again.
-
-#### Scenario: First press
-
-- **WHEN** a person who has never answered presses *Calculate route*
-- **THEN** the platform's own location prompt is shown
-
-#### Scenario: Waiting for the position
-
-- **WHEN** the position has not yet arrived
-- **THEN** the button says the position is being found and cannot be pressed again
-
-#### Scenario: Refused on the phone
-
-- **WHEN** location is refused on the phone and *Calculate route* is pressed
-- **THEN** no line is drawn and the map stays where it was
-- **AND** the note says location is off and can be turned on in Settings
-- **AND** the button is still offered
-
-#### Scenario: Refused on the laptop
-
-- **WHEN** the browser blocks location and *Calculate route* is pressed
-- **THEN** no line is drawn and the note says the browser is blocking location
+## MODIFIED Requirements
 
 ### Requirement: The route is drawn from the person to the place
 
@@ -214,29 +143,6 @@ long walk is still a real figure.
 - **WHEN** the application is in Spanish and a route is shown
 - **THEN** the time, the way of travelling and the distance are written in Spanish
 
-### Requirement: The route goes away when it is no longer about the open place
-
-The line and the figures SHALL be removed, and the button offered again, when the person
-presses *Clear*. The line SHALL also be removed when the place's details close, and when
-another place is selected.
-
-Only one route SHALL be drawn at a time.
-
-#### Scenario: Clear
-
-- **WHEN** a person presses *Clear*
-- **THEN** the line is removed and *Calculate route* is offered again
-
-#### Scenario: Closing the place
-
-- **WHEN** a person closes the place's details while a line is drawn
-- **THEN** the line is removed
-
-#### Scenario: Selecting another place
-
-- **WHEN** a person selects another pin while a line is drawn
-- **THEN** the line is removed and the other place opens with *Calculate route* offered
-
 ### Requirement: Both applications offer the route
 
 The laptop and the phone SHALL both offer *Calculate route*, with the same behaviour, the
@@ -255,6 +161,8 @@ connection, with walking alone.
 - **WHEN** the same place is routed to from the same position on the laptop and the phone,
   neither with a connection
 - **THEN** both show the same straight-line distance and the same walking estimate
+
+## ADDED Requirements
 
 ### Requirement: The person chooses how they are travelling
 

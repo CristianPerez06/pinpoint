@@ -1,3 +1,4 @@
+import type { TravelMode } from '@pinpoint/map'
 import { message, type Language, type Message } from '@pinpoint/wording'
 
 /**
@@ -78,4 +79,58 @@ export function formatWalkingTime(language: Language, minutes: number): Message 
   const rest = minutes % 60
   if (rest === 0) return message('route.walkHours', { hours })
   return message('route.walkHoursMinutes', { hours, minutes: number.format(rest) })
+}
+
+/**
+ * A street route's time, for the way of travelling: `53 min walk`,
+ * `18 min by bike`, `1 h 35 min drive` (`place-route`).
+ *
+ * Takes the routing service's own minutes, unrounded. Rounded to the nearest
+ * minute and never said as less than one, because a street route is a real
+ * figure rather than an estimate — so it is written without *About*, and not
+ * rounded to five as the walking estimate is.
+ */
+export function formatTravelTime(language: Language, minutes: number, mode: TravelMode): Message {
+  const number = new Intl.NumberFormat(DISTANCE_LOCALE[language], { maximumFractionDigits: 0 })
+  const whole = Math.max(1, Math.round(minutes))
+  const sentences = TRAVEL_TIME[mode]
+  if (whole < 60) return sentences.minutes(number.format(whole))
+
+  const hours = number.format(Math.floor(whole / 60))
+  const rest = whole % 60
+  if (rest === 0) return sentences.hours(hours)
+  return sentences.hoursMinutes(hours, number.format(rest))
+}
+
+/**
+ * The sentences a time is written in, per way of travelling.
+ *
+ * An exhaustive record with every name written out, because `check:wording`
+ * cannot read a name assembled from the mode.
+ */
+const TRAVEL_TIME: Readonly<
+  Record<
+    TravelMode,
+    {
+      minutes: (minutes: string) => Message
+      hours: (hours: string) => Message
+      hoursMinutes: (hours: string, minutes: string) => Message
+    }
+  >
+> = {
+  walk: {
+    minutes: (minutes) => message('route.walkTimeMinutes', { minutes }),
+    hours: (hours) => message('route.walkTimeHours', { hours }),
+    hoursMinutes: (hours, minutes) => message('route.walkTimeHoursMinutes', { hours, minutes }),
+  },
+  bike: {
+    minutes: (minutes) => message('route.bikeTimeMinutes', { minutes }),
+    hours: (hours) => message('route.bikeTimeHours', { hours }),
+    hoursMinutes: (hours, minutes) => message('route.bikeTimeHoursMinutes', { hours, minutes }),
+  },
+  car: {
+    minutes: (minutes) => message('route.carTimeMinutes', { minutes }),
+    hours: (hours) => message('route.carTimeHours', { hours }),
+    hoursMinutes: (hours, minutes) => message('route.carTimeHoursMinutes', { hours, minutes }),
+  },
 }
