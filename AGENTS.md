@@ -401,6 +401,16 @@ placeholders.
   interchangeable. Put the position on the thing that is pressed; the note now takes
   `onPress` itself.
 
+- **A screen nobody opens still runs its imports for everybody.** Expo Router evaluates
+  every file under `app/` when the app starts, so a route that imports a native package
+  runs that package's setup at launch whether or not anyone navigates there. Ferrostar
+  installs its compiled core into the JavaScript engine as its module is evaluated, and
+  with the development-only trial importing it directly, the app reloaded itself when
+  *Calculate route* was pressed — on the map, a screen that never mentions Ferrostar.
+  **Learn the shape of this one**: the failure appears in code the change did not touch,
+  and every check of the code it did touch passes. A route that needs something heavy
+  keeps it in another module and loads it with `lazy(() => import(…))`, as
+  `app/dev/follow.tsx` does.
 - **A preference kept in `expo-secure-store` outlives the app that wrote it.** On iOS
   that store is the Keychain, and a Keychain item survives the application being
   deleted — so uninstalling and reinstalling hands back a value written by a copy of
