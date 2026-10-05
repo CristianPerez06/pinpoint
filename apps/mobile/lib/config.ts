@@ -9,10 +9,12 @@
  *   secret       Never prefixed, never read here. A native app has no server
  *                side, so a secret has nowhere safe to live in this app at all.
  *
- * Both variables below are publishable. The Supabase publishable key is meant
+ * Every variable below is publishable. The Supabase publishable key is meant
  * to ship in clients and is constrained by row-level security; the secret
  * (service_role) key bypasses it entirely and MUST NOT be given an
- * EXPO_PUBLIC_ prefix.
+ * EXPO_PUBLIC_ prefix. The Stadia Maps key is publishable because its free
+ * plan stops at its allowance rather than billing: a key taken out of the app
+ * can spend that month's routes and nothing else.
  */
 
 function required(name: string, value: string | undefined): string {
@@ -46,6 +48,16 @@ export const config = {
     publishableKey: required(
       'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
       process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    ),
+  },
+  /**
+   * Stadia Maps, the first service asked for a street route (`place-route`).
+   * The same key as the laptop's.
+   */
+  stadia: {
+    apiKey: required(
+      'EXPO_PUBLIC_STADIA_API_KEY',
+      process.env.EXPO_PUBLIC_STADIA_API_KEY,
     ),
   },
   /**

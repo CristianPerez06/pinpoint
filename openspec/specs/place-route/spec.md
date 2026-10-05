@@ -305,18 +305,31 @@ shown, with a line saying the route along the streets is being found. When the s
 route arrives, it SHALL replace the straight line and its figures. The wait SHALL be
 bounded.
 
-When no street route comes back — the service does not answer in time, refuses, or finds
-no way — the straight line and its figures SHALL stay, and a line SHALL say that no route
-along the streets was found for that way of travelling. Nothing else about the route SHALL
-change, and the choice of way of travelling SHALL stay available.
+The application SHALL know more than one routing service and SHALL ask them in a fixed
+order. When one gives no usable answer — it does not answer, refuses, or its allowance is
+used up — the application SHALL ask the next, within the same bounded wait. When one
+answers that there is no way, that answer SHALL stand and no other SHALL be asked.
 
-The routing service SHALL cost nothing and need no key or account. The application SHALL
-NOT ask it more than once a second from one device, and SHALL NOT ask again for a route it
-was already given from the same position, to the same place, for the same way of
-travelling, while the application is open.
+When no street route comes back — no service answers in time, every one refuses, or one
+finds no way — the straight line and its figures SHALL stay, and a line SHALL say that no
+route along the streets was found for that way of travelling. Nothing else about the route
+SHALL change, and the choice of way of travelling SHALL stay available.
 
-The routing service SHALL be credited in the map's credits, beside the map's other
-sources, with whatever the service's terms ask for.
+Every routing service SHALL cost nothing, and SHALL NOT be able to bill: a service that
+needs an account SHALL be one whose free allowance stops when it is used up, rather than
+overflowing into charges. A key that ships inside an application SHALL be one whose
+misuse can cost nothing but that allowance. The application SHALL NOT ask the services more
+than once a second from one device, and SHALL NOT ask again for a route it was already
+given from the same position, to the same place, for the same way of travelling, while the
+application is open.
+
+Rationale for allowing an account: the free public servers promise nothing, and the
+service that replaces them first runs the same software under a plan that stops instead of
+billing (#281). Being free is the rule; needing no account was how being free had been
+assured.
+
+Every routing service the application may ask SHALL be credited in the map's credits,
+beside the map's other sources, with whatever the service's terms ask for.
 
 #### Scenario: Pressing with a connection
 
@@ -325,9 +338,22 @@ sources, with whatever the service's terms ask for.
   being found
 - **AND** the solid street route and its figures replace them when it arrives
 
+#### Scenario: The first service is down
+
+- **WHEN** the first routing service does not answer, and the next one returns a route
+- **THEN** the solid street route and its figures are shown, as with the first
+- **AND** nothing tells the person a different service answered
+
+#### Scenario: The first service finds no way
+
+- **WHEN** the first routing service answers that there is no way for that way of
+  travelling
+- **THEN** no other service is asked
+- **AND** a line says no route along the streets was found
+
 #### Scenario: The service does not answer
 
-- **WHEN** the routing service does not answer in time
+- **WHEN** no routing service answers in time
 - **THEN** the straight line and its figures stay
 - **AND** a line says no route along the streets was found
 
@@ -340,7 +366,7 @@ sources, with whatever the service's terms ask for.
 #### Scenario: The credits
 
 - **WHEN** a person opens the map's credits
-- **THEN** the routing service is named there
+- **THEN** every routing service the application may ask is named there
 
 ### Requirement: With no connection, only walking is offered
 

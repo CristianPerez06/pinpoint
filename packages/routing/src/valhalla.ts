@@ -4,7 +4,7 @@ import { decodePolyline } from './polyline'
 import type { StreetRoute } from './types'
 
 /**
- * FOSSGIS's public Valhalla server, the first one asked.
+ * FOSSGIS's public Valhalla server, asked when Stadia Maps cannot answer.
  *
  * Free, no key. Its terms (valhalla/valhalla discussion #3373): one call per
  * user per second, an `X-Client-Id` header naming the application, and credit
@@ -22,10 +22,18 @@ const COSTING: Readonly<Record<TravelMode, string>> = {
 /**
  * The request, as a GET with the whole query in one `json` parameter.
  *
+ * `endpoint` is any server speaking Valhalla's API; Stadia Maps runs the same
+ * software and takes the same request (`./stadia`).
+ *
  * Built by hand rather than with `URLSearchParams`, as `@pinpoint/geocode` does,
  * because React Native's polyfill is incomplete.
  */
-export function buildValhallaUrl(from: LngLat, to: LngLat, mode: TravelMode): string {
+export function buildValhallaUrl(
+  from: LngLat,
+  to: LngLat,
+  mode: TravelMode,
+  endpoint: string = VALHALLA_ENDPOINT,
+): string {
   const query = {
     locations: [
       { lat: from.lat, lon: from.lng },
@@ -34,7 +42,7 @@ export function buildValhallaUrl(from: LngLat, to: LngLat, mode: TravelMode): st
     costing: COSTING[mode],
     units: 'kilometers',
   }
-  return `${VALHALLA_ENDPOINT}?json=${encodeURIComponent(JSON.stringify(query))}`
+  return `${endpoint}?json=${encodeURIComponent(JSON.stringify(query))}`
 }
 
 /**

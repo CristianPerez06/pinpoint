@@ -88,11 +88,17 @@ export const MAP_CREDITS = [
     url: 'https://maplibre.org/',
   },
   /*
-   * The street route (`place-route`). Valhalla's operators ask for credit to
-   * OpenStreetMap, Valhalla and FOSSGIS; OSRM's for "the required attribution"
-   * and a link to fix the map. OpenStreetMap is already first, the roles name
-   * FOSSGIS, and the last entry is that link.
+   * The street route (`place-route`), in the order the services are asked.
+   * Stadia Maps asks for credit to itself and to the data's source; Valhalla's
+   * operators to OpenStreetMap, Valhalla and FOSSGIS; OSRM's for "the required
+   * attribution" and a link to fix the map. OpenStreetMap is already first, the
+   * roles name FOSSGIS, and the last entry is that link.
    */
+  {
+    name: 'Stadia Maps',
+    role: 'credit.stadia',
+    url: 'https://stadiamaps.com/',
+  },
   {
     name: 'Valhalla',
     role: 'credit.valhalla',

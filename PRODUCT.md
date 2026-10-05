@@ -161,10 +161,15 @@ types arrive over five colours.
   Nominatim's free public instances** — Photon for suggestions while typing, Nominatim
   only on submit, to find names in every language — with the standing decision that
   each search is withdrawn rather than billed if its service ever requires paying;
-  **street routes come from FOSSGIS's free public Valhalla server**, falling back to
-  FOSSGIS's OSRM, both of which ask for non-commercial use and one request a second —
-  on the same terms: if either ever has to be paid for, the street route is withdrawn
-  and the straight-line estimate, which needs no service, remains; and
+  **street routes come from Stadia Maps' free plan**, falling back to FOSSGIS's free
+  public Valhalla server and then its OSRM, all of which ask for non-commercial use —
+  on the same terms: if any of them ever has to be paid for, it is dropped from the
+  list, and if none is left the street route is withdrawn and the straight-line
+  estimate, which needs no service, remains. Stadia needs an account and a key, the
+  same one in both applications, readable by anyone who looks. That ended "no key, no account" for routing
+  on purpose (#281): the public servers promise nothing, and Stadia's free allowance
+  stops when it is used up rather than billing, so the rule that survives is that
+  nothing can send a bill; and
   **there is no acquisition surface of any kind** — the web application has exactly
   three routes, and none of them is a landing page.
 - **Onboarding for someone with no context.** Every existing first-run path assumes an

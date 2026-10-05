@@ -209,10 +209,12 @@ credit.openfreemap
   Serves the tiles, at no cost and without an account.
 credit.maplibre
   Draws the map on the screen.
+credit.stadia
+  Finds the route along the streets.
 credit.valhalla
-  Finds the route along the streets. Run by FOSSGIS.
+  Finds the route when Stadia Maps cannot. Run by FOSSGIS.
 credit.osrm
-  Finds the route when Valhalla cannot. Also run by FOSSGIS.
+  Finds the route when neither of those can. Also run by FOSSGIS.
 credit.fixTheMap
   Report something wrong on the map, where it is made.
 markerType.place
@@ -1320,10 +1322,12 @@ credit.openfreemap
   Sirve las teselas, sin costo y sin cuenta.
 credit.maplibre
   Dibuja el mapa en la pantalla.
+credit.stadia
+  Encuentra el camino por las calles.
 credit.valhalla
-  Encuentra el camino por las calles. Lo opera FOSSGIS.
+  Encuentra el camino cuando Stadia Maps no puede. Lo opera FOSSGIS.
 credit.osrm
-  Encuentra el camino cuando Valhalla no puede. También lo opera FOSSGIS.
+  Encuentra el camino cuando ninguno de los dos puede. También lo opera FOSSGIS.
 credit.fixTheMap
   Informar un error del mapa, donde se hace.
 markerType.place

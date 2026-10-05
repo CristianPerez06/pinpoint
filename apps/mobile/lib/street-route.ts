@@ -1,17 +1,27 @@
 import type { StreetState } from '@pinpoint/core'
 import type { LngLat, TravelMode } from '@pinpoint/map'
-import { createRouter, type StreetRoute } from '@pinpoint/routing'
+import {
+  createRouter,
+  osrmService,
+  stadiaService,
+  type StreetRoute,
+  valhallaService,
+} from '@pinpoint/routing'
 import { useEffect, useState } from 'react'
 
+import { config } from '@/lib/config'
 import { USER_AGENT } from '@/lib/user-agent'
 
 /**
  * The street route on the phone (`place-route`).
  *
  * The router is created once for the app, because it is what keeps this phone
- * to one request a second and remembers routes it was given. The phone can set
- * any header, so both services are told who is asking: Valhalla by
- * `X-Client-Id`, as its terms ask, and both by the app's `User-Agent`.
+ * to one request a second and remembers routes it was given.
+ *
+ * Stadia Maps is asked first, with the key the laptop uses too. FOSSGIS's
+ * Valhalla and OSRM follow, as before. The phone
+ * can set any header, so every service gets the app's `User-Agent`, and
+ * Valhalla its `X-Client-Id`, as its terms ask.
  *
  * The hook below is the laptop's (`apps/web/lib/street-route.ts`) line for line,
  * over this app's router; it is React, so it cannot live in a shared package.
@@ -22,7 +32,11 @@ const nativeFetch = (
 ) => fetch(url, { ...init, headers: { ...init?.headers, 'User-Agent': USER_AGENT } })
 
 export const streetRouter = createRouter(nativeFetch, {
-  valhallaHeaders: { 'X-Client-Id': 'pinpoint' },
+  services: [
+    stadiaService({ apiKey: config.stadia.apiKey }),
+    valhallaService({ headers: { 'X-Client-Id': 'pinpoint' } }),
+    osrmService(),
+  ],
 })
 
 /** What the map draws and the card reads, while a street route is being had. */

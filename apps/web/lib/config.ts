@@ -15,7 +15,10 @@
  *                key, say) it goes in a separate server-only module.
  *
  * Every variable below is publishable. The Supabase publishable key is designed
- * to ship in clients and is constrained by row-level security. The secret
+ * to ship in clients and is constrained by row-level security. The Stadia Maps
+ * key is publishable because its free plan stops at its allowance rather than
+ * billing: a key read out of the bundle can spend that month's routes and
+ * nothing else. The secret
  * (service_role) key bypasses row-level security entirely and MUST NOT be given
  * a NEXT_PUBLIC_ prefix under any circumstances.
  */
@@ -52,6 +55,17 @@ export const config = {
     publishableKey: required(
       'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    ),
+  },
+  /**
+   * Stadia Maps, the first service asked for a street route (`place-route`).
+   * The same key as the phone's. Stadia could recognise the live site by its
+   * address instead, but a key also covers previews and any other address.
+   */
+  stadia: {
+    apiKey: required(
+      'NEXT_PUBLIC_STADIA_API_KEY',
+      process.env.NEXT_PUBLIC_STADIA_API_KEY,
     ),
   },
   /**

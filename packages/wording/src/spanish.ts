@@ -165,8 +165,9 @@ export const SPANISH: Catalogue = {
   'credit.openmaptiles': 'El esquema en el que se empaquetan los datos.',
   'credit.openfreemap': 'Sirve las teselas, sin costo y sin cuenta.',
   'credit.maplibre': 'Dibuja el mapa en la pantalla.',
-  'credit.valhalla': 'Encuentra el camino por las calles. Lo opera FOSSGIS.',
-  'credit.osrm': 'Encuentra el camino cuando Valhalla no puede. También lo opera FOSSGIS.',
+  'credit.stadia': 'Encuentra el camino por las calles.',
+  'credit.valhalla': 'Encuentra el camino cuando Stadia Maps no puede. Lo opera FOSSGIS.',
+  'credit.osrm': 'Encuentra el camino cuando ninguno de los dos puede. También lo opera FOSSGIS.',
   'credit.fixTheMap': 'Informar un error del mapa, donde se hace.',
 
   // ── What a marker's type is called ───────────────────────────────────────
