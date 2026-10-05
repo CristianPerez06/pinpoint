@@ -54,7 +54,12 @@
  *   `ios/` or `android/` at the root — generated native output. Nothing
  *       generates these at the root on purpose, and `.gitignore` hides them.
  *   `app.json` at the root — written by Expo's `ensureConfigAsync` when it
- *       prompts for a bundle identifier. The root is not an Expo project.
+ *       prompts for a bundle identifier, and by `eas` (`eas init`, `eas build`)
+ *       when it records the project id. The root is not an Expo project.
+ *       Found on its own, with neither of the others, it was almost certainly
+ *       `eas` rather than a prebuild, and the message says so: blaming
+ *       `expo prebuild` for it sent the one person who met it looking for a
+ *       command nobody had run.
  *
  * Deliberately NOT a marker: the lockfile having changed. It is the loudest
  * symptom and the worst test, because a lockfile legitimately changes whenever
@@ -149,9 +154,41 @@ function recovery(problems) {
     'Check whether pnpm-lock.yaml was rewritten as well — `git status` shows it, ' +
       'and `git checkout -- pnpm-lock.yaml` restores it.',
   )
-  steps.push(`Then run it where it belongs: ${RIGHT_WAY}`)
+  steps.push(
+    onlyConfig(problems)
+      ? `Then run the command from apps/mobile, e.g. \`cd apps/mobile && eas build\` or \`${RIGHT_WAY}\`.`
+      : `Then run it where it belongs: ${RIGHT_WAY}`,
+  )
 
   return steps
+}
+
+/** A root `app.json` and nothing else: `eas`, not a prebuild. */
+function onlyConfig(problems) {
+  return problems.every((problem) => problem.kind === 'config')
+}
+
+/**
+ * What most likely happened, in a paragraph, from what was found.
+ *
+ * @param {{kind: string}[]} problems
+ * @returns {string}
+ */
+export function explanation(problems) {
+  if (onlyConfig(problems)) {
+    return (
+      `An Expo or EAS command was run from the repository root instead of from apps/mobile.\n` +
+      `Only app.json was written, so it was most likely \`eas\` (\`eas init\`, \`eas build\`),\n` +
+      `which records the project id there; a root \`expo prebuild\` also adds dependencies and\n` +
+      `native folders, and neither is here. apps/mobile/app.json already holds that id.`
+    )
+  }
+  return (
+    `This is what \`expo prebuild\` does when it is run from the repository root instead\n` +
+    `of from apps/mobile. It does not fail — Expo installs into the nearest package.json,\n` +
+    `and here that is the workspace root. apps/mobile/ios is left untouched, so the build\n` +
+    `you wanted was not made either.`
+  )
 }
 
 function main() {
@@ -180,16 +217,13 @@ function main() {
     } else {
       console.error(
         `::error::${problem.path} at the repository root is an Expo app config. The root is not ` +
-          `an Expo project; Expo wrote this when it was run here instead of in apps/mobile.`,
+          `an Expo project; an Expo or EAS command wrote this when it was run here instead of in apps/mobile.`,
       )
     }
   }
 
   console.error(
-    `\nThis is what \`expo prebuild\` does when it is run from the repository root instead\n` +
-      `of from apps/mobile. It does not fail — Expo installs into the nearest package.json,\n` +
-      `and here that is the workspace root. apps/mobile/ios is left untouched, so the build\n` +
-      `you wanted was not made either.\n\n` +
+    `\n${explanation(problems)}\n\n` +
       `To put it back:\n\n` +
       recovery(problems)
         .map((step, index) => `  ${index + 1}. ${step}`)
