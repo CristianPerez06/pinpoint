@@ -678,6 +678,17 @@ export const SPANISH: Catalogue = {
   'route.needsConnection': 'La bici y el auto requieren conexión.',
   'route.switchedToWalk': 'Sin conexión, se muestra a pie. La bici y el auto requieren conexión.',
 
+  'trial.follow.noDestination': 'Abrir esta pantalla con ?to=lng,lat.',
+  'trial.follow.finding': 'Buscando la ruta…',
+  'trial.follow.none': 'No se encontró una ruta.',
+  'trial.follow.toTurn': (v) => `En ${v.distance}`,
+  'trial.follow.offRoute': 'Fuera de la ruta. Buscando otra…',
+  'trial.follow.start': 'Iniciar',
+  'trial.follow.stop': 'Detener',
+  'trial.follow.simulate': 'Simular',
+  'trial.follow.real': 'Posición real',
+  'trial.follow.leave': 'Salir de la ruta',
+
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',
   'filter.hintNarrowed': 'Filtrar este viaje. Hay lugares ocultos',

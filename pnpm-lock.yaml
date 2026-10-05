@@ -59,6 +59,12 @@ importers:
       '@react-native-community/datetimepicker':
         specifier: 9.1.0
         version: 9.1.0(expo@57.0.14)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      '@stadiamaps/ferrostar-core-react-native':
+        specifier: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz
+        version: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz(@stadiamaps/ferrostar-uniffi-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      '@stadiamaps/ferrostar-uniffi-react-native':
+        specifier: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz
+        version: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo:
         specifier: ~57.0.14
         version: 57.0.14(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.11)(expo-router@57.0.14)(react-dom@19.2.8(react@19.2.3))(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)
@@ -2354,6 +2360,21 @@ packages:
   '@sinclair/typebox@0.27.12':
     resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
 
+  '@stadiamaps/ferrostar-core-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz':
+    resolution: {integrity: sha512-v812gMGEMXVh7wnq91opifzxpxxf2xVZg2g/K4I/eigJLfkNi82Gr/vdpSYD5o1gXWx5L16GqVRwfzm4eeJ1MA==, tarball: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz}
+    version: 0.57.0
+    peerDependencies:
+      '@stadiamaps/ferrostar-uniffi-react-native': '*'
+      react: '*'
+      react-native: '*'
+
+  '@stadiamaps/ferrostar-uniffi-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz':
+    resolution: {integrity: sha512-xFCAQsntGgTuRFIVff68nszdT1QArAsvYFh/WQENtmBo0vf6eQPfMdHQOWVitU/eoL3IEOXb3tb6Pg9dYZvYxg==, tarball: https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz}
+    version: 0.57.0
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+
   '@supabase/auth-js@2.111.0':
     resolution: {integrity: sha512-hbRLgyQZEX0SDyF4LYXpv94qOIQyFATfpT5SIs2V0SisHnisVRkYgiPQWzv80l4S2mO3qof78rmoH9j5zoFsYQ==}
     engines: {node: '>=22.0.0'}
@@ -2606,6 +2627,9 @@ packages:
   '@typescript-eslint/visitor-keys@8.65.0':
     resolution: {integrity: sha512-8C71BQkGjiMmXtop7pHVJu1l2NNShFdkCyD6a2ezzs5vU/L3LRtb69EtcteFwz0mYMPzIgOw0n6OV4VBUWZd7A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@ubjs/core@0.31.0-5':
+    resolution: {integrity: sha512-oRBRtyYOhaodiOY3rLMZFgAHGFMmD44XefMpsAx4Ja0/rO+45kVdQB1VZsblQMLYxP965i3IHm56eymgo3I5eQ==}
 
   '@ungap/structured-clone@1.3.3':
     resolution: {integrity: sha512-60YRaenCQcVjYEKOcG824+DRGGIQ3VKErcBoAEDJZz5bKIs2ZG+X/H9Nk+Q6EVkwJk5QNApxbrc5QtBSwtrXAg==}
@@ -6260,6 +6284,10 @@ packages:
     resolution: {integrity: sha512-hpbDzxUY9BFwX+UeBnxv3Sh1q7HFxj48DTmXchNgRa46lO8uj3/1iEn3MiNUYTg1g9ctIqXCCERn8gYZhHC5lQ==}
     engines: {node: '>=4'}
 
+  uniffi-bindgen-react-native@0.31.0-5:
+    resolution: {integrity: sha512-YtL3gTe+RVXAQx/2P2Iuypic/CunRZC65Cs47v//YRfwWNYU4Ufd1jT3rqxSrH5b5QFCYblP89Nf/9ssZRvNgg==}
+    hasBin: true
+
   unique-string@2.0.0:
     resolution: {integrity: sha512-uNaeirEPvpZWSgzwsPGtU2zVSTrn/8L5q/IexZmH0eH6SA73CmAA5U4GwORTxQAZs95TAXLNqeLoPPNO5gZfWg==}
     engines: {node: '>=8'}
@@ -8960,6 +8988,19 @@ snapshots:
 
   '@sinclair/typebox@0.27.12': {}
 
+  '@stadiamaps/ferrostar-core-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz(@stadiamaps/ferrostar-uniffi-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
+    dependencies:
+      '@stadiamaps/ferrostar-uniffi-react-native': https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react: 19.2.3
+      react-native: 0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+
+  '@stadiamaps/ferrostar-uniffi-react-native@https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
+    dependencies:
+      '@ubjs/core': 0.31.0-5
+      react: 19.2.3
+      react-native: 0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      uniffi-bindgen-react-native: 0.31.0-5
+
   '@supabase/auth-js@2.111.0':
     dependencies:
       tslib: 2.8.1
@@ -9265,6 +9306,8 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.65.0
       eslint-visitor-keys: 5.0.1
+
+  '@ubjs/core@0.31.0-5': {}
 
   '@ungap/structured-clone@1.3.3': {}
 
@@ -13432,6 +13475,8 @@ snapshots:
   unicode-match-property-value-ecmascript@2.2.1: {}
 
   unicode-property-aliases-ecmascript@2.2.0: {}
+
+  uniffi-bindgen-react-native@0.31.0-5: {}
 
   unique-string@2.0.0:
     dependencies:

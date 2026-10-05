@@ -4,6 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "comment:scripts": "`dev` now starts the dev-client bundler, not Expo Go. @maplibre/maplibre-react-native contains native code and Expo Go ships a fixed set of native modules, so it cannot load it — scanning the QR code with Expo Go now fails at the point the map screen renders. Run `ios` or `android` once to produce a development build; after that `dev` attaches to it.",
+  "comment:ferrostar": "The two @stadiamaps/ferrostar-* packages are not on npm yet (stadiamaps/ferrostar#961). They are built from Ferrostar's 0.57.0 tag by .github/scripts/build-ferrostar.sh and installed from this repository's `ferrostar-rn-0.57.0` release; the lockfile's integrity hash pins their contents. The build lists core's need for the bindings as a peer rather than a dependency, so this app supplies it: pnpm refuses a dependency's own dependency from a URL, and turning that protection off for the workspace is the wrong price. When Stadia publishes them, name the registry versions here (`monorepo-structure`).",
   "scripts": {
     "dev": "expo start --dev-client",
     "android": "expo run:android",
@@ -26,6 +27,8 @@
     "@pinpoint/wording": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
+    "@stadiamaps/ferrostar-core-react-native": "https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-core-react-native-0.57.0.tgz",
+    "@stadiamaps/ferrostar-uniffi-react-native": "https://github.com/CristianPerez06/pinpoint/releases/download/ferrostar-rn-0.57.0/stadiamaps-ferrostar-uniffi-react-native-0.57.0.tgz",
     "expo": "~57.0.14",
     "expo-constants": "~57.0.12",
     "expo-dev-client": "^57.0.13",

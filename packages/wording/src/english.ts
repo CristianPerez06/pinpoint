@@ -857,6 +857,24 @@ export const ENGLISH = {
   /** The connection dropped while bike or car was chosen, so the route changed to walking. */
   'route.switchedToWalk': 'No connection, so this is walking. Bike and car need a connection.',
 
+  // ── Following a route, on the phone's trial screen ──────────────────────
+  // Development builds only (`monorepo-structure`); groundwork for #279, so
+  // nobody who installs the app reads these yet.
+  /** The link opened with no destination, or one that is not `lng,lat`. */
+  'trial.follow.noDestination': 'Open this screen with ?to=lng,lat.',
+  'trial.follow.finding': 'Finding the route…',
+  'trial.follow.none': 'No route was found.',
+  /** Beneath the next instruction. `distance` is already formatted for the language. */
+  'trial.follow.toTurn': (v: { distance: string }) => `In ${v.distance}`,
+  'trial.follow.offRoute': 'Off the route. Finding a new one…',
+  'trial.follow.start': 'Start',
+  'trial.follow.stop': 'Stop',
+  /** Switches between Ferrostar walking the route by itself and the device's own position. */
+  'trial.follow.simulate': 'Simulate',
+  'trial.follow.real': 'Real position',
+  /** Moves the simulated position off the line, to force a new route. */
+  'trial.follow.leave': 'Leave the route',
+
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',
   'filter.hint': 'Filter this trip',

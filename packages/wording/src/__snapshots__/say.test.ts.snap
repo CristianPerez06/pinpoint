@@ -1015,6 +1015,26 @@ route.needsConnection
   Bike and car need a connection.
 route.switchedToWalk
   No connection, so this is walking. Bike and car need a connection.
+trial.follow.noDestination
+  Open this screen with ?to=lng,lat.
+trial.follow.finding
+  Finding the route…
+trial.follow.none
+  No route was found.
+trial.follow.toTurn
+  In {distance}
+trial.follow.offRoute
+  Off the route. Finding a new one…
+trial.follow.start
+  Start
+trial.follow.stop
+  Stop
+trial.follow.simulate
+  Simulate
+trial.follow.real
+  Real position
+trial.follow.leave
+  Leave the route
 filter.name
   Filter
 filter.hint
@@ -2128,6 +2148,26 @@ route.needsConnection
   La bici y el auto requieren conexión.
 route.switchedToWalk
   Sin conexión, se muestra a pie. La bici y el auto requieren conexión.
+trial.follow.noDestination
+  Abrir esta pantalla con ?to=lng,lat.
+trial.follow.finding
+  Buscando la ruta…
+trial.follow.none
+  No se encontró una ruta.
+trial.follow.toTurn
+  En {distance}
+trial.follow.offRoute
+  Fuera de la ruta. Buscando otra…
+trial.follow.start
+  Iniciar
+trial.follow.stop
+  Detener
+trial.follow.simulate
+  Simular
+trial.follow.real
+  Posición real
+trial.follow.leave
+  Salir de la ruta
 filter.name
   Filtro
 filter.hint
