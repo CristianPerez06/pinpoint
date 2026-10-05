@@ -1,0 +1,23 @@
+{
+  "name": "@pinpoint/routing",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "comment": "Finds a route along the streets between two points, for walking, cycling or driving (`place-route`). Like @pinpoint/geocode, it talks to external services — FOSSGIS Valhalla, falling back to FOSSGIS OSRM — but never reaches a global to do it: the caller passes a fetch function. That keeps the request building, the answer parsing, the polyline decoding, the pacing and the cache testable with no network, which is where this package's value is. Its one workspace dependency is @pinpoint/map, for the point type and the list of ways of travelling.",
+  "dependencies": {
+    "@pinpoint/map": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.4"
+  }
+}

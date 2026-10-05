@@ -123,11 +123,13 @@ export { LOCATION_SOURCE, locationFeature, locationLayers } from './location'
 export type { LocationLayer, PointFeature } from './location'
 
 export {
+  isTravelMode,
   ROUTE_DETOUR,
   ROUTE_SOURCE,
   routeFeature,
   routeLayers,
+  TRAVEL_MODES,
   walkingMinutes,
   WALKING_KMH,
 } from './route'
-export type { LineFeature, RouteLayer } from './route'
+export type { LineFeature, RouteForm, RouteLayer, TravelMode } from './route'

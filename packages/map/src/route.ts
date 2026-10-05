@@ -42,6 +42,21 @@ export function walkingMinutes(km: number): number | null {
   return Math.max(WALK_STEP_MINUTES, Math.round(minutes / WALK_STEP_MINUTES) * WALK_STEP_MINUTES)
 }
 
+/**
+ * How the person is getting there (`place-route`).
+ *
+ * Three, because those are what every free routing server offers; none offers
+ * public transport. Ordered as the details offer them.
+ */
+export const TRAVEL_MODES = ['walk', 'bike', 'car'] as const
+
+export type TravelMode = (typeof TRAVEL_MODES)[number]
+
+/** Whether a stored or typed value names a way of travelling. */
+export function isTravelMode(value: unknown): value is TravelMode {
+  return typeof value === 'string' && (TRAVEL_MODES as readonly string[]).includes(value)
+}
+
 /** The id the line is drawn under, so each renderer can find it again. */
 export const ROUTE_SOURCE = 'route'
 
@@ -60,42 +75,73 @@ export interface LineFeature {
   geometry: { type: 'LineString'; coordinates: [number, number][] }
 }
 
-/** The route as the GeoJSON both renderers' sources take. */
-export function routeFeature(from: LngLat, to: LngLat): LineFeature {
+/**
+ * The route as the GeoJSON both renderers' sources take.
+ *
+ * Two points for the straight line, or every point of a street route as the
+ * routing service returned it. The street route is drawn as returned: it starts
+ * at the street nearest the person rather than at their dot, and joining the
+ * two would draw a walk through whatever stands between them.
+ */
+export function routeFeature(from: LngLat, to: LngLat): LineFeature
+export function routeFeature(line: readonly LngLat[]): LineFeature
+export function routeFeature(first: LngLat | readonly LngLat[], to?: LngLat): LineFeature {
+  const points = isLine(first) ? first : [first, to as LngLat]
   return {
     type: 'Feature',
     properties: {},
     geometry: {
       type: 'LineString',
-      coordinates: [
-        [from.lng, from.lat],
-        [to.lng, to.lat],
-      ],
+      coordinates: points.map((point) => [point.lng, point.lat]),
     },
   }
 }
 
+function isLine(value: LngLat | readonly LngLat[]): value is readonly LngLat[] {
+  return Array.isArray(value)
+}
+
+/**
+ * Which of the two lines is drawn.
+ *
+ * `straight` is the estimate, a distance between two points; `street` is a way
+ * somebody can follow. They are told apart by pattern, never by colour
+ * (`place-route`), so the difference survives a greyscale screen.
+ */
+export type RouteForm = 'straight' | 'street'
+
 /**
  * The route as style layers, bottom first.
  *
- * Ink dots on a surface casing: the same pair the person's dot is drawn in, so
- * it reads on both grounds by construction and cannot be taken for a place's
- * colour. Dotted rather than solid because it is not a path anyone can follow —
- * a solid line would claim to be the way.
+ * Ink on a surface casing: the same pair the person's dot is drawn in, so it
+ * reads on both grounds by construction and cannot be taken for a place's
+ * colour. The straight line is dotted because it is not a path anyone can
+ * follow — a solid line would claim to be the way. The street route is solid,
+ * and a little heavier, because it is.
+ *
+ * The two forms share their layer ids, so a renderer swapping one for the other
+ * replaces the layers rather than stacking a second pair under the first.
  */
-export function routeLayers(mode: ThemeMode): RouteLayer[] {
+export function routeLayers(mode: ThemeMode, form: RouteForm = 'straight'): RouteLayer[] {
+  const street = form === 'street'
   return [
     {
       id: `${ROUTE_SOURCE}-casing`,
       type: 'line',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': COLOUR.surface[mode], 'line-width': 7, 'line-opacity': 0.9 },
+      paint: {
+        'line-color': COLOUR.surface[mode],
+        'line-width': street ? 9 : 7,
+        'line-opacity': 0.9,
+      },
     },
     {
       id: `${ROUTE_SOURCE}-line`,
       type: 'line',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': COLOUR.ink[mode], 'line-width': 3, 'line-dasharray': [0.1, 2] },
+      paint: street
+        ? { 'line-color': COLOUR.ink[mode], 'line-width': 4.5 }
+        : { 'line-color': COLOUR.ink[mode], 'line-width': 3, 'line-dasharray': [0.1, 2] },
     },
   ]
 }

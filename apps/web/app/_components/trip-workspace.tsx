@@ -20,6 +20,7 @@ import {
   markersSelectedBy,
   matchesFilter,
   NO_FILTER,
+  routeFigures,
 } from '@pinpoint/core'
 import {
   createCity,
@@ -50,13 +51,14 @@ import {
   markersAt,
   type MarkerGroup,
   type Rect,
+  type TravelMode,
 } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
 import { type ReadonlyURLSearchParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { signedInAs } from '@/app/_components/account-menu'
-import { useSay } from '@/app/_components/language'
+import { useLanguage, useSay } from '@/app/_components/language'
 import { MarkerDetails } from '@/app/_components/marker-details'
 import { MarkerForm } from '@/app/_components/marker-form'
 import { useTripActions } from '@/app/_components/use-trip-actions'
@@ -64,6 +66,8 @@ import { WorkspaceChrome } from '@/app/_components/workspace-chrome'
 import { MapOverlayNote } from '@/app/_components/states'
 import { type DraftPosition, TripMap } from '@/app/_components/trip-map'
 import { overlayPanelClass, Presence } from '@/app/_components/ui'
+import { useOnline } from '@/lib/connectivity'
+import { rememberedTravelMode, rememberTravelMode, useStreetRoute } from '@/lib/street-route'
 import { createClient } from '@/lib/supabase/client'
 import { useRows } from '@/lib/use-rows'
 import { useShownAgain } from '@/lib/use-shown-again'
@@ -272,6 +276,7 @@ export function TripWorkspace({
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const say = useSay()
+  const language = useLanguage()
   const searchParams = useSearchParams()
 
   /**
@@ -826,7 +831,13 @@ export function TripWorkspace({
    */
   const openMarker = open && open.index !== null ? open.group.markers[open.index]! : null
   const openMarkerId = openMarker?.id ?? null
-  const [route, setRoute] = useState<{ markerId: string; from: LngLat } | null>(null)
+  const [route, setRoute] = useState<{
+    markerId: string
+    from: LngLat
+    mode: TravelMode
+    /** The connection dropped while cycling or driving, so this changed to walking. */
+    switched: boolean
+  } | null>(null)
   const [routing, setRouting] = useState<string | null>(null)
   // Reset while rendering rather than in an effect, as React recommends for
   // state that follows another value: the place changing and the line going
@@ -838,31 +849,77 @@ export function TripWorkspace({
   }
   const activeRoute = route && openMarker && route.markerId === openMarker.id ? route : null
 
+  // With no connection only walking is offered. Losing it while cycling or
+  // driving changes the route to walking and says why; getting it back keeps
+  // walking, and only the note goes. Also while rendering, so no frame shows a
+  // driving figure the device can no longer have.
+  const online = useOnline()
+  if (activeRoute && !online && activeRoute.mode !== 'walk') {
+    setRoute({ ...activeRoute, mode: 'walk', switched: true })
+  } else if (activeRoute && online && activeRoute.switched) {
+    setRoute({ ...activeRoute, switched: false })
+  }
+
   const calculateRoute = async (markerId: string) => {
     setRouting(markerId)
     // The same press as "where am I": it asks the first time, and on a refusal
     // or a timeout it has already set the status the note over the map reads.
     const fix = await whereAmI.locate()
     setRouting(null)
-    if (fix) setRoute({ markerId, from: { lng: fix.lng, lat: fix.lat } })
+    if (!fix) return
+    // A remembered bike or car starts as walking with no connection, and the
+    // remembered choice is left as it was.
+    const remembered = rememberedTravelMode()
+    setRoute({
+      markerId,
+      from: { lng: fix.lng, lat: fix.lat },
+      mode: navigator.onLine ? remembered : 'walk',
+      switched: false,
+    })
+  }
+
+  const chooseTravelMode = (mode: TravelMode) => {
+    if (!activeRoute || (!online && mode !== 'walk')) return
+    // Only a person's own choice is remembered.
+    rememberTravelMode(mode)
+    setRoute({ ...activeRoute, mode, switched: false })
   }
 
   // Stable between renders, so the map draws and frames a route once rather
   // than every time anything else in the workspace changes.
   const routeTo = openMarker ? { lng: openMarker.lng, lat: openMarker.lat } : null
+  const street = useStreetRoute(
+    activeRoute?.from ?? null,
+    activeRoute ? routeTo : null,
+    activeRoute?.mode ?? 'walk',
+    online,
+  )
+  const streetLine = online ? street.line : null
   const routeLine = useMemo(
-    () => (activeRoute && routeTo ? { from: activeRoute.from, to: routeTo } : null),
+    () =>
+      activeRoute && routeTo
+        ? { from: activeRoute.from, to: routeTo, line: streetLine }
+        : null,
     // The place's coordinates, not the object: a re-read hands back a new one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeRoute, routeTo?.lng, routeTo?.lat],
+    [activeRoute?.from, routeTo?.lng, routeTo?.lat, streetLine],
   )
 
   const routeOffer = openMarker
     ? {
         finding: routing === openMarker.id,
-        km: activeRoute ? distanceKm(activeRoute.from, openMarker) : null,
+        figures: activeRoute
+          ? routeFigures(language, {
+              km: distanceKm(activeRoute.from, openMarker),
+              mode: activeRoute.mode,
+              street: street.state,
+              online,
+              switched: activeRoute.switched,
+            })
+          : null,
         onCalculate: () => void calculateRoute(openMarker.id),
         onClear: () => setRoute(null),
+        onChooseMode: chooseTravelMode,
       }
     : undefined
 

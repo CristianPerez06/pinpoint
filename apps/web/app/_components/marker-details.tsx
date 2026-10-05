@@ -10,12 +10,12 @@ import {
   type Marker,
   type MarkerInterest,
   type TripMember,
-  formatWalkingDistance,
-  formatWalkingTime,
+  type RouteFigures,
+  TRAVEL_MODE_NAMES,
 } from '@pinpoint/core'
-import { walkingMinutes, type MarkerGroup, type MarkerView } from '@pinpoint/map'
+import { TRAVEL_MODES, type MarkerGroup, type MarkerView, type TravelMode } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
-import { Footprints, X } from 'lucide-react'
+import { Bike, Car, Footprints, Info, WifiOff, X, type LucideIcon } from 'lucide-react'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
@@ -153,23 +153,32 @@ export type ExtraAction = { label: string; onClick: () => void }
 export interface RouteOffer {
   /** Waiting for the person's position, after a press. */
   finding: boolean
-  /** The straight-line distance once the line is drawn, or null before. */
-  km: number | null
+  /** What the card says once the line is drawn, or null before (`routeFigures`). */
+  figures: RouteFigures | null
   onCalculate: () => void
   onClear: () => void
+  onChooseMode: (mode: TravelMode) => void
+}
+
+/** The glyph for each way of travelling, beside the figures and on its button. */
+const MODE_ICONS: Record<TravelMode, LucideIcon> = {
+  walk: Footprints,
+  bike: Bike,
+  car: Car,
 }
 
 /**
- * The button, and once pressed, how far and how long.
+ * The button, and once pressed, how far and how long, and how the person is
+ * getting there.
  *
- * Inert while finding rather than disabled, so it keeps its place in the tab
- * order and its name (`Inert, not absent`).
+ * Inert rather than disabled wherever something cannot be pressed — the button
+ * while finding, cycling and driving with no connection — so each keeps its
+ * place in the tab order and its name (`Inert, not absent`).
  */
 function Route({ offer, name }: { offer: RouteOffer; name: string }) {
-  const language = useLanguage()
   const say = useSay()
 
-  if (offer.km === null) {
+  if (offer.figures === null) {
     return (
       <button
         type="button"
@@ -189,31 +198,72 @@ function Route({ offer, name }: { offer: RouteOffer; name: string }) {
     )
   }
 
-  const minutes = walkingMinutes(offer.km)
+  const figures = offer.figures
+  const amount = say(figures.distance)
   const distance = say(
-    message('route.straightLine', { distance: say(formatWalkingDistance(language, offer.km)) }),
+    figures.measured === 'streets'
+      ? message('route.alongStreets', { distance: amount })
+      : message('route.straightLine', { distance: amount }),
   )
+  const Icon = MODE_ICONS[figures.mode]
+  const NoteIcon = figures.note?.kind === 'offline' ? WifiOff : Info
+
   return (
     <div className={styles.route}>
-      <Footprints size={20} aria-hidden="true" className={styles.routeIcon} />
-      <p className={styles.routeText}>
-        {minutes === null ? (
-          <span className={styles.routeMain}>{distance}</span>
-        ) : (
+      <div className={styles.routeFigures}>
+        <Icon size={20} aria-hidden="true" className={styles.routeIcon} />
+        <p className={styles.routeText}>
+          {figures.time === null ? (
+            <span className={styles.routeMain}>{distance}</span>
+          ) : (
+            <>
+              <span className={styles.routeMain}>{say(figures.time)}</span>
+              <span className={styles.routeSub}>{distance}</span>
+            </>
+          )}
+        </p>
+        <button
+          type="button"
+          className={styles.routeClear}
+          onClick={offer.onClear}
+          aria-label={say(message('route.clearNamed', { name }))}
+        >
+          {say(message('route.clear'))}
+        </button>
+      </div>
+      <div className={styles.routeModes} role="group" aria-label={say(message('route.modes'))}>
+        {TRAVEL_MODES.map((mode) => {
+          const ModeIcon = MODE_ICONS[mode]
+          const available = figures.available[mode]
+          return (
+            <button
+              key={mode}
+              type="button"
+              className={styles.routeMode}
+              aria-pressed={figures.mode === mode}
+              aria-disabled={available ? undefined : true}
+              onClick={available ? () => offer.onChooseMode(mode) : undefined}
+            >
+              <ModeIcon size={16} aria-hidden="true" />
+              {say(TRAVEL_MODE_NAMES[mode])}
+            </button>
+          )
+        })}
+      </div>
+      {/* Polite, so the street route being found, not found, or given up for
+          the lack of a connection is heard without moving focus. */}
+      <p className={styles.routeNote} aria-live="polite">
+        {figures.note ? (
           <>
-            <span className={styles.routeMain}>{say(formatWalkingTime(language, minutes))}</span>
-            <span className={styles.routeSub}>{distance}</span>
+            {figures.note.kind === 'finding' ? (
+              <span className={styles.routeSpinner} aria-hidden="true" />
+            ) : (
+              <NoteIcon size={15} aria-hidden="true" className={styles.routeNoteIcon} />
+            )}
+            <span>{say(figures.note.message)}</span>
           </>
-        )}
+        ) : null}
       </p>
-      <button
-        type="button"
-        className={styles.routeClear}
-        onClick={offer.onClear}
-        aria-label={say(message('route.clearNamed', { name }))}
-      >
-        {say(message('route.clear'))}
-      </button>
     </div>
   )
 }

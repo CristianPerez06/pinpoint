@@ -93,6 +93,7 @@ openspec/changes/**/mock/*.html
 # third hand-written mock appears, add it here rather than dropping the rule —
 # dropping it would start committing four ~290 KB generated files in the archive.
 !openspec/changes/**/mock/palette.html
+!openspec/changes/**/mock/directions-mock.html
 
 # Things an agent noticed while working on a change, held until the change is
 # archived and then either taken up or dropped. See AGENTS.md.

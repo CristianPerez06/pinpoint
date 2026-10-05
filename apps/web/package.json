@@ -17,6 +17,7 @@
     "@pinpoint/data": "workspace:*",
     "@pinpoint/geocode": "workspace:*",
     "@pinpoint/map": "workspace:*",
+    "@pinpoint/routing": "workspace:*",
     "@pinpoint/supabase": "workspace:*",
     "@pinpoint/tokens": "workspace:*",
     "@pinpoint/wording": "workspace:*",

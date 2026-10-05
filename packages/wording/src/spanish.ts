@@ -165,6 +165,9 @@ export const SPANISH: Catalogue = {
   'credit.openmaptiles': 'El esquema en el que se empaquetan los datos.',
   'credit.openfreemap': 'Sirve las teselas, sin costo y sin cuenta.',
   'credit.maplibre': 'Dibuja el mapa en la pantalla.',
+  'credit.valhalla': 'Encuentra el camino por las calles. Lo opera FOSSGIS.',
+  'credit.osrm': 'Encuentra el camino cuando Valhalla no puede. También lo opera FOSSGIS.',
+  'credit.fixTheMap': 'Informar un error del mapa, donde se hace.',
 
   // ── What a marker's type is called ───────────────────────────────────────
   'markerType.place': 'Lugar',
@@ -285,7 +288,7 @@ export const SPANISH: Catalogue = {
   'dayField.dayChosen': (v) => `${v.day}, elegido`,
 
   'credits.title': 'Sobre este mapa',
-  'credits.blurb': 'Cuatro proyectos, ninguno nuestro.',
+  'credits.blurb': 'Con qué se hacen el mapa y sus rutas. Nada de esto es nuestro.',
   'credits.spoken': (v) => `${v.name}. ${v.does}`,
 
   // ── A place: its form, its card, its pin ──────────────────────────────────
@@ -653,6 +656,26 @@ export const SPANISH: Catalogue = {
   'route.walkMinutes': (v) => `Unos ${v.minutes} min a pie`,
   'route.walkHours': (v) => `Unas ${v.hours} h a pie`,
   'route.walkHoursMinutes': (v) => `Unas ${v.hours} h ${v.minutes} min a pie`,
+  'route.alongStreets': (v) => `${v.distance} por las calles`,
+  'route.walkTimeMinutes': (v) => `${v.minutes} min a pie`,
+  'route.walkTimeHours': (v) => `${v.hours} h a pie`,
+  'route.walkTimeHoursMinutes': (v) => `${v.hours} h ${v.minutes} min a pie`,
+  'route.bikeTimeMinutes': (v) => `${v.minutes} min en bici`,
+  'route.bikeTimeHours': (v) => `${v.hours} h en bici`,
+  'route.bikeTimeHoursMinutes': (v) => `${v.hours} h ${v.minutes} min en bici`,
+  'route.carTimeMinutes': (v) => `${v.minutes} min en auto`,
+  'route.carTimeHours': (v) => `${v.hours} h en auto`,
+  'route.carTimeHoursMinutes': (v) => `${v.hours} h ${v.minutes} min en auto`,
+  'route.modeWalk': 'A pie',
+  'route.modeBike': 'Bici',
+  'route.modeCar': 'Auto',
+  'route.modes': 'Cómo se va',
+  'route.findingStreets': 'Buscando el camino por las calles…',
+  'route.noneWalk': 'No se encontró un camino a pie por las calles.',
+  'route.noneBike': 'No se encontró un camino en bici por las calles.',
+  'route.noneCar': 'No se encontró un camino en auto por las calles.',
+  'route.needsConnection': 'La bici y el auto requieren conexión.',
+  'route.switchedToWalk': 'Sin conexión, se muestra a pie. La bici y el auto requieren conexión.',
 
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',

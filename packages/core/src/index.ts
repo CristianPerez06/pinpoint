@@ -102,7 +102,14 @@ export {
 export { formatMoney, formatPrice, formatPrices } from './price'
 
 export { formatSize } from './data-size'
-export { formatDistance, formatWalkingDistance, formatWalkingTime } from './distance'
+export {
+  formatDistance,
+  formatTravelTime,
+  formatWalkingDistance,
+  formatWalkingTime,
+} from './distance'
+export { routeFigures, TRAVEL_MODE_NAMES } from './route-figures'
+export type { RouteFigures, StreetState } from './route-figures'
 
 export { localPriceClearedBy, localPricesUnder, pricesFromDraft } from './price-draft'
 export type { DraftedPrices, PriceDraft } from './price-draft'

@@ -220,9 +220,12 @@ dimmed. A place more than 50 kilometres away SHALL have its distance drawn dimme
 A name too long for the row SHALL be cut short on one line rather than wrapping. The
 distance SHALL NOT be cut.
 
-Rationale for a straight line: a walking distance needs a routing service, which the
-product's budget rules out. Rationale for metres: on foot, *0.3 km* is read as a
-calculation and *300 m* as a distance. Rationale for keeping visited places in order: a
+Rationale for a straight line: a distance along the streets needs a routing service, and
+the free one the product uses (`place-route`) asks for at most one request a second — a
+list of sixty places would take a minute to fill and would ask again whenever the person
+moved. A straight line is instant, works with no connection, and keeps the order honest;
+the route to any one place is a press away from its details. Rationale for metres: on
+foot, *0.3 km* is read as a calculation and *300 m* as a distance. Rationale for keeping visited places in order: a
 person standing beside a place they visited yesterday still wants to know it is there,
 and moving it would make the order lie about what is nearest.
 
