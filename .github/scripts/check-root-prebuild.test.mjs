@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { inspect } from './check-root-prebuild.mjs'
+import { explanation, inspect } from './check-root-prebuild.mjs'
 
 /** What this repository's root manifest actually looks like: tooling, no runtime. */
 const CLEAN_MANIFEST = {
@@ -115,6 +115,26 @@ test('a root app.json fails', () => {
     problemsOf({ files: ['app.json'] }).map((p) => [p.kind, p.path]),
     [['config', 'app.json']],
   )
+})
+
+test('a root app.json on its own is blamed on eas, not on a prebuild', () => {
+  // What `eas init` or `eas build` leaves when run from the root: the project id
+  // and nothing else. Naming `expo prebuild` here sends the reader looking for a
+  // command nobody ran.
+  const said = explanation(problemsOf({ files: ['app.json'] }))
+  assert.match(said, /eas/)
+  assert.doesNotMatch(said, /This is what `expo prebuild` does/)
+})
+
+test('a real root prebuild is still named as one', () => {
+  const said = explanation(
+    problemsOf({
+      manifest: { ...CLEAN_MANIFEST, dependencies: PREBUILD_DEPENDENCIES },
+      dirs: ['ios'],
+      files: ['app.json'],
+    }),
+  )
+  assert.match(said, /This is what `expo prebuild` does/)
 })
 
 test('a real root prebuild reports all three markers at once', () => {
