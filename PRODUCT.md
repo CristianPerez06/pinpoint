@@ -166,10 +166,10 @@ types arrive over five colours.
   on the same terms: if any of them ever has to be paid for, it is dropped from the
   list, and if none is left the street route is withdrawn and the straight-line
   estimate, which needs no service, remains. Stadia needs an account and a key, the
-  same one in both applications, readable by anyone who looks. That ended "no key, no account" for routing
-  on purpose (#281): the public servers promise nothing, and Stadia's free allowance
-  stops when it is used up rather than billing, so the rule that survives is that
-  nothing can send a bill; and
+  same one in both applications, readable by anyone who looks. That ended "no key, no
+  account" for routing on purpose (#281): the public servers promise nothing, and
+  Stadia's free allowance stops when it is used up rather than billing, so the rule
+  that survives is that nothing can send a bill; and
   **there is no acquisition surface of any kind** — the web application has exactly
   three routes, and none of them is a landing page.
 - **Onboarding for someone with no context.** Every existing first-run path assumes an

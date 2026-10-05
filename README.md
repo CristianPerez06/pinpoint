@@ -239,6 +239,9 @@ Everything here is free at the scale this app will ever run at.
 - [MapLibre GL JS](https://maplibre.org/) — open-source map renderer, no API key, no license fees
 - [OpenFreeMap](https://openfreemap.org/) — free unlimited vector tiles, no signup
 - [Supabase](https://supabase.com/) free tier — Postgres + auth + realtime, for syncing markers between people
+- [Stadia Maps](https://stadiamaps.com/) free plan — street routes, on both apps. Needs an account and a key
+  that ships inside both apps; the plan stops at its monthly allowance instead of billing,
+  and FOSSGIS's free public Valhalla and OSRM servers answer when it cannot
 
 **Mobile**
 
