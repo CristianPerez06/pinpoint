@@ -1,35 +1,37 @@
 import type { LngLat, TravelMode } from '@pinpoint/map'
 
 import { buildOsrmUrl, isOsrmNoRoute, parseOsrm } from './osrm'
+import { buildStadiaUrl } from './stadia'
 import type { Fetcher, RouteResult, StreetRoute } from './types'
 import { buildValhallaUrl, isValhallaNoRoute, parseValhalla } from './valhalla'
 
 /**
- * One router per application, kept within both services' terms.
+ * One router per application, kept within every service's terms.
  *
  * Every device calls the services directly, so the limits are kept here, on the
  * device, the way `createEveryLanguageSearch` keeps Nominatim's:
  *
- * - **At most one request a second**, across both services. A request that
+ * - **At most one request a second**, across every service. A request that
  *   comes sooner waits out the rest of the second.
  * - **A route already given is not asked for again**, keyed on the start
  *   rounded to about 50 metres, the place, and the way of travelling — so a
  *   person standing still whose GPS wanders, or who reopens the same place,
  *   costs the services nothing.
  *
- * Valhalla is asked first. OSRM is asked only when Valhalla *fails*: when
- * Valhalla answers that there is no way, that answer stands, because a second
- * router rarely disagrees and the question costs a request.
+ * The services are asked in the order given, each only when the one before it
+ * *fails*: when a service answers that there is no way, that answer stands,
+ * because a second router rarely disagrees and the question costs a request.
+ * Each application asks Stadia Maps, then FOSSGIS's Valhalla, then its OSRM.
  */
 
-/** Both services' ceiling. */
+/** The strictest service's ceiling, FOSSGIS's. */
 export const MIN_INTERVAL_MS = 1000
 
 /** Remembered routes. Far more than a day on foot asks for. */
 export const CACHE_SIZE = 50
 
 /**
- * The longest a person waits for a street route, across both services, before
+ * The longest a person waits for a street route, across every service, before
  * the straight line is all they get.
  */
 export const ROUTE_TIMEOUT_MS = 8000
@@ -83,25 +85,65 @@ function abortableWait(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
-type Attempt = { kind: 'ready'; route: StreetRoute } | { kind: 'none' } | { kind: 'failed' }
+/** What one service's answer came to. */
+export type Attempt = { kind: 'ready'; route: StreetRoute } | { kind: 'none' } | { kind: 'failed' }
+
+/**
+ * One routing service: how to ask it, and how to read what it said.
+ *
+ * `read` decides between the three outcomes. Anything it cannot read as a
+ * route or as "no way" is a failure, which passes the question to the next
+ * service.
+ */
+export interface RoutingService {
+  url(from: LngLat, to: LngLat, mode: TravelMode): string
+  headers?: Record<string, string>
+  read(answer: { status: number; ok: boolean; body: unknown }): Attempt
+}
+
+function readValhalla({ status, ok, body }: { status: number; ok: boolean; body: unknown }): Attempt {
+  if (isValhallaNoRoute(status, body)) return { kind: 'none' }
+  const route = ok ? parseValhalla(body) : null
+  return route ? { kind: 'ready', route } : { kind: 'failed' }
+}
+
+/** Stadia Maps, with the applications' shared key. */
+export function stadiaService({ apiKey }: { apiKey?: string } = {}): RoutingService {
+  return { url: (from, to, mode) => buildStadiaUrl(from, to, mode, apiKey), read: readValhalla }
+}
+
+/** FOSSGIS's Valhalla. Its terms ask for an `X-Client-Id`, and on the phone a user agent. */
+export function valhallaService({ headers }: { headers?: Record<string, string> } = {}): RoutingService {
+  return { url: (from, to, mode) => buildValhallaUrl(from, to, mode), headers, read: readValhalla }
+}
+
+/** FOSSGIS's OSRM. Nothing custom from a browser, whose preflight it would refuse. */
+export function osrmService({ headers }: { headers?: Record<string, string> } = {}): RoutingService {
+  return {
+    url: buildOsrmUrl,
+    headers,
+    read: ({ ok, body }) => {
+      if (isOsrmNoRoute(body)) return { kind: 'none' }
+      const route = ok ? parseOsrm(body) : null
+      return route ? { kind: 'ready', route } : { kind: 'failed' }
+    },
+  }
+}
 
 export function createRouter(
   fetcher: Fetcher,
   {
-    valhallaHeaders = {},
-    osrmHeaders = {},
+    services,
     now = () => Date.now(),
     wait = abortableWait,
     timeoutMs = ROUTE_TIMEOUT_MS,
   }: {
-    /** Sent to Valhalla: its `X-Client-Id`, and on the phone a user agent. */
-    valhallaHeaders?: Record<string, string>
-    /** Sent to OSRM. Empty from a browser, whose preflight would refuse more. */
-    osrmHeaders?: Record<string, string>
+    /** Asked in this order, each only when the one before it fails. */
+    services: readonly RoutingService[]
     now?: () => number
     wait?: (ms: number, signal?: AbortSignal) => Promise<void>
     timeoutMs?: number
-  } = {},
+  },
 ): Router {
   /** The earliest moment the next request may leave; reserved when decided on. */
   let nextSlot = 0
@@ -132,18 +174,8 @@ export function createRouter(
     return { status: response.status, ok: response.ok, body }
   }
 
-  async function askValhalla(from: LngLat, to: LngLat, mode: TravelMode, signal: AbortSignal) {
-    const { status, ok, body } = await paced(buildValhallaUrl(from, to, mode), valhallaHeaders, signal)
-    if (isValhallaNoRoute(status, body)) return { kind: 'none' } as const
-    const route = ok ? parseValhalla(body) : null
-    return route ? ({ kind: 'ready', route } as const) : ({ kind: 'failed' } as const)
-  }
-
-  async function askOsrm(from: LngLat, to: LngLat, mode: TravelMode, signal: AbortSignal) {
-    const { ok, body } = await paced(buildOsrmUrl(from, to, mode), osrmHeaders, signal)
-    if (isOsrmNoRoute(body)) return { kind: 'none' } as const
-    const route = ok ? parseOsrm(body) : null
-    return route ? ({ kind: 'ready', route } as const) : ({ kind: 'failed' } as const)
+  async function ask(service: RoutingService, from: LngLat, to: LngLat, mode: TravelMode, signal: AbortSignal) {
+    return service.read(await paced(service.url(from, to, mode), service.headers ?? {}, signal))
   }
 
   return async function route(person, place, mode, { signal } = {}) {
@@ -157,23 +189,27 @@ export function createRouter(
       return cached
     }
 
-    // One deadline for both attempts, and the caller's abort folded into it.
+    // One deadline for every attempt, and the caller's abort folded into it.
     const controller = new AbortController()
     const onAbort = () => controller.abort()
     signal?.addEventListener('abort', onAbort, { once: true })
     const deadline = setTimeout(() => controller.abort(), timeoutMs)
 
-    async function attempt(ask: typeof askValhalla): Promise<Attempt> {
+    async function attempt(service: RoutingService): Promise<Attempt> {
       try {
-        return await ask(from, place, mode, controller.signal)
+        return await ask(service, from, place, mode, controller.signal)
       } catch {
         return { kind: 'failed' }
       }
     }
 
     try {
-      let result = await attempt(askValhalla)
-      if (result.kind === 'failed' && !controller.signal.aborted) result = await attempt(askOsrm)
+      let result: Attempt = { kind: 'failed' }
+      for (const service of services) {
+        if (controller.signal.aborted) break
+        result = await attempt(service)
+        if (result.kind !== 'failed') break
+      }
       if (signal?.aborted) return { kind: 'aborted' }
       if (result.kind !== 'failed') remember(key, result)
       return result

@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 
 import osrmWalk from './fixtures/osrm-walk.json'
 import valhallaWalk from './fixtures/valhalla-walk.json'
-import { createRouter, MIN_INTERVAL_MS, roundStart } from './router'
+import {
+  createRouter,
+  MIN_INTERVAL_MS,
+  osrmService,
+  roundStart,
+  stadiaService,
+  valhallaService,
+} from './router'
 import type { Fetcher } from './types'
 
 const PERSON = { lng: 135.785, lat: 34.9948 }
@@ -12,17 +19,31 @@ function reply(status: number, body: unknown) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
 }
 
+type Service = 'stadia' | 'valhalla' | 'osrm'
+
+function serviceOf(url: string): Service {
+  if (url.includes('stadiamaps')) return 'stadia'
+  return url.includes('valhalla') ? 'valhalla' : 'osrm'
+}
+
 /** A fetcher answering per service, recording every call. */
-function services(answers: { valhalla?: () => unknown; osrm?: () => unknown }) {
-  const calls: { url: string; headers?: Record<string, string> }[] = []
+function services(answers: Partial<Record<Service, () => unknown>>) {
+  const calls: { url: string; service: Service; headers?: Record<string, string> }[] = []
   const fetcher = vi.fn<Fetcher>(async (url, init) => {
-    calls.push({ url, headers: init?.headers })
-    const answer = url.includes('valhalla') ? answers.valhalla : answers.osrm
+    calls.push({ url, service: serviceOf(url), headers: init?.headers })
+    const answer = answers[serviceOf(url)]
     if (!answer) throw new Error('network down')
     return answer() as ReturnType<typeof reply>
   })
   return { fetcher, calls }
 }
+
+/** The order both applications ask in, with the headers they send. */
+const ALL = [
+  stadiaService({ apiKey: 'key' }),
+  valhallaService({ headers: { 'X-Client-Id': 'pinpoint' } }),
+  osrmService(),
+]
 
 /** A clock the test moves, and a wait that moves it. */
 function clock() {
@@ -42,28 +63,49 @@ function clock() {
 }
 
 describe('createRouter', () => {
-  it('returns Valhalla’s route and does not ask OSRM', async () => {
-    const { fetcher, calls } = services({ valhalla: () => reply(200, valhallaWalk) })
-    const route = createRouter(fetcher, { ...clock(), valhallaHeaders: { 'X-Client-Id': 'pinpoint' } })
-    const result = await route(PERSON, PLACE, 'walk')
+  it('returns Stadia’s route and asks nobody else', async () => {
+    const { fetcher, calls } = services({ stadia: () => reply(200, valhallaWalk) })
+    const result = await createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'walk')
     expect(result.kind).toBe('ready')
-    expect(calls).toHaveLength(1)
-    expect(calls[0].headers).toEqual({ 'X-Client-Id': 'pinpoint' })
+    expect(calls.map((call) => call.service)).toEqual(['stadia'])
+    expect(calls[0].url).toContain('api_key=key')
+    expect(calls[0].headers).toEqual({})
   })
 
-  it('falls back to OSRM when Valhalla fails, with OSRM’s own headers', async () => {
+  it.each([
+    ['a bad key', () => reply(401, { error: 'No valid authentication provided.' })],
+    ['a used-up allowance', () => reply(429, null)],
+    ['an outage', () => reply(503, null)],
+  ])('falls back to Valhalla on %s, with Valhalla’s own headers', async (_name, stadia) => {
+    const { fetcher, calls } = services({ stadia, valhalla: () => reply(200, valhallaWalk) })
+    const result = await createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'walk')
+    expect(result.kind).toBe('ready')
+    expect(calls.map((call) => call.service)).toEqual(['stadia', 'valhalla'])
+    expect(calls[1].headers).toEqual({ 'X-Client-Id': 'pinpoint' })
+  })
+
+  it('falls back to OSRM when Stadia and Valhalla both fail, a second apart each time', async () => {
     const { fetcher, calls } = services({
+      stadia: () => reply(503, null),
       valhalla: () => reply(503, null),
       osrm: () => reply(200, osrmWalk),
     })
     const time = clock()
-    const route = createRouter(fetcher, { ...time, valhallaHeaders: { 'X-Client-Id': 'pinpoint' } })
-    const result = await route(PERSON, PLACE, 'walk')
+    const result = await createRouter(fetcher, { ...time, services: ALL })(PERSON, PLACE, 'walk')
     expect(result.kind === 'ready' && Math.round(result.route.minutes)).toBe(58)
-    expect(calls.map((call) => call.url.includes('valhalla'))).toEqual([true, false])
-    expect(calls[1].headers).toEqual({})
-    // The second request waited out the rest of the second.
-    expect(time.waits).toEqual([MIN_INTERVAL_MS])
+    expect(calls.map((call) => call.service)).toEqual(['stadia', 'valhalla', 'osrm'])
+    expect(calls[2].headers).toEqual({})
+    expect(time.waits).toEqual([MIN_INTERVAL_MS, MIN_INTERVAL_MS])
+  })
+
+  it('takes Stadia’s "no way" as the answer', async () => {
+    const { fetcher, calls } = services({
+      stadia: () => reply(400, { error_code: 154, error: 'Path distance exceeds the max distance limit' }),
+      valhalla: () => reply(200, valhallaWalk),
+    })
+    const result = await createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'car')
+    expect(result).toEqual({ kind: 'none' })
+    expect(calls).toHaveLength(1)
   })
 
   it('takes Valhalla’s "no way" as the answer', async () => {
@@ -71,20 +113,23 @@ describe('createRouter', () => {
       valhalla: () => reply(400, { error_code: 442, error: 'No path could be found for input' }),
       osrm: () => reply(200, osrmWalk),
     })
-    const result = await createRouter(fetcher, clock())(PERSON, PLACE, 'car')
+    const result = await createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'car')
     expect(result).toEqual({ kind: 'none' })
-    expect(calls).toHaveLength(1)
+    expect(calls.map((call) => call.service)).toEqual(['stadia', 'valhalla'])
   })
 
-  it('reports failure when neither answers', async () => {
-    const { fetcher } = services({})
-    expect(await createRouter(fetcher, clock())(PERSON, PLACE, 'bike')).toEqual({ kind: 'failed' })
+  it('reports failure when none answers', async () => {
+    const { fetcher, calls } = services({})
+    expect(await createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'bike')).toEqual({
+      kind: 'failed',
+    })
+    expect(calls).toHaveLength(3)
   })
 
   it('spaces requests at least a second apart', async () => {
-    const { fetcher } = services({ valhalla: () => reply(200, valhallaWalk) })
+    const { fetcher } = services({ stadia: () => reply(200, valhallaWalk) })
     const time = clock()
-    const route = createRouter(fetcher, time)
+    const route = createRouter(fetcher, { ...time, services: ALL })
     await route(PERSON, PLACE, 'walk')
     time.advance(300)
     await route(PERSON, PLACE, 'bike')
@@ -92,8 +137,8 @@ describe('createRouter', () => {
   })
 
   it('does not ask again for a route it was given, from a few metres away', async () => {
-    const { fetcher, calls } = services({ valhalla: () => reply(200, valhallaWalk) })
-    const route = createRouter(fetcher, clock())
+    const { fetcher, calls } = services({ stadia: () => reply(200, valhallaWalk) })
+    const route = createRouter(fetcher, { ...clock(), services: ALL })
     // From the middle of a 50 m square, so ten metres cannot cross its edge.
     const middle = roundStart(PERSON)
     await route(middle, PLACE, 'walk')
@@ -104,22 +149,22 @@ describe('createRouter', () => {
   })
 
   it('asks again for another way of travelling', async () => {
-    const { fetcher, calls } = services({ valhalla: () => reply(200, valhallaWalk) })
-    const route = createRouter(fetcher, clock())
+    const { fetcher, calls } = services({ stadia: () => reply(200, valhallaWalk) })
+    const route = createRouter(fetcher, { ...clock(), services: ALL })
     await route(PERSON, PLACE, 'walk')
     await route(PERSON, PLACE, 'car')
     expect(calls).toHaveLength(2)
   })
 
   it('asks again after a failure, but not after "no way"', async () => {
-    let valhalla = () => reply(503, null)
-    const { fetcher, calls } = services({ valhalla: () => valhalla() })
-    const route = createRouter(fetcher, clock())
-    await route(PERSON, PLACE, 'walk') // Valhalla 503, OSRM throws: failed
-    valhalla = () => reply(400, { error_code: 442 })
+    let stadia = () => reply(503, null)
+    const { fetcher, calls } = services({ stadia: () => stadia() })
+    const route = createRouter(fetcher, { ...clock(), services: ALL })
+    await route(PERSON, PLACE, 'walk') // Stadia 503, the others throw: failed
+    stadia = () => reply(400, { error_code: 442 })
     await route(PERSON, PLACE, 'walk') // asked again: none
     await route(PERSON, PLACE, 'walk') // remembered
-    expect(calls.filter((call) => call.url.includes('valhalla'))).toHaveLength(2)
+    expect(calls.filter((call) => call.service === 'stadia')).toHaveLength(2)
   })
 
   it('gives up at the deadline', async () => {
@@ -128,7 +173,7 @@ describe('createRouter', () => {
       new Promise((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
       })
-    const pending = createRouter(fetcher, { timeoutMs: 8000 })(PERSON, PLACE, 'walk')
+    const pending = createRouter(fetcher, { timeoutMs: 8000, services: ALL })(PERSON, PLACE, 'walk')
     await vi.advanceTimersByTimeAsync(8000)
     expect(await pending).toEqual({ kind: 'failed' })
     vi.useRealTimers()
@@ -140,7 +185,7 @@ describe('createRouter', () => {
       new Promise((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
       })
-    const pending = createRouter(fetcher, clock())(PERSON, PLACE, 'walk', { signal: controller.signal })
+    const pending = createRouter(fetcher, { ...clock(), services: ALL })(PERSON, PLACE, 'walk', { signal: controller.signal })
     controller.abort()
     expect(await pending).toEqual({ kind: 'aborted' })
   })

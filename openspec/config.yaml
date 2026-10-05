@@ -10,9 +10,11 @@ context: |
   Japan-specific — do not propose Japan-only features or data sources.
 
   Hard constraint: $0 to build and run. Every dependency must be free with no
-  signup, no API key and no usage billing — no Google Maps, Mapbox, or any service
-  with a paid tier a free tier can overflow into. The only accepted cost is the
-  Apple Developer Program ($99/yr), if the iOS app ever ships.
+  usage billing — no Google Maps, Mapbox, or any service with a paid tier a free
+  tier can overflow into. Prefer services with no signup and no key; one that needs
+  an account is acceptable only when its free allowance stops rather than bills
+  (Stadia Maps for routing, #281). The only accepted cost is the Apple Developer
+  Program ($99/yr), if the iOS app ever ships.
 
   Stack: pnpm workspaces. apps/web (Next.js 16, maplibre-gl) and apps/mobile (Expo
   57 development build, @maplibre/maplibre-react-native) over shared packages in

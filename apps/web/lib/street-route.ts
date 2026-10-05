@@ -1,14 +1,26 @@
 import type { StreetState } from '@pinpoint/core'
 import { isTravelMode, type LngLat, type TravelMode } from '@pinpoint/map'
-import { createRouter, type StreetRoute } from '@pinpoint/routing'
+import {
+  createRouter,
+  osrmService,
+  stadiaService,
+  type StreetRoute,
+  valhallaService,
+} from '@pinpoint/routing'
 import { useEffect, useState } from 'react'
+
+import { config } from '@/lib/config'
 
 /**
  * The street route on the laptop (`place-route`).
  *
  * The router is created once for the page, because it is what keeps this
  * browser to one request a second and remembers routes it was given — a copy
- * per render would pace nothing. Valhalla is told who is asking by
+ * per render would pace nothing.
+ *
+ * Stadia Maps is asked first, with the key the phone uses too, as a query
+ * parameter: its preflight allows nothing custom. The key is in the bundle on
+ * purpose (`lib/config.ts`). FOSSGIS's Valhalla is told who is asking by
  * `X-Client-Id`, which its preflight allows; OSRM's preflight refuses that
  * header, so it gets nothing custom and is told by the `Referer` the browser
  * sends, which is what its terms ask for. A page cannot set `User-Agent`.
@@ -19,7 +31,11 @@ const browserFetch = (
 ) => fetch(url, init)
 
 export const streetRouter = createRouter(browserFetch, {
-  valhallaHeaders: { 'X-Client-Id': 'pinpoint' },
+  services: [
+    stadiaService({ apiKey: config.stadia.apiKey }),
+    valhallaService({ headers: { 'X-Client-Id': 'pinpoint' } }),
+    osrmService(),
+  ],
 })
 
 /** What the map draws and the card reads, while a street route is being had. */

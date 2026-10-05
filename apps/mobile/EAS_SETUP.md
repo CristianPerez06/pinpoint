@@ -145,12 +145,13 @@ field is missing or misspelled.
 
 ## 5. Create the environment variables
 
-The app reads exactly two, both declared in `apps/mobile/lib/config.ts`:
+The app reads exactly three, all declared in `apps/mobile/lib/config.ts`:
 
 | Variable | |
 |---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | The Supabase project URL. |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The publishable key. Row-level security is the boundary, not this key. |
+| `EXPO_PUBLIC_STADIA_API_KEY` | The Stadia Maps key for street routes — the same one the laptop has as `NEXT_PUBLIC_STADIA_API_KEY`. The free plan stops at its monthly allowance rather than billing, which is what makes it safe to ship. |
 
 `apps/mobile/.env` is gitignored and **never reaches EAS** (see §7 for why). Without
 these the build compiles and the app dies at launch.
@@ -163,7 +164,7 @@ pnpm --filter mobile exec eas env:create \
   --type string --visibility plaintext --scope project --non-interactive
 ```
 
-Repeat for the key. `plaintext` is correct for both: Expo inlines `EXPO_PUBLIC_*` into
+Repeat for the two keys. `plaintext` is correct for all three: Expo inlines `EXPO_PUBLIC_*` into
 the JS bundle that ships inside the installed app, so there is nothing here to hide from
 a build log that is not already extractable from the APK. A `service_role` key must
 never be given the prefix and so can never be one of these.
@@ -173,7 +174,7 @@ pnpm --filter mobile exec eas env:list --environment production --format short
 ```
 
 Note that `--format short` shortens the *listing*, not the values — it prints them.
-Fine for these two, worth knowing before running it on an environment holding a secret.
+Fine for these three, worth knowing before running it on an environment holding a secret.
 
 If they are already present — recent `eas-cli` versions can offer to import a local
 `.env` during `eas init` — verify them instead of creating duplicates.

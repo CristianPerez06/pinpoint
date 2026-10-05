@@ -225,8 +225,9 @@ export const ENGLISH = {
   'credit.openmaptiles': 'The schema the data is packed into.',
   'credit.openfreemap': 'Serves the tiles, at no cost and without an account.',
   'credit.maplibre': 'Draws the map on the screen.',
-  'credit.valhalla': 'Finds the route along the streets. Run by FOSSGIS.',
-  'credit.osrm': 'Finds the route when Valhalla cannot. Also run by FOSSGIS.',
+  'credit.stadia': 'Finds the route along the streets.',
+  'credit.valhalla': 'Finds the route when Stadia Maps cannot. Run by FOSSGIS.',
+  'credit.osrm': 'Finds the route when neither of those can. Also run by FOSSGIS.',
   'credit.fixTheMap': 'Report something wrong on the map, where it is made.',
 
   // ── What a marker's type is called ───────────────────────────────────────

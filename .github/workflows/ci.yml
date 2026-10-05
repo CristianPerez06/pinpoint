@@ -78,12 +78,13 @@ jobs:
 
       - name: Build
         env:
-          # Placeholders. CI never contacts Supabase, so real credentials are
+          # Placeholders. CI never contacts Supabase or Stadia, so real credentials are
           # not needed — but the config module validates presence at startup,
           # so the build fails without something here. That is the intended
           # behaviour, exercised on every run.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder_for_ci
+          NEXT_PUBLIC_STADIA_API_KEY: placeholder_for_ci
         run: pnpm --filter web build
 
   packages-test:

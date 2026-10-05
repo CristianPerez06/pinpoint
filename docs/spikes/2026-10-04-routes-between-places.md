@@ -1,5 +1,12 @@
 # Spike: can the apps show a route and travel distance between places? (#244)
 
+> **Since then (2026-10-05, #281):** the $0 / no key rule below was relaxed to $0 /
+> nothing can bill. Street routes now come from **Stadia Maps' free plan** first —
+> it runs Valhalla and takes the same request — with FOSSGIS's Valhalla and OSRM
+> behind it, as recommended here. Stadia was ruled out below because it needs a key;
+> its free plan turned out to stop at its allowance rather than overflow into
+> billing, which is the part of the rule that mattered.
+
 Written 2026-10-04. Analysis only. Nothing in the code changed, and every number below
 was measured today against the live services, with a Kyoto walk as the test case
 (Kiyomizu-dera to Fushimi Inari, about 3.3 km in a straight line).
