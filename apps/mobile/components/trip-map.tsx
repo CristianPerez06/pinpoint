@@ -31,6 +31,7 @@ import {
   routeFeature,
   routeLayers,
   TURN_THRESHOLD_DEG,
+  walkedBearing,
   withinBounds,
   zoomStep,
   type Bounds,
@@ -399,6 +400,7 @@ function ZoomButton({
   zoomNow,
   camera,
   divided = false,
+  onZoom,
 }: {
   direction: 1 | -1
   /**
@@ -421,6 +423,8 @@ function ZoomButton({
   camera: { current: CameraRef | null }
   /** Whether to draw the hairline that separates this one from the one above. */
   divided?: boolean
+  /** The zoom a press asked for, for Follow me to keep following at (`follow-me`). */
+  onZoom?: (zoom: number) => void
 }) {
   const theme = useTheme()
   const say = useSay()
@@ -441,9 +445,9 @@ function ZoomButton({
           ? // A no-op rather than no handler, so the control stays a control.
             () => {}
           : () => {
-              camera.current?.zoomTo(zoomStep(zoomNow(), direction), {
-                duration: 200,
-              })
+              const next = zoomStep(zoomNow(), direction)
+              onZoom?.(next)
+              camera.current?.zoomTo(next, { duration: 200 })
             }
       }
       style={[
@@ -515,6 +519,11 @@ export interface TripMapRef {
    */
   closeDetails: () => void
   /**
+   * Turns Follow me off, flat and north up (`follow-me`). The workspace calls
+   * it as it arms the sight: aiming is done on a still, flat map.
+   */
+  endFollowMe: () => void
+  /**
    * The middle of the part of the map the bar does not cover, as the map last
    * settled — what Nearby measures from when the person's position is not
    * known (`nearby-places`). The camera's own centre is behind the bar's
@@ -575,7 +584,13 @@ export function TripMap({
   onSomethingToLookAt,
   whereAmI,
   onFollowingChange,
+  onFollowMeChange,
 }: {
+  /**
+   * Follow me is now on, or off. The workspace's notes over the map leave the
+   * top-right column to its controls while it is on (`follow-me`).
+   */
+  onFollowMeChange?: (on: boolean) => void
   /**
    * A route is now being followed, or no longer is. The workspace takes its
    * header and its notes away while it is (`route-following`).
@@ -855,6 +870,52 @@ export function TripMap({
    */
   const [zoom, setZoom] = useState<number | null>(null)
 
+  /** The person moved the map by hand, so the camera has stopped following them. */
+  const [lookingAround, setLookingAround] = useState(false)
+  /**
+   * Which way the map is turned while following: the way ahead, changed only
+   * when it turns by more than the threshold, so the map turns at corners and
+   * holds still between them. A ref for the camera, which reads it on every
+   * position; state for the compass, which draws it.
+   */
+  const followBearing = useRef(0)
+  const [shownBearing, setShownBearing] = useState(0)
+  /** The compass was pressed: north stays at the top for the rest of this trip. */
+  const [northUp, setNorthUp] = useState(false)
+  /**
+   * Follow me is on (`follow-me`). Declared up here with the state it shares
+   * with route following, because "where am I" and the map's handle both read
+   * it; the rest of it is beside route following's camera below.
+   */
+  const [followMe, setFollowMe] = useState(false)
+  /** Where the way the person walks was last read from. */
+  const [walkedFrom, setWalkedFrom] = useState<LngLat | null>(null)
+  /** How close Follow me follows: where it started, or where the zoom buttons put it. */
+  const followMeZoom = useRef(FOLLOW_ZOOM)
+
+  /*
+   * The way the person walks, read on every new position while Follow me is
+   * on — paused or not, so resuming turns the map the way they are going now.
+   * While rendering rather than in an effect, as React recommends for state
+   * that follows another value.
+   */
+  const [walkFix, setWalkFix] = useState(whereAmI.fix)
+  if (walkFix !== whereAmI.fix) {
+    setWalkFix(whereAmI.fix)
+    const fix = whereAmI.fix
+    if (followMe && !northUp && fix) {
+      const here = { lng: fix.lng, lat: fix.lat }
+      const walked = walkedFrom ? walkedBearing(walkedFrom, here, fix.accuracy) : null
+      // No anchor yet starts one. Too close to tell keeps it, so a slow walk
+      // adds up and standing still never turns the map.
+      if (!walkedFrom) setWalkedFrom(here)
+      else if (walked !== null) {
+        setWalkedFrom(here)
+        if (bearingDifference(walked, shownBearing) >= TURN_THRESHOLD_DEG) setShownBearing(walked)
+      }
+    }
+  }
+
   /**
    * Where the last "where am I" press put the centre of the view, and whether it
    * is still there (`device-location`).
@@ -893,6 +954,12 @@ export function TripMap({
   }, [whereAmI.fix])
 
   const findMe = async () => {
+    // With Follow me on, "where am I" is the way back after looking around
+    // (`follow-me`); the camera effect resumes following.
+    if (followMe) {
+      setLookingAround(false)
+      return
+    }
     const fix = await whereAmI.locate()
     if (!fix) return
     // One point, framed by the shared derivation exactly as a searched place is
@@ -971,6 +1038,45 @@ export function TripMap({
     })
   }, [draft, formHeight])
 
+  /**
+   * The camera's tilt, so `leanTo` can tell a change from a repeat: set when
+   * it leans, and read back on every settle, which also catches a tilt made by
+   * hand with two fingers.
+   */
+  const pitchRef = useRef(0)
+
+  /**
+   * Changes the tilt on its own, at once, ahead of a move that wants a
+   * different one.
+   *
+   * On iOS the map library works out a move's centre and height at the tilt the
+   * camera is *leaving*, and applies the new tilt afterwards — so a single move
+   * from tilted to flat landed half a kilometre off with the wrong zoom, and the
+   * first frame of following, and every press of *2D* and *3D*, the same way
+   * (`CameraUpdateItem.m`, `_makeCamera`). Android applies them together, which
+   * is why it never showed there. The library runs moves in the order they are
+   * sent and an instant one before the next is computed, so leaning first puts
+   * every move on the tilt it is computed for.
+   */
+  const leanTo = (pitch: number) => {
+    if (pitchRef.current === pitch) return
+    pitchRef.current = pitch
+    void cameraRef.current?.setStop({ pitch, duration: 0 }).catch(() => {})
+  }
+
+  /** Off, however it is turned off: flat and north up, over where the map was. */
+  const stopFollowMe = () => {
+    if (!followMe) return
+    setFollowMe(false)
+    setLookingAround(false)
+    setNorthUp(false)
+    followBearing.current = 0
+    setShownBearing(0)
+    setWalkedFrom(null)
+    leanTo(0)
+    void cameraRef.current?.setStop({ bearing: 0, duration: 300, easing: 'ease' }).catch(() => {})
+  }
+
   useImperativeHandle(
     ref,
     () => ({
@@ -985,9 +1091,14 @@ export function TripMap({
           viewport ?? DEFAULT_VIEWPORT,
           bottomInset,
         )
+        // A place opened while Follow me is on pauses it (`follow-me`), and
+        // is framed as every place is: flat and north up, which the framing
+        // assumes. Following tilts and turns the map again when it resumes.
+        if (followMe) leanTo(0)
         cameraRef.current?.flyTo({
           center: [camera.center.lng, camera.center.lat],
           zoom: camera.zoom,
+          ...(followMe ? { bearing: 0, pitch: 0 } : {}),
         })
       },
       frameOn: (points: readonly LngLat[], bottomInset?: number) => {
@@ -997,6 +1108,9 @@ export function TripMap({
         // city that holds nothing, which is the one outcome the specification
         // rules out.
         if (points.length === 0) return
+        // A chosen city or the filter's matches end Follow me (`follow-me`).
+        const wasFollowingMe = followMe
+        if (wasFollowingMe) stopFollowMe()
         // The same expression as `lift` below, and it has to be written twice:
         // `lift` is declared after this hook, so naming it here would be a
         // reference into its own temporal dead zone on every render.
@@ -1014,6 +1128,7 @@ export function TripMap({
         cameraRef.current?.flyTo({
           center: [camera.center.lng, camera.center.lat],
           zoom: camera.zoom,
+          ...(wasFollowingMe ? { bearing: 0, pitch: 0 } : {}),
         })
       },
       openMarkers: (
@@ -1032,6 +1147,7 @@ export function TripMap({
         })
       },
       closeDetails: () => setOpen(null),
+      endFollowMe: stopFollowMe,
       visibleCentre: () => {
         const centre = centreRef.current
         const zoom = zoomRef.current
@@ -1039,7 +1155,8 @@ export function TripMap({
         return offsetCenter(centre, zoom, 0, -barHeight / 2)
       },
     }),
-    [viewport, barHeight, formSheet, formHeight, centreRef],
+    // No list: Follow me's way out is a new function on every render, and
+    // rebuilding a handle of a few closures costs nothing.
   )
 
   const groups = useMemo(() => groupCoincident([...markers]), [markers])
@@ -1163,32 +1280,6 @@ export function TripMap({
     setRoute({ ...activeRoute, switched: false })
   }
 
-  /**
-   * The camera's tilt, so `leanTo` can tell a change from a repeat: set when
-   * it leans, and read back on every settle, which also catches a tilt made by
-   * hand with two fingers.
-   */
-  const pitchRef = useRef(0)
-
-  /**
-   * Changes the tilt on its own, at once, ahead of a move that wants a
-   * different one.
-   *
-   * On iOS the map library works out a move's centre and height at the tilt the
-   * camera is *leaving*, and applies the new tilt afterwards — so a single move
-   * from tilted to flat landed half a kilometre off with the wrong zoom, and the
-   * first frame of following, and every press of *2D* and *3D*, the same way
-   * (`CameraUpdateItem.m`, `_makeCamera`). Android applies them together, which
-   * is why it never showed there. The library runs moves in the order they are
-   * sent and an instant one before the next is computed, so leaning first puts
-   * every move on the tilt it is computed for.
-   */
-  const leanTo = (pitch: number) => {
-    if (pitchRef.current === pitch) return
-    pitchRef.current = pitch
-    void cameraRef.current?.setStop({ pitch, duration: 0 }).catch(() => {})
-  }
-
   /** Both ends, or the whole street route, above the sheet. */
   const frameRoute = (points: readonly LngLat[]) => {
     leanTo(0)
@@ -1206,6 +1297,9 @@ export function TripMap({
   }
 
   const calculateRoute = async (place: Marker) => {
+    // A route takes over from Follow me (`follow-me`); its framing below is
+    // flat and north up already.
+    stopFollowMe()
     setRouting(place.id)
     // The same press as "where am I": it asks the first time, and on a refusal
     // or a timeout it has already set the status the note over the map reads.
@@ -1266,22 +1360,10 @@ export function TripMap({
   const [startFailed, setStartFailed] = useState<string | null>(null)
   /** The line Ferrostar is following, which a new route replaces. */
   const [followLine, setFollowLine] = useState<LngLat[] | null>(null)
-  /** The person moved the map by hand, so the camera has stopped following them. */
-  const [lookingAround, setLookingAround] = useState(false)
   /** How much of the screen the turn card and the bar cover, for the camera. */
   const followCovered = useRef({ top: 0, bottom: 0 })
   const [followBarHeight, setFollowBarHeight] = useState(0)
   const [followCardBottom, setFollowCardBottom] = useState(0)
-  /**
-   * Which way the map is turned while following: the way ahead, changed only
-   * when it turns by more than the threshold, so the map turns at corners and
-   * holds still between them. A ref for the camera, which reads it on every
-   * position; state for the compass, which draws it.
-   */
-  const followBearing = useRef(0)
-  const [shownBearing, setShownBearing] = useState(0)
-  /** The compass was pressed: north stays at the top for the rest of this trip. */
-  const [northUp, setNorthUp] = useState(false)
   /** Where Ferrostar last placed the person, for the camera and the way back to them. */
   const followHere = useRef<LngLat | null>(null)
   /** The place just arrived at, named in the note for a few seconds. */
@@ -1301,17 +1383,23 @@ export function TripMap({
    * Keeps the person in the middle of what the card and the bar leave visible,
    * with the map turned to `bearing` and leaning back by `pitch`.
    */
-  const followCamera = (here: LngLat, bearing: number, pitch = followPitch) => {
+  const followCamera = (
+    here: LngLat,
+    bearing: number,
+    pitch = followPitch,
+    covered: { top: number; bottom: number } = followCovered.current,
+    zoom = FOLLOW_ZOOM,
+  ) => {
     leanTo(pitch)
-    const { top, bottom } = followCovered.current
+    const { top, bottom } = covered
     // By the shared derivation — never camera padding (AGENTS.md) — turned with
     // the map, since "down the screen" is no longer south, and measured on the
     // ground, since a tilted map is not drawn to one scale.
     const shift = groundOffset((bottom - top) / 2, pitch, (viewport ?? DEFAULT_VIEWPORT).height)
-    const centre = offsetCenter(here, FOLLOW_ZOOM, 0, shift, bearing)
+    const centre = offsetCenter(here, zoom, 0, shift, bearing)
     cameraRef.current?.easeTo({
       center: [centre.lng, centre.lat],
-      zoom: FOLLOW_ZOOM,
+      zoom,
       bearing,
       pitch,
       duration: 600,
@@ -1325,12 +1413,56 @@ export function TripMap({
   const toggleTilt = () => {
     const pitch = followTilted ? 0 : FOLLOW_PITCH
     chooseFollowTilted(!followTilted)
-    if (lookingAround || !followHere.current) {
+    if (followMe) {
+      if (followingMe && whereAmI.fix) followMeCamera(whereAmI.fix, northUp ? 0 : shownBearing, pitch)
+      else leanTo(pitch)
+    } else if (lookingAround || !followHere.current) {
       leanTo(pitch)
     } else {
       followCamera(followHere.current, northUp ? 0 : followBearing.current, pitch)
     }
   }
+
+  /*
+   * Follow me (`follow-me`): the camera keeps the person in view with no
+   * route, turned to the way they have been walking. It shares route
+   * following's camera, tilt, compass and looking around — only one of the two
+   * can be under way, because *Calculate route* ends Follow me before *Start*
+   * can be pressed — and loads nothing following a route needs.
+   */
+  /** The camera follows only while nothing else holds the map: an open place or form pauses it. */
+  const followingMe = followMe && !lookingAround && selection === null && formSheet === null
+
+  /** Clear of the bar; the header stands above the map rather than over it. */
+  const followMeCamera = (here: LngLat, bearing: number, pitch = followPitch) =>
+    followCamera(here, bearing, pitch, { top: 0, bottom: barHeight }, followMeZoom.current)
+
+  const startFollowMe = async () => {
+    const fix = await whereAmI.locate('followMe')
+    // Refused or not found: the workspace's note says which, and nothing moves.
+    if (!fix) return
+    setWalkedFrom({ lng: fix.lng, lat: fix.lat })
+    setShownBearing(0)
+    setNorthUp(false)
+    setLookingAround(false)
+    followMeZoom.current = FOLLOW_ZOOM
+    youPress.current = null
+    setOnYou(false)
+    setFollowMe(true)
+  }
+
+  // The camera on the person, on every position and on resuming — after
+  // looking around, or once an open place is closed.
+  useEffect(() => {
+    if (!followingMe || !whereAmI.fix) return
+    followMeCamera(whereAmI.fix, northUp ? 0 : shownBearing)
+    // On a new position, a new direction, or on resuming.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followingMe, whereAmI.fix, northUp, shownBearing])
+
+  useEffect(() => {
+    onFollowMeChange?.(followMe)
+  }, [followMe, onFollowMeChange])
 
   const startFollowing = () => {
     if (!openPlace || !activeRoute || follow) return
@@ -1479,6 +1611,13 @@ export function TripMap({
    * Never a sum. Exactly one of these is drawn at a time.
    */
   const lift = following ? followBarHeight : formSheet ? formHeight : barHeight
+  /**
+   * The tilt control and the compass with Follow me on, while the map is not
+   * given to a place or a form (`follow-me`): at the top right, where route
+   * following puts them under its card.
+   */
+  const followMeControls = followMe && selection === null && formSheet === null
+  const controlsTop = following ? followCardBottom + SPACE.md : SPACE.md
   /*
     The camera the map opens with, framed clear of the bar standing on it.
 
@@ -1569,6 +1708,13 @@ export function TripMap({
           attribution={false}
           logo={false}
           /*
+            Off by name, not by default: the typings say it defaults to off, and
+            Android draws MapLibre's black compass anyway once the map turns —
+            behind our own, under the tilt control. Ours is drawn from the
+            tokens and named in our sentences (`route-following`, `follow-me`).
+          */
+          compass={false}
+          /*
             Where the map is, written down on every settle.
             
             This is what the sight reads when somebody confirms a position, and
@@ -1586,7 +1732,9 @@ export function TripMap({
           onRegionDidChange={(event) => {
             // A person moving the map while following stops the camera
             // following them, until they ask for it back (`route-following`).
-            if (following && event.nativeEvent.userInteraction) setLookingAround(true)
+            if ((following || followMe) && event.nativeEvent.userInteraction) {
+              setLookingAround(true)
+            }
             const [lng, lat] = event.nativeEvent.center
             pitchRef.current = event.nativeEvent.pitch
             centreRef.current = { lng, lat }
@@ -1927,6 +2075,33 @@ export function TripMap({
           </Pressable>
 
           {/*
+            Follow me, between "where am I" and the re-read (`follow-me`). Its
+            on state is the wash a control in the chrome declares a state with,
+            never the accent as a fill (`styling`).
+          */}
+          <Pressable
+            onPress={() => (followMe ? stopFollowMe() : void startFollowMe())}
+            accessibilityRole="button"
+            accessibilityLabel={say(message(followMe ? 'map.followMeOff' : 'map.followMe'))}
+            accessibilityState={{ selected: followMe }}
+            style={[
+              styles.reread,
+              {
+                backgroundColor: followMe ? theme.colour.accentWash : theme.colour.surface,
+                borderColor: theme.colour.line,
+                shadowColor: theme.elevation.sm.colour,
+              },
+            ]}
+          >
+            <Navigation2
+              size={20}
+              color={followMe ? theme.colour.accentInk : theme.colour.ink}
+              fill={followMe ? theme.colour.accentInk : 'none'}
+              strokeWidth={2}
+            />
+          </Pressable>
+
+          {/*
             "Where am I", between the two (`device-location`): pressed far more
             often than the re-read and less often than zoom, so it stands between
             them and the re-read keeps the place furthest from a thumb.
@@ -1959,7 +2134,7 @@ export function TripMap({
                   than taken from `locate-fixed`, whose centre is a ring: at this
                   size the two glyphs read as the same one.
                 */}
-                {onYou ? (
+                {(followMe ? followingMe : onYou) ? (
                   <View
                     pointerEvents="none"
                     style={[styles.onYou, { backgroundColor: theme.colour.ink }]}
@@ -1990,6 +2165,9 @@ export function TripMap({
                 zoom={currentZoom}
                 zoomNow={() => zoomRef.current ?? currentZoom}
                 camera={cameraRef}
+                onZoom={(next) => {
+                  followMeZoom.current = next
+                }}
               />
               <ZoomButton
                 direction={-1}
@@ -1997,6 +2175,9 @@ export function TripMap({
                 zoomNow={() => zoomRef.current ?? currentZoom}
                 camera={cameraRef}
                 divided
+                onZoom={(next) => {
+                  followMeZoom.current = next
+                }}
               />
             </View>
           ) : null}
@@ -2171,7 +2352,7 @@ export function TripMap({
         the turn card, so it does not move when the compass below it comes and
         goes. Its face is the view pressing it gives.
       */}
-      {following ? (
+      {following || followMeControls ? (
         <Pressable
           onPress={toggleTilt}
           accessibilityRole="button"
@@ -2180,7 +2361,7 @@ export function TripMap({
             styles.reread,
             styles.compass,
             {
-              top: followCardBottom + SPACE.md,
+              top: controlsTop,
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.lineStrong,
               shadowColor: theme.elevation.sm.colour,
@@ -2198,13 +2379,18 @@ export function TripMap({
         puts north back at the top for the rest of the trip (`route-following`).
         The arrow is turned against the map so it always points north.
       */}
-      {following && !northUp && shownBearing !== 0 ? (
+      {(following || followMeControls) && !northUp && shownBearing !== 0 ? (
         <Pressable
           onPress={() => {
             setNorthUp(true)
             followBearing.current = 0
             setShownBearing(0)
-            if (followHere.current) followCamera(followHere.current, 0)
+            if (followMe) {
+              if (followingMe && whereAmI.fix) followMeCamera(whereAmI.fix, 0)
+              else void cameraRef.current?.setStop({ bearing: 0, duration: 300, easing: 'ease' }).catch(() => {})
+            } else if (followHere.current) {
+              followCamera(followHere.current, 0)
+            }
           }}
           accessibilityRole="button"
           accessibilityLabel={say(message('follow.northUp'))}
@@ -2213,7 +2399,7 @@ export function TripMap({
             styles.compass,
             {
               // Beneath the tilt control: its 44 and a gap.
-              top: followCardBottom + SPACE.md + 44 + SPACE.sm,
+              top: controlsTop + 44 + SPACE.sm,
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.lineStrong,
               shadowColor: theme.elevation.sm.colour,

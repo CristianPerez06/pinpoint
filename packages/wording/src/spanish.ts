@@ -512,6 +512,9 @@ export const SPANISH: Catalogue = {
   'map.zoomOut': 'Alejar',
   'map.reread': 'Volver a leer todo',
   'map.whereAmI': 'Mostrar la ubicación actual',
+  'map.followMe': 'Seguir la ubicación al caminar',
+  'map.followMeOff': 'Dejar de seguir la ubicación',
+  'map.followMeLocationOff': 'Seguir la ubicación requiere acceso a ella. Activarla en Ajustes.',
   'map.locationOff': 'Pinpoint no tiene acceso a la ubicación. Activarla en Ajustes.',
   'map.locationBlocked':
     'El navegador bloquea la ubicación para este sitio. Permitirla desde la barra de direcciones.',

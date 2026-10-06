@@ -226,3 +226,32 @@ export function bearingDifference(a: number, b: number): number {
   const d = Math.abs(a - b) % 360
   return d > 180 ? 360 - d : d
 }
+
+/** How far the person must walk before the way they are walking is read (`follow-me`). */
+export const WALKED_M = 15
+
+/**
+ * Which way the person walked from `from` to `to`, as a compass bearing in
+ * degrees clockwise from north (`follow-me`), or null when the two are too
+ * close to tell.
+ *
+ * Too close means nearer than `metres` or than the position's own accuracy,
+ * whichever is further: a position wavering while somebody stands still never
+ * gets that far, so standing still never reads as walking, and a poor fix
+ * cannot read its own uncertainty as a walk. Flat-earth arithmetic, as in
+ * `bearingAhead`, which is exact enough over the few metres between positions.
+ */
+export function walkedBearing(
+  from: LngLat,
+  to: LngLat,
+  accuracy: number | null,
+  metres: number = WALKED_M,
+): number | null {
+  const perDegree = 111_320
+  const across = Math.cos((from.lat * Math.PI) / 180)
+  const dx = (to.lng - from.lng) * perDegree * across
+  const dy = (to.lat - from.lat) * perDegree
+  const distance = Math.hypot(dx, dy)
+  if (distance === 0 || distance < Math.max(metres, accuracy ?? 0)) return null
+  return ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
+}

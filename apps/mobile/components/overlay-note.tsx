@@ -35,9 +35,15 @@ import { role } from '@/lib/type'
 export function MarkersOverlayNote({
   tone = 'muted',
   onPress,
+  besideControls = false,
   children,
 }: {
   tone?: 'muted' | 'danger'
+  /**
+   * Leaves the top-right column to the round controls standing there while
+   * Follow me is on (`follow-me`), so neither covers the other.
+   */
+  besideControls?: boolean
   /** What pressing the note does, where it offers something. */
   onPress?: () => void
   children: ReactNode
@@ -52,6 +58,7 @@ export function MarkersOverlayNote({
         onPress={onPress}
         style={[
           styles.note,
+          besideControls && styles.besideControls,
           danger
             ? {
                 backgroundColor: theme.colour.dangerSurface,
@@ -81,6 +88,7 @@ export function MarkersOverlayNote({
     <View
       style={[
         styles.note,
+        besideControls && styles.besideControls,
         danger
           ? {
               backgroundColor: theme.colour.dangerSurface,
@@ -119,5 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,
   },
+  /** One 44-point control and the gap beside it, on top of the note's own inset. */
+  besideControls: { right: SPACE.md + 44 + SPACE.sm },
   text: { ...role(TYPE.note), textAlign: 'center' },
 })
