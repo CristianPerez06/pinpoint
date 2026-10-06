@@ -411,6 +411,17 @@ placeholders.
   and every check of the code it did touch passes. A route that needs something heavy
   keeps it in another module and loads it with `lazy(() => import(…))`, as
   `app/dev/follow.tsx` does.
+- **An `expo-gl` context outlives its view in JavaScript, and a dead one answers
+  `undefined` to everything.** Once the `GLView` is unmounted its native context is
+  destroyed, but the `gl` object and any frame already queued on it carry on — and
+  every call, `createFramebuffer` and `createTexture` included, returns `undefined`
+  instead of throwing. `three` files those results in `WeakMap`s, so the failure is
+  "WeakMap key must be an Object" from inside `renderer.render`, which reads as
+  `three` disagreeing with Android's GL and is not that (#285). The opening hit it
+  when its first-frame deadline gave up a moment after the context arrived: slow
+  launches only, so an Android development build, and never iOS.
+  `lib/splash/handover.ts` now settles that race once. Anything drawing with
+  `expo-gl` stops drawing when its view goes, not when its own state says so.
 - **A preference kept in `expo-secure-store` outlives the app that wrote it.** On iOS
   that store is the Keychain, and a Keychain item survives the application being
   deleted — so uninstalling and reinstalling hands back a value written by a copy of

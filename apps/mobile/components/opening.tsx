@@ -15,6 +15,7 @@ import Animated, {
 import { useSay } from '@/lib/language'
 import { usePreferences } from '@/lib/preferences'
 import { SPLASH_SPHERE_WIDTH, SPLASH_STAGE_WIDTH } from '@/lib/splash/geometry'
+import { createHandover } from '@/lib/splash/handover'
 import { createScene, type SplashScene } from '@/lib/splash/scene'
 import { animationEnd, exitDuration, pose, type OpeningVersion } from '@/lib/splash/timeline'
 import { useTheme } from '@/lib/theme'
@@ -72,6 +73,8 @@ export function Opening({ ready, onDone }: { ready: boolean; onDone: () => void 
 
   const [ended, setEnded] = useState(version === 'still')
   const [drawing, setDrawing] = useState(false)
+  // The first frame and the deadline race; this settles it once (see `handover.ts`).
+  const [handover] = useState(createHandover)
 
   // The icon is on screen: the system's copy can go, and the 3D view has its deadline.
   const iconShown = useRef(false)
@@ -82,9 +85,11 @@ export function Opening({ ready, onDone }: { ready: boolean; onDone: () => void 
   }, [])
   useEffect(() => {
     if (version === 'still' || drawing) return
-    const deadline = setTimeout(() => setEnded(true), FIRST_FRAME_DEADLINE)
+    const deadline = setTimeout(() => {
+      if (handover.abandon()) setEnded(true)
+    }, FIRST_FRAME_DEADLINE)
     return () => clearTimeout(deadline)
-  }, [version, drawing])
+  }, [version, drawing, handover])
 
   // Leave once the animation has ended and the app is ready — whichever is later.
   const leaving = useSharedValue(0)
@@ -115,6 +120,8 @@ export function Opening({ ready, onDone }: { ready: boolean; onDone: () => void 
 
   const onContextCreate = useCallback(
     (gl: ExpoWebGLRenderingContext) => {
+      // Too late: the view is going, and this context with it.
+      if (handover.abandoned) return
       try {
         scene.current = createScene(gl, stage)
       } catch {
@@ -131,6 +138,7 @@ export function Opening({ ready, onDone }: { ready: boolean; onDone: () => void 
        */
       let start: number | null = null
       const draw = () => {
+        if (start === null && !handover.draw()) return
         const t = start === null ? 0 : performance.now() - start
         scene.current?.draw(pose(version, Math.min(t, end)), ground)
         if (start === null) {
@@ -147,7 +155,7 @@ export function Opening({ ready, onDone }: { ready: boolean; onDone: () => void 
       }
       frame.current = requestAnimationFrame(draw)
     },
-    [stage, version, ground, markOpeningPlayed],
+    [stage, version, ground, markOpeningPlayed, handover],
   )
 
   return (
