@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet, sheetHeight } from '@/components/sheet'
+import { Sheet, sheetHeight, useSheetHeight } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -76,7 +76,7 @@ export function PeopleSheet({
   const say = useSay()
   const online = useOnline()
   const insets = useSafeAreaInsets()
-  const height = sheetHeight(useWindowDimensions().height)
+  const { height, typing } = useSheetHeight(sheetHeight(useWindowDimensions().height), open)
 
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -155,7 +155,8 @@ export function PeopleSheet({
                 // A definite height, so the `ScrollView` inside has something to
                 // resolve against — see `AGENTS.md` on content-sized containers.
                 height,
-                paddingBottom: SPACE.md + insets.bottom,
+                // The keyboard covers the home indicator while it is up.
+                paddingBottom: SPACE.md + (typing ? 0 : insets.bottom),
               },
             ]}
           >
