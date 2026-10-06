@@ -9,6 +9,7 @@ import {
   routeFeature,
   routeLayers,
   TRAVEL_MODES,
+  walkedBearing,
   walkingMinutes,
 } from './route'
 
@@ -142,5 +143,34 @@ describe('bearingDifference', () => {
     expect(bearingDifference(10, 350)).toBe(20)
     expect(bearingDifference(90, 270)).toBe(180)
     expect(bearingDifference(45, 45)).toBe(0)
+  })
+})
+
+describe('walkedBearing', () => {
+  const here = { lng: 135.77, lat: 35.0 }
+  const east = (m: number) => ({ lng: here.lng + m / (111_320 * Math.cos((35 * Math.PI) / 180)), lat: here.lat })
+  const north = (m: number) => ({ lng: here.lng, lat: here.lat + m / 111_320 })
+
+  it('reads a walk east as 90 and a walk north as 0', () => {
+    expect(walkedBearing(here, east(20), 5)).toBeCloseTo(90, 5)
+    expect(walkedBearing(here, north(20), 5)).toBeCloseTo(0, 5)
+  })
+
+  it('reads a walk south-west as 225', () => {
+    const to = { lng: east(-20).lng, lat: north(-20).lat }
+    expect(walkedBearing(here, to, null)).toBeCloseTo(225, 3)
+  })
+
+  it('cannot tell from less than fifteen metres', () => {
+    expect(walkedBearing(here, east(10), 5)).toBeNull()
+  })
+
+  it('cannot tell from less than the position is uncertain by', () => {
+    expect(walkedBearing(here, east(25), 30)).toBeNull()
+    expect(walkedBearing(here, east(35), 30)).toBeCloseTo(90, 5)
+  })
+
+  it('cannot tell from the same point', () => {
+    expect(walkedBearing(here, here, null, 0)).toBeNull()
   })
 })

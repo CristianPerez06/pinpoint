@@ -134,6 +134,8 @@ export {
   routeLayers,
   TRAVEL_MODES,
   TURN_THRESHOLD_DEG,
+  walkedBearing,
+  WALKED_M,
   walkingMinutes,
   WALKING_KMH,
 } from './route'

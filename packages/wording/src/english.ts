@@ -638,6 +638,12 @@ export const ENGLISH = {
   'map.reread': 'Read everything again',
   /** The control on the map's edge that moves the map to the person (`device-location`). */
   'map.whereAmI': 'Show where you are',
+  /** Follow me's name while it is off: pressing it makes the map follow the person (`follow-me`). */
+  'map.followMe': 'Follow me as I walk',
+  /** Follow me's name while it is on. */
+  'map.followMeOff': 'Stop following me',
+  /** The phone's note after Follow me was pressed with location refused; pressing it opens settings. */
+  'map.followMeLocationOff': 'Follow me needs your location. Turn it on in Settings.',
   /** The phone's note after location was refused; pressing it opens the app's settings. */
   'map.locationOff': "Pinpoint can't see your location. Turn it on in Settings.",
   /** The laptop's note after location was refused: a site cannot open the browser's settings. */

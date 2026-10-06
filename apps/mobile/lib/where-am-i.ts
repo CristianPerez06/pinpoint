@@ -12,9 +12,12 @@ export interface WhereAmI {
   fix: Fix | null
   /**
    * One press. Resolves with the position found, or `null`, so the caller can
-   * move the camera — which is the map's to do, not this hook's.
+   * move the camera — which is the map's to do, not this hook's. `'followMe'`
+   * when Follow me asked, so a refusal can say what it stopped (`follow-me`).
    */
-  locate: () => Promise<Fix | null>
+  locate: (askedBy?: 'followMe') => Promise<Fix | null>
+  /** Whether the last press was Follow me's. */
+  askedBy: 'followMe' | null
   /** Clears a refused or not-found status, for dismissing its note. */
   dismiss: () => void
   /**
@@ -55,6 +58,7 @@ export function useWhereAmI(): WhereAmI {
   const [status, setStatus] = useState<WhereAmIStatus>('idle')
   const [fix, setFix] = useState<Fix | null>(null)
   const [permission, setPermission] = useState<LocationPermission>('unknown')
+  const [askedBy, setAskedBy] = useState<'followMe' | null>(null)
 
   /** Whether a position has been found this session, so a return resumes the watch. */
   const following = useRef(false)
@@ -121,11 +125,12 @@ export function useWhereAmI(): WhereAmI {
     if (following.current) void startWatching()
   })
 
-  const press = useCallback(async () => {
+  const press = useCallback(async (by?: 'followMe') => {
     // One attempt at a time: the control is busy, and a second press while it
     // is would start a second wait that could land after the first.
     if (finding.current) return null
     finding.current = true
+    setAskedBy(by ?? null)
     setStatus('finding')
 
     const outcome = await locate({
@@ -149,5 +154,5 @@ export function useWhereAmI(): WhereAmI {
     setStatus((current) => (current === 'refused' || current === 'notFound' ? 'idle' : current))
   }, [])
 
-  return { status, fix, locate: press, dismiss, permission }
+  return { status, fix, locate: press, askedBy, dismiss, permission }
 }

@@ -864,6 +864,7 @@ export function TripWorkspace({
           : { kind: 'none' }
 
     setPanel({ kind: 'none' })
+    mapRef.current?.endFollowMe()
     setSight({ kind: 'adjusting', panel: returning })
   }
 
@@ -1513,6 +1514,7 @@ export function TripWorkspace({
               onDrop: online
                 ? () => {
                     cancelPanel()
+                    mapRef.current?.endFollowMe()
                     setSight({ kind: 'new' })
                   }
                 : null,
@@ -1659,6 +1661,8 @@ function Body({
    * note appears.
    */
   const [somethingToLookAt, setSomethingToLookAt] = useState(true)
+  /** Follow me is on: the notes over the map leave its controls the top right (`follow-me`). */
+  const [followMe, setFollowMe] = useState(false)
   /**
    * A refused or missing position, said where every note over this map is
    * said. While it stands the notes about the trip's places step aside: it
@@ -1675,10 +1679,10 @@ function Body({
           void Linking.openSettings()
         }}
       >
-        {say(message('map.locationOff'))}
+        {say(message(whereAmI.askedBy === 'followMe' ? 'map.followMeLocationOff' : 'map.locationOff'))}
       </MarkersOverlayNote>
     ) : whereAmI.status === 'notFound' ? (
-      <MarkersOverlayNote onPress={whereAmI.dismiss}>
+      <MarkersOverlayNote onPress={whereAmI.dismiss} besideControls={followMe}>
         {say(message('map.locationNotFound'))}
       </MarkersOverlayNote>
     ) : null
@@ -1720,16 +1724,19 @@ function Body({
         onWithdrawInterest={onWithdrawInterest}
         onSetVisited={onSetVisited}
         onFollowingChange={onFollowingChange}
+        onFollowMeChange={setFollowMe}
       />
 
       {locationNote}
 
       {locationNote === null && !following && total === 0 ? (
-        <MarkersOverlayNote>{say(message('map.noPlacesYet'))}</MarkersOverlayNote>
+        <MarkersOverlayNote besideControls={followMe}>
+          {say(message('map.noPlacesYet'))}
+        </MarkersOverlayNote>
       ) : null}
 
       {locationNote === null && !following && total > 0 && visible.length === 0 ? (
-        <MarkersOverlayNote onPress={onClearFilter}>
+        <MarkersOverlayNote onPress={onClearFilter} besideControls={followMe}>
           {say(message('map.noMatchesTap', { count: total }))}
         </MarkersOverlayNote>
       ) : null}
@@ -1755,7 +1762,7 @@ function Body({
         needs no places at all.
       */}
       {locationNote === null && !following && narrowed && visible.length > 0 && !somethingToLookAt ? (
-        <MarkersOverlayNote onPress={onShowMatches}>
+        <MarkersOverlayNote onPress={onShowMatches} besideControls={followMe}>
           {say(message('map.matchesOutOfViewTap', { count: visible.length }))}
         </MarkersOverlayNote>
       ) : null}

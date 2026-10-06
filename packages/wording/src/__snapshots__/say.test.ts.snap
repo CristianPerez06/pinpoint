@@ -739,6 +739,12 @@ map.reread
   Read everything again
 map.whereAmI
   Show where you are
+map.followMe
+  Follow me as I walk
+map.followMeOff
+  Stop following me
+map.followMeLocationOff
+  Follow me needs your location. Turn it on in Settings.
 map.locationOff
   Pinpoint can't see your location. Turn it on in Settings.
 map.locationBlocked
@@ -1934,6 +1940,12 @@ map.reread
   Volver a leer todo
 map.whereAmI
   Mostrar la ubicación actual
+map.followMe
+  Seguir la ubicación al caminar
+map.followMeOff
+  Dejar de seguir la ubicación
+map.followMeLocationOff
+  Seguir la ubicación requiere acceso a ella. Activarla en Ajustes.
 map.locationOff
   Pinpoint no tiene acceso a la ubicación. Activarla en Ajustes.
 map.locationBlocked
