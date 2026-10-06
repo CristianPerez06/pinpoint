@@ -20,7 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { FieldLabel } from '@/components/ui'
-import { Sheet } from '@/components/sheet'
+import { Sheet, useSheetHeight } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { fieldRole, role } from '@/lib/type'
@@ -138,7 +138,7 @@ function CurrencyPicker({
 }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  const height = Math.round(useWindowDimensions().height * SHEET_HEIGHT)
+  const { height, typing } = useSheetHeight(Math.round(useWindowDimensions().height * SHEET_HEIGHT), open)
   const language = useLanguage()
   const say = useSay()
   const [query, setQuery] = useState('')
@@ -162,7 +162,8 @@ function CurrencyPicker({
                 height,
                 backgroundColor: theme.colour.surface,
                 borderColor: theme.colour.line,
-                paddingBottom: SPACE.md + insets.bottom,
+                // The keyboard covers the home indicator while it is up.
+                paddingBottom: SPACE.md + (typing ? 0 : insets.bottom),
               },
             ]}
           >

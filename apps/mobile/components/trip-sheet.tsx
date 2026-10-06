@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CreateTripForm } from '@/components/trip-setup'
 import { Button, DayField, FormNote, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet, sheetHeight } from '@/components/sheet'
+import { Sheet, sheetHeight, useSheetHeight } from '@/components/sheet'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -142,7 +142,7 @@ export function TripSheet({
   /** A row that changes the trip, with no connection: half opacity, as `Button` draws one. */
   const offlineDim = online ? null : { opacity: 0.5 }
   const insets = useSafeAreaInsets()
-  const height = sheetHeight(useWindowDimensions().height)
+  const { height, typing } = useSheetHeight(sheetHeight(useWindowDimensions().height), open)
 
   const [renaming, setRenaming] = useState(false)
   const [dating, setDating] = useState(false)
@@ -214,7 +214,8 @@ export function TripSheet({
                 // A definite height, so the `ScrollView` inside has something to
                 // resolve against rather than asking a parent that sizes to it.
                 height,
-                paddingBottom: SPACE.md + insets.bottom,
+                // The keyboard covers the home indicator while it is up.
+                paddingBottom: SPACE.md + (typing ? 0 : insets.bottom),
               },
             ]}
           >

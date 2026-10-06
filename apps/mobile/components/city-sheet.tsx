@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CurrencyField } from '@/components/currency-field'
 import { Button, FormNote, Question, TextField } from '@/components/ui'
 import { NeedsConnection } from '@/components/needs-connection'
-import { Sheet, sheetHeight } from '@/components/sheet'
+import { Sheet, sheetHeight, useSheetHeight } from '@/components/sheet'
 import { useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
 import { usePending } from '@/lib/use-pending'
@@ -111,7 +111,7 @@ export function CitySheet({
   const say = useSay()
   const online = useOnline()
   const insets = useSafeAreaInsets()
-  const height = sheetHeight(useWindowDimensions().height)
+  const { height, typing } = useSheetHeight(sheetHeight(useWindowDimensions().height), open)
 
   const [editing, setEditing] = useState<string | null>(null)
   /** Whether the creator is open. Never open beside an editor. */
@@ -172,7 +172,8 @@ export function CitySheet({
                 // reports almost nothing to a scroller and clips everything past
                 // the first row — see `AGENTS.md`.
                 height,
-                paddingBottom: SPACE.md + insets.bottom,
+                // The keyboard covers the home indicator while it is up.
+                paddingBottom: SPACE.md + (typing ? 0 : insets.bottom),
               },
             ]}
           >

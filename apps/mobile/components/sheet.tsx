@@ -1,13 +1,24 @@
+import { SPACE } from '@pinpoint/tokens'
 import { type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
-import { Modal, StyleSheet, useWindowDimensions } from 'react-native'
+import {
+  Keyboard,
+  type KeyboardEvent,
+  LayoutAnimation,
+  Modal,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native'
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { FLOAT_DISTANCE, SURFACE_TIMING } from '@/lib/motion'
+import { sheetHeightAbove } from '@/lib/sheet-height'
 import { useTheme } from '@/lib/theme'
 
 /**
@@ -29,6 +40,90 @@ export const SHEET_HEIGHT = 0.5
 /** `SHEET_HEIGHT` of a window, in pixels. */
 export function sheetHeight(windowHeight: number): number {
   return Math.round(windowHeight * SHEET_HEIGHT)
+}
+
+/** The keyboard as a sheet needs to know it: how tall, and how long it takes to get there. */
+export type KeyboardState = {
+  /** Its height, or 0 while it is down. */
+  height: number
+  /** Its top edge, from the top of the window, or null while it is down. */
+  top: number | null
+  /** How long its own animation runs, in milliseconds. 0 where the platform does not say. */
+  duration: number
+}
+
+/**
+ * The keyboard's height, followed as it comes and goes.
+ *
+ * iOS announces the keyboard before it moves, so a sheet can move with it;
+ * Android sends only the events after, and no duration. Subscribed whether or
+ * not the sheet is open, so a sheet opened over a keyboard already up starts
+ * from the truth rather than from the last thing it heard.
+ *
+ * `animateLayout` configures the next layout change to run on the keyboard's
+ * own timing — the call `KeyboardAvoidingView` makes for its padding, so the
+ * sheet's height and its lift land in one animation. Only for an open sheet:
+ * the configuration is global to the next commit, and a closed sheet setting it
+ * would animate whatever else that keyboard was raised for.
+ */
+export function useKeyboard(animateLayout = false): KeyboardState {
+  const [keyboard, setKeyboard] = useState<KeyboardState>(() => {
+    const metrics = Keyboard.isVisible() ? Keyboard.metrics() : undefined
+    return { height: metrics?.height ?? 0, top: metrics?.screenY ?? null, duration: 0 }
+  })
+
+  useEffect(() => {
+    const ios = Platform.OS === 'ios'
+    const follow = (shown: boolean) => (event: KeyboardEvent) => {
+      const duration = event.duration ?? 0
+      if (animateLayout && duration > 0) {
+        LayoutAnimation.configureNext({
+          duration,
+          update: { duration, type: LayoutAnimation.Types.keyboard },
+        })
+      }
+      setKeyboard(
+        shown
+          ? { height: event.endCoordinates.height, top: event.endCoordinates.screenY, duration }
+          : { height: 0, top: null, duration },
+      )
+    }
+    const up = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', follow(true))
+    const down = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', follow(false))
+    return () => {
+      up.remove()
+      down.remove()
+    }
+  }, [animateLayout])
+
+  return keyboard
+}
+
+/**
+ * How tall a sheet stands right now: `resting`, or the room above the keyboard
+ * while it is up (`lib/sheet-height.ts`).
+ *
+ * `typing` says which, for the surface's bottom padding: the keyboard covers the
+ * home indicator, so the inset kept clear of it is room given back.
+ *
+ * Still a definite number either way, so the `ScrollView` inside keeps a height
+ * to fill (`AGENTS.md`).
+ */
+export function useSheetHeight(
+  resting: number,
+  open: boolean,
+): { height: number; typing: boolean } {
+  const keyboard = useKeyboard(open)
+  const insets = useSafeAreaInsets()
+  return {
+    height: sheetHeightAbove({
+      resting,
+      keyboardTop: keyboard.top,
+      topInset: insets.top,
+      gap: SPACE.lg,
+    }),
+    typing: keyboard.top !== null,
+  }
 }
 
 /**

@@ -11,12 +11,13 @@ import {
   UNFILED_CITY_WORDING,
 } from '@pinpoint/core'
 import { MARKER_TYPES } from '@pinpoint/map'
-import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
+import { EASING, RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message, type Message } from '@pinpoint/wording'
-import { type RefObject, useCallback, useEffect, useMemo, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
-  KeyboardAvoidingView,
+  Easing,
+  Keyboard,
   PanResponder,
   Pressable,
   ScrollView,
@@ -32,6 +33,7 @@ import { CurrencyField } from '@/components/currency-field'
 import { HoursField } from '@/components/hours-field'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
 import { NeedsConnection } from '@/components/needs-connection'
+import { useKeyboard } from '@/components/sheet'
 import {
   Button,
   DayField,
@@ -47,6 +49,7 @@ import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useOnline } from '@/lib/connectivity'
 import { SCRIM_ENTERING, SCRIM_EXITING } from '@/lib/motion'
+import { sheetHeightAbove } from '@/lib/sheet-height'
 
 /**
  * The one form places are saved and edited through, on a phone.
@@ -405,6 +408,81 @@ export function MarkerFormSheet({
     [heights, height, onHeight],
   )
 
+  /*
+    Over the keyboard, the room above it; under it, the detent it was resting at
+    (`workspace-chrome`, *A panel raised on a phone-shaped screen rises from the
+    edge*).
+
+    `onHeight` is deliberately not told about the grown height. The map re-frames
+    the place whenever that number changes, and with the keyboard up there is
+    nothing left of the map to frame it in — it would only jump behind the sheet
+    because somebody started typing. The detent is not changed either, so the
+    keyboard going down returns the sheet to wherever it was put.
+  */
+  const keyboard = useKeyboard()
+
+  /*
+    Where the bottom of the space the form stands in is, on the screen.
+
+    The form lifts itself rather than through a `KeyboardAvoidingView`. That
+    view works out how far the keyboard overlaps it from its own layout, which
+    is relative to its parent, against the keyboard's position, which is
+    relative to the screen — so standing below the trip header, it under-lifted
+    by the header's height and left `Save place` under the keyboard. Measured in
+    the window, both are the same kind of number.
+  */
+  const host = useRef<View>(null)
+  const [hostFrame, setHostFrame] = useState<{ top: number; bottom: number } | null>(null)
+  const measureHost = useCallback(() => {
+    host.current?.measureInWindow((_x, y, _width, hostHeight) =>
+      setHostFrame({ top: y, bottom: y + hostHeight }),
+    )
+  }, [])
+  const overlap =
+    keyboard.top === null || hostFrame === null
+      ? 0
+      : Math.max(0, hostFrame.bottom - keyboard.top)
+  const [lift] = useState(() => new Animated.Value(0))
+
+  const grown =
+    keyboard.top !== null
+      ? sheetHeightAbove({
+          resting: heights[detent]!,
+          keyboardTop: keyboard.top,
+          // The form is drawn under the trip header, not over it, so the room
+          // starts where its own space does.
+          topInset: Math.max(insets.top, hostFrame?.top ?? 0),
+          gap: SPACE.lg,
+        })
+      : null
+
+  useEffect(() => {
+    // The lift follows the keyboard both ways, on its clock.
+    Animated.timing(lift, {
+      toValue: overlap,
+      duration: keyboard.duration > 0 ? keyboard.duration : 200,
+      easing: Easing.bezier(...EASING.settle),
+      useNativeDriver: false,
+    }).start()
+    if (grown === null) {
+      Animated.spring(height, {
+        toValue: heights[detent]!,
+        useNativeDriver: false,
+        bounciness: 2,
+        speed: 14,
+      }).start()
+      return
+    }
+    // On the keyboard's own clock where the platform gives one, so the sheet
+    // rises with it rather than after it. Android gives none.
+    Animated.timing(height, {
+      toValue: grown,
+      duration: keyboard.duration > 0 ? keyboard.duration : 200,
+      easing: Easing.bezier(...EASING.settle),
+      useNativeDriver: false,
+    }).start()
+  }, [grown, overlap, keyboard.duration, heights, detent, height, lift])
+
   /**
    * The grabber, and only the grabber.
    *
@@ -422,6 +500,9 @@ export function MarkerFormSheet({
 
     return PanResponder.create({
       onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dy) > 4,
+      // A sheet over the keyboard is held at the room above it, so a drag would
+      // resize nothing. Reaching for the handle puts the keyboard away first.
+      onPanResponderGrant: () => Keyboard.dismiss(),
       onPanResponderMove: (_event, gesture) => {
         // Clamped to the two ends, so dragging past either stops rather than
         // stretching the sheet to a height it can never rest at.
@@ -518,13 +599,11 @@ export function MarkerFormSheet({
           />
         </Reanimated.View>
       ) : null}
-      <KeyboardAvoidingView
-        // Height on Android, padding on iOS: the two platforms report the keyboard
-        // differently and the wrong one leaves the save action under it.
-        // Padding on both platforms. `height` used to be the Android value here;
-        // `padding` is what the rest of the app now uses, measured rather than
-        // assumed — see the sheets.
-        behavior="padding"
+      <View
+        // Measured so the form can lift itself by exactly the keyboard's overlap
+        // (see `hostFrame`).
+        ref={host}
+        onLayout={measureHost}
         /*
           Fills the map and passes touches through everywhere it is not the sheet.
 
@@ -543,6 +622,7 @@ export function MarkerFormSheet({
             styles.sheet,
             {
               height,
+              marginBottom: lift,
               backgroundColor: theme.colour.ground,
               borderColor: theme.colour.line,
               shadowColor: theme.elevation.lg.colour,
@@ -981,7 +1061,8 @@ export function MarkerFormSheet({
                 // The asymmetry against `paddingTop` is intended: the top of this
                 // bar is a rule against scrolling content, the bottom is the end
                 // of the screen.
-                paddingBottom: SPACE.md + insets.bottom,
+                // The keyboard covers the home indicator while it is up.
+                paddingBottom: SPACE.md + (grown === null ? insets.bottom : 0),
               },
             ]}
           >
@@ -1026,7 +1107,7 @@ export function MarkerFormSheet({
             )}
           </View>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
     </>
   )
 }
@@ -1078,12 +1159,21 @@ const styles = StyleSheet.create({
    * the thing being dragged. Rounded only at the top: the bottom is the screen
    * edge and a radius there would show the map through the corners.
    */
-  keyboardHost: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  sheet: {
+  /*
+    Stands the sheet on its bottom edge by flex rather than by `bottom: 0`, so
+    the margin it lifts itself by over the keyboard moves it. An absolutely
+    positioned sheet stayed on the bottom of the screen with the keyboard drawn
+    over its lower half, `Save place` included.
+  */
+  keyboardHost: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,

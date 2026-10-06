@@ -585,12 +585,26 @@ open.
 
 Where the chrome takes its phone shape, in either application, Filter, Nearby, the
 trips, the cities, the people and a place's details SHALL each stand at half the height
-of the screen, whatever they hold. Contents taller than that SHALL scroll inside the
-panel; contents shorter than that SHALL NOT shrink it. The menu, the map's credits and
-the form saving a place are not among them.
+of the screen, whatever they hold, except while the keyboard is up (below). Contents
+taller than that SHALL scroll inside the panel; contents shorter than that SHALL NOT
+shrink it. The menu, the map's credits and the form saving a place are not among them.
 
 A panel opened from inside another SHALL open: the first closes and the second rises in
 its place, never the first closing and nothing following it.
+
+In the phone application, while the keyboard is up for a field inside a panel, that
+panel SHALL stand on the keyboard and fill the room above it, short of a gap at the top
+that leaves it reading as a panel over the screen rather than a screen of its own. This
+holds for every panel with a field in it, the form saving a place included, whatever
+height it was standing at. When the keyboard goes down the panel SHALL return to the
+height it stood at before it grew. Growing SHALL NOT change which height the form saving
+a place returns to.
+
+Rationale: the half that the height rule keeps for the map is behind the keyboard while
+it is up, so holding the panel at half the screen buys nothing and leaves the person
+typing into a third of the screen — on the smallest phone, about the height of four
+rows. Returning afterwards keeps the rule's promise that the panel is the same height
+every time it is looked at.
 
 Rationale: these panels chose their own heights — up to 85% of the screen for the trips,
 and growing with what they held — so a long list left a sliver of map, and the same
@@ -615,7 +629,8 @@ position. A panel that **describes something drawn on the map** — a selected p
 the form saving one — SHALL NOT set the rest of the screen back, and SHALL leave enough
 of the map visible for the thing it describes to be read against its surroundings. Such
 a panel SHALL report the height it occupies, so that the camera can keep that thing out
-from under it.
+from under it. A panel grown over the keyboard SHALL go on reporting the height it stood
+at before it grew, so the map behind it does not move because the person started typing.
 
 Rationale: the two kinds are not a stylistic split. A filter is a decision made and put
 away, and setting the map back is what says the map is waiting for it. A selected
@@ -686,6 +701,36 @@ follows and the reason its marker sheet is built differently from its filter she
 
 - **WHEN** a panel covering the bar of tools is dismissed
 - **THEN** every tool it covered is reachable again without further interaction
+
+#### Scenario: Typing into a panel on the phone
+
+- **WHEN** the cities, the people, the trips, or a currency being chosen is open in the
+  phone application
+- **AND** the person presses into one of its fields and the keyboard comes up
+- **THEN** the panel stands on the keyboard and fills the room above it, short of a gap
+  at the top
+- **AND** the field being typed into is visible above the keyboard
+
+#### Scenario: The keyboard goes down
+
+- **WHEN** a panel has grown over the keyboard
+- **AND** the keyboard goes down, whether dismissed or because the field was left
+- **THEN** the panel returns to half the height of the screen
+
+#### Scenario: Typing into the form saving a place
+
+- **WHEN** the form saving a place is resting at its lower height on the phone
+- **AND** the person presses into its name and the keyboard comes up
+- **THEN** the form fills the room above the keyboard, short of a gap at the top
+- **AND** the map behind it does not move
+- **AND** when the keyboard goes down the form returns to its lower height
+
+#### Scenario: The smallest phone
+
+- **WHEN** the people panel is open on a phone the size of an iPhone SE
+- **AND** the person presses into the email field
+- **THEN** the field, the panel's title and the action that sends the invitation are all
+  visible above the keyboard
 
 ### Requirement: Dismissal and focus are the same contract in both shapes
 
