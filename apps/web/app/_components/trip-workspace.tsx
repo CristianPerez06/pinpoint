@@ -945,6 +945,7 @@ export function TripWorkspace({
         onCalculate: () => void calculateRoute(openMarker.id),
         onClear: () => setRoute(null),
         onChooseMode: chooseTravelMode,
+        to: { lng: openMarker.lng, lat: openMarker.lat },
       }
     : undefined
 

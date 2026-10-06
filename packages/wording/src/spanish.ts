@@ -180,7 +180,6 @@ export const SPANISH: Catalogue = {
   'markerType.stay': 'Alojamiento',
   'markerType.transport': 'Transporte',
 
-
   // ── Words used across the product ─────────────────────────────────────────
 
   'app.name': 'pinpoint',
@@ -682,16 +681,33 @@ export const SPANISH: Catalogue = {
   'route.needsConnection': 'La bici y el auto requieren conexión.',
   'route.switchedToWalk': 'Sin conexión, se muestra a pie. La bici y el auto requieren conexión.',
 
-  'trial.follow.noDestination': 'Abrir esta pantalla con ?to=lng,lat.',
-  'trial.follow.finding': 'Buscando la ruta…',
-  'trial.follow.none': 'No se encontró una ruta.',
-  'trial.follow.toTurn': (v) => `En ${v.distance}`,
-  'trial.follow.offRoute': 'Fuera de la ruta. Buscando otra…',
-  'trial.follow.start': 'Iniciar',
-  'trial.follow.stop': 'Detener',
-  'trial.follow.simulate': 'Simular',
-  'trial.follow.real': 'Posición real',
-  'trial.follow.leave': 'Salir de la ruta',
+  'route.openIn': 'Abrir en…',
+  'route.openInNamed': (v) => `Abrir la ruta a ${v.name} en otra app`,
+  'route.openInGoogle': 'Abrir en Google Maps',
+  'route.openInGoogleNamed': (v) => `Abrir la ruta a ${v.name} en Google Maps`,
+
+  'handoff.title': (v) => `Abrir el camino a ${v.name} en`,
+  'handoff.google': 'Google Maps',
+  'handoff.apple': 'Mapas de Apple',
+  'handoff.other': 'Otra app de mapas',
+
+  'follow.start': 'Iniciar',
+  'follow.startNamed': (v) => `Iniciar el recorrido a ${v.name}`,
+  'follow.starting': 'Iniciando…',
+  'follow.cannotStart': 'No se pudo iniciar el recorrido. Volver a intentar.',
+  'follow.nextTurnSpoken': (v) => `En ${v.distance}: ${v.instruction}`,
+  'follow.minutes': (v) => `${v.minutes} min`,
+  'follow.hours': (v) => `${v.hours} h`,
+  'follow.hoursMinutes': (v) => `${v.hours} h ${v.minutes} min`,
+  'follow.left': (v) => `${v.time} · quedan ${v.distance}`,
+  'follow.arrive': (v) => `Llegada ${v.time}`,
+  'follow.offRoute': 'Fuera de la ruta. Buscando otra…',
+  'follow.offRouteNone': 'Fuera de la ruta. Todavía no se encontró otra.',
+  'follow.arrived': (v) => `Llegada a ${v.name}`,
+  'follow.stop': 'Detener',
+  'follow.stopNamed': (v) => `Detener el recorrido a ${v.name}`,
+  'follow.recentre': 'Volver a la ubicación',
+  'follow.northUp': 'Poner el norte arriba',
 
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',

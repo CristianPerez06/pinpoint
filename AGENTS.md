@@ -410,7 +410,11 @@ placeholders.
   **Learn the shape of this one**: the failure appears in code the change did not touch,
   and every check of the code it did touch passes. A route that needs something heavy
   keeps it in another module and loads it with `lazy(() => import(…))`, as
-  `app/dev/follow.tsx` does.
+  `components/trip-map.tsx` loads following; `eslint.config.js` refuses `@stadiamaps/*`
+  anywhere but `components/following/`. The cause inside Ferrostar is still unknown: on
+  an Android development build, importing it eagerly from the map's screen file did
+  *not* reload the app over several rounds of *Calculate route* (#279), so if it comes
+  back, look on iOS first.
 - **An `expo-gl` context outlives its view in JavaScript, and a dead one answers
   `undefined` to everything.** Once the `GLView` is unmounted its native context is
   destroyed, but the `gl` object and any frame already queued on it carry on — and

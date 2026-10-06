@@ -145,3 +145,84 @@ export function routeLayers(mode: ThemeMode, form: RouteForm = 'straight'): Rout
     },
   ]
 }
+
+/** How far ahead along the route the way ahead is read (`route-following`). */
+export const LOOK_AHEAD_M = 40
+
+/** A turn of the way ahead smaller than this does not turn the map. */
+export const TURN_THRESHOLD_DEG = 15
+
+/**
+ * Which way the route runs from the person, as a compass bearing in degrees
+ * clockwise from north: from the point of the line nearest them to the point
+ * `metres` further along it (`route-following`, *Following shows the map around
+ * the person*).
+ *
+ * Read along the route rather than from the phone's compass or the person's
+ * own movement, both of which are noisy at walking speed. A look-ahead rather
+ * than the segment the person is on, because a street route is drawn in short
+ * segments that wiggle; forty metres spans those and still reaches a real
+ * corner soon after it comes into view.
+ *
+ * Null for a line too short to have a direction. Flat-earth arithmetic around
+ * the person, which is exact enough over a few hundred metres.
+ */
+export function bearingAhead(
+  line: readonly LngLat[],
+  here: LngLat,
+  metres: number = LOOK_AHEAD_M,
+): number | null {
+  if (line.length < 2) return null
+  const perDegree = 111_320
+  const across = Math.cos((here.lat * Math.PI) / 180)
+  const points = line.map((p) => ({
+    x: (p.lng - here.lng) * perDegree * across,
+    y: (p.lat - here.lat) * perDegree,
+  }))
+
+  // The point of the line nearest the person, who stands at the origin.
+  let segment = 0
+  let start = points[0]!
+  let nearest = Infinity
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i]!
+    const b = points[i + 1]!
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const length = dx * dx + dy * dy
+    const t = length === 0 ? 0 : Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / length))
+    const p = { x: a.x + dx * t, y: a.y + dy * t }
+    const d = p.x * p.x + p.y * p.y
+    if (d < nearest) {
+      nearest = d
+      segment = i
+      start = p
+    }
+  }
+
+  // Walked along the line from there.
+  let at = start
+  let left = metres
+  for (let i = segment; i < points.length - 1 && left > 0; i++) {
+    const next = points[i + 1]!
+    const step = Math.hypot(next.x - at.x, next.y - at.y)
+    if (step >= left) {
+      at = { x: at.x + ((next.x - at.x) * left) / step, y: at.y + ((next.y - at.y) * left) / step }
+      left = 0
+    } else {
+      at = next
+      left -= step
+    }
+  }
+
+  const dx = at.x - start.x
+  const dy = at.y - start.y
+  if (dx === 0 && dy === 0) return null
+  return ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
+}
+
+/** The smaller angle between two bearings, from 0 to 180 degrees. */
+export function bearingDifference(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360
+  return d > 180 ? 360 - d : d
+}

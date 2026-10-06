@@ -13,6 +13,8 @@ import {
 import { routeFigures, type Marker, type MarkerInterest, type TripMember } from '@pinpoint/core'
 import {
   ATTRIBUTION,
+  bearingAhead,
+  bearingDifference,
   DEFAULT_VIEWPORT,
   distanceKm,
   frameAround,
@@ -27,9 +29,11 @@ import {
   ROUTE_SOURCE,
   routeFeature,
   routeLayers,
+  TURN_THRESHOLD_DEG,
   withinBounds,
   zoomStep,
   type Bounds,
+  type Fix,
   type LngLat,
   type MarkerGroup,
   type TravelMode,
@@ -47,12 +51,16 @@ import { message } from '@pinpoint/wording'
 // does not tree-shake in development, so the package root would pull all 1767
 // glyphs into the bundle.
 import Locate from 'lucide-react-native/icons/locate'
+import LocateFixed from 'lucide-react-native/icons/locate-fixed'
 import Minus from 'lucide-react-native/icons/minus'
+import Navigation2 from 'lucide-react-native/icons/navigation-2'
 import Plus from 'lucide-react-native/icons/plus'
 import RefreshCw from 'lucide-react-native/icons/refresh-cw'
 import {
+  lazy,
   type ReactNode,
   type Ref,
+  Suspense,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -69,12 +77,14 @@ import {
 } from 'react-native'
 
 import { AttributionSheet } from '@/components/attribution-sheet'
+import type { FollowProgress } from '@/components/following/follow-view'
 import {
   type ExtraAction,
   MarkerDetails,
   openingHeight as detailsHeight,
   type Selection,
 } from '@/components/marker-details'
+import { MarkersOverlayNote } from '@/components/overlay-note'
 import { DraftPin, Pin } from '@/components/pin'
 import { ToolBar } from '@/components/workspace-chrome'
 import { useThemedBasemap } from '@/lib/basemap'
@@ -85,6 +95,24 @@ import { usePreferences } from '@/lib/preferences'
 import { useStreetRoute } from '@/lib/street-route'
 import { useTheme, useThemeMode } from '@/lib/theme'
 import type { WhereAmI } from '@/lib/where-am-i'
+
+/**
+ * Following a route, loaded the first time *Start* is pressed and not before
+ * (`route-following`, *Calculating a route never restarts the application*).
+ *
+ * Expo Router evaluates every screen file at launch, and this one with it, so a
+ * plain import here would evaluate Ferrostar — which installs its compiled core
+ * into the JavaScript engine as it does — for everybody who opens the map. With
+ * that import in place in #282, the development build reloaded itself when
+ * *Calculate route* was pressed. `eslint.config.js` refuses Ferrostar anywhere
+ * but `components/following/`, so this is the only way in.
+ */
+const FollowView = lazy(() => import('@/components/following/follow-view'))
+
+/** How close the camera follows the person: near enough to read the streets. */
+const FOLLOW_ZOOM = 16
+/** How long the arrival note stands before going. */
+const ARRIVED_NOTE_MS = 4000
 
 /**
  * The native half of the portability boundary — and the thing the map change
@@ -157,6 +185,15 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
 }
 
 const styles = StyleSheet.create({
+  /** The way back to the person while following: the re-read's shape, on the right edge. */
+  recentre: { position: 'absolute', right: SPACE.md },
+  /** The compass while following: the same shape, under the turn card. */
+  compass: { position: 'absolute', right: SPACE.md },
+  /**
+   * Fills the map so the note inside, which places itself from its parent's
+   * top, has a parent with a top to place itself from (AGENTS.md).
+   */
+  arrived: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   fill: { flex: 1 },
   /*
    * The map's own area, and the edge anything it draws is cut off at.
@@ -530,7 +567,13 @@ export function TripMap({
   centreRef,
   onSomethingToLookAt,
   whereAmI,
+  onFollowingChange,
 }: {
+  /**
+   * A route is now being followed, or no longer is. The workspace takes its
+   * header and its notes away while it is (`route-following`).
+   */
+  onFollowingChange?: (following: boolean) => void
   ref?: Ref<TripMapRef>
   /**
    * The person's position and the press that finds it (`device-location`).
@@ -1120,6 +1163,9 @@ export function TripMap({
     cameraRef.current?.flyTo({
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
+      // North up, which every framing assumes — and back to it after following
+      // has turned the map.
+      bearing: 0,
     })
   }
 
@@ -1165,6 +1211,121 @@ export function TripMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streetLine])
 
+  /**
+   * The route being followed (`route-following`).
+   *
+   * Set when *Start* is pressed, which mounts the following view and asks for
+   * the route with its turns; `started` once it comes back, which is when the
+   * place's details close and the map becomes the following screen. Until then
+   * the card stays as it was, saying it is starting.
+   */
+  const [follow, setFollow] = useState<{
+    place: Marker
+    mode: TravelMode
+    from: Fix
+    started: boolean
+  } | null>(null)
+  const following = follow?.started === true
+  /** The place whose *Start* last came back with no route. */
+  const [startFailed, setStartFailed] = useState<string | null>(null)
+  /** The line Ferrostar is following, which a new route replaces. */
+  const [followLine, setFollowLine] = useState<LngLat[] | null>(null)
+  /** The person moved the map by hand, so the camera has stopped following them. */
+  const [lookingAround, setLookingAround] = useState(false)
+  /** How much of the screen the turn card and the bar cover, for the camera. */
+  const followCovered = useRef({ top: 0, bottom: 0 })
+  const [followBarHeight, setFollowBarHeight] = useState(0)
+  const [followCardBottom, setFollowCardBottom] = useState(0)
+  /**
+   * Which way the map is turned while following: the way ahead, changed only
+   * when it turns by more than the threshold, so the map turns at corners and
+   * holds still between them. A ref for the camera, which reads it on every
+   * position; state for the compass, which draws it.
+   */
+  const followBearing = useRef(0)
+  const [shownBearing, setShownBearing] = useState(0)
+  /** The compass was pressed: north stays at the top for the rest of this trip. */
+  const [northUp, setNorthUp] = useState(false)
+  /** Where Ferrostar last placed the person, for the camera and the way back to them. */
+  const followHere = useRef<LngLat | null>(null)
+  /** The place just arrived at, named in the note for a few seconds. */
+  const [arrivedAt, setArrivedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    onFollowingChange?.(following)
+  }, [following, onFollowingChange])
+
+  useEffect(() => {
+    if (arrivedAt === null) return
+    const done = setTimeout(() => setArrivedAt(null), ARRIVED_NOTE_MS)
+    return () => clearTimeout(done)
+  }, [arrivedAt])
+
+  /**
+   * Keeps the person in the middle of what the card and the bar leave visible,
+   * with the map turned to `bearing`.
+   */
+  const followCamera = (here: LngLat, bearing: number) => {
+    const { top, bottom } = followCovered.current
+    // By the shared derivation — never camera padding (AGENTS.md) — and turned
+    // with the map, since "down the screen" is no longer south.
+    const centre = offsetCenter(here, FOLLOW_ZOOM, 0, (bottom - top) / 2, bearing)
+    cameraRef.current?.easeTo({
+      center: [centre.lng, centre.lat],
+      zoom: FOLLOW_ZOOM,
+      bearing,
+      duration: 600,
+    })
+  }
+
+  const startFollowing = () => {
+    if (!openPlace || !activeRoute || follow) return
+    setStartFailed(null)
+    setFollow({
+      place: openPlace,
+      mode: activeRoute.mode,
+      // Where the person is now if the dot has followed them since, or else
+      // where the route was calculated from.
+      from: whereAmI.fix ?? { ...activeRoute.from, accuracy: null },
+      started: false,
+    })
+  }
+
+  const followProgress = ({ line, here }: FollowProgress) => {
+    setFollowLine(line)
+    followHere.current = here
+    if (!here) return
+    if (!northUp && line) {
+      const ahead = bearingAhead(line, here)
+      if (ahead !== null && bearingDifference(ahead, followBearing.current) >= TURN_THRESHOLD_DEG) {
+        followBearing.current = ahead
+        setShownBearing(ahead)
+      }
+    }
+    if (!lookingAround) followCamera(here, northUp ? 0 : followBearing.current)
+  }
+
+  /** Arriving and *Stop* end the same way: the route cleared and the place open again. */
+  const endFollowing = (arrived: boolean) => {
+    const place = follow?.place
+    setFollow(null)
+    setFollowLine(null)
+    setLookingAround(false)
+    followHere.current = null
+    followBearing.current = 0
+    setShownBearing(0)
+    setNorthUp(false)
+    setRoute(null)
+    if (!place) return
+    if (arrived) setArrivedAt(place.name)
+    const group =
+      groups.find((candidate) => candidate.markers.some((marker) => marker.id === place.id)) ??
+      groupCoincident([place])[0]!
+    setOpen({ groupKey: group.key, markerId: place.id, reveal: true })
+    // Back over the place, clear of the details that have just opened.
+    frameRoute([{ lng: place.lng, lat: place.lat }])
+  }
+
   const routeOffer = openPlace
     ? {
         finding: routing === openPlace.id,
@@ -1180,6 +1341,12 @@ export function TripMap({
         onCalculate: () => void calculateRoute(openPlace),
         onClear: () => setRoute(null),
         onChooseMode: chooseMode,
+        to: { lng: openPlace.lng, lat: openPlace.lat },
+        follow: {
+          starting: follow !== null && !follow.started && follow.place.id === openPlace.id,
+          failed: startFailed === openPlace.id,
+          onStart: startFollowing,
+        },
       }
     : undefined
 
@@ -1257,7 +1424,7 @@ export function TripMap({
    *
    * Never a sum. Exactly one of these is drawn at a time.
    */
-  const lift = formSheet ? formHeight : barHeight
+  const lift = following ? followBarHeight : formSheet ? formHeight : barHeight
   /*
     The camera the map opens with, framed clear of the bar standing on it.
 
@@ -1363,6 +1530,9 @@ export function TripMap({
             hand the next press a position from before it.
           */
           onRegionDidChange={(event) => {
+            // A person moving the map while following stops the camera
+            // following them, until they ask for it back (`route-following`).
+            if (following && event.nativeEvent.userInteraction) setLookingAround(true)
             const [lng, lat] = event.nativeEvent.center
             centreRef.current = { lng, lat }
             // Kept for the same reason the centre is, and read at the same
@@ -1429,7 +1599,21 @@ export function TripMap({
             every pin, from the same description the laptop draws
             (`place-route`).
           */}
-          {activeRoute && openPlace ? (
+          {following && followLine && followLine.length > 1 ? (
+            // The route being followed, in its street form, under the same
+            // source id so only one route is ever drawn.
+            <GeoJSONSource id={ROUTE_SOURCE} data={routeFeature(followLine)}>
+              {routeLayers(mode, 'street').map((layer) => (
+                <Layer
+                  key={`${layer.id}-street`}
+                  id={`${layer.id}-street`}
+                  type="line"
+                  layout={layer.layout as LineLayerSpecification['layout']}
+                  paint={layer.paint as LineLayerSpecification['paint']}
+                />
+              ))}
+            </GeoJSONSource>
+          ) : activeRoute && openPlace ? (
             <GeoJSONSource
               id={ROUTE_SOURCE}
               data={
@@ -1495,6 +1679,8 @@ export function TripMap({
               onPress={() => {
                 // A pin on its way out answers nothing: its place is gone.
                 if (group === trail.leaving) return
+                // Nothing opens while a route is followed (`route-following`).
+                if (following) return
                 // With the form open the tap leaves it, through its question
                 // where there is something to lose, and selects nothing — see
                 // `onLeaveForm`.
@@ -1630,7 +1816,7 @@ export function TripMap({
         somebody needs to change scale without moving the map, which is precisely
         what zooming about the centre does.
       */}
-      {camera && formSheet === null && selection === null ? (
+      {camera && formSheet === null && selection === null && !following ? (
         <View
           style={[
             styles.edge,
@@ -1818,7 +2004,7 @@ export function TripMap({
       */}
       {formSheet}
 
-      {formSheet === null && selection === null ? (
+      {formSheet === null && selection === null && !following ? (
         <ToolBar onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}>
           {/*
             The trip's controls, or the confirmation the sight is waiting for.
@@ -1869,6 +2055,98 @@ export function TripMap({
           extraAction={open?.extraAction}
           onDismiss={() => setOpen(null)}
         />
+      ) : null}
+
+      {follow ? (
+        <Suspense fallback={null}>
+          <FollowView
+            // A new view for a new trip, so nothing of the last one carries over.
+            key={`${follow.place.id}|${follow.mode}`}
+            to={{ lng: follow.place.lng, lat: follow.place.lat }}
+            mode={follow.mode}
+            name={follow.place.name}
+            from={follow.from}
+            onStarted={() => {
+              setFollow((current) => (current ? { ...current, started: true } : current))
+              setOpen(null)
+            }}
+            onCannotStart={() => {
+              setStartFailed(follow.place.id)
+              setFollow(null)
+            }}
+            onEnd={endFollowing}
+            onProgress={followProgress}
+            onCovered={(covered) => {
+              followCovered.current = covered
+              setFollowBarHeight(covered.bottom)
+              setFollowCardBottom(covered.top)
+            }}
+          />
+        </Suspense>
+      ) : null}
+
+      {/* Back to the person, once they have moved the map by hand. */}
+      {following && lookingAround ? (
+        <Pressable
+          onPress={() => {
+            setLookingAround(false)
+            if (followHere.current) {
+              followCamera(followHere.current, northUp ? 0 : followBearing.current)
+            }
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={say(message('follow.recentre'))}
+          style={[
+            styles.reread,
+            styles.recentre,
+            {
+              bottom: followBarHeight + SPACE.md + SPACE.lg,
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.lineStrong,
+              shadowColor: theme.elevation.sm.colour,
+            },
+          ]}
+        >
+          <LocateFixed size={20} color={theme.colour.ink} strokeWidth={2} />
+        </Pressable>
+      ) : null}
+
+      {/*
+        Which way north is, while the map is turned to the way ahead; pressing it
+        puts north back at the top for the rest of the trip (`route-following`).
+        The arrow is turned against the map so it always points north.
+      */}
+      {following && !northUp && shownBearing !== 0 ? (
+        <Pressable
+          onPress={() => {
+            setNorthUp(true)
+            followBearing.current = 0
+            setShownBearing(0)
+            if (followHere.current) followCamera(followHere.current, 0)
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={say(message('follow.northUp'))}
+          style={[
+            styles.reread,
+            styles.compass,
+            {
+              top: followCardBottom + SPACE.md,
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.lineStrong,
+              shadowColor: theme.elevation.sm.colour,
+            },
+          ]}
+        >
+          <View style={{ transform: [{ rotate: `${-shownBearing}deg` }] }}>
+            <Navigation2 size={20} color={theme.colour.ink} fill={theme.colour.ink} strokeWidth={2} />
+          </View>
+        </Pressable>
+      ) : null}
+
+      {arrivedAt !== null ? (
+        <View accessibilityLiveRegion="polite" style={styles.arrived} pointerEvents="none">
+          <MarkersOverlayNote>{say(message('follow.arrived', { name: arrivedAt }))}</MarkersOverlayNote>
+        </View>
       ) : null}
     </View>
   )

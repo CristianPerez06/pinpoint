@@ -202,6 +202,22 @@ describe('offsetCenter', () => {
     expect(shifted.lat).toBeCloseTo(kyoto.lat, 10)
   })
 
+  it('turns the offset with a map turned away from north', () => {
+    // East up: down the screen is west on the ground.
+    const east = offsetCenter(kyoto, 14, 0, 200, 90)
+    expect(east.lng).toBeLessThan(kyoto.lng)
+    expect(east.lat).toBeCloseTo(kyoto.lat, 6)
+    // South up: down the screen is north.
+    const south = offsetCenter(kyoto, 14, 0, 200, 180)
+    expect(south.lat).toBeGreaterThan(kyoto.lat)
+    expect(south.lng).toBeCloseTo(kyoto.lng, 6)
+    // A whole turn is no turn.
+    const round = offsetCenter(kyoto, 14, 0, 200, 360)
+    const none = offsetCenter(kyoto, 14, 0, 200)
+    expect(round.lat).toBeCloseTo(none.lat, 9)
+    expect(round.lng).toBeCloseTo(none.lng, 9)
+  })
+
   it('is reversible', () => {
     const there = offsetCenter(kyoto, 14, 120, 260)
     const back = offsetCenter(there, 14, -120, -260)

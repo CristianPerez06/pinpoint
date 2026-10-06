@@ -53,8 +53,14 @@ export function WorkspaceChrome({
   notice,
   children,
   overlays,
+  bare = false,
 }: {
   live: ChromeBindings | null
+  /**
+   * The header and the notice are not drawn, and what stands under them takes
+   * the whole screen — while a route is followed (`route-following`).
+   */
+  bare?: boolean
   /** A line between the header and the map, such as the offline note. */
   notice?: ReactNode
   /** What stands under the header: the map, or the wait for it. */
@@ -72,6 +78,9 @@ export function WorkspaceChrome({
         style={[
           styles.header,
           { borderColor: theme.colour.line, paddingTop: HEADER_PAD + insets.top },
+          // Kept mounted, so the trip's controls are exactly as they were when
+          // following ends; `none` takes it out of layout and of reading order.
+          bare && { display: 'none' },
         ]}
       >
         <View style={styles.headerLine}>
@@ -211,7 +220,7 @@ export function WorkspaceChrome({
         </View>
       </View>
 
-      {notice}
+      {bare ? null : notice}
 
       <View style={styles.body}>{children}</View>
 

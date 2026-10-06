@@ -104,6 +104,7 @@ export { formatMoney, formatPrice, formatPrices } from './price'
 export { formatSize } from './data-size'
 export {
   formatDistance,
+  formatTimeLeft,
   formatTravelTime,
   formatWalkingDistance,
   formatWalkingTime,

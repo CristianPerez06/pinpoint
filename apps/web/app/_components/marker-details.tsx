@@ -13,9 +13,25 @@ import {
   type RouteFigures,
   TRAVEL_MODE_NAMES,
 } from '@pinpoint/core'
-import { TRAVEL_MODES, type MarkerGroup, type MarkerView, type TravelMode } from '@pinpoint/map'
+import {
+  TRAVEL_MODES,
+  type LngLat,
+  type MarkerGroup,
+  type MarkerView,
+  type TravelMode,
+} from '@pinpoint/map'
+import { handoffUrl } from '@pinpoint/routing'
 import { message, type Message } from '@pinpoint/wording'
-import { Bike, Car, Footprints, Info, WifiOff, X, type LucideIcon } from 'lucide-react'
+import {
+  Bike,
+  Car,
+  ExternalLink,
+  Footprints,
+  Info,
+  WifiOff,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 
 import { InterestRows, VisitedToggle } from '@/app/_components/interest'
@@ -158,6 +174,8 @@ export interface RouteOffer {
   onCalculate: () => void
   onClear: () => void
   onChooseMode: (mode: TravelMode) => void
+  /** The place, for opening the route in Google Maps. */
+  to: LngLat
 }
 
 /** The glyph for each way of travelling, beside the figures and on its button. */
@@ -250,6 +268,19 @@ function Route({ offer, name }: { offer: RouteOffer; name: string }) {
           )
         })}
       </div>
+      {/* The laptop's one way out of Pinpoint's card: Google Maps in a new tab,
+          with the place and the way of travelling. Following stays on the
+          phone (`place-route`, `route-following`). */}
+      <a
+        className={styles.routeOpenIn}
+        href={handoffUrl('google', offer.to, figures.mode)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={say(message('route.openInGoogleNamed', { name }))}
+      >
+        <ExternalLink size={16} aria-hidden="true" />
+        {say(message('route.openInGoogle'))}
+      </a>
       {/* Polite, so the street route being found, not found, or given up for
           the lack of a connection is heard without moving focus. */}
       <p className={styles.routeNote} aria-live="polite">

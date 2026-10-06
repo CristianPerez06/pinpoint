@@ -12,15 +12,23 @@ import {
   type RouteFigures,
   TRAVEL_MODE_NAMES,
 } from '@pinpoint/core'
-import { TRAVEL_MODES, type MarkerGroup, type MarkerView, type TravelMode } from '@pinpoint/map'
+import {
+  TRAVEL_MODES,
+  type LngLat,
+  type MarkerGroup,
+  type MarkerView,
+  type TravelMode,
+} from '@pinpoint/map'
 import { RADIUS, SPACE, TYPE } from '@pinpoint/tokens'
 import { message } from '@pinpoint/wording'
 // Deep import, not the package root — see marker-icon.tsx. One value
 // import of the barrel pulls all 1767 icons and crashes Hermes.
 import Bike from 'lucide-react-native/icons/bike'
 import Car from 'lucide-react-native/icons/car'
+import ExternalLink from 'lucide-react-native/icons/external-link'
 import Footprints from 'lucide-react-native/icons/footprints'
 import Info from 'lucide-react-native/icons/info'
+import Navigation from 'lucide-react-native/icons/navigation'
 import WifiOff from 'lucide-react-native/icons/wifi-off'
 import X from 'lucide-react-native/icons/x'
 import { type ReactNode, useState } from 'react'
@@ -37,6 +45,7 @@ import {
 import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { HandoffSheet } from '@/components/handoff-sheet'
 import { InterestRows, VisitedToggle } from '@/components/interest'
 import { sheetHeight } from '@/components/sheet'
 import { MarkerGlyph, markerTypeMessage } from '@/components/marker-icon'
@@ -117,6 +126,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     paddingHorizontal: 4,
   },
+  routeGo: { flexDirection: 'row', gap: SPACE.sm, marginTop: 10 },
+  routeGoButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACE.sm,
+  },
+  /** The more likely of the two, so it takes more of the row. */
+  routeStart: { flex: 1.4 },
+  routeGoText: { ...role(TYPE.control), fontWeight: '700' },
   routeNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 9 },
   routeNoteText: { ...role(TYPE.note), flex: 1 },
   routeText: { flex: 1, minWidth: 0 },
@@ -487,6 +511,19 @@ export interface RouteOffer {
   onCalculate: () => void
   onClear: () => void
   onChooseMode: (mode: TravelMode) => void
+  /** The place, for opening the route in another maps app. */
+  to: LngLat
+  /**
+   * Following the route (`route-following`), offered once a street route is
+   * drawn. Absent where following is not offered at all.
+   */
+  follow?: {
+    /** Waiting for the route with its turns, after *Start*. */
+    starting: boolean
+    /** The last press came back with no route. */
+    failed: boolean
+    onStart: () => void
+  }
 }
 
 /** The glyph for each way of travelling, beside the figures and on its button. */
@@ -505,6 +542,7 @@ const MODE_ICONS: Record<TravelMode, typeof Footprints> = {
 function Route({ offer, name }: { offer: RouteOffer; name: string }) {
   const theme = useTheme()
   const say = useSay()
+  const [handingOff, setHandingOff] = useState(false)
 
   if (offer.figures === null) {
     return (
@@ -635,6 +673,78 @@ function Route({ offer, name }: { offer: RouteOffer; name: string }) {
           )
         })}
       </View>
+
+      {/*
+        Ways out of Pinpoint's own card: following the route here, which needs
+        a street route to have turns to follow, and handing it to another maps
+        app, which needs nothing (`place-route`, `route-following`).
+      */}
+      <View style={styles.routeGo}>
+        {offer.follow && figures.measured === 'streets' ? (
+          <Pressable
+            onPress={offer.follow.starting ? undefined : offer.follow.onStart}
+            accessibilityRole="button"
+            accessibilityLabel={say(
+              offer.follow.starting
+                ? message('follow.starting')
+                : message('follow.startNamed', { name }),
+            )}
+            accessibilityState={{ busy: offer.follow.starting, disabled: offer.follow.starting }}
+            style={({ pressed }) => [
+              styles.routeGoButton,
+              styles.routeStart,
+              {
+                borderColor: theme.colour.accent,
+                backgroundColor: theme.colour.accent,
+                opacity: pressed && !offer.follow?.starting ? 0.85 : 1,
+              },
+            ]}
+          >
+            {offer.follow.starting ? (
+              <ActivityIndicator size="small" color={theme.colour.inkOnAccent} />
+            ) : (
+              <Navigation size={16} color={theme.colour.inkOnAccent} />
+            )}
+            <Text style={[styles.routeGoText, { color: theme.colour.inkOnAccent }]}>
+              {say(message(offer.follow.starting ? 'follow.starting' : 'follow.start'))}
+            </Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => setHandingOff(true)}
+          accessibilityRole="button"
+          accessibilityLabel={say(message('route.openInNamed', { name }))}
+          style={({ pressed }) => [
+            styles.routeGoButton,
+            {
+              borderColor: theme.colour.lineStrong,
+              backgroundColor: pressed ? theme.colour.surfaceSunk : theme.colour.surface,
+            },
+          ]}
+        >
+          <ExternalLink size={16} color={theme.colour.ink} />
+          <Text style={[styles.routeGoText, { color: theme.colour.ink }]}>
+            {say(message('route.openIn'))}
+          </Text>
+        </Pressable>
+      </View>
+
+      {offer.follow?.failed && figures.measured === 'streets' ? (
+        <View style={styles.routeNote} accessibilityLiveRegion="polite">
+          <Info size={15} color={theme.colour.inkMuted} />
+          <Text style={[styles.routeNoteText, { color: theme.colour.ink }]}>
+            {say(message('follow.cannotStart'))}
+          </Text>
+        </View>
+      ) : null}
+
+      <HandoffSheet
+        open={handingOff}
+        onClose={() => setHandingOff(false)}
+        to={offer.to}
+        mode={figures.mode}
+        name={name}
+      />
 
       {figures.note ? (
         <View style={styles.routeNote} accessibilityLiveRegion="polite">

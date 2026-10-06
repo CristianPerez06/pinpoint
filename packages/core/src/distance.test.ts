@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatDistance as formatDistanceMessage,
   formatWalkingDistance as formatWalkingDistanceMessage,
+  formatTimeLeft as formatTimeLeftMessage,
   formatTravelTime as formatTravelTimeMessage,
   formatWalkingTime as formatWalkingTimeMessage,
 } from './distance'
@@ -111,5 +112,25 @@ describe('formatTravelTime', () => {
     expect(time(53, 'walk', 'es')).toBe('53 min a pie')
     expect(time(18, 'bike', 'es')).toBe('18 min en bici')
     expect(time(95, 'car', 'es')).toBe('1 h 35 min en auto')
+  })
+})
+
+describe('formatTimeLeft', () => {
+  const left = (minutes: number, language: Language = 'en') =>
+    say(language, formatTimeLeftMessage(language, minutes))
+
+  it('writes the time without the way of travelling', () => {
+    expect(left(13.6)).toBe('14 min')
+    expect(left(65)).toBe('1 h 5 min')
+    expect(left(120)).toBe('2 h')
+  })
+
+  it('is never said as less than a minute', () => {
+    expect(left(0.1)).toBe('1 min')
+  })
+
+  it('writes Spanish the same way', () => {
+    expect(left(14, 'es')).toBe('14 min')
+    expect(left(65, 'es')).toBe('1 h 5 min')
   })
 })
