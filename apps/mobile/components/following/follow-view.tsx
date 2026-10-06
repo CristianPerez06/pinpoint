@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { routeProvider } from '@/components/following/route-provider'
 import { turnGlyph } from '@/components/following/turn-glyph'
+import { useOnline } from '@/lib/connectivity'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme, useThemeMode } from '@/lib/theme'
 import { role } from '@/lib/type'
@@ -277,17 +278,48 @@ function Following({
 
   // A screen reader is told each new instruction as it replaces the last.
   const instruction = state.visualInstruction?.primaryContent
+  /**
+   * The routing service's sentence for the next turn (`route-following`).
+   *
+   * Not the visual instruction's text, which is what the service gives for a
+   * road sign: for a named road that is the road's name alone ("団栗通; Donguri
+   * Street"), which says where but not what to do. The sentence lives on the step
+   * the turn begins — the second of the steps left, the first being the stretch
+   * the person is on. The sign's text stands in where there is no such step.
+   */
+  const sentence = state.remainingSteps?.[1]?.instruction || instruction?.text
   const toTurn = state.progress?.distanceToNextManeuver
   const toTurnText =
     toTurn === undefined ? null : say(formatWalkingDistance(language, toTurn / 1000))
   useEffect(() => {
-    if (phase !== 'following' || !instruction?.text || toTurnText === null) return
+    if (phase !== 'following' || !sentence || toTurnText === null) return
     AccessibilityInfo.announceForAccessibility(
-      say(message('follow.nextTurnSpoken', { distance: toTurnText, instruction: instruction.text })),
+      say(message('follow.nextTurnSpoken', { distance: toTurnText, instruction: sentence })),
     )
     // On a new instruction only, not on every metre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, instruction?.text])
+  }, [phase, sentence])
+
+  // The connection back while the person is still off the route: a new route at
+  // once. Ferrostar reconsiders only when a position arrives, and not within
+  // 50 m of where it last asked, so somebody standing still would otherwise go
+  // on reading "no new route yet" with a connection (`route-following`). Asked
+  // through Ferrostar's own request, so the same services and limits hold.
+  const online = useOnline()
+  const wasOnline = useRef(online)
+  useEffect(() => {
+    const back = online && !wasOnline.current
+    wasOnline.current = online
+    if (!back || phase !== 'following' || ended.current || core.isCalculatingNewRoute) return
+    const trip = core._state.tripState
+    const at = locationProvider.getSnapshot().location
+    if (!at || !trip || !TripState.Navigating.instanceOf(trip)) return
+    if (!RouteDeviation.Deviation.instanceOf(trip.inner.deviation)) return
+    void core.getRoutes(at, trip.inner.remainingWaypoints).then((routes) => {
+      const route = routes[0]
+      if (route && !ended.current) core.replaceRoute(route)
+    })
+  }, [online, phase, core, locationProvider])
 
   const [covered, setCovered] = useState({ top: 0, bottom: 0 })
   useEffect(() => {
@@ -323,7 +355,7 @@ function Following({
 
   // Nothing to say about the next turn — the moment before arriving, when the
   // last step has been passed — and no card rather than an arrow on its own.
-  const saysSomething = off || Boolean(instruction?.text) || toTurnText !== null
+  const saysSomething = off || Boolean(sentence) || toTurnText !== null
 
   return (
     <>
@@ -355,11 +387,11 @@ function Following({
                 {toTurnText !== null ? (
                   <Text style={[styles.toTurn, { color: theme.colour.ink }]}>{toTurnText}</Text>
               ) : null}
-              {instruction?.text ? (
+              {sentence ? (
                 // The routing service's own words, in the language it was asked
                 // for (`product-wording`).
                 <Text style={[styles.instruction, { color: theme.colour.ink }]}>
-                  {instruction.text}
+                  {sentence}
                 </Text>
               ) : null}
             </View>
