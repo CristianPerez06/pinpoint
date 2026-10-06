@@ -9,15 +9,34 @@ import {
   formatRunPosition,
   type IsoDay,
   type Marker,
+  movePlace,
   type RunPosition,
   runPositionOf,
   type WaitingGroup,
 } from '@pinpoint/core'
 import { markerView } from '@pinpoint/map'
 import { message, type Message } from '@pinpoint/wording'
-import { ChevronLeft, ChevronRight, MapIcon } from 'lucide-react'
+import {
+  type Announcements,
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  type ScreenReaderInstructions,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { ChevronLeft, ChevronRight, GripVertical, MapIcon } from 'lucide-react'
 import Link from 'next/link'
-import { type KeyboardEvent, type ReactNode, useId, useState } from 'react'
+import { type CSSProperties, type KeyboardEvent, type ReactNode, useId, useState } from 'react'
 
 import { AccountMenu } from '@/app/_components/account-menu'
 import { ChromeBar } from '@/app/_components/chrome-bar'
@@ -79,6 +98,8 @@ export type CalendarBindings = {
   waitingCount: number
   markersOn: (day: IsoDay) => readonly Marker[]
   onOpen: (marker: Marker) => void
+  /** A day's places have been put in a new order: every id, in that order. */
+  onReorder: (day: IsoDay, markerIds: readonly string[]) => void
 }
 
 export function CalendarScreen({
@@ -317,6 +338,7 @@ export function CalendarScreen({
                       current={index === NEIGHBOURS}
                       markers={live.markersOn(each)}
                       onOpen={live.onOpen}
+                      onReorder={live.onReorder}
                     />
                   ))
                 : WAITING_DAY_ROWS.map((rows, index) => (
@@ -538,14 +560,61 @@ function DayColumn({
   current,
   markers,
   onOpen,
+  onReorder,
 }: {
   day: IsoDay
   current: boolean
   markers: readonly Marker[]
   onOpen: (marker: Marker) => void
+  onReorder: (day: IsoDay, markerIds: readonly string[]) => void
 }) {
   const say = useSay()
   const language = useLanguage()
+
+  /*
+    Dragging starts from the handle alone, so pressing a place still opens it.
+    The keyboard sensor is the second route `PRODUCT.md` asks of every drag:
+    focus the handle, Space to lift, the arrow keys to move, Space to drop.
+  */
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  function onDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return
+    const from = markers.findIndex((each) => each.id === active.id)
+    const to = markers.findIndex((each) => each.id === over.id)
+    if (from === -1 || to === -1) return
+    onReorder(day, movePlace(markers, from, to))
+  }
+
+  /*
+    What a screen reader hears while a place is moved, in our words rather than
+    the library's English. Positions count from 1 among the whole day, as the
+    map's numbered pins do.
+  */
+  const nameOf = (id: string | number) =>
+    markers.find((each) => each.id === id)?.name ?? ''
+  const positionOf = (id: string | number | undefined) =>
+    markers.findIndex((each) => each.id === id) + 1
+  const spoken = (id: string | number, at: string | number | undefined) => ({
+    name: nameOf(id),
+    position: positionOf(at),
+    count: markers.length,
+  })
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => say(message('calendar.pickedUp', spoken(active.id, active.id))),
+    onDragOver: ({ active, over }) =>
+      over ? say(message('calendar.movedTo', spoken(active.id, over.id))) : undefined,
+    onDragEnd: ({ active, over }) =>
+      say(message('calendar.dropped', spoken(active.id, over?.id ?? active.id))),
+    onDragCancel: ({ active }) =>
+      say(message('calendar.dragCancelled', spoken(active.id, active.id))),
+  }
+  const screenReaderInstructions: ScreenReaderInstructions = {
+    draggable: say(message('calendar.reorderInstructions')),
+  }
 
   return (
     <section
@@ -571,20 +640,82 @@ function DayColumn({
         // is information. It is said, not left blank and not drawn as a fault.
         <p className={styles.dayEmpty}>{say(message('calendar.nothingPlanned'))}</p>
       ) : (
-        <ul className={styles.list}>
-          {markers.map((marker) => (
-            <PlaceRow
-              key={marker.id}
-              marker={marker}
-              // Which day of how many, for *this* column's day — the same place
-              // reads `Day 2 of 4` here and `Day 3 of 4` in the next column.
-              run={runPositionOf(marker, day)}
-              onOpen={onOpen}
-            />
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+          accessibility={{ announcements, screenReaderInstructions }}
+        >
+          <SortableContext
+            items={markers.map((each) => each.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className={styles.list}>
+              {markers.map((marker) => (
+                <SortablePlaceRow
+                  key={marker.id}
+                  marker={marker}
+                  // Which day of how many, for *this* column's day — the same place
+                  // reads `Day 2 of 4` here and `Day 3 of 4` in the next column.
+                  run={runPositionOf(marker, day)}
+                  onOpen={onOpen}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
     </section>
+  )
+}
+
+/**
+ * A place in a day's list, with the handle that moves it.
+ *
+ * The handle is a button of its own at the start of the row, and it is the only
+ * thing that starts a drag: the place's name stays the button that opens it.
+ */
+function SortablePlaceRow({
+  marker,
+  run,
+  onOpen,
+}: {
+  marker: Marker
+  run: RunPosition | null
+  onOpen: (marker: Marker) => void
+}) {
+  const say = useSay()
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: marker.id })
+
+  return (
+    <PlaceRow
+      marker={marker}
+      run={run}
+      onOpen={onOpen}
+      rowRef={setNodeRef}
+      rowStyle={{ transform: CSS.Transform.toString(transform), transition }}
+      dragging={isDragging}
+      handle={
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          className={styles.handle}
+          {...attributes}
+          {...listeners}
+          aria-label={say(message('calendar.reorderHandle', { name: marker.name }))}
+        >
+          <GripVertical size={18} aria-hidden />
+        </button>
+      }
+    />
   )
 }
 
@@ -623,15 +754,30 @@ function PlaceRow({
   marker,
   run,
   onOpen,
+  handle,
+  rowRef,
+  rowStyle,
+  dragging = false,
 }: {
   marker: Marker
   run?: RunPosition | null
   onOpen: (marker: Marker) => void
+  /** The control that moves the place within its day, where it can be moved. */
+  handle?: ReactNode
+  rowRef?: (node: HTMLLIElement | null) => void
+  rowStyle?: CSSProperties
+  dragging?: boolean
 }) {
   const say = useSay()
 
   return (
-    <li>
+    <li
+      ref={rowRef}
+      style={rowStyle}
+      className={handle ? styles.sortableRow : undefined}
+      data-dragging={dragging || undefined}
+    >
+      {handle}
       <button type="button" onClick={() => onOpen(marker)} className={styles.place}>
         <TypeChip view={markerView(marker)} size={26} />
         {/*

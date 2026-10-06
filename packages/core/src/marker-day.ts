@@ -39,13 +39,27 @@ export interface MarkersByDay {
 }
 
 /**
- * The order places are listed in within one day.
+ * The order a day's places have been put in, as stored: one list of place ids
+ * per day.
+ *
+ * Kept complete by the database — a place joining a day is appended, a place
+ * leaving it is removed — so on a healthy trip every place on a day is listed
+ * exactly once. Reading does not rely on it: see `orderDay`.
+ */
+export interface DayOrder {
+  readonly day: IsoDay
+  readonly markerIds: readonly string[]
+}
+
+/**
+ * The fallback order within one day, and the order of the places waiting for
+ * one.
  *
  * By name, so a person can find one by reading; by id where two places share a
- * name, so the order is fully determined and the same day never comes back
- * arranged differently. A day is a set rather than a sequence — nothing here
- * expresses what to do first — but "a set" is not a licence to reorder under
- * somebody mid-read.
+ * name, so the order is fully determined and the same list never comes back
+ * arranged differently. It is what every day was listed in before a day could
+ * be put in order, and what a place the stored order does not mention falls
+ * back to.
  */
 function byNameThenId(a: Marker, b: Marker): number {
   const byName = a.name.localeCompare(b.name)
@@ -62,7 +76,10 @@ function byNameThenId(a: Marker, b: Marker): number {
  * calendar — somebody would believe they had finished arranging a trip they
  * had not.
  */
-export function groupMarkersByDay(markers: readonly Marker[]): MarkersByDay {
+export function groupMarkersByDay(
+  markers: readonly Marker[],
+  dayOrders: readonly DayOrder[] = [],
+): MarkersByDay {
   const days = new Map<IsoDay, Marker[]>()
   const undated: Marker[] = []
 
@@ -82,10 +99,74 @@ export function groupMarkersByDay(markers: readonly Marker[]): MarkersByDay {
     }
   }
 
-  for (const places of days.values()) places.sort(byNameThenId)
+  const stored = new Map(dayOrders.map((order) => [order.day, order.markerIds]))
+  for (const [day, places] of days) orderDay(places, stored.get(day) ?? [])
   undated.sort(byNameThenId)
 
   return { days, undated }
+}
+
+/**
+ * Put one day's places in its stored order, in place.
+ *
+ * **Tolerant on purpose**, as `runOfDays` is. The stored list and the places can
+ * disagree — two people saving the same day at once, or a write the database's
+ * trigger never saw — and a day must still read as a plan rather than fail:
+ *
+ * - An id the list holds that is not on the day is ignored, so the positions
+ *   that follow it close up and a day never reads "1, 3, 4".
+ * - A place on the day that the list does not hold comes after every listed
+ *   one, by name then id — last, which is where a place joining a day goes.
+ *
+ * A day with no stored list therefore reads exactly as every day did before a
+ * day could be ordered.
+ */
+function orderDay(places: Marker[], markerIds: readonly string[]): void {
+  const index = new Map<string, number>()
+  markerIds.forEach((id, at) => {
+    if (!index.has(id)) index.set(id, at)
+  })
+  places.sort((a, b) => {
+    const atA = index.get(a.id)
+    const atB = index.get(b.id)
+    if (atA !== undefined && atB !== undefined) return atA - atB
+    if (atA !== undefined) return -1
+    if (atB !== undefined) return 1
+    return byNameThenId(a, b)
+  })
+}
+
+/**
+ * Where each place on a day falls in its order, counting from 1.
+ *
+ * Counted among every place on the day, as the calendar lists them — not among
+ * the ones a map happens to be showing — so a place hidden by another filter
+ * leaves a gap in the numbers rather than renumbering the plan.
+ */
+export function positionsOnDay(
+  grouped: MarkersByDay,
+  day: IsoDay,
+): ReadonlyMap<string, number> {
+  return new Map(markersOnDay(grouped, day).map((marker, at) => [marker.id, at + 1]))
+}
+
+/**
+ * A day's order after one place has moved, as the list of ids to save.
+ *
+ * Takes the day as it is shown — already in order — so what is saved is
+ * exactly what the person sees, places the stored list did not mention
+ * included. Returns the same order when the move goes nowhere.
+ */
+export function movePlace(
+  places: readonly { readonly id: string }[],
+  from: number,
+  to: number,
+): readonly string[] {
+  const ids = places.map((place) => place.id)
+  if (from < 0 || from >= ids.length || to < 0 || to >= ids.length) return ids
+  const [moved] = ids.splice(from, 1)
+  ids.splice(to, 0, moved!)
+  return ids
 }
 
 /**

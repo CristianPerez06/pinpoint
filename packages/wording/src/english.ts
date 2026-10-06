@@ -447,6 +447,9 @@ export const ENGLISH = {
 
   // ── Pins ─────────────────────────────────────────────────────────────────
   'pin.label': (v: { name: string; type: string }) => `${v.name} (${v.type})`,
+  // …on a map narrowed to one day, where the pin draws its place in the day's order.
+  'pin.labelAt': (v: { position: number; name: string; type: string }) =>
+    `${v.position}. ${v.name} (${v.type})`,
   'pin.draft': 'The place being added',
 
   // ── Opening hours, in the form ───────────────────────────────────────────
@@ -649,6 +652,7 @@ export const ENGLISH = {
   'offline.searchAndDropNeedConnection': 'Searching and adding places need a connection.',
   'offline.savingNeedsConnection': 'Saving needs a connection. What you typed is kept.',
   'offline.changesNeedConnection': 'Changing a trip needs a connection.',
+  'offline.reorderNeedsConnection': 'Reordering needs a connection.',
   'offline.asOf': (v: { time: string }) => `Offline · the trip as of ${v.time}`,
   /** The same, when the last read was not today. */
   'offline.asOfDay': (v: { day: string; time: string }) =>
@@ -712,6 +716,9 @@ export const ENGLISH = {
   'map.placesHere': (v: { count: number }) => `${v.count} places here`,
   /** A pin's spoken name: the place, then its kind. */
   'map.placeOfType': (v: { name: string; type: string }) => `${v.name} (${v.type})`,
+  /** …and on a map narrowed to one day, where the pin draws its place in the day's order. */
+  'map.placeOfTypeAt': (v: { position: number; name: string; type: string }) =>
+    `${v.position}. ${v.name} (${v.type})`,
   'map.draftPin': 'New place, not yet saved',
   'map.draftPinHint': 'Drag to adjust, then save',
   'map.styleFailed': 'The map could not be loaded',
@@ -946,4 +953,19 @@ export const ENGLISH = {
   'calendar.viewOnMap': 'View on map',
   'calendar.editPlace': 'Edit place',
   'calendar.removeFailed': 'Could not remove that place.',
+  // Putting a day in order. The handle's name says which place it moves.
+  'calendar.reorderHandle': (v: { name: string }) => `Reorder ${v.name}`,
+  'calendar.reorderInstructions':
+    'To reorder, press Space, move with the arrow keys, then press Space again to drop. Escape cancels.',
+  'calendar.moveUp': 'Move up',
+  'calendar.moveDown': 'Move down',
+  'calendar.pickedUp': (v: { name: string; position: number; count: number }) =>
+    `Picked up ${v.name}, ${v.position} of ${v.count}.`,
+  'calendar.movedTo': (v: { name: string; position: number; count: number }) =>
+    `${v.name}, now ${v.position} of ${v.count}.`,
+  'calendar.dropped': (v: { name: string; position: number; count: number }) =>
+    `Dropped ${v.name} at ${v.position} of ${v.count}.`,
+  'calendar.dragCancelled': (v: { name: string; position: number; count: number }) =>
+    `Cancelled. ${v.name} stays ${v.position} of ${v.count}.`,
+  'calendar.orderNotSaved': 'Could not save the new order.',
 } as const

@@ -1,6 +1,13 @@
 import { markerTypeOf } from '@pinpoint/map'
 
-import { type IsoDay, runOfDays } from './marker-day'
+import {
+  type DayOrder,
+  groupMarkersByDay,
+  type IsoDay,
+  positionsOnDay,
+  runOfDays,
+} from './marker-day'
+import type { Marker } from './marker'
 import type { MarkerInterest } from './marker-interest'
 
 /**
@@ -336,4 +343,39 @@ function matchesCity(
     case 'unfiled':
       return marker.cityId == null
   }
+}
+
+/**
+ * A trip's places as the map draws them while it is narrowed to exactly one day:
+ * each place on that day carrying its position in the day's order, and listed
+ * in that order.
+ *
+ * Numbered only for one day. Several days would give a place more than one
+ * number; no day, or the places with none, give it none at all — and then the
+ * places come back exactly as they went in.
+ *
+ * Positions are counted among every place on the day, which is why this takes
+ * the trip's places rather than the filtered ones: a place another narrowing
+ * hides leaves a gap in the numbers rather than renumbering the plan.
+ *
+ * Listed in the day's order so that where several places share one drawn point,
+ * the first of them — the one a point is drawn as — is the lowest number.
+ */
+export function numberedForOneDay<T extends Marker>(
+  markers: readonly T[],
+  day: DayFilter,
+  dayOrders: readonly DayOrder[],
+): readonly (T & { readonly position?: number })[] {
+  if (day.kind !== 'on' || day.days.length !== 1) return markers
+  const positions = positionsOnDay(groupMarkersByDay(markers, dayOrders), day.days[0]!)
+  if (positions.size === 0) return markers
+
+  // Places not on the day keep their order, after the day's.
+  const ranked = (marker: T) => positions.get(marker.id) ?? positions.size + 1
+  return [...markers]
+    .sort((a, b) => ranked(a) - ranked(b))
+    .map((marker) => {
+      const position = positions.get(marker.id)
+      return position === undefined ? marker : { ...marker, position }
+    })
 }

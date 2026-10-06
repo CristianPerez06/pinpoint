@@ -362,11 +362,11 @@ screen invites the reader to doubt it.
 a second rule written for switching. Changing trip is arriving at that trip, and one rule
 stated once cannot drift from itself.
 
-Places SHALL be presented in an order the system defines consistently. This specification
-does not fix an order within a day, because a day is a set of places rather than a
-sequence — but the same day SHALL NOT be presented in a different order each time it is
-read. A place appearing on several days SHALL be ordered on each of them by the same rule
-as any other place on that day, and SHALL NOT be given a position of its own.
+**A day's places SHALL be presented in that day's order** — the order the people on the
+trip have put them in, as described in *A day's places can be put in order*. The same day
+SHALL NOT be presented in a different order each time it is read. A place appearing on
+several days SHALL hold its own position on each of them, set independently on each day
+like that of any other place on it.
 
 #### Scenario: A day holding places
 
@@ -1393,3 +1393,115 @@ after the control is opened follows the definition above.
 - **THEN** its month reads like `agosto de 2027`
 - **AND** its weekday columns read `lun` to `dom`, starting on Monday
 - **AND** this holds whatever language the browser is set to
+
+### Requirement: A day's places can be put in order
+
+Every application SHALL let a person put the places on a day in the order they plan to do
+them, from the calendar, by dragging a place up or down within its day. The list SHALL
+show the new order as soon as the place is let go, before anything is saved.
+
+Ordering SHALL be confined to one day: a place SHALL NOT be dragged onto another day, and
+nothing else about a place — its day, its city, anything recorded on it — SHALL change by
+reordering it. A place's day SHALL still be changed on the place itself.
+
+**Dragging SHALL have a second route.** Every place in a day's list SHALL be movable one
+step up or one step down without dragging, by keyboard where there is one and by a
+screen reader's own actions on both applications. Each step SHALL be announced with the
+place's new position and how many places the day holds. A place already first SHALL NOT
+offer to move up, and one already last SHALL NOT offer to move down.
+
+**Starting a drag SHALL NOT be possible from the place's name.** Pressing a place SHALL
+still open it, and on the phone a vertical swipe over a place SHALL still scroll the list.
+Dragging SHALL begin from a handle drawn on each row for that purpose.
+
+**The order SHALL be saved one second after the last change to that day**, as a single
+save of the whole day's order. Several changes made within that second of each other SHALL
+result in one save, of the final order. Leaving the calendar, or the day, before the
+second has passed SHALL save the pending order rather than discard it.
+
+**Where that save fails**, the day SHALL return to the last order that was saved, and the
+calendar SHALL say, in the line it uses to report on the trip, that the order could not
+be saved. The order shown SHALL NOT stay in a state the trip does not hold.
+
+**Every place on a day SHALL have a position on it**, determined as follows:
+
+- A place that joins a day — given a day for the first time, moved from another day, or
+  given a run of days that now reaches this one — SHALL be placed last on that day.
+- A place that leaves a day — moved to another day, cleared of its day, removed from the
+  trip, or no longer reached by its run — SHALL leave no gap: the places after it SHALL
+  each move up one.
+- Places that were planned for a day before days could be ordered SHALL keep the order
+  they were presented in until then, which was by name.
+
+While a day's new order is waiting to be saved, a re-read of the trip SHALL NOT replace
+it with the order held before the change.
+
+Where two people change the same day's order at the same time, the later save SHALL be
+the order the day holds; a place added to the day by somebody else meanwhile SHALL NOT be
+lost from it by either save, and SHALL appear last.
+
+The places waiting for a day SHALL NOT be ordered by anyone: they stay grouped by city and
+listed as they are today.
+
+#### Scenario: Dragging a place up
+
+- **WHEN** a person drags the third place on a day above the first
+- **THEN** the list shows it first straight away
+- **AND** the others follow in their previous order
+
+#### Scenario: Several quick changes save once
+
+- **WHEN** a person moves three places in a day within a second of each other
+- **THEN** one save of the day's final order is made, a second after the last move
+- **AND** reading the day again shows that order
+
+#### Scenario: Leaving before the save
+
+- **WHEN** a person reorders a day and leaves the calendar within the second
+- **THEN** the new order is saved
+- **AND** it is the order shown when the day is read again
+
+#### Scenario: A failed save
+
+- **WHEN** saving a day's new order fails
+- **THEN** the day shows the last order that was saved
+- **AND** the calendar says the order could not be saved
+
+#### Scenario: Moving a place without dragging
+
+- **WHEN** a person using a screen reader moves the second of four places down one step
+- **THEN** it becomes the third
+- **AND** its new position and the day's count are announced
+
+#### Scenario: Pressing a place still opens it
+
+- **WHEN** a person presses a place's name in a day's list
+- **THEN** the place opens
+- **AND** no drag begins
+
+#### Scenario: A place given a day goes last
+
+- **WHEN** a place is given a day already holding three places
+- **THEN** it is the fourth place on that day
+
+#### Scenario: A place moved to another day
+
+- **WHEN** the second of four places on the 3rd is moved to the 5th
+- **THEN** it is last on the 5th
+- **AND** the 3rd holds three places, numbered one to three
+
+#### Scenario: A place planned for several days
+
+- **WHEN** a place planned for the 3rd through the 6th is moved to the top of the 4th
+- **THEN** it is first on the 4th
+- **AND** its position on the 3rd, the 5th and the 6th is unchanged
+
+#### Scenario: Days planned before ordering existed
+
+- **WHEN** a day planned before this change is first read after it
+- **THEN** its places are in the order they were shown in before, by name
+
+#### Scenario: Somebody else adds a place while the day is being ordered
+
+- **WHEN** one person is reordering a day and another gives a place that day
+- **THEN** after both saves the added place is on the day, last

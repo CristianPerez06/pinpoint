@@ -1,5 +1,6 @@
 import type { MarkerView } from '@pinpoint/map'
 import {
+  FONT_FAMILY,
   MARKER_BADGE_SIZE,
   MARKER_GLYPH_SIZE,
   MARKER_PATH,
@@ -72,6 +73,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  positionBox: {
+    position: 'absolute',
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  position: {
+    fontFamily: FONT_FAMILY,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+    textAlign: 'center',
   },
 })
 
@@ -210,12 +224,20 @@ export function Pin({
       accessibilityLabel={
         count > 1
           ? say(message('placeGroup.count', { count }))
-          : say(
-              message('pin.label', {
-                name: view.label,
-                type: say(markerTypeMessage(view.type)),
-              }),
-            )
+          : view.position !== null
+            ? say(
+                message('pin.labelAt', {
+                  position: view.position,
+                  name: view.label,
+                  type: say(markerTypeMessage(view.type)),
+                }),
+              )
+            : say(
+                message('pin.label', {
+                  name: view.label,
+                  type: say(markerTypeMessage(view.type)),
+                }),
+              )
       }
     >
       {/* The viewBox stays the unscaled box, so the path, the ring and the
@@ -241,27 +263,64 @@ export function Pin({
         positioned over the drop instead of nested inside it. The teardrop's head
         is centred at (16, 15) in a 32×42 box, which is not the centre of the box.
       */}
-      <View
-        style={[
-          styles.glyph,
-          {
-            // Scaled with the pin: the glyph sits on the teardrop's head at
-            // (16, 15) in the unscaled box, and multiplying keeps it there
-            // rather than letting it drift toward the centre as the pin grows.
-            left: (16 - MARKER_GLYPH_SIZE / 2) * scale,
-            top: (15 - MARKER_GLYPH_SIZE / 2) * scale,
-            width: MARKER_GLYPH_SIZE * scale,
-            height: MARKER_GLYPH_SIZE * scale,
-          },
-        ]}
-      >
-        <MarkerGlyph
-          icon={view.icon}
-          size={MARKER_GLYPH_SIZE * scale}
-          colour={hollow ? family : theme.markerForeground}
-          strokeWidth={2.4}
-        />
-      </View>
+      {view.position !== null ? (
+        /*
+          The place's position in the day the map is narrowed to, where the icon
+          would be and in the icon's colour (`map-rendering`, *A map narrowed to
+          one day numbers its pins*). Straight on the family colour, as the mock
+          settled: the two grey families fall short of text's 4.5:1 on the light
+          ground, which is known and accepted.
+
+          Across the pin's whole width rather than in the glyph's 15-point box,
+          so two digits are never wrapped onto a second line.
+        */
+        <View
+          style={[
+            styles.positionBox,
+            {
+              top: (15 - MARKER_GLYPH_SIZE / 2) * scale,
+              width,
+              height: MARKER_GLYPH_SIZE * scale,
+            },
+          ]}
+        >
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            style={[
+              styles.position,
+              {
+                color: hollow ? family : theme.markerForeground,
+                fontSize: (view.position > 9 ? 13 : 15) * scale,
+              },
+            ]}
+          >
+            {view.position}
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.glyph,
+            {
+              // Scaled with the pin: the glyph sits on the teardrop's head at
+              // (16, 15) in the unscaled box, and multiplying keeps it there
+              // rather than letting it drift toward the centre as the pin grows.
+              left: (16 - MARKER_GLYPH_SIZE / 2) * scale,
+              top: (15 - MARKER_GLYPH_SIZE / 2) * scale,
+              width: MARKER_GLYPH_SIZE * scale,
+              height: MARKER_GLYPH_SIZE * scale,
+            },
+          ]}
+        >
+          <MarkerGlyph
+            icon={view.icon}
+            size={MARKER_GLYPH_SIZE * scale}
+            colour={hollow ? family : theme.markerForeground}
+            strokeWidth={2.4}
+          />
+        </View>
+      )}
 
       {/* A tick as well as the hollow form: the form only reads as "visited"
           when there is a solid pin nearby to compare against, and filtered down

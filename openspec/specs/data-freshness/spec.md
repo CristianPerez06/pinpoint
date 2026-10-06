@@ -356,8 +356,9 @@ for from the map answers for whatever screen the person came from.
 
 ### Requirement: Every list a trip is made of is covered, on both platforms
 
-This SHALL cover the trips a person belongs to, and a trip's markers, cities, members and
-recorded interest, on both applications, by the same rules.
+This SHALL cover the trips a person belongs to, and a trip's markers, cities, members,
+recorded interest and the order of each day's places, on both applications, by the same
+rules.
 
 No list a person can see SHALL be left out, and a list added later SHALL be covered by the
 same mechanism rather than by a decision made again at its call site.
@@ -369,8 +370,8 @@ same reason.
 
 #### Scenario: A trip's contents change elsewhere
 
-- **WHEN** somebody else adds or edits a marker, a city, a member, or their interest on a
-  trip open on this device
+- **WHEN** somebody else adds or edits a marker, a city, a member, their interest, or the
+  order of a day's places on a trip open on this device
 - **THEN** the change is shown after this device's stated trigger
 
 #### Scenario: The other platform

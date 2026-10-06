@@ -130,6 +130,7 @@ export {
   isFiltered,
   matchesFilter,
   NO_FILTER,
+  numberedForOneDay,
 } from './marker-filter'
 export type {
   CityFilter,
@@ -154,12 +155,15 @@ export {
   groupMarkersByDay,
   groupUndatedByCity,
   markersOnDay,
+  movePlace,
+  positionsOnDay,
   runOfDays,
   runPositionOf,
   todayAsDay,
 } from './marker-day'
 export type {
   CalendarView,
+  DayOrder,
   IsoDay,
   MarkersByDay,
   RunPosition,

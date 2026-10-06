@@ -1,6 +1,7 @@
 import { dayToPrepareWith } from '@pinpoint/core'
 import {
   fetchTripCities,
+  fetchTripDayOrders,
   fetchTripInterest,
   fetchTripMarkers,
   fetchTripMembers,
@@ -75,11 +76,12 @@ export default async function CalendarPage({
   const trip =
     trips.data.find((each) => each.id === requestedTripId) ?? trips.data[0]!
 
-  const [markers, cities, interest, members] = await Promise.all([
+  const [markers, cities, interest, members, dayOrders] = await Promise.all([
     fetchTripMarkers(supabase, trip.id),
     fetchTripCities(supabase, trip.id),
     fetchTripInterest(supabase, trip.id),
     fetchTripMembers(supabase, trip.id),
+    fetchTripDayOrders(supabase, trip.id),
   ])
 
   const memberList = members.status === 'ready' ? members.data : []
@@ -126,6 +128,8 @@ export default async function CalendarPage({
         initialDay={initialDay}
         trips={trips.data}
         initialMarkers={markers.status === 'ready' ? markers.data : []}
+        // Absent rather than fatal: without it every day lists by name, as days did.
+        initialDayOrders={dayOrders.status === 'ready' ? dayOrders.data : []}
         initialCities={cities.status === 'ready' ? cities.data : []}
         members={memberList}
         initialInterest={interest.status === 'ready' ? interest.data : []}

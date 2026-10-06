@@ -1051,12 +1051,20 @@ export function TripMap({
         'aria-label',
         group.count > 1
           ? several
-          : say(
-              message('map.placeOfType', {
-                name: group.view.label,
-                type: say(markerTypeMessage(group.view.typeId)),
-              }),
-            ),
+          : group.view.position !== null
+            ? say(
+                message('map.placeOfTypeAt', {
+                  position: group.view.position,
+                  name: group.view.label,
+                  type: say(markerTypeMessage(group.view.typeId)),
+                }),
+              )
+            : say(
+                message('map.placeOfType', {
+                  name: group.view.label,
+                  type: say(markerTypeMessage(group.view.typeId)),
+                }),
+              ),
       )
 
       element.addEventListener('click', (event) => {
