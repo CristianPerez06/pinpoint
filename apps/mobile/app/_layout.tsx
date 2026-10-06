@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 import { Opening } from '@/components/opening'
 import { ConnectivityProvider } from '@/lib/connectivity'
@@ -51,37 +52,40 @@ export default function RootLayout() {
    * screen paint the chosen ground rather than the default one.
    */
   return (
-    <PreferencesProvider onReady={onReady}>
-      {!ready ? (
-        <Blank />
-      ) : (
-        <ConnectivityProvider>
-          <SessionProvider>
-            {/*
-              Which trip is being read sits above the navigator, because two of its
-              screens show one — the map and the calendar — and a choice held in
-              either of them is invisible to the other. Signing out does not
-              unmount it — `SessionProvider` keeps rendering its children and the
-              map only redirects — so the choice is forgotten by `useForgetPerson` in
-              `lib/sign-out.ts`, which `SessionWatch` runs whenever a session ends.
-            */}
-            <WaitingProvider>
-              <TripChoiceProvider>
-                <SessionWatch />
-                <Stack screenOptions={{ headerShown: false }} />
-              </TripChoiceProvider>
-            </WaitingProvider>
-          </SessionProvider>
-        </ConnectivityProvider>
-      )}
-      {/*
-        The opening plays over the app rather than instead of it, so the app
-        mounts and loads underneath while the globe finishes. It waits for the
-        preferences — it needs the ground and whether it has played before — and
-        until then the operating system's still launch image is still up.
-      */}
-      {opening && preferencesRead ? <Opening ready={ready} onDone={onOpeningDone} /> : null}
-    </PreferencesProvider>
+    // The root every gesture-handler gesture needs — the calendar's drag handles.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PreferencesProvider onReady={onReady}>
+        {!ready ? (
+          <Blank />
+        ) : (
+          <ConnectivityProvider>
+            <SessionProvider>
+              {/*
+                Which trip is being read sits above the navigator, because two of its
+                screens show one — the map and the calendar — and a choice held in
+                either of them is invisible to the other. Signing out does not
+                unmount it — `SessionProvider` keeps rendering its children and the
+                map only redirects — so the choice is forgotten by `useForgetPerson` in
+                `lib/sign-out.ts`, which `SessionWatch` runs whenever a session ends.
+              */}
+              <WaitingProvider>
+                <TripChoiceProvider>
+                  <SessionWatch />
+                  <Stack screenOptions={{ headerShown: false }} />
+                </TripChoiceProvider>
+              </WaitingProvider>
+            </SessionProvider>
+          </ConnectivityProvider>
+        )}
+        {/*
+          The opening plays over the app rather than instead of it, so the app
+          mounts and loads underneath while the globe finishes. It waits for the
+          preferences — it needs the ground and whether it has played before — and
+          until then the operating system's still launch image is still up.
+        */}
+        {opening && preferencesRead ? <Opening ready={ready} onDone={onOpeningDone} /> : null}
+      </PreferencesProvider>
+    </GestureHandlerRootView>
   )
 }
 

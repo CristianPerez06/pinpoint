@@ -515,6 +515,8 @@ placeGroup.note
   They share the same coordinates, so zooming will not separate them. Nothing has been moved — pick one.
 pin.label
   {name} ({type})
+pin.labelAt
+  {position}. {name} ({type})
 pin.draft
   The place being added
 hoursField.empty
@@ -755,6 +757,8 @@ offline.savingNeedsConnection
   Saving needs a connection. What you typed is kept.
 offline.changesNeedConnection
   Changing a trip needs a connection.
+offline.reorderNeedsConnection
+  Reordering needs a connection.
 offline.asOf
   Offline · the trip as of {time}
 offline.asOfDay
@@ -837,6 +841,8 @@ map.placesHere
   {count} places here
 map.placeOfType
   {name} ({type})
+map.placeOfTypeAt
+  {position}. {name} ({type})
 map.draftPin
   New place, not yet saved
 map.draftPinHint
@@ -1130,7 +1136,25 @@ calendar.viewOnMap
 calendar.editPlace
   Edit place
 calendar.removeFailed
-  Could not remove that place."
+  Could not remove that place.
+calendar.reorderHandle
+  Reorder {name}
+calendar.reorderInstructions
+  To reorder, press Space, move with the arrow keys, then press Space again to drop. Escape cancels.
+calendar.moveUp
+  Move up
+calendar.moveDown
+  Move down
+calendar.pickedUp
+  Picked up {name}, {position} of {count}.
+calendar.movedTo
+  {name}, now {position} of {count}.
+calendar.dropped
+  Dropped {name} at {position} of {count}.
+calendar.dragCancelled
+  Cancelled. {name} stays {position} of {count}.
+calendar.orderNotSaved
+  Could not save the new order."
 `;
 
 exports[`the Spanish catalogue > says what it says 1`] = `
@@ -1648,6 +1672,8 @@ placeGroup.note
   Comparten las mismas coordenadas, así que acercar el mapa no los separa. No se movió nada: elegir uno.
 pin.label
   {name} ({type})
+pin.labelAt
+  {position}. {name} ({type})
 pin.draft
   El lugar que se está agregando
 hoursField.empty
@@ -1888,6 +1914,8 @@ offline.savingNeedsConnection
   Guardar requiere conexión. Lo escrito se conserva.
 offline.changesNeedConnection
   Cambiar un viaje requiere conexión.
+offline.reorderNeedsConnection
+  Reordenar requiere conexión.
 offline.asOf
   Sin conexión · el viaje tal como estaba a las {time}
 offline.asOfDay
@@ -1970,6 +1998,8 @@ map.placesHere
   {count} lugares aquí
 map.placeOfType
   {name} ({type})
+map.placeOfTypeAt
+  {position}. {name} ({type})
 map.draftPin
   Lugar nuevo, sin guardar
 map.draftPinHint
@@ -2263,5 +2293,23 @@ calendar.viewOnMap
 calendar.editPlace
   Editar lugar
 calendar.removeFailed
-  No se pudo quitar ese lugar."
+  No se pudo quitar ese lugar.
+calendar.reorderHandle
+  Reordenar {name}
+calendar.reorderInstructions
+  Para reordenar, presionar Espacio, mover con las flechas y presionar Espacio otra vez para soltar. Escape cancela.
+calendar.moveUp
+  Subir
+calendar.moveDown
+  Bajar
+calendar.pickedUp
+  Se tomó {name}, {position} de {count}.
+calendar.movedTo
+  {name}, ahora {position} de {count}.
+calendar.dropped
+  Se soltó {name} en {position} de {count}.
+calendar.dragCancelled
+  Se canceló. {name} queda en {position} de {count}.
+calendar.orderNotSaved
+  No se pudo guardar el nuevo orden."
 `;

@@ -71,6 +71,35 @@ export type Database = {
           },
         ]
       }
+      day_orders: {
+        Row: {
+          day: string
+          marker_ids: string[]
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          marker_ids?: string[]
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          marker_ids?: string[]
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_orders_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marker_interest: {
         Row: {
           interested: boolean
@@ -268,6 +297,10 @@ export type Database = {
       }
       is_own_member: { Args: { target_member: string }; Returns: boolean }
       is_trip_member: { Args: { target_trip: string }; Returns: boolean }
+      marker_run_days: {
+        Args: { planned_on: string; planned_until: string }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -57,6 +57,15 @@ export interface MarkerViewInput extends LngLat {
   type?: string | null
   /** Optional so a draft marker, which has never been anywhere, needs no answer. */
   visited?: boolean | null
+  /**
+   * Where the place falls in a day's order, counting from 1 — given only while
+   * the map is narrowed to exactly one day.
+   *
+   * Handed in rather than worked out here: which day, and the order itself,
+   * are the calendar's facts (`positionsOnDay` in `@pinpoint/core`), and this
+   * package knows neither.
+   */
+  position?: number | null
 }
 
 /**
@@ -145,6 +154,15 @@ export interface MarkerView {
    * form, which costs no contrast and survives a greyscale screen.
    */
   form: MarkerForm
+  /**
+   * The place's position in the day the map is narrowed to, or null.
+   *
+   * When set, it is drawn where the icon is drawn and in the icon's colour,
+   * and the icon is not drawn — the one case in which a marker does not show
+   * its type's icon. Colour, form, box and anchor are unchanged, so the pin is
+   * the same pin with a number in it.
+   */
+  position: number | null
 }
 
 /**
@@ -179,6 +197,7 @@ export function markerView(marker: MarkerViewInput): MarkerView {
     anchor: { x: MARKER_ANCHOR.x, y: MARKER_ANCHOR.y },
     visited: marker.visited === true,
     form: marker.visited === true ? 'hollow' : 'solid',
+    position: marker.position ?? null,
   }
 }
 

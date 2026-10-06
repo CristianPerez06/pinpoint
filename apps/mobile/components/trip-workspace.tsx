@@ -16,6 +16,7 @@ import {
   localPricesUnder,
   markersSelectedBy,
   matchesFilter,
+  numberedForOneDay,
   NO_FILTER,
   UNASSIGNED_CITY,
 } from '@pinpoint/core'
@@ -85,6 +86,7 @@ import {
 } from '@/components/workspace-chrome'
 import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
+import { useDayOrders } from '@/lib/use-day-orders'
 import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { onPlaceRequest, type PlaceRequest, takePlaceRequest } from '@/lib/calendar-detour'
@@ -254,6 +256,8 @@ export function TripWorkspace({
   const offlineTaps = useWaiting()
 
   const markers = markerQuery.rows
+  // Kept with the trip, so each day keeps its order with no signal.
+  const dayOrderQuery = useDayOrders(trip.id, markers)
   const offlineMapNote = useOfflineMapNote(trip.id, markers)
   const cities = cityQuery.rows
   const interest = interestQuery.rows
@@ -271,6 +275,7 @@ export function TripWorkspace({
     const outcomes = await Promise.all([
       tripQuery.refetch(options),
       markerQuery.refetch(options),
+      dayOrderQuery.refetch(options),
       cityQuery.refetch(options),
       interestQuery.refetch(options),
       memberQuery.refetch(options),
@@ -521,16 +526,27 @@ export function TripWorkspace({
    */
   const filterDays = useMemo(() => daysOffered(trip, held), [trip, held])
 
+  /*
+   * The trip's places, numbered in the day's order while the map is narrowed to
+   * exactly one day — each pin then draws its position instead of its icon. The
+   * numbers are counted over every place on the day, before the filter below,
+   * so a place another question hides leaves a gap rather than renumbering.
+   */
+  const numbered = useMemo(
+    () => numberedForOneDay(held, filter.day, dayOrderQuery.rows),
+    [held, filter.day, dayOrderQuery.rows],
+  )
+
   const visible = useMemo(
     () =>
-      held.filter((marker) =>
+      numbered.filter((marker) =>
         matchesFilter(
           marker,
           interest.filter((record) => record.markerId === marker.id),
           filter,
         ),
       ),
-    [held, interest, filter],
+    [numbered, interest, filter],
   )
 
   /**
@@ -1450,7 +1466,9 @@ export function TripWorkspace({
         }
         total={held.length}
         visible={visible}
-        held={held}
+        // Numbered where the map is narrowed to one day, so the pins it draws
+        // outside the filter number the same way as the rest.
+        held={numbered}
         members={members}
         interestFor={interestFor}
         // Resolved here, where the cities are, rather than handing the sheet the

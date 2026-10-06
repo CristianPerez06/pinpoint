@@ -24,6 +24,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { TypeChip } from '@/components/marker-details'
+import { type RowSlot, SortableDay } from '@/components/sortable-day'
 import { DayField, FormNote, NamePlaceholder } from '@/components/ui'
 import { useLanguage, useSay } from '@/lib/language'
 import { useTheme } from '@/lib/theme'
@@ -81,6 +82,10 @@ export type CalendarLists = {
   waiting: readonly WaitingGroup[]
   waitingCount: number
   onOpen: (marker: Marker) => void
+  /** The day being read has been put in a new order: every id, in that order. */
+  onReorder: (markerIds: readonly string[]) => void
+  /** False with no signal, when putting a day in order is unavailable. */
+  canReorder: boolean
 }
 
 export function CalendarScreen({
@@ -353,6 +358,8 @@ export function CalendarScreen({
             day={live ? live.day : null}
             markers={lists ? lists.onThisDay : null}
             onOpen={lists ? lists.onOpen : () => {}}
+            onReorder={lists ? lists.onReorder : () => {}}
+            canReorder={lists ? lists.canReorder : false}
           />
         ) : (
           <Waiting
@@ -647,10 +654,14 @@ function DayCard({
   day,
   markers,
   onOpen,
+  onReorder,
+  canReorder,
 }: {
   day: IsoDay | null
   markers: readonly Marker[] | null
   onOpen: (marker: Marker) => void
+  onReorder: (markerIds: readonly string[]) => void
+  canReorder: boolean
 }) {
   const theme = useTheme()
   const say = useSay()
@@ -677,30 +688,43 @@ function DayCard({
         />
       )}
 
-      <ScrollView contentContainerStyle={styles.dayContent}>
-        {markers === null ? (
-          WAITING_DAY_ROWS.map((width, index) => (
-            <WaitingRow key={index} width={width} />
-          ))
-        ) : markers.length === 0 ? (
-          // An empty day is the ordinary state of most days on most trips, and
-          // it is information. It is said, not left blank and not drawn as a
-          // fault.
-          <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
-            {say(message('calendar.nothingPlanned'))}
-          </Text>
-        ) : (
-          markers.map((marker) => (
+      {markers !== null && markers.length > 0 ? (
+        <SortableDay
+          items={markers}
+          enabled={canReorder}
+          onReorder={onReorder}
+          contentStyle={styles.dayContent}
+          renderRow={(marker, slot) => (
             <PlaceRow
-              key={marker.id}
               marker={marker}
               // Which day of how many, for this card's day.
               run={day ? runPositionOf(marker, day) : null}
               onOpen={onOpen}
+              slot={slot}
             />
-          ))
-        )}
-      </ScrollView>
+          )}
+        >
+          {/* Said where the handles are, since it is them it explains. */}
+          {!canReorder && markers.length > 1 ? (
+            <FormNote tone="notice">{say(message('offline.reorderNeedsConnection'))}</FormNote>
+          ) : null}
+        </SortableDay>
+      ) : (
+        <ScrollView contentContainerStyle={styles.dayContent}>
+          {markers === null ? (
+            WAITING_DAY_ROWS.map((width, index) => (
+              <WaitingRow key={index} width={width} />
+            ))
+          ) : (
+            // An empty day is the ordinary state of most days on most trips,
+            // and it is information. It is said, not left blank and not drawn
+            // as a fault.
+            <Text style={[styles.dayEmpty, { color: theme.colour.inkMuted }]}>
+              {say(message('calendar.nothingPlanned'))}
+            </Text>
+          )}
+        </ScrollView>
+      )}
     </View>
   )
 }
@@ -709,10 +733,13 @@ function PlaceRow({
   marker,
   run,
   onOpen,
+  slot,
 }: {
   marker: Marker
   run?: RunPosition | null
   onOpen: (marker: Marker) => void
+  /** Where the place can be moved within its day: its handle and actions. */
+  slot?: RowSlot
 }) {
   const theme = useTheme()
   const say = useSay()
@@ -728,12 +755,13 @@ function PlaceRow({
     }),
   )
 
-  return (
+  const row = (
     <Pressable
       onPress={() => onOpen(marker)}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={styles.place}
+      {...slot?.actions}
+      style={[styles.place, slot && styles.placeBeside]}
     >
       <TypeChip view={view} size={26} />
       {/*
@@ -773,6 +801,14 @@ function PlaceRow({
         </Text>
       ) : null}
     </Pressable>
+  )
+
+  if (!slot) return row
+  return (
+    <View style={styles.sortableRow}>
+      {slot.handle}
+      {row}
+    </View>
   )
 }
 
@@ -935,6 +971,9 @@ const styles = StyleSheet.create({
    * this rather than of the row.
    */
   placeBody: { flex: 1, minWidth: 0 },
+  /* A place beside its drag handle: the handle takes the row's start. */
+  sortableRow: { flexDirection: 'row', alignItems: 'stretch' },
+  placeBeside: { flex: 1, minWidth: 0, paddingLeft: 2 },
   placeName: { ...role(TYPE.rowName) },
   placeRun: { ...role(TYPE.note) },
   /* The boxes the waiting forms stand in, without the type the text carries. */

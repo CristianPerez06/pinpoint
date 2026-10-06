@@ -52,10 +52,13 @@ spreadsheet at planning rather than only at storage.
 Two things a neighbouring product could not truthfully copy without making the same
 two decisions:
 
-- **Wishlist, not itinerary.** The broken dimension is *where*, not *when*. Trip
-  planners that grew day-scheduling did it for strangers, not for a trip. If days ever
-  arrive they arrive as a second, independent grouping — a marker can be "Kyoto" *and*
-  "day 3" — never as a level underneath City.
+- **An order, never a schedule.** The broken dimension is *where*, not *when*. Trip
+  planners that grew day-scheduling did it for strangers, not for a trip. Days arrived
+  as a second, independent grouping — a marker can be "Kyoto" *and* "day 3" — never as
+  a level underneath City. A day's places can be put in the order they will be done,
+  and the map numbers them; that is the whole of it. No times, no durations, no
+  timetable. Whether a place may carry an optional time is open (#283), and is where
+  this line would move next.
 - **The filter is the product.** Interest is recorded per member, and the map narrows
   to the places a chosen set of people *all* want. Two people marking interest
   independently turns "show me the places we both want to go" from a squint into a

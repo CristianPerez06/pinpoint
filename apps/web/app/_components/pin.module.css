@@ -56,6 +56,27 @@
   stroke: var(--family);
 }
 
+/*
+ * A position in the day, drawn where the glyph is and in the glyph's colour.
+ *
+ * Straight on the family colour rather than on a disc of the ground: chosen
+ * from a mock as the pin that reads as the same pin. On the light ground the
+ * two grey families reach about 3.6:1 against it, under text's 4.5:1 — known
+ * and accepted (`map-rendering`).
+ */
+.position {
+  fill: var(--pp-marker-foreground);
+  font-family: var(--pp-font);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.pin[data-form='hollow'] .position {
+  fill: var(--family);
+}
+
 .ring {
   fill: var(--pp-accent-ring);
   opacity: 0;

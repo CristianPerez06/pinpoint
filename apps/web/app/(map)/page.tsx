@@ -1,5 +1,6 @@
 import {
   fetchTripCities,
+  fetchTripDayOrders,
   fetchTripInterest,
   fetchTripMarkers,
   fetchTripMembers,
@@ -79,11 +80,12 @@ export default async function Home({
 
   // Independent reads, so they wait on each other only for as long as the slower
   // one takes.
-  const [markers, cities, interest, members] = await Promise.all([
+  const [markers, cities, interest, members, dayOrders] = await Promise.all([
     fetchTripMarkers(supabase, trip.id),
     fetchTripCities(supabase, trip.id),
     fetchTripInterest(supabase, trip.id),
     fetchTripMembers(supabase, trip.id),
+    fetchTripDayOrders(supabase, trip.id),
   ])
 
   /**
@@ -146,6 +148,8 @@ export default async function Home({
           trip={trip}
           trips={trips.data}
           initialMarkers={markers.status === 'ready' ? markers.data : []}
+          // Absent rather than fatal: without it every day lists by name, as days did.
+          initialDayOrders={dayOrders.status === 'ready' ? dayOrders.data : []}
           initialCities={cities.status === 'ready' ? cities.data : []}
           members={memberList}
           initialInterest={interestRecords}

@@ -15,6 +15,10 @@ export {
   updateCity,
 } from './cities'
 
+export { fetchTripDayOrders, saveDayOrder } from './day-orders'
+export { createDayOrderSaver, DAY_ORDER_SAVE_AFTER_MS } from './day-order-saver'
+export type { DayOrderSaver } from './day-order-saver'
+
 export {
   createMarker,
   deleteMarker,

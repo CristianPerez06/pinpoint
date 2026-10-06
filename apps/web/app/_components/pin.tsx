@@ -57,16 +57,33 @@ export function Pin({
       >
         <circle className={styles.ring} cx="16" cy="15" r="17" />
         <path d={MARKER_PATH} className={styles.drop} />
-        <g
-          transform={`translate(16 15) scale(${MARKER_GLYPH_SIZE / 24}) translate(-12 -12)`}
-        >
-          <MarkerGlyph
-            icon={view.icon}
-            size={24}
-            strokeWidth={2.4}
-            className={styles.glyph}
-          />
-        </g>
+        {view.position !== null ? (
+          /*
+            The place's position in the day the map is narrowed to, where the
+            icon would be and in the icon's colour (`map-rendering`, *A map
+            narrowed to one day numbers its pins*). A size smaller at two
+            digits, so `24` sits inside the head as `7` does.
+          */
+          <text
+            x="16"
+            y="16"
+            className={styles.position}
+            fontSize={view.position > 9 ? 13 : 15}
+          >
+            {view.position}
+          </text>
+        ) : (
+          <g
+            transform={`translate(16 15) scale(${MARKER_GLYPH_SIZE / 24}) translate(-12 -12)`}
+          >
+            <MarkerGlyph
+              icon={view.icon}
+              size={24}
+              strokeWidth={2.4}
+              className={styles.glyph}
+            />
+          </g>
+        )}
       </svg>
 
       {count > 1 ? (

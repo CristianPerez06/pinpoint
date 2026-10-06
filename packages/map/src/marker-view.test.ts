@@ -14,6 +14,18 @@ function at(lng: number, lat: number, overrides: Partial<MarkerViewInput> = {}) 
 }
 
 describe('markerView', () => {
+  it('carries a position in the day when one is given, and keeps the type', () => {
+    const view = markerView(at(135.78, 35.0, { type: 'food', position: 12, visited: true }))
+
+    expect(view.position).toBe(12)
+    expect(view.type).toBe('food')
+    expect(view.form).toBe('hollow')
+  })
+
+  it('carries no position when none is given', () => {
+    expect(markerView(at(135.78, 35.0)).position).toBeNull()
+  })
+
   it('gives two different types different colours and different icons', () => {
     const museum = markerView(at(135.78, 35.0, { name: 'Kyoto Museum', type: 'culture' }))
     const restaurant = markerView(at(135.77, 35.0, { name: 'Pontocho', type: 'food' }))

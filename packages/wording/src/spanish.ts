@@ -353,6 +353,8 @@ export const SPANISH: Catalogue = {
     'Comparten las mismas coordenadas, así que acercar el mapa no los separa. No se movió nada: elegir uno.',
 
   'pin.label': (v: { name: string; type: string }) => `${v.name} (${v.type})`,
+  'pin.labelAt': (v: { position: number; name: string; type: string }) =>
+    `${v.position}. ${v.name} (${v.type})`,
   'pin.draft': 'El lugar que se está agregando',
 
   'hoursField.empty': 'Dejar vacío si no se sabe. Elegir los días que abre para agregar el horario.',
@@ -521,6 +523,7 @@ export const SPANISH: Catalogue = {
   'offline.searchAndDropNeedConnection': 'Buscar y agregar lugares requiere conexión.',
   'offline.savingNeedsConnection': 'Guardar requiere conexión. Lo escrito se conserva.',
   'offline.changesNeedConnection': 'Cambiar un viaje requiere conexión.',
+  'offline.reorderNeedsConnection': 'Reordenar requiere conexión.',
   'offline.asOf': (v) => `Sin conexión · el viaje tal como estaba a las ${v.time}`,
   'offline.asOfDay': (v) =>
     `Sin conexión · el viaje tal como estaba el ${v.day} a las ${v.time}`,
@@ -572,6 +575,7 @@ export const SPANISH: Catalogue = {
   'offlineMap.aboutGigabytes': (v) => `unos ${v.size} GB`,
   'map.placesHere': (v) => `${v.count} lugares aquí`,
   'map.placeOfType': (v) => `${v.name} (${v.type})`,
+  'map.placeOfTypeAt': (v) => `${v.position}. ${v.name} (${v.type})`,
   'map.draftPin': 'Lugar nuevo, sin guardar',
   'map.draftPinHint': 'Arrastrar para ajustar y luego guardar',
   'map.styleFailed': 'No se pudo cargar el mapa',
@@ -745,6 +749,16 @@ export const SPANISH: Catalogue = {
   'calendar.viewOnMap': 'Ver en el mapa',
   'calendar.editPlace': 'Editar lugar',
   'calendar.removeFailed': 'No se pudo quitar ese lugar.',
+  'calendar.reorderHandle': (v) => `Reordenar ${v.name}`,
+  'calendar.reorderInstructions':
+    'Para reordenar, presionar Espacio, mover con las flechas y presionar Espacio otra vez para soltar. Escape cancela.',
+  'calendar.moveUp': 'Subir',
+  'calendar.moveDown': 'Bajar',
+  'calendar.pickedUp': (v) => `Se tomó ${v.name}, ${v.position} de ${v.count}.`,
+  'calendar.movedTo': (v) => `${v.name}, ahora ${v.position} de ${v.count}.`,
+  'calendar.dropped': (v) => `Se soltó ${v.name} en ${v.position} de ${v.count}.`,
+  'calendar.dragCancelled': (v) => `Se canceló. ${v.name} queda en ${v.position} de ${v.count}.`,
+  'calendar.orderNotSaved': 'No se pudo guardar el nuevo orden.',
 }
 
 /**

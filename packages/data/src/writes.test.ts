@@ -4,6 +4,7 @@ import { message } from '@pinpoint/wording'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createCity, updateCity } from './cities'
+import { saveDayOrder } from './day-orders'
 import { inviteMember } from './interest'
 import { createMarker, deleteMarker, updateMarker } from './markers'
 
@@ -68,16 +69,18 @@ function stubClient(
   Object.assign(filterable, { eq: eqAfterUpdate, select, single, maybeSingle })
 
   const insert = vi.fn(() => ({ select: vi.fn(() => ({ single })) }))
+  const upsert = vi.fn(() => ({ select: vi.fn(() => ({ single })) }))
   const update = vi.fn(() => filterable)
   const eqAfterDelete = vi.fn(() => Promise.resolve(result))
   const del = vi.fn(() => ({ eq: eqAfterDelete }))
-  const from = vi.fn(() => ({ insert, update, delete: del, select }))
+  const from = vi.fn(() => ({ insert, upsert, update, delete: del, select }))
 
   return {
     client: { from } as unknown as PinpointClient,
     calls: {
       from,
       insert,
+      upsert,
       update,
       del,
       select,
@@ -573,5 +576,31 @@ describe('inviteMember', () => {
     expect(outcome.ok).toBe(false)
     if (outcome.ok) throw new Error('unreachable')
     expect(outcome.kind).toBe('rejected')
+  })
+})
+
+describe('saveDayOrder', () => {
+  const DAY = '2026-04-03'
+  const IDS = [MARKER_ID, '44444444-4444-4444-8444-444444444444']
+
+  it('saves the whole day as one row', async () => {
+    const { client, calls } = stubClient({ data: { day: DAY, marker_ids: IDS } })
+
+    const outcome = await saveDayOrder(client, TRIP_ID, DAY, IDS)
+
+    expect(calls.from).toHaveBeenCalledWith('day_orders')
+    expect(calls.upsert).toHaveBeenCalledTimes(1)
+    expect(calls.upsert).toHaveBeenCalledWith({ trip_id: TRIP_ID, day: DAY, marker_ids: IDS })
+    expect(outcome).toEqual({ ok: true, data: { day: DAY, markerIds: IDS } })
+  })
+
+  it('reports a failed save in words, not the database error', async () => {
+    const { client } = stubClient({ error: { message: 'permission denied for table day_orders' } })
+
+    const outcome = await saveDayOrder(client, TRIP_ID, DAY, IDS)
+
+    expect(outcome.ok).toBe(false)
+    expect(JSON.stringify(outcome)).toContain('calendar.orderNotSaved')
+    expect(JSON.stringify(outcome)).not.toContain('permission denied')
   })
 })

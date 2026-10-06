@@ -9,6 +9,7 @@ import {
   groupMarkersByDay,
   groupUndatedByCity,
   type IsoDay,
+  type DayOrder,
   type Marker,
   type MarkerFormValues,
   type MarkerInterest,
@@ -20,10 +21,12 @@ import {
   deleteMarker,
   fetchTripCities,
   fetchTripInterest,
+  fetchTripDayOrders,
   fetchTripMarkers,
   fetchTripMembers,
   fetchTrips,
   recordInterest,
+  saveDayOrder,
   setMarkerVisited,
   updateMarker,
   withdrawInterest,
@@ -47,6 +50,8 @@ import { TripBar } from '@/app/_components/trip-bar'
 import { Presence } from '@/app/_components/ui'
 import { useTripActions } from '@/app/_components/use-trip-actions'
 import { createClient } from '@/lib/supabase/client'
+import { useDayOrdering } from '@/lib/use-day-ordering'
+import { useDayOrders } from '@/lib/use-day-orders'
 import { useRows } from '@/lib/use-rows'
 import { useShownAgain } from '@/lib/use-shown-again'
 import { useVisibleAgain } from '@/lib/use-visible-again'
@@ -111,6 +116,7 @@ export function TripCalendar({
   initialDay,
   trips: storedTrips,
   initialMarkers,
+  initialDayOrders,
   initialCities,
   members: initialMembers,
   initialInterest,
@@ -141,6 +147,8 @@ export function TripCalendar({
    */
   trips: readonly Trip[]
   initialMarkers: readonly Marker[]
+  /** The order each day's places have been put in. See `useDayOrders`. */
+  initialDayOrders: readonly DayOrder[]
   initialCities: readonly City[]
   members: readonly TripMember[]
   initialInterest: readonly MarkerInterest[]
@@ -175,6 +183,12 @@ export function TripCalendar({
   const [trips, setTrips, refreshTrips] = useRows<Trip>(storedTrips)
   const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)
   const [markers, setMarkers, refreshMarkers] = useRows<Marker>(initialMarkers)
+  const [dayOrders, setDayOrders, refreshDayOrders] = useDayOrders(
+    initialDayOrders,
+    supabase,
+    initialTrip.id,
+    markers,
+  )
   const [interest, setInterest, refreshInterest] =
     useRows<MarkerInterest>(initialInterest)
   /*
@@ -400,6 +414,7 @@ export function TripCalendar({
     return Promise.all([
       refreshTrips(() => fetchTrips(supabase), options),
       refreshMarkers(() => fetchTripMarkers(supabase, trip.id), options),
+      refreshDayOrders(() => fetchTripDayOrders(supabase, trip.id), options),
       refreshCities(() => fetchTripCities(supabase, trip.id), options),
       refreshInterest(() => fetchTripInterest(supabase, trip.id), options),
       refreshMembers(() => fetchTripMembers(supabase, trip.id), options),
@@ -431,7 +446,22 @@ export function TripCalendar({
   */
   useShownAgain(readId, () => void rereadEverything({ force: true }))
 
-  const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
+  /*
+   * Each day's order as shown: the stored one, or the one just dragged into
+   * place while its save is waiting or on its way.
+   */
+  const ordering = useDayOrdering({
+    dayOrders,
+    setDayOrders,
+    save: (each, markerIds) => saveDayOrder(supabase, trip.id, each, markerIds),
+    onFailed: () => setNotice(message('calendar.orderNotSaved')),
+    day,
+  })
+
+  const grouped = useMemo(
+    () => groupMarkersByDay(markers, ordering.dayOrders),
+    [markers, ordering.dayOrders],
+  )
   const waiting = useMemo(
     () => groupUndatedByCity(grouped.undated, cities),
     [grouped, cities],
@@ -635,6 +665,7 @@ export function TripCalendar({
         waitingCount: grouped.undated.length,
         markersOn: (each) => markersOnDay(grouped, each),
         onOpen: (marker) => setOpenMarkerId(marker.id),
+        onReorder: ordering.change,
       }}
     >
       {/*

@@ -10,8 +10,8 @@ trip's places is downloaded ahead of time. The laptop application is not covered
 ### Requirement: The phone keeps a copy of every trip it reads
 
 The phone application SHALL keep, on the device, a copy of each trip it has read: the
-trip itself, its markers, cities, members and recorded interest, and the list of trips the
-person belongs to. The copy SHALL be written from what is on screen whenever that changes,
+trip itself, its markers, cities, members, recorded interest and the order of each day's
+places, and the list of trips the person belongs to. The copy SHALL be written from what is on screen whenever that changes,
 and SHALL record when the trip was last read successfully. The map's style document SHALL be
 kept the same way.
 
@@ -136,7 +136,7 @@ While the device has no connection, every control that changes a trip other than
 *Visited and who wants to go can be recorded with no signal* SHALL be shown disabled, not
 hidden, with a line saying it needs a connection. This SHALL include editing and removing a
 place, searching for and dropping a place, creating, renaming and removing a city, changing a
-place's day, renaming a trip and changing its dates, inviting and removing people, archiving
+place's day, putting a day's places in order — by dragging or step by step — renaming a trip and changing its dates, inviting and removing people, archiving
 and restoring a trip, and creating one.
 
 Controls that only change what is shown — filtering, choosing a city, opening a place, the
@@ -163,6 +163,13 @@ with its reason says what to do about it.
 
 - **WHEN** the connection returns while a place's details are shown
 - **THEN** Edit and Remove become available
+
+#### Scenario: The calendar offline
+
+- **WHEN** the calendar is shown with no signal
+- **THEN** each place's drag handle, and moving it up or down, is disabled
+- **AND** a line says reordering needs a connection
+- **AND** each day is shown in the order the phone last kept
 
 ### Requirement: Signing out removes what the phone kept about the person
 

@@ -20,6 +20,7 @@ import {
   fetchTripMembers,
   ownMemberOf,
   recordInterest,
+  saveDayOrder,
   setMarkerVisited,
   updateMarker,
   withdrawInterest,
@@ -38,6 +39,8 @@ import { TripSheet } from '@/components/trip-sheet'
 import { askMapToShow } from '@/lib/calendar-detour'
 import { useSay } from '@/lib/language'
 import { supabase } from '@/lib/supabase'
+import { useDayOrdering } from '@/lib/use-day-ordering'
+import { dayOrderSaved, useDayOrders } from '@/lib/use-day-orders'
 import { useActiveAgain } from '@/lib/use-active-again'
 import { type Query, useQuery } from '@/lib/use-query'
 import { useTripActions } from '@/lib/use-trip-actions'
@@ -124,6 +127,8 @@ export function TripCalendar({
   })
 
   const markers = markerQuery.rows
+  // Kept with the trip, so each day keeps its order with no signal.
+  const dayOrderQuery = useDayOrders(trip.id, markers)
   const offlineMapNote = useOfflineMapNote(trip.id, markers)
   const cities = cityQuery.rows
   const interest = interestQuery.rows
@@ -180,6 +185,7 @@ export function TripCalendar({
     return Promise.all([
       trips.refetch(options),
       markerQuery.refetch(options),
+      dayOrderQuery.refetch(options),
       cityQuery.refetch(options),
       interestQuery.refetch(options),
       memberQuery.refetch(options),
@@ -213,7 +219,26 @@ export function TripCalendar({
     if (value && reread) void reread()
   }
 
-  const grouped = useMemo(() => groupMarkersByDay(markers), [markers])
+  /*
+   * Each day's order as shown: the stored one, or the one just dragged into
+   * place while its save is waiting or on its way.
+   */
+  const ordering = useDayOrdering({
+    dayOrders: dayOrderQuery.rows,
+    setDayOrders: dayOrderQuery.set,
+    save: async (each, markerIds) => {
+      const outcome = await saveDayOrder(supabase, trip.id, each, markerIds)
+      if (outcome.ok) dayOrderSaved(trip.id, outcome.data)
+      return outcome
+    },
+    onFailed: () => setProblem(message('calendar.orderNotSaved')),
+    day,
+  })
+
+  const grouped = useMemo(
+    () => groupMarkersByDay(markers, ordering.dayOrders),
+    [markers, ordering.dayOrders],
+  )
   const onThisDay = markersOnDay(grouped, day)
   const waiting = useMemo(
     () => groupUndatedByCity(grouped.undated, cities),
@@ -464,6 +489,8 @@ export function TripCalendar({
               waiting,
               waitingCount: grouped.undated.length,
               onOpen: (marker) => setOpenMarkerId(marker.id),
+              onReorder: (markerIds) => ordering.change(day, markerIds),
+              canReorder: online,
             }
       }
     >

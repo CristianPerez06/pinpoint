@@ -7,7 +7,9 @@ import {
   type MarkerFilter,
   matchesFilter,
   NO_FILTER,
+  numberedForOneDay,
 } from './marker-filter'
+import type { Marker } from './marker'
 
 const ANA = 'member-ana'
 const BEN = 'member-ben'
@@ -430,5 +432,43 @@ describe('activeFilterCount', () => {
     ]) {
       expect(activeFilterCount(filter) > 0).toBe(isFiltered(filter))
     }
+  })
+})
+
+describe('numberedForOneDay', () => {
+  const DAY = '2026-04-03'
+  const at = (id: string, name: string, plannedOn: string | null, plannedUntil: string | null = null) =>
+    ({ id, name, plannedOn, plannedUntil }) as unknown as Marker
+  const temple = at('t', 'Temple', DAY)
+  const lunch = at('l', 'Lunch', DAY)
+  const hotel = at('h', 'Hotel', '2026-04-02', '2026-04-05')
+  const elsewhere = at('e', 'Elsewhere', '2026-04-09')
+  const orders = [{ day: DAY, markerIds: ['t', 'h', 'l'] }]
+
+  it('numbers the places on the one day chosen, in its order', () => {
+    const numbered = numberedForOneDay(
+      [lunch, elsewhere, hotel, temple],
+      { kind: 'on', days: [DAY] },
+      orders,
+    )
+    expect(numbered.map((each) => [each.id, each.position])).toEqual([
+      ['t', 1],
+      ['h', 2],
+      ['l', 3],
+      ['e', undefined],
+    ])
+  })
+
+  it('numbers nothing with two days chosen', () => {
+    const markers = [lunch, temple]
+    expect(numberedForOneDay(markers, { kind: 'on', days: [DAY, '2026-04-04'] }, orders)).toBe(
+      markers,
+    )
+  })
+
+  it('numbers nothing with no day, or the places with none, chosen', () => {
+    const markers = [lunch, temple]
+    expect(numberedForOneDay(markers, { kind: 'any' }, orders)).toBe(markers)
+    expect(numberedForOneDay(markers, { kind: 'undated' }, orders)).toBe(markers)
   })
 })

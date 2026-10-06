@@ -3,6 +3,7 @@
 import type {
   City,
   CityNotice,
+  DayOrder,
   FieldErrors,
   Marker,
   MarkerFilter,
@@ -20,6 +21,7 @@ import {
   markersSelectedBy,
   matchesFilter,
   NO_FILTER,
+  numberedForOneDay,
   routeFigures,
 } from '@pinpoint/core'
 import {
@@ -29,6 +31,7 @@ import {
   deleteMarker,
   fetchTripCities,
   fetchTripInterest,
+  fetchTripDayOrders,
   fetchTripMarkers,
   fetchTripMembers,
   fetchTrips,
@@ -69,6 +72,7 @@ import { overlayPanelClass, Presence } from '@/app/_components/ui'
 import { useOnline } from '@/lib/connectivity'
 import { rememberedTravelMode, rememberTravelMode, useStreetRoute } from '@/lib/street-route'
 import { createClient } from '@/lib/supabase/client'
+import { useDayOrders } from '@/lib/use-day-orders'
 import { useRows } from '@/lib/use-rows'
 import { useShownAgain } from '@/lib/use-shown-again'
 import { useVisibleAgain } from '@/lib/use-visible-again'
@@ -236,6 +240,7 @@ export function TripWorkspace({
   trip: initialTrip,
   trips: storedTrips,
   initialMarkers,
+  initialDayOrders,
   initialCities,
   members: initialMembers,
   initialInterest,
@@ -255,6 +260,8 @@ export function TripWorkspace({
    */
   trips: readonly Trip[]
   initialMarkers: readonly Marker[]
+  /** The order each day's places have been put in. See `useDayOrders`. */
+  initialDayOrders: readonly DayOrder[]
   initialCities: readonly City[]
   members: readonly TripMember[]
   initialInterest: readonly MarkerInterest[]
@@ -291,6 +298,12 @@ export function TripWorkspace({
   const [trips, setTrips, refreshTrips] = useRows<Trip>(storedTrips)
   const [members, setMembers, refreshMembers] = useRows<TripMember>(initialMembers)
   const [markers, setMarkers, refreshMarkers] = useRows<Marker>(initialMarkers)
+  const [dayOrders, , refreshDayOrders] = useDayOrders(
+    initialDayOrders,
+    supabase,
+    initialTrip.id,
+    markers,
+  )
   const [cities, setCities, refreshCities] = useRows<City>(initialCities)
   /** The place deleted here last, for its pin to fade on the map. See `remove`. */
   const [departing, setDeparting] = useState<string | null>(null)
@@ -651,6 +664,7 @@ export function TripWorkspace({
     const outcomes = await Promise.all([
       refreshTrips(() => fetchTrips(supabase), options),
       refreshMarkers(() => fetchTripMarkers(supabase, trip.id), options),
+      refreshDayOrders(() => fetchTripDayOrders(supabase, trip.id), options),
       refreshCities(() => fetchTripCities(supabase, trip.id), options),
       refreshInterest(() => fetchTripInterest(supabase, trip.id), options),
       refreshMembers(() => fetchTripMembers(supabase, trip.id), options),
@@ -744,10 +758,21 @@ export function TripWorkspace({
    * phone will narrow the same trip to the same places without either
    * application owning the definition.
    */
+  /*
+   * The trip's places, numbered in the day's order while the map is narrowed to
+   * exactly one day — each pin then draws its position instead of its icon. The
+   * numbers are counted over every place on the day, before the filter below,
+   * so a place another question hides leaves a gap rather than renumbering.
+   */
+  const numbered = useMemo(
+    () => numberedForOneDay(markers, filter.day, dayOrders),
+    [markers, filter.day, dayOrders],
+  )
+
   const visibleMarkers = useMemo(
     () =>
-      markers.filter((marker) => matchesFilter(marker, interestFor(marker), filter)),
-    [markers, interestFor, filter],
+      numbered.filter((marker) => matchesFilter(marker, interestFor(marker), filter)),
+    [numbered, interestFor, filter],
   )
 
   /*
@@ -792,7 +817,7 @@ export function TripWorkspace({
    * everything else uses — `markersAt` returns that same key, which is what
    * makes a card openable from a search match at all.
    */
-  const allGroups = useMemo(() => groupCoincident([...markers]), [markers])
+  const allGroups = useMemo(() => groupCoincident([...numbered]), [numbered])
 
   const open = useMemo(() => {
     if (panel.kind !== 'details') return null

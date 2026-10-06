@@ -12,6 +12,8 @@ import {
   groupMarkersByDay,
   groupUndatedByCity,
   markersOnDay,
+  movePlace,
+  positionsOnDay,
   runOfDays,
   runPositionOf,
   todayAsDay,
@@ -812,5 +814,82 @@ describe('a run of days on the calendar', () => {
       '2026-04-06',
       '2026-04-07',
     ])
+  })
+})
+
+describe('a day in its stored order', () => {
+  const day = '2026-04-03'
+  const temple = marker({ id: 't', name: 'Temple', plannedOn: day })
+  const lunch = marker({ id: 'l', name: 'Lunch', plannedOn: day })
+  const market = marker({ id: 'm', name: 'Market', plannedOn: day })
+  const ids = (grouped: ReturnType<typeof groupMarkersByDay>, on = day) =>
+    markersOnDay(grouped, on).map((each) => each.id)
+
+  it('reads a day with no stored order by name, as every day read before', () => {
+    expect(ids(groupMarkersByDay([temple, lunch, market]))).toEqual(['l', 'm', 't'])
+  })
+
+  it('follows the stored order', () => {
+    const grouped = groupMarkersByDay([temple, lunch, market], [
+      { day, markerIds: ['t', 'l', 'm'] },
+    ])
+    expect(ids(grouped)).toEqual(['t', 'l', 'm'])
+  })
+
+  it('puts a place the order does not mention last', () => {
+    const grouped = groupMarkersByDay([temple, lunch, market], [
+      { day, markerIds: ['t', 'm'] },
+    ])
+    expect(ids(grouped)).toEqual(['t', 'm', 'l'])
+  })
+
+  it('ignores ids that are not on the day, so no gap shows', () => {
+    const grouped = groupMarkersByDay([temple, market], [
+      { day, markerIds: ['t', 'gone', 'm'] },
+    ])
+    expect(ids(grouped)).toEqual(['t', 'm'])
+    expect([...positionsOnDay(grouped, day)]).toEqual([
+      ['t', 1],
+      ['m', 2],
+    ])
+  })
+
+  it('gives a run its own position on each of its days', () => {
+    const hotel = marker({
+      id: 'h',
+      name: 'Hotel',
+      plannedOn: day,
+      plannedUntil: '2026-04-04',
+    })
+    const next = marker({ id: 'n', name: 'Nara', plannedOn: '2026-04-04' })
+    const grouped = groupMarkersByDay([hotel, temple, next], [
+      { day, markerIds: ['h', 't'] },
+      { day: '2026-04-04', markerIds: ['n', 'h'] },
+    ])
+    expect(ids(grouped)).toEqual(['h', 't'])
+    expect(ids(grouped, '2026-04-04')).toEqual(['n', 'h'])
+  })
+
+  it('leaves the places waiting for a day by name', () => {
+    const waiting = [marker({ id: 'b', name: 'B' }), marker({ id: 'a', name: 'A' })]
+    const grouped = groupMarkersByDay(waiting, [{ day, markerIds: ['b', 'a'] }])
+    expect(grouped.undated.map((each) => each.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('movePlace', () => {
+  const places = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }]
+
+  it('moves a place up', () => {
+    expect(movePlace(places, 2, 0)).toEqual(['c', 'a', 'b', 'd'])
+  })
+
+  it('moves a place down', () => {
+    expect(movePlace(places, 1, 2)).toEqual(['a', 'c', 'b', 'd'])
+  })
+
+  it('goes nowhere past either end', () => {
+    expect(movePlace(places, 0, -1)).toEqual(['a', 'b', 'c', 'd'])
+    expect(movePlace(places, 3, 4)).toEqual(['a', 'b', 'c', 'd'])
   })
 })
