@@ -25,3 +25,6 @@ export {
 export type { Attempt, Router, RoutingService } from './router'
 
 export type { Fetcher, FetchResponse, RouteResult, StreetRoute } from './types'
+
+export { handoffUrl } from './handoff'
+export type { HandoffApp } from './handoff'

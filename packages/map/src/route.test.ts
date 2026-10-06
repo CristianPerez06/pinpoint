@@ -2,6 +2,8 @@ import { COLOUR } from '@pinpoint/tokens'
 import { describe, expect, it } from 'vitest'
 
 import {
+  bearingAhead,
+  bearingDifference,
   isTravelMode,
   ROUTE_SOURCE,
   routeFeature,
@@ -93,5 +95,52 @@ describe('isTravelMode', () => {
     expect(TRAVEL_MODES.every(isTravelMode)).toBe(true)
     expect(isTravelMode('bus')).toBe(false)
     expect(isTravelMode(null)).toBe(false)
+  })
+})
+
+describe('bearingAhead', () => {
+  // About 11 m per 0.0001° of latitude; a little less across at Kyoto's latitude.
+  const here = { lng: 135.77, lat: 35.0 }
+  const east = (m: number) => ({ lng: here.lng + m / (111_320 * Math.cos((35 * Math.PI) / 180)), lat: here.lat })
+  const north = (from: { lng: number; lat: number }, m: number) => ({ lng: from.lng, lat: from.lat + m / 111_320 })
+
+  it('reads a straight line heading east as 90', () => {
+    expect(bearingAhead([here, east(200)], here)).toBeCloseTo(90, 5)
+  })
+
+  it('reads a straight line heading south as 180', () => {
+    expect(bearingAhead([here, north(here, -200)], here)).toBeCloseTo(180, 5)
+  })
+
+  it('looks past a corner that comes within the look-ahead', () => {
+    // East for 20 m, then north: 40 m ahead lands 20 m up the northern leg.
+    const bend = east(20)
+    const bearing = bearingAhead([here, bend, north(bend, 200)], here, 40)!
+    expect(bearing).toBeGreaterThan(0)
+    expect(bearing).toBeLessThan(90)
+    expect(bearing).toBeCloseTo(45, 0)
+  })
+
+  it('does not see a corner beyond the look-ahead', () => {
+    const bend = east(100)
+    expect(bearingAhead([here, bend, north(bend, 200)], here, 40)).toBeCloseTo(90, 5)
+  })
+
+  it('reads from the point of the line nearest a person standing beside it', () => {
+    const beside = north(here, 15)
+    expect(bearingAhead([here, east(200)], beside)).toBeCloseTo(90, 3)
+  })
+
+  it('has no direction for a line too short to have one', () => {
+    expect(bearingAhead([here], here)).toBeNull()
+    expect(bearingAhead([here, here], here)).toBeNull()
+  })
+})
+
+describe('bearingDifference', () => {
+  it('is the smaller angle, across north as well', () => {
+    expect(bearingDifference(10, 350)).toBe(20)
+    expect(bearingDifference(90, 270)).toBe(180)
+    expect(bearingDifference(45, 45)).toBe(0)
   })
 })

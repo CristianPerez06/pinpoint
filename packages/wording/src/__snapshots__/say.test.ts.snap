@@ -1021,26 +1021,56 @@ route.needsConnection
   Bike and car need a connection.
 route.switchedToWalk
   No connection, so this is walking. Bike and car need a connection.
-trial.follow.noDestination
-  Open this screen with ?to=lng,lat.
-trial.follow.finding
-  Finding the route…
-trial.follow.none
-  No route was found.
-trial.follow.toTurn
-  In {distance}
-trial.follow.offRoute
-  Off the route. Finding a new one…
-trial.follow.start
+route.openIn
+  Open in…
+route.openInNamed
+  Open the route to {name} in another app
+route.openInGoogle
+  Open in Google Maps
+route.openInGoogleNamed
+  Open the route to {name} in Google Maps
+handoff.title
+  Open the way to {name} in
+handoff.google
+  Google Maps
+handoff.apple
+  Apple Maps
+handoff.other
+  Another maps app
+follow.start
   Start
-trial.follow.stop
+follow.startNamed
+  Start following the route to {name}
+follow.starting
+  Starting…
+follow.cannotStart
+  Following could not start. Try again.
+follow.nextTurnSpoken
+  In {distance}: {instruction}
+follow.minutes
+  {minutes} min
+follow.hours
+  {hours} h
+follow.hoursMinutes
+  {hours} h {minutes} min
+follow.left
+  {time} · {distance} left
+follow.arrive
+  Arrive {time}
+follow.offRoute
+  Off the route. Finding a new one…
+follow.offRouteNone
+  Off the route. No new route found yet.
+follow.arrived
+  You’ve arrived at {name}
+follow.stop
   Stop
-trial.follow.simulate
-  Simulate
-trial.follow.real
-  Real position
-trial.follow.leave
-  Leave the route
+follow.stopNamed
+  Stop following the route to {name}
+follow.recentre
+  Back to where you are
+follow.northUp
+  Put north at the top
 filter.name
   Filter
 filter.hint
@@ -2178,26 +2208,56 @@ route.needsConnection
   La bici y el auto requieren conexión.
 route.switchedToWalk
   Sin conexión, se muestra a pie. La bici y el auto requieren conexión.
-trial.follow.noDestination
-  Abrir esta pantalla con ?to=lng,lat.
-trial.follow.finding
-  Buscando la ruta…
-trial.follow.none
-  No se encontró una ruta.
-trial.follow.toTurn
-  En {distance}
-trial.follow.offRoute
-  Fuera de la ruta. Buscando otra…
-trial.follow.start
+route.openIn
+  Abrir en…
+route.openInNamed
+  Abrir la ruta a {name} en otra app
+route.openInGoogle
+  Abrir en Google Maps
+route.openInGoogleNamed
+  Abrir la ruta a {name} en Google Maps
+handoff.title
+  Abrir el camino a {name} en
+handoff.google
+  Google Maps
+handoff.apple
+  Mapas de Apple
+handoff.other
+  Otra app de mapas
+follow.start
   Iniciar
-trial.follow.stop
+follow.startNamed
+  Iniciar el recorrido a {name}
+follow.starting
+  Iniciando…
+follow.cannotStart
+  No se pudo iniciar el recorrido. Volver a intentar.
+follow.nextTurnSpoken
+  En {distance}: {instruction}
+follow.minutes
+  {minutes} min
+follow.hours
+  {hours} h
+follow.hoursMinutes
+  {hours} h {minutes} min
+follow.left
+  {time} · quedan {distance}
+follow.arrive
+  Llegada {time}
+follow.offRoute
+  Fuera de la ruta. Buscando otra…
+follow.offRouteNone
+  Fuera de la ruta. Todavía no se encontró otra.
+follow.arrived
+  Llegada a {name}
+follow.stop
   Detener
-trial.follow.simulate
-  Simular
-trial.follow.real
-  Posición real
-trial.follow.leave
-  Salir de la ruta
+follow.stopNamed
+  Detener el recorrido a {name}
+follow.recentre
+  Volver a la ubicación
+follow.northUp
+  Poner el norte arriba
 filter.name
   Filtro
 filter.hint

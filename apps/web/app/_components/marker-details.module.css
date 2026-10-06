@@ -358,6 +358,27 @@
   cursor: default;
 }
 
+.routeOpenIn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  margin: 10px 0 0;
+  padding: 6px 12px;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background: var(--pp-surface);
+  color: var(--pp-ink);
+  font-size: var(--pp-type-control-size);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.routeOpenIn:hover {
+  background: var(--pp-surface-sunk);
+}
+
 .routeNote {
   display: flex;
   align-items: flex-start;

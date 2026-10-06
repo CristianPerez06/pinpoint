@@ -134,6 +134,16 @@ Holding the words under a name would not change what is sent. This is temporary.
 each person the email in their own language belongs with a real email service (#78), and
 when that lands, this paragraph is replaced by the rule it follows.
 
+A turn instruction written by a routing service, shown while a route is followed
+(`route-following`), SHALL NOT be held as a named sentence either, and SHALL be shown as
+the service wrote it, in the language the application asked it for. It may therefore
+address the reader where the product's own Spanish is impersonal (*Gire a la derecha*).
+Rationale: the service writes one sentence per turn from the street's own name and kind,
+and a sentence of the product's own would have to be assembled from those parts; the
+person deciding chose the service's words over that. The words the product writes around
+an instruction — the distance to the turn, what is left, *Stop* — are named sentences like
+any other.
+
 Rationale: stating this now is what stops the list becoming the place text goes. The
 boundary is not obvious from either side — a city name and a refusal about a city name sit
 next to each other in the same form — and a person's own words placed under a name is a
@@ -181,6 +191,13 @@ language.
   defines it
 - **AND** the phone and the laptop produce the identical string for that stored value and
   that language
+
+#### Scenario: A routing service's turn instruction
+
+- **WHEN** the next turn is shown while a route is followed in Spanish
+- **THEN** its instruction is the routing service's Spanish, as written
+- **AND** it is not resolved from the shared source of sentences
+- **AND** the distance beside it is a named sentence
 
 ### Requirement: A name with no sentence, or a sentence nothing uses, fails the build
 

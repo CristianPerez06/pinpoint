@@ -335,6 +335,8 @@ export function TripWorkspace({
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [nearbyOpen, setNearbyOpen] = useState(false)
+  /** A route is being followed, which takes the whole screen (`route-following`). */
+  const [following, setFollowing] = useState(false)
   /**
    * The place the Nearby sheet measures from when the person's position is not
    * known: the middle of the visible map, read as the sheet opens.
@@ -1187,6 +1189,9 @@ export function TripWorkspace({
 
   return (
     <WorkspaceChrome
+      // Following a route takes the whole screen: nothing in the header is for
+      // someone walking to a place (`route-following`).
+      bare={following}
       /*
         When the trip on screen was last read, while there is no connection to
         read it again. The markers stand for the trip: they are what the map
@@ -1376,6 +1381,8 @@ export function TripWorkspace({
         tripId={trip.id}
         whereAmI={whereAmI}
         quietLocation={nearbyOpen}
+        following={following}
+        onFollowingChange={setFollowing}
         centreRef={centreRef}
         dropping={sight !== null}
         draft={panel.kind === 'none' ? null : panel.position}
@@ -1573,8 +1580,13 @@ function Body({
   tripId,
   whereAmI,
   quietLocation,
+  following,
+  onFollowingChange,
 }: {
   mapRef: Ref<TripMapRef>
+  /** A route is being followed: the notes over the map step aside (`route-following`). */
+  following: boolean
+  onFollowingChange: (following: boolean) => void
   /** The person's position, held by the workspace so Nearby reads the same one. */
   whereAmI: WhereAmI
   /**
@@ -1653,7 +1665,7 @@ function Body({
    * answers a press made a moment ago, and two pills in the same slot would
    * draw over each other.
    */
-  const locationNote = quietLocation ? null : whereAmI.status === 'refused' ? (
+  const locationNote = quietLocation || following ? null : whereAmI.status === 'refused' ? (
       <MarkersOverlayNote
         onPress={() => {
           // iOS will not ask a second time, so the way out is the app's own
@@ -1707,15 +1719,16 @@ function Body({
         onRecordInterest={onRecordInterest}
         onWithdrawInterest={onWithdrawInterest}
         onSetVisited={onSetVisited}
+        onFollowingChange={onFollowingChange}
       />
 
       {locationNote}
 
-      {locationNote === null && total === 0 ? (
+      {locationNote === null && !following && total === 0 ? (
         <MarkersOverlayNote>{say(message('map.noPlacesYet'))}</MarkersOverlayNote>
       ) : null}
 
-      {locationNote === null && total > 0 && visible.length === 0 ? (
+      {locationNote === null && !following && total > 0 && visible.length === 0 ? (
         <MarkersOverlayNote onPress={onClearFilter}>
           {say(message('map.noMatchesTap', { count: total }))}
         </MarkersOverlayNote>
@@ -1741,7 +1754,7 @@ function Body({
         `visible.length === 0` and this one needs the opposite, and the first
         needs no places at all.
       */}
-      {locationNote === null && narrowed && visible.length > 0 && !somethingToLookAt ? (
+      {locationNote === null && !following && narrowed && visible.length > 0 && !somethingToLookAt ? (
         <MarkersOverlayNote onPress={onShowMatches}>
           {say(message('map.matchesOutOfViewTap', { count: visible.length }))}
         </MarkersOverlayNote>

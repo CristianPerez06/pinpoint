@@ -864,23 +864,47 @@ export const ENGLISH = {
   /** The connection dropped while bike or car was chosen, so the route changed to walking. */
   'route.switchedToWalk': 'No connection, so this is walking. Bike and car need a connection.',
 
-  // ── Following a route, on the phone's trial screen ──────────────────────
-  // Development builds only (`monorepo-structure`); groundwork for #279, so
-  // nobody who installs the app reads these yet.
-  /** The link opened with no destination, or one that is not `lng,lat`. */
-  'trial.follow.noDestination': 'Open this screen with ?to=lng,lat.',
-  'trial.follow.finding': 'Finding the route…',
-  'trial.follow.none': 'No route was found.',
-  /** Beneath the next instruction. `distance` is already formatted for the language. */
-  'trial.follow.toTurn': (v: { distance: string }) => `In ${v.distance}`,
-  'trial.follow.offRoute': 'Off the route. Finding a new one…',
-  'trial.follow.start': 'Start',
-  'trial.follow.stop': 'Stop',
-  /** Switches between Ferrostar walking the route by itself and the device's own position. */
-  'trial.follow.simulate': 'Simulate',
-  'trial.follow.real': 'Real position',
-  /** Moves the simulated position off the line, to force a new route. */
-  'trial.follow.leave': 'Leave the route',
+  /** Beside *Start*, or alone with the straight line: opens the choice of maps apps (`place-route`). */
+  'route.openIn': 'Open in…',
+  'route.openInNamed': (v: { name: string }) => `Open the route to ${v.name} in another app`,
+  /** The laptop's one way out: a new tab. */
+  'route.openInGoogle': 'Open in Google Maps',
+  'route.openInGoogleNamed': (v: { name: string }) => `Open the route to ${v.name} in Google Maps`,
+
+  // ── Continuing in another maps app (`place-route`) ──────────────────────
+  /** Heads the phone's choice. Followed by the apps' names. */
+  'handoff.title': (v: { name: string }) => `Open the way to ${v.name} in`,
+  'handoff.google': 'Google Maps',
+  'handoff.apple': 'Apple Maps',
+  /** Android only: lets the device choose, or use its default. */
+  'handoff.other': 'Another maps app',
+
+  // ── Following a route on the phone (`route-following`) ──────────────────
+  'follow.start': 'Start',
+  'follow.startNamed': (v: { name: string }) => `Start following the route to ${v.name}`,
+  /** While the route with its turns is being asked for, after *Start*. */
+  'follow.starting': 'Starting…',
+  'follow.cannotStart': 'Following could not start. Try again.',
+  /** Spoken when the next turn changes. `distance` is already formatted for the language. */
+  'follow.nextTurnSpoken': (v: { distance: string; instruction: string }) =>
+    `In ${v.distance}: ${v.instruction}`,
+  /** Time left, without the way of travelling. Already formatted for the language. */
+  'follow.minutes': (v: { minutes: string }) => `${v.minutes} min`,
+  'follow.hours': (v: { hours: string }) => `${v.hours} h`,
+  'follow.hoursMinutes': (v: { hours: string; minutes: string }) => `${v.hours} h ${v.minutes} min`,
+  /** The bar at the bottom. `time` and `distance` are already worded. */
+  'follow.left': (v: { time: string; distance: string }) => `${v.time} · ${v.distance} left`,
+  /** `time` is on the 24-hour clock. */
+  'follow.arrive': (v: { time: string }) => `Arrive ${v.time}`,
+  'follow.offRoute': 'Off the route. Finding a new one…',
+  'follow.offRouteNone': 'Off the route. No new route found yet.',
+  'follow.arrived': (v: { name: string }) => `You’ve arrived at ${v.name}`,
+  'follow.stop': 'Stop',
+  'follow.stopNamed': (v: { name: string }) => `Stop following the route to ${v.name}`,
+  /** After the person moves the map by hand: brings the camera back to them. */
+  'follow.recentre': 'Back to where you are',
+  /** The compass while the map is turned to the way ahead: puts north back at the top. */
+  'follow.northUp': 'Put north at the top',
 
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',

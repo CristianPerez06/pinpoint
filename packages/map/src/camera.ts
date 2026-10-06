@@ -61,17 +61,27 @@ function latitudeAt(y: number): number {
  *
  * `dx` and `dy` are pixel offsets applied to the centre in screen terms — `dy`
  * positive moves the centre down the screen, which moves the drawn point up.
+ *
+ * `bearing` is the map's rotation, in degrees clockwise from north, for a map
+ * turned so something other than north is up — following a route turns it to
+ * the way ahead (`route-following`). "Down the screen" then points another way
+ * on the ground, so the screen offset is turned with the map before it is
+ * applied. Zero, the default, is every map that keeps north up.
  */
 export function offsetCenter(
   center: LngLat,
   zoom: number,
   dx: number,
   dy: number,
+  bearing = 0,
 ): LngLat {
   const worldSize = TILE_SIZE * Math.pow(2, zoom)
+  const turn = (bearing * Math.PI) / 180
+  const wx = dx * Math.cos(turn) - dy * Math.sin(turn)
+  const wy = dx * Math.sin(turn) + dy * Math.cos(turn)
 
-  const x = ((normalizeLongitude(center.lng) + 180) / 360) * worldSize + dx
-  const y = mercatorY(center.lat) * worldSize + dy
+  const x = ((normalizeLongitude(center.lng) + 180) / 360) * worldSize + wx
+  const y = mercatorY(center.lat) * worldSize + wy
 
   return {
     lng: normalizeLongitude((x / worldSize) * 360 - 180),

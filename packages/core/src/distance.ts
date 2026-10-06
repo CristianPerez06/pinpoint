@@ -103,6 +103,25 @@ export function formatTravelTime(language: Language, minutes: number, mode: Trav
 }
 
 /**
+ * What is left of a route being followed, as a time: `14 min`, `1 h 5 min`
+ * (`route-following`).
+ *
+ * `formatTravelTime`'s rounding — to the nearest minute, never under one — but
+ * without naming the way of travelling, because the bar it sits in already
+ * says where the person is going and how.
+ */
+export function formatTimeLeft(language: Language, minutes: number): Message {
+  const number = new Intl.NumberFormat(DISTANCE_LOCALE[language], { maximumFractionDigits: 0 })
+  const whole = Math.max(1, Math.round(minutes))
+  if (whole < 60) return message('follow.minutes', { minutes: number.format(whole) })
+
+  const hours = number.format(Math.floor(whole / 60))
+  const rest = whole % 60
+  if (rest === 0) return message('follow.hours', { hours })
+  return message('follow.hoursMinutes', { hours, minutes: number.format(rest) })
+}
+
+/**
  * The sentences a time is written in, per way of travelling.
  *
  * An exhaustive record with every name written out, because `check:wording`
