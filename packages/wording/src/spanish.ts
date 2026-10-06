@@ -708,6 +708,10 @@ export const SPANISH: Catalogue = {
   'follow.stopNamed': (v) => `Detener el recorrido a ${v.name}`,
   'follow.recentre': 'Volver a la ubicación',
   'follow.northUp': 'Poner el norte arriba',
+  'follow.view3d': '3D',
+  'follow.view2d': '2D',
+  'follow.tilt': 'Inclinar el mapa',
+  'follow.flatten': 'Ver el mapa plano',
 
   'filter.name': 'Filtro',
   'filter.hint': 'Filtrar este viaje',

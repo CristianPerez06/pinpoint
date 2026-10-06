@@ -8,6 +8,7 @@ import {
   coveredBandHeight,
   fitBounds,
   frameAround,
+  groundOffset,
   liftOffset,
   normalizeLongitude,
   offsetCenter,
@@ -253,6 +254,41 @@ describe('offsetCenter', () => {
     const past = offsetCenter(nearEdge, 8, 5_000, 0)
     expect(past.lng).toBeGreaterThanOrEqual(-180)
     expect(past.lng).toBeLessThan(180)
+  })
+})
+
+describe('groundOffset', () => {
+  it('is the screen distance itself on a flat map', () => {
+    expect(groundOffset(120, 0, 800)).toBe(120)
+    expect(groundOffset(-120, 0, 800)).toBe(-120)
+  })
+
+  it('is zero for no shift, tilted or not', () => {
+    expect(groundOffset(0, 60, 800)).toBe(0)
+  })
+
+  it('covers more ground above the middle than below it once tilted', () => {
+    const ahead = groundOffset(100, 60, 800)
+    const behind = groundOffset(-100, 60, 800)
+    expect(ahead).toBeGreaterThan(-behind)
+    expect(behind).toBeLessThan(0)
+    // Leaning back stretches the ground under every pixel near the middle.
+    expect(-behind).toBeGreaterThan(100)
+  })
+
+  it('matches the camera MapLibre draws with', () => {
+    // The eye is 1.5 view-heights away: 1200 px for an 800 px map. A point 100 px
+    // above the middle at 60° meets the ground 1200·cos60·tan(60° + atan(1/12))
+    // − 1200·sin60 ahead of it.
+    const a = Math.atan(100 / 1200)
+    const p = Math.PI / 3
+    const expected = 1200 * Math.cos(p) * Math.tan(p + a) - 1200 * Math.sin(p)
+    expect(groundOffset(100, 60, 800)).toBeCloseTo(expected, 9)
+    expect(expected).toBeCloseTo(234, 0)
+  })
+
+  it('grows towards the horizon', () => {
+    expect(groundOffset(200, 60, 800)).toBeGreaterThan(2 * groundOffset(100, 60, 800))
   })
 })
 

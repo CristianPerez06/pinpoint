@@ -92,6 +92,46 @@ export function offsetCenter(
 }
 
 /**
+ * The vertical field of view both renderers draw with, in radians.
+ *
+ * MapLibre's own default, in GL JS and in native alike: about 36.87°, which puts
+ * the eye one and a half view-heights from the middle of the view.
+ */
+const FIELD_OF_VIEW = 0.6435011087932844
+
+/**
+ * How far along the ground a point drawn `screenOffset` pixels above the middle
+ * of a tilted view is from the middle, in the pixels the zoom measures the map
+ * in — which is what `offsetCenter` shifts by.
+ *
+ * Needed because a tilted map is not drawn to one scale. Leaning the camera back
+ * puts the top of the screen further away than the bottom, so a pixel near the
+ * top covers more ground than one near the bottom, and a shift written in screen
+ * pixels — the one that keeps the person between the turn card and the bar while
+ * following (`route-following`) — lands short. The answer is converted here and
+ * handed to `offsetCenter` in place of the screen distance; never as camera
+ * padding (AGENTS.md).
+ *
+ * The camera sits `D = height / (2·tan(fov/2))` from the middle of the view, so a
+ * point `s` pixels above the middle is seen `atan(s / D)` off its axis, and the
+ * ray to it meets the ground `D·cos(p)·tan(p + a) − D·sin(p)` ahead of the middle.
+ * At no tilt that is `s` itself, so a flat map is unchanged. Negative `s` — a
+ * point below the middle — comes back negative, nearer.
+ *
+ * Only the vertical axis. Under a tilt the sideways scale changes with the height
+ * on screen too, which no caller needs and `offsetCenter` does not pretend to.
+ *
+ * `pitch` in degrees from looking straight down; `height` is the map's, in pixels.
+ */
+export function groundOffset(screenOffset: number, pitch: number, height: number): number {
+  if (pitch === 0 || screenOffset === 0) return screenOffset
+  const eye = height / 2 / Math.tan(FIELD_OF_VIEW / 2)
+  const p = (pitch * Math.PI) / 180
+  const a = Math.atan(screenOffset / eye)
+  return eye * Math.cos(p) * Math.tan(p + a) - eye * Math.sin(p)
+}
+
+/**
  * Whether a covered rectangle takes a band right across the map.
  *
  * The distinction the two consumers below both turn on. A sheet flush to both

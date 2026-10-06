@@ -1071,6 +1071,14 @@ follow.recentre
   Back to where you are
 follow.northUp
   Put north at the top
+follow.view3d
+  3D
+follow.view2d
+  2D
+follow.tilt
+  Tilt the map
+follow.flatten
+  Lay the map flat
 filter.name
   Filter
 filter.hint
@@ -2258,6 +2266,14 @@ follow.recentre
   Volver a la ubicación
 follow.northUp
   Poner el norte arriba
+follow.view3d
+  3D
+follow.view2d
+  2D
+follow.tilt
+  Inclinar el mapa
+follow.flatten
+  Ver el mapa plano
 filter.name
   Filtro
 filter.hint

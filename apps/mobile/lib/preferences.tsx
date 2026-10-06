@@ -53,6 +53,11 @@ const LANGUAGE_KEY = `${PREFIX}language`
 const OPENING_KEY = `${PREFIX}openingPlayed`
 /** The way of travelling chosen last, which a new route starts with (`place-route`). */
 const TRAVEL_MODE_KEY = `${PREFIX}travelMode`
+/**
+ * Whether following leans the map back or keeps it flat (`route-following`).
+ * Follow me (#296) is to read the same value.
+ */
+const FOLLOW_TILTED_KEY = `${PREFIX}followTilted`
 
 type PreferencesState = {
   theme: ThemePreference
@@ -63,6 +68,8 @@ type PreferencesState = {
   markOpeningPlayed: () => void
   travelMode: TravelMode
   chooseTravelMode: (next: TravelMode) => void
+  followTilted: boolean
+  chooseFollowTilted: (next: boolean) => void
 }
 
 /**
@@ -100,11 +107,14 @@ export function PreferencesProvider({
   const [openingPlayed, setOpeningPlayed] = useState(true)
   // Walking until read, which is what a first route on a device starts with.
   const [travelMode, setTravelMode] = useState<TravelMode>('walk')
+  // Tilted until read, and after a failed read: it is what *Start* does for
+  // somebody who has never chosen.
+  const [followTilted, setFollowTilted] = useState(true)
 
   useEffect(() => {
     let active = true
 
-    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY, OPENING_KEY, TRAVEL_MODE_KEY])
+    AsyncStorage.multiGet([THEME_KEY, LANGUAGE_KEY, OPENING_KEY, TRAVEL_MODE_KEY, FOLLOW_TILTED_KEY])
       .then((stored) => {
         if (!active) return
         const read = new Map(stored)
@@ -113,6 +123,8 @@ export function PreferencesProvider({
         setOpeningPlayed(read.get(OPENING_KEY) === 'true')
         const mode = read.get(TRAVEL_MODE_KEY)
         if (isTravelMode(mode)) setTravelMode(mode)
+        // Only an explicit flat choice turns the tilt off.
+        setFollowTilted(read.get(FOLLOW_TILTED_KEY) !== 'false')
       })
       .catch(() => {
         // Deliberately swallowed, and deliberately still ready.
@@ -169,6 +181,11 @@ export function PreferencesProvider({
     void AsyncStorage.setItem(TRAVEL_MODE_KEY, next).catch(() => {})
   }, [])
 
+  const chooseFollowTilted = useCallback((next: boolean) => {
+    setFollowTilted(next)
+    void AsyncStorage.setItem(FOLLOW_TILTED_KEY, String(next)).catch(() => {})
+  }, [])
+
   const value = useMemo(
     () => ({
       theme,
@@ -179,6 +196,8 @@ export function PreferencesProvider({
       markOpeningPlayed,
       travelMode,
       chooseTravelMode,
+      followTilted,
+      chooseFollowTilted,
     }),
     [
       theme,
@@ -189,6 +208,8 @@ export function PreferencesProvider({
       markOpeningPlayed,
       travelMode,
       chooseTravelMode,
+      followTilted,
+      chooseFollowTilted,
     ],
   )
 

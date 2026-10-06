@@ -905,6 +905,14 @@ export const ENGLISH = {
   'follow.recentre': 'Back to where you are',
   /** The compass while the map is turned to the way ahead: puts north back at the top. */
   'follow.northUp': 'Put north at the top',
+  /**
+   * The control beside the compass. Its face shows the view pressing it gives;
+   * its name says what pressing it does.
+   */
+  'follow.view3d': '3D',
+  'follow.view2d': '2D',
+  'follow.tilt': 'Tilt the map',
+  'follow.flatten': 'Lay the map flat',
 
   // ── The filter ──────────────────────────────────────────────────────────
   'filter.name': 'Filter',
