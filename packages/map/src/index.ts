@@ -38,6 +38,7 @@ export {
   coveredBandHeight,
   fitBounds,
   frameAround,
+  groundOffset,
   liftOffset,
   accuracyRadiusPx,
   isCentredOn,

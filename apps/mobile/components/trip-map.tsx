@@ -18,6 +18,7 @@ import {
   DEFAULT_VIEWPORT,
   distanceKm,
   frameAround,
+  groundOffset,
   groupCoincident,
   isCentredOn,
   LOCATION_SOURCE,
@@ -111,6 +112,11 @@ const FollowView = lazy(() => import('@/components/following/follow-view'))
 
 /** How close the camera follows the person: near enough to read the streets. */
 const FOLLOW_ZOOM = 16
+/**
+ * How far the map leans back while following, unless the flat view was chosen:
+ * the mock's 60°, which is also MapLibre native's ceiling (#295).
+ */
+const FOLLOW_PITCH = 60
 /** How long the arrival note stands before going. */
 const ARRIVED_NOTE_MS = 4000
 
@@ -187,8 +193,9 @@ function anchorName(anchor: { x: number; y: number }): Anchor {
 const styles = StyleSheet.create({
   /** The way back to the person while following: the re-read's shape, on the right edge. */
   recentre: { position: 'absolute', right: SPACE.md },
-  /** The compass while following: the same shape, under the turn card. */
+  /** The compass and the tilt control while following: the same shape, under the turn card. */
   compass: { position: 'absolute', right: SPACE.md },
+  tiltText: { fontSize: 13, fontWeight: '700' },
   /**
    * Fills the map so the note inside, which places itself from its parent's
    * top, has a parent with a top to place itself from (AGENTS.md).
@@ -1143,7 +1150,8 @@ export function TripMap({
   }
   const activeRoute = route && openPlace && route.markerId === openPlace.id ? route : null
   const windowHeight = useWindowDimensions().height
-  const { travelMode, chooseTravelMode } = usePreferences()
+  const { travelMode, chooseTravelMode, followTilted, chooseFollowTilted } = usePreferences()
+  const followPitch = followTilted ? FOLLOW_PITCH : 0
 
   // With no connection only walking is offered. Losing it while cycling or
   // driving changes the route to walking and says why; getting it back keeps
@@ -1155,17 +1163,45 @@ export function TripMap({
     setRoute({ ...activeRoute, switched: false })
   }
 
+  /**
+   * The camera's tilt, so `leanTo` can tell a change from a repeat: set when
+   * it leans, and read back on every settle, which also catches a tilt made by
+   * hand with two fingers.
+   */
+  const pitchRef = useRef(0)
+
+  /**
+   * Changes the tilt on its own, at once, ahead of a move that wants a
+   * different one.
+   *
+   * On iOS the map library works out a move's centre and height at the tilt the
+   * camera is *leaving*, and applies the new tilt afterwards — so a single move
+   * from tilted to flat landed half a kilometre off with the wrong zoom, and the
+   * first frame of following, and every press of *2D* and *3D*, the same way
+   * (`CameraUpdateItem.m`, `_makeCamera`). Android applies them together, which
+   * is why it never showed there. The library runs moves in the order they are
+   * sent and an instant one before the next is computed, so leaning first puts
+   * every move on the tilt it is computed for.
+   */
+  const leanTo = (pitch: number) => {
+    if (pitchRef.current === pitch) return
+    pitchRef.current = pitch
+    void cameraRef.current?.setStop({ pitch, duration: 0 }).catch(() => {})
+  }
+
   /** Both ends, or the whole street route, above the sheet. */
   const frameRoute = (points: readonly LngLat[]) => {
+    leanTo(0)
     // By the shared derivation — never camera padding, which the drop sight
     // depends on staying zero (AGENTS.md).
     const camera = frameAround(points, viewport ?? DEFAULT_VIEWPORT, detailsHeight(windowHeight))
     cameraRef.current?.flyTo({
       center: [camera.center.lng, camera.center.lat],
       zoom: camera.zoom,
-      // North up, which every framing assumes — and back to it after following
-      // has turned the map.
+      // North up and flat, which every framing assumes — and back to both
+      // after following has turned and tilted the map.
       bearing: 0,
+      pitch: 0,
     })
   }
 
@@ -1263,19 +1299,37 @@ export function TripMap({
 
   /**
    * Keeps the person in the middle of what the card and the bar leave visible,
-   * with the map turned to `bearing`.
+   * with the map turned to `bearing` and leaning back by `pitch`.
    */
-  const followCamera = (here: LngLat, bearing: number) => {
+  const followCamera = (here: LngLat, bearing: number, pitch = followPitch) => {
+    leanTo(pitch)
     const { top, bottom } = followCovered.current
-    // By the shared derivation — never camera padding (AGENTS.md) — and turned
-    // with the map, since "down the screen" is no longer south.
-    const centre = offsetCenter(here, FOLLOW_ZOOM, 0, (bottom - top) / 2, bearing)
+    // By the shared derivation — never camera padding (AGENTS.md) — turned with
+    // the map, since "down the screen" is no longer south, and measured on the
+    // ground, since a tilted map is not drawn to one scale.
+    const shift = groundOffset((bottom - top) / 2, pitch, (viewport ?? DEFAULT_VIEWPORT).height)
+    const centre = offsetCenter(here, FOLLOW_ZOOM, 0, shift, bearing)
     cameraRef.current?.easeTo({
       center: [centre.lng, centre.lat],
       zoom: FOLLOW_ZOOM,
       bearing,
+      pitch,
       duration: 600,
     })
+  }
+
+  /**
+   * Tilted or flat, remembered for next time. While the person is looking
+   * around only the lean changes, so their view is not taken from them.
+   */
+  const toggleTilt = () => {
+    const pitch = followTilted ? 0 : FOLLOW_PITCH
+    chooseFollowTilted(!followTilted)
+    if (lookingAround || !followHere.current) {
+      leanTo(pitch)
+    } else {
+      followCamera(followHere.current, northUp ? 0 : followBearing.current, pitch)
+    }
   }
 
   const startFollowing = () => {
@@ -1534,6 +1588,7 @@ export function TripMap({
             // following them, until they ask for it back (`route-following`).
             if (following && event.nativeEvent.userInteraction) setLookingAround(true)
             const [lng, lat] = event.nativeEvent.center
+            pitchRef.current = event.nativeEvent.pitch
             centreRef.current = { lng, lat }
             // Kept for the same reason the centre is, and read at the same
             // moments: how far a pixel reaches on the ground depends entirely on
@@ -2112,6 +2167,33 @@ export function TripMap({
       ) : null}
 
       {/*
+        Tilted or flat (`route-following`). Always there while following, under
+        the turn card, so it does not move when the compass below it comes and
+        goes. Its face is the view pressing it gives.
+      */}
+      {following ? (
+        <Pressable
+          onPress={toggleTilt}
+          accessibilityRole="button"
+          accessibilityLabel={say(message(followTilted ? 'follow.flatten' : 'follow.tilt'))}
+          style={[
+            styles.reread,
+            styles.compass,
+            {
+              top: followCardBottom + SPACE.md,
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.lineStrong,
+              shadowColor: theme.elevation.sm.colour,
+            },
+          ]}
+        >
+          <Text style={[styles.tiltText, { color: theme.colour.ink }]}>
+            {say(message(followTilted ? 'follow.view2d' : 'follow.view3d'))}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {/*
         Which way north is, while the map is turned to the way ahead; pressing it
         puts north back at the top for the rest of the trip (`route-following`).
         The arrow is turned against the map so it always points north.
@@ -2130,7 +2212,8 @@ export function TripMap({
             styles.reread,
             styles.compass,
             {
-              top: followCardBottom + SPACE.md,
+              // Beneath the tilt control: its 44 and a gap.
+              top: followCardBottom + SPACE.md + 44 + SPACE.sm,
               backgroundColor: theme.colour.surface,
               borderColor: theme.colour.lineStrong,
               shadowColor: theme.elevation.sm.colour,
