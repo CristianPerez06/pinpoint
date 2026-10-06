@@ -57,8 +57,10 @@ two decisions:
   as a second, independent grouping — a marker can be "Kyoto" *and* "day 3" — never as
   a level underneath City. A day's places can be put in the order they will be done,
   and the map numbers them; that is the whole of it. No times, no durations, no
-  timetable. Whether a place may carry an optional time is open (#283), and is where
-  this line would move next.
+  timetable. An optional time on any place was considered and dropped: the dragged
+  order already says what comes first, and a place's note holds "lunch around 13:00".
+  The one case that would reopen it is a time someone else fixed — a reservation, a
+  ticket slot, a train — and only that narrower version.
 - **The filter is the product.** Interest is recorded per member, and the map narrows
   to the places a chosen set of people *all* want. Two people marking interest
   independently turns "show me the places we both want to go" from a squint into a
