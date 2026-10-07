@@ -38,3 +38,35 @@ export function sheetHeightAbove({
   if (keyboardTop === null) return resting
   return Math.max(0, Math.round(keyboardTop - topInset - gap))
 }
+
+/**
+ * How tall a sheet with a full height of its own stands at it, given the space
+ * it is drawn in.
+ *
+ * The place form's full height is a fraction of the window, but the form is
+ * drawn over the map, below the trip header — so on every phone the fraction
+ * asked for more than there was, and the top of the sheet, its handle with it,
+ * went under the header (#293). This takes the smaller of the two, short of the
+ * same `gap` the sheet leaves when it grows over the keyboard, and never less
+ * than its lower height.
+ *
+ * `room` is null until the space has been measured; until then the fraction
+ * stands, which is only ever the case before anybody could have dragged.
+ */
+export function fullHeight({
+  wanted,
+  lower,
+  room,
+  gap,
+}: {
+  /** The full height as a fraction of the window, already in points. */
+  wanted: number
+  /** The sheet's lower height, which the full one never falls below. */
+  lower: number
+  /** The height of the space the sheet stands in, from the top it may grow to, or null before it is measured. */
+  room: number | null
+  gap: number
+}): number {
+  if (room === null) return wanted
+  return Math.max(lower, Math.min(wanted, Math.round(room - gap)))
+}

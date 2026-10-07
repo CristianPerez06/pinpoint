@@ -49,7 +49,7 @@ import { useTheme } from '@/lib/theme'
 import { role } from '@/lib/type'
 import { useOnline } from '@/lib/connectivity'
 import { SCRIM_ENTERING, SCRIM_EXITING } from '@/lib/motion'
-import { sheetHeightAbove } from '@/lib/sheet-height'
+import { fullHeight, sheetHeightAbove } from '@/lib/sheet-height'
 
 /**
  * The one form places are saved and edited through, on a phone.
@@ -80,7 +80,8 @@ import { sheetHeightAbove } from '@/lib/sheet-height'
  * Half is enough map to recognise a street corner and enough sheet to show the
  * name field and the type grid — the two things that get checked against what is
  * on screen behind them. Full stops short of the top so the sheet still reads as
- * covering the map rather than having replaced it.
+ * covering the map rather than having replaced it — and, since the map starts
+ * below the trip header, it is also capped by the room the form stands in.
  */
 const DETENTS = [0.52, 0.92] as const
 
@@ -350,10 +351,38 @@ export function MarkerFormSheet({
   const cleared = localPriceClearedBy(language, initial, currency)
 
   const windowHeight = useWindowDimensions().height
-  const heights = useMemo(
-    () => DETENTS.map((fraction) => Math.round(windowHeight * fraction)),
-    [windowHeight],
-  )
+  /*
+    Where the bottom of the space the form stands in is, on the screen.
+
+    The form lifts itself rather than through a `KeyboardAvoidingView`. That
+    view works out how far the keyboard overlaps it from its own layout, which
+    is relative to its parent, against the keyboard's position, which is
+    relative to the screen — so standing below the trip header, it under-lifted
+    by the header's height and left `Save place` under the keyboard. Measured in
+    the window, both are the same kind of number.
+  */
+  const host = useRef<View>(null)
+  const [hostFrame, setHostFrame] = useState<{ top: number; bottom: number } | null>(null)
+  const measureHost = useCallback(() => {
+    host.current?.measureInWindow((_x, y, _width, hostHeight) =>
+      setHostFrame({ top: y, bottom: y + hostHeight }),
+    )
+  }, [])
+  /*
+    The lower height is a fraction of the window; the full one is too, capped by
+    the room the form actually stands in. The form is drawn below the trip
+    header, so without the cap its top — and the handle that drags it back down —
+    went under the header (#293).
+  */
+  const room =
+    hostFrame === null ? null : hostFrame.bottom - Math.max(insets.top, hostFrame.top)
+  const heights = useMemo(() => {
+    const lower = openingHeight(windowHeight)
+    return [
+      lower,
+      fullHeight({ wanted: Math.round(windowHeight * DETENTS[1]), lower, room, gap: SPACE.lg }),
+    ]
+  }, [windowHeight, room])
 
   /**
    * Which of the two heights the sheet is resting at.
@@ -421,23 +450,6 @@ export function MarkerFormSheet({
   */
   const keyboard = useKeyboard()
 
-  /*
-    Where the bottom of the space the form stands in is, on the screen.
-
-    The form lifts itself rather than through a `KeyboardAvoidingView`. That
-    view works out how far the keyboard overlaps it from its own layout, which
-    is relative to its parent, against the keyboard's position, which is
-    relative to the screen — so standing below the trip header, it under-lifted
-    by the header's height and left `Save place` under the keyboard. Measured in
-    the window, both are the same kind of number.
-  */
-  const host = useRef<View>(null)
-  const [hostFrame, setHostFrame] = useState<{ top: number; bottom: number } | null>(null)
-  const measureHost = useCallback(() => {
-    host.current?.measureInWindow((_x, y, _width, hostHeight) =>
-      setHostFrame({ top: y, bottom: y + hostHeight }),
-    )
-  }, [])
   const overlap =
     keyboard.top === null || hostFrame === null
       ? 0
