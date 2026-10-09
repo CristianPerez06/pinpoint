@@ -911,6 +911,8 @@ export const ENGLISH = {
   'follow.recentre': 'Back to where you are',
   /** The compass while the map is turned to the way ahead: puts north back at the top. */
   'follow.northUp': 'Put north at the top',
+  /** The compass with north held at the top: turns the map to the way ahead again. */
+  'follow.headingUp': 'Turn the map to the way ahead',
   /**
    * The control beside the compass. Its face shows the view pressing it gives;
    * its name says what pressing it does.

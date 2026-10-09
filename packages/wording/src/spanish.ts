@@ -711,6 +711,7 @@ export const SPANISH: Catalogue = {
   'follow.stopNamed': (v) => `Detener el recorrido a ${v.name}`,
   'follow.recentre': 'Volver a la ubicación',
   'follow.northUp': 'Poner el norte arriba',
+  'follow.headingUp': 'Girar el mapa hacia el camino',
   'follow.view3d': '3D',
   'follow.view2d': '2D',
   'follow.tilt': 'Inclinar el mapa',

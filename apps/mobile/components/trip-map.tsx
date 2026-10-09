@@ -1494,6 +1494,11 @@ export function TripMap({
   /** Arriving and *Stop* end the same way: the route cleared and the place open again. */
   const endFollowing = (arrived: boolean) => {
     const place = follow?.place
+    // Told now rather than from the effect, so the header returns in the same
+    // render the details open in. From the effect it came a render later: the
+    // sheet was laid out on the whole screen and, on Android, stayed a
+    // header's height too low, cut off at the bottom.
+    onFollowingChange?.(false)
     setFollow(null)
     setFollowLine(null)
     setLookingAround(false)
@@ -2303,6 +2308,8 @@ export function TripMap({
             name={follow.place.name}
             from={follow.from}
             onStarted={() => {
+              // In the same render as the details closing — see `endFollowing`.
+              onFollowingChange?.(true)
               setFollow((current) => (current ? { ...current, started: true } : current))
               setOpen(null)
             }}
@@ -2375,39 +2382,60 @@ export function TripMap({
       ) : null}
 
       {/*
-        Which way north is, while the map is turned to the way ahead; pressing it
-        puts north back at the top for the rest of the trip (`route-following`).
-        The arrow is turned against the map so it always points north.
+        Which way north is (`route-following`, `follow-me`). Always there while
+        following, so it can be pressed as often as wanted: with the map turned
+        to the way ahead it puts north at the top, and with north held at the
+        top it turns the map to the way ahead again. Either press also brings
+        the camera back to the person. It used to vanish after one press, which
+        read as a button that worked once. The arrow is turned against the map
+        so it always points north; the wash says north is being held.
       */}
-      {(following || followMeControls) && !northUp && shownBearing !== 0 ? (
+      {following || followMeControls ? (
         <Pressable
           onPress={() => {
-            setNorthUp(true)
-            followBearing.current = 0
-            setShownBearing(0)
+            const holdNorth = !northUp
+            setNorthUp(holdNorth)
+            setLookingAround(false)
+            // Turned back to the way ahead at once, from the line being
+            // followed, rather than at the next corner.
+            const ahead =
+              !holdNorth && followLine && followHere.current
+                ? bearingAhead(followLine, followHere.current)
+                : null
+            followBearing.current = ahead ?? 0
+            setShownBearing(ahead ?? 0)
             if (followMe) {
-              if (followingMe && whereAmI.fix) followMeCamera(whereAmI.fix, 0)
-              else void cameraRef.current?.setStop({ bearing: 0, duration: 300, easing: 'ease' }).catch(() => {})
+              // Follow me's camera effect moves the map on the new direction;
+              // walking reads the way ahead again from here.
+              if (!holdNorth && whereAmI.fix) {
+                setWalkedFrom({ lng: whereAmI.fix.lng, lat: whereAmI.fix.lat })
+              }
             } else if (followHere.current) {
-              followCamera(followHere.current, 0)
+              followCamera(followHere.current, ahead ?? 0)
             }
           }}
           accessibilityRole="button"
-          accessibilityLabel={say(message('follow.northUp'))}
+          accessibilityLabel={say(message(northUp ? 'follow.headingUp' : 'follow.northUp'))}
+          accessibilityState={{ selected: northUp }}
           style={[
             styles.reread,
             styles.compass,
             {
               // Beneath the tilt control: its 44 and a gap.
               top: controlsTop + 44 + SPACE.sm,
-              backgroundColor: theme.colour.surface,
+              backgroundColor: northUp ? theme.colour.accentWash : theme.colour.surface,
               borderColor: theme.colour.lineStrong,
               shadowColor: theme.elevation.sm.colour,
             },
           ]}
         >
           <View style={{ transform: [{ rotate: `${-shownBearing}deg` }] }}>
-            <Navigation2 size={20} color={theme.colour.ink} fill={theme.colour.ink} strokeWidth={2} />
+            <Navigation2
+              size={20}
+              color={northUp ? theme.colour.accentInk : theme.colour.ink}
+              fill={northUp ? theme.colour.accentInk : theme.colour.ink}
+              strokeWidth={2}
+            />
           </View>
         </Pressable>
       ) : null}
