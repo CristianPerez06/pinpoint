@@ -109,8 +109,9 @@ the map's streets are drawn wherever the area has been downloaded (`offline-use`
 While Follow me is on, the control that switches between the tilted and the flat view, and
 the compass while the map is turned, SHALL be offered at the top right of the map, as they
 are while following a route (`route-following`), and SHALL do what they do there: the tilt
-control SHALL say which view pressing it gives, and the compass SHALL put north at the top
-for as long as Follow me stays on, leaving the map tilted or flat as it was.
+control SHALL say which view pressing it gives, and the compass SHALL stay offered and
+switch between north at the top and the way the person is walking, each press bringing the
+camera back to them and leaving the map tilted or flat as it was.
 
 The tilt choice SHALL be the same remembered choice route following uses: choosing the flat
 view in one SHALL make the other start flat, and the other way round.
@@ -133,7 +134,10 @@ on, so that neither covers the other.
 #### Scenario: North at the top
 
 - **WHEN** the person presses the compass with Follow me on
-- **THEN** north is at the top and the map does not turn again while Follow me stays on
+- **THEN** north is at the top and the map does not turn again until the compass is
+  pressed again or Follow me is turned off
+- **AND** the compass is still offered, and pressing it turns the map to the way they are
+  walking again
 
 ### Requirement: Looking around, opening a place, and what ends Follow me
 

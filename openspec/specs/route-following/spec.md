@@ -92,9 +92,13 @@ SHALL NOT come from the phone's compass or from the person's own movement. The m
 NOT turn for a change of direction smaller than 15 degrees, so that it turns at corners
 and holds still between them.
 
-While the map is turned, a compass control SHALL show which way north is, and SHALL carry
-an accessible name from the product's named sentences. Pressing it SHALL put north at the
-top for the rest of that trip, and SHALL leave the map tilted or flat as it was.
+While following, a compass control SHALL show which way north is, and SHALL carry an
+accessible name from the product's named sentences that says what pressing it does. It
+SHALL stay offered for the whole trip, so it can be pressed more than once. With the map
+turned to the way ahead, pressing it SHALL put north at the top; with north at the top,
+pressing it SHALL turn the map to the way ahead again. Either press SHALL bring the camera
+back to the person and resume following, and SHALL leave the map tilted or flat as it was.
+While north is held at the top the control SHALL say so by more than its arrow.
 
 When the person moves the map by hand, the camera SHALL stop following them, and a control
 SHALL be offered that brings the camera back to them and resumes following, turning the map
@@ -148,8 +152,10 @@ route (#296) is to share the same remembered choice.
 
 - **WHEN** the person presses the compass while following
 - **THEN** north is at the top
-- **AND** the map does not turn again for the rest of that trip
+- **AND** the map does not turn again until the compass is pressed again
 - **AND** the map stays tilted if it was tilted
+- **AND** the compass is still offered, and pressing it again turns the map to the way
+  ahead
 
 #### Scenario: Choosing the flat view
 
@@ -321,7 +327,8 @@ confirm.
 
 - **WHEN** a person presses *Stop* while following
 - **THEN** following ends and the line is removed
-- **AND** the place's details are open with *Calculate route* offered
+- **AND** the place's details are open with *Calculate route* offered, standing on the
+  bottom edge as they do when the place is opened from the map, and can be closed
 
 ### Requirement: The screen stays on, and following lasts only while the app is open
 
