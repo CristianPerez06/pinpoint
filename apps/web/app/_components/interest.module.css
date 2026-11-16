@@ -90,11 +90,10 @@
 /*
  * The wash-and-ink pair rather than the accent itself.
  *
- * Amber is a light surface: white on it clears about 1.7:1, which is why the
- * primary button carries a hand-picked dark brown. That literal should not be
- * copied around, and it does not need to be — `accent-wash` and `accent-ink`
- * are declared as a pair for exactly this, and both grounds already define
- * them, so the cascade handles dark without a second rule.
+ * Text on the accent itself flips between white and near-black with the
+ * ground, which is a fill's business and not a choice's. `accent-wash` and
+ * `accent-ink` are declared as a pair for exactly this, and both grounds
+ * already define them, so the cascade handles dark without a second rule.
  */
 .choiceActive {
   background: var(--pp-accent-wash);

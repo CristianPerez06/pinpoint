@@ -107,7 +107,7 @@
 /*
  * The count keeps its own colour on the row being worked in.
  *
- * `ink-muted` on the amber wash is the one place that token is wrong: the fill
+ * `ink-muted` on the accent wash is the one place that token is wrong: the fill
  * is already carrying a state, and a grey note on it reads as a different
  * control from the one beside it. The same call `ui.module.css` makes for the
  * caret on a declaring trigger.

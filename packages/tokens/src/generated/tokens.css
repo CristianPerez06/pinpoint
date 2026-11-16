@@ -100,33 +100,33 @@
   --pp-ease-linear: cubic-bezier(0, 0, 1, 1);
 
   /* surfaces and ink */
-  --pp-ground: #FBFAF8;
+  --pp-ground: #F6F4FB;
   --pp-surface: #FFFFFF;
-  --pp-surface-muted: #F3F2EF;
-  --pp-surface-sunk: #EFEDE8;
-  --pp-line: #E4E2DC;
-  --pp-line-strong: #8F8C84;
-  --pp-ink: #1A1917;
-  --pp-ink-muted: #6E6A63;
-  --pp-ink-faint: #9C978E;
-  --pp-accent: #E39A2B;
-  --pp-accent-ink: #8A5A0B;
-  --pp-ink-on-accent: #241703;
-  --pp-accent-wash: #FBF1DF;
-  --pp-accent-ring: #E39A2B61;
+  --pp-surface-muted: #EFEBF8;
+  --pp-surface-sunk: #ECE8F5;
+  --pp-line: #E3DEF0;
+  --pp-line-strong: #827C92;
+  --pp-ink: #1A1626;
+  --pp-ink-muted: #625C72;
+  --pp-ink-faint: #A19BB0;
+  --pp-accent: #7A35DC;
+  --pp-accent-ink: #6227C0;
+  --pp-ink-on-accent: #FFFFFF;
+  --pp-accent-wash: #F0E9FD;
+  --pp-accent-ring: #7A35DC52;
   --pp-scrim: #00000063;
   --pp-danger: #B3261E;
-  --pp-danger-surface: #FCEDEC;
+  --pp-danger-surface: #FCEDEE;
 
   /* the basemap, patched to share this ground */
-  --pp-map-land: #EFEEE9;
-  --pp-map-block: #E3E1D9;
+  --pp-map-land: #F2F0F7;
+  --pp-map-block: #E6E2EF;
   --pp-map-road: #FFFFFF;
-  --pp-map-road-casing: #DAD6CC;
-  --pp-map-water: #CBD6DA;
-  --pp-map-park: #E1E5DC;
-  --pp-map-boundary: #DEDAD0;
-  --pp-map-label: #9A948B;
+  --pp-map-road-casing: #DAD5E6;
+  --pp-map-water: #C3D4F0;
+  --pp-map-park: #D9E8D5;
+  --pp-map-boundary: #DCD7E6;
+  --pp-map-label: #8D879C;
 
   /* marker types — fixed by the product, not by the palette */
   --pp-pin-place: #8B857A;
@@ -134,48 +134,48 @@
   --pp-pin-culture: #B43F72;
   --pp-pin-nature: #3F7A32;
   --pp-pin-food: #D2451E;
-  --pp-pin-shopping: #8A3FFC;
+  --pp-pin-shopping: #9C7A00;
   --pp-pin-stay: #0B5FD0;
   --pp-pin-transport: #00857A;
   --pp-marker-foreground: #FFFFFF;
 
   /* elevation, composed — CSS wants one string */
-  --pp-shadow-sm: 0 1px 2px #1A19170F;
-  --pp-shadow-md: 0 4px 12px #1A19171A;
-  --pp-shadow-lg: 0 12px 32px #1A191729;
-  --pp-shadow-pin: 0 2px 5px #1A19174D;
+  --pp-shadow-sm: 0 1px 2px #1A16260F;
+  --pp-shadow-md: 0 4px 12px #1A16261A;
+  --pp-shadow-lg: 0 12px 32px #1A162629;
+  --pp-shadow-pin: 0 2px 5px #1A16264D;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     /* surfaces and ink */
-    --pp-ground: #171614;
-    --pp-surface: #201E1B;
-    --pp-surface-muted: #2A2724;
-    --pp-surface-sunk: #1B1A17;
-    --pp-line: #34302B;
-    --pp-line-strong: #767068;
-    --pp-ink: #F2F0EC;
-    --pp-ink-muted: #A09A91;
-    --pp-ink-faint: #7C766D;
-    --pp-accent: #F0AE4A;
-    --pp-accent-ink: #F0AE4A;
-    --pp-ink-on-accent: #171614;
-    --pp-accent-wash: #33291A;
-    --pp-accent-ring: #F0AE4A6B;
+    --pp-ground: #120F1C;
+    --pp-surface: #1D192B;
+    --pp-surface-muted: #2A243C;
+    --pp-surface-sunk: #16131F;
+    --pp-line: #342E49;
+    --pp-line-strong: #7A7391;
+    --pp-ink: #F2F0F8;
+    --pp-ink-muted: #A39DB5;
+    --pp-ink-faint: #6F6886;
+    --pp-accent: #B48CFA;
+    --pp-accent-ink: #C9B0FF;
+    --pp-ink-on-accent: #140F24;
+    --pp-accent-wash: #2E2452;
+    --pp-accent-ring: #B48CFA66;
     --pp-scrim: #00000063;
     --pp-danger: #F2857C;
-    --pp-danger-surface: #33211F;
+    --pp-danger-surface: #3A2029;
 
     /* the basemap, patched to share this ground */
-    --pp-map-land: #1A1815;
-    --pp-map-block: #262218;
-    --pp-map-road: #3D372D;
-    --pp-map-road-casing: #2C271E;
-    --pp-map-water: #16242C;
-    --pp-map-park: #1F241F;
-    --pp-map-boundary: #2A251E;
-    --pp-map-label: #8A8378;
+    --pp-map-land: #171423;
+    --pp-map-block: #211D30;
+    --pp-map-road: #3B3552;
+    --pp-map-road-casing: #2A2539;
+    --pp-map-water: #152A4D;
+    --pp-map-park: #1A2D26;
+    --pp-map-boundary: #2C2740;
+    --pp-map-label: #837C99;
 
     /* marker types — fixed by the product, not by the palette */
     --pp-pin-place: #A8A197;
@@ -183,10 +183,10 @@
     --pp-pin-culture: #E57DA5;
     --pp-pin-nature: #6FB45C;
     --pp-pin-food: #F0653A;
-    --pp-pin-shopping: #A97BFF;
+    --pp-pin-shopping: #DDB43A;
     --pp-pin-stay: #4A8FE8;
     --pp-pin-transport: #16A99C;
-    --pp-marker-foreground: #171614;
+    --pp-marker-foreground: #120F1C;
 
     /* elevation, composed — CSS wants one string */
     --pp-shadow-sm: 0 1px 2px #00000066;
@@ -198,33 +198,33 @@
 
 :root[data-theme='dark'] {
   /* surfaces and ink */
-  --pp-ground: #171614;
-  --pp-surface: #201E1B;
-  --pp-surface-muted: #2A2724;
-  --pp-surface-sunk: #1B1A17;
-  --pp-line: #34302B;
-  --pp-line-strong: #767068;
-  --pp-ink: #F2F0EC;
-  --pp-ink-muted: #A09A91;
-  --pp-ink-faint: #7C766D;
-  --pp-accent: #F0AE4A;
-  --pp-accent-ink: #F0AE4A;
-  --pp-ink-on-accent: #171614;
-  --pp-accent-wash: #33291A;
-  --pp-accent-ring: #F0AE4A6B;
+  --pp-ground: #120F1C;
+  --pp-surface: #1D192B;
+  --pp-surface-muted: #2A243C;
+  --pp-surface-sunk: #16131F;
+  --pp-line: #342E49;
+  --pp-line-strong: #7A7391;
+  --pp-ink: #F2F0F8;
+  --pp-ink-muted: #A39DB5;
+  --pp-ink-faint: #6F6886;
+  --pp-accent: #B48CFA;
+  --pp-accent-ink: #C9B0FF;
+  --pp-ink-on-accent: #140F24;
+  --pp-accent-wash: #2E2452;
+  --pp-accent-ring: #B48CFA66;
   --pp-scrim: #00000063;
   --pp-danger: #F2857C;
-  --pp-danger-surface: #33211F;
+  --pp-danger-surface: #3A2029;
 
   /* the basemap, patched to share this ground */
-  --pp-map-land: #1A1815;
-  --pp-map-block: #262218;
-  --pp-map-road: #3D372D;
-  --pp-map-road-casing: #2C271E;
-  --pp-map-water: #16242C;
-  --pp-map-park: #1F241F;
-  --pp-map-boundary: #2A251E;
-  --pp-map-label: #8A8378;
+  --pp-map-land: #171423;
+  --pp-map-block: #211D30;
+  --pp-map-road: #3B3552;
+  --pp-map-road-casing: #2A2539;
+  --pp-map-water: #152A4D;
+  --pp-map-park: #1A2D26;
+  --pp-map-boundary: #2C2740;
+  --pp-map-label: #837C99;
 
   /* marker types — fixed by the product, not by the palette */
   --pp-pin-place: #A8A197;
@@ -232,10 +232,10 @@
   --pp-pin-culture: #E57DA5;
   --pp-pin-nature: #6FB45C;
   --pp-pin-food: #F0653A;
-  --pp-pin-shopping: #A97BFF;
+  --pp-pin-shopping: #DDB43A;
   --pp-pin-stay: #4A8FE8;
   --pp-pin-transport: #16A99C;
-  --pp-marker-foreground: #171614;
+  --pp-marker-foreground: #120F1C;
 
   /* elevation, composed — CSS wants one string */
   --pp-shadow-sm: 0 1px 2px #00000066;

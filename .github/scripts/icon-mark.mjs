@@ -67,8 +67,8 @@ export function markerPath() {
  * colour-scheme query for it, and the tile is a fill the mark brings with it
  * rather than a ground the theme supplies. One asset serves both appearances.
  */
-export const TILE = '#E39A2B'
-export const DROP = '#241703'
+export const TILE = '#7A35DC'
+export const DROP = '#FFFFFF'
 
 /** The box the applications draw the pin in. */
 export const BOX = { width: 32, height: 42 }
@@ -579,7 +579,7 @@ export function renderSvg({ size = 32, dropWidth, radius }) {
     second shape in the tile's colour, so the pin stays one path and the hole
     cannot land a half-pixel off the fill at 16px.
 
-    Amber is \`accent\` and the drop is \`inkOnAccent\` — that pairing is not a
+    The tile is \`accent\` and the drop is \`inkOnAccent\` — that pairing is not a
     choice made here. The styling spec requires anything drawn on the accent to
     be lettered in \`inkOnAccent\`, and both are literals rather than \`var()\`
     because a favicon is fetched outside the document and inherits none of its

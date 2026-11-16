@@ -46,7 +46,7 @@ describe('the type list', () => {
   it('keeps the type count within what a map can distinguish', () => {
     // Colour is now carried by the type itself, so this bound is the whole
     // budget rather than the family channel's. A map stops being readable
-    // somewhere around eight distinguishable colours, and the amber accent and
+    // somewhere around eight distinguishable colours, and the accent and
     // `danger` are already two of them.
     //
     // Inverted from what this file used to assert. It bounded MARKER_FAMILIES

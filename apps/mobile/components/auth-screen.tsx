@@ -188,8 +188,8 @@ export function AuthButton({
           : { backgroundColor: theme.colour.accent, opacity: off ? 0.55 : 1 },
       ]}
     >
-      {/* Not white on amber: that clears about 1.7:1. `inkOnAccent` is the
-          pair chosen against the accent on each ground. */}
+      {/* Not a fixed white: on the dark ground's purple that clears 2.6:1.
+          `inkOnAccent` is the pair chosen against the accent on each ground. */}
       <Text
         style={[
           styles.buttonText,

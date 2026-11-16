@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { COLOUR } from './colour'
+import { BASEMAP_COLOUR, COLOUR, MARKER_FOREGROUND, MARKER_TYPE_COLOURS } from './colour'
 
 /** WCAG 2.2 relative luminance of a `#RRGGBB` value. */
 function luminance(hex: string): number {
@@ -31,4 +31,67 @@ describe('lineStrong', () => {
   )('clears 3:1 on the %s %s', (mode, on) => {
     expect(contrast(COLOUR.lineStrong[mode], COLOUR[on][mode])).toBeGreaterThanOrEqual(3)
   })
+})
+
+const MODES = ['light', 'dark'] as const
+
+/**
+ * Text clears 4.5:1 on every surface it is drawn on (`styling`, *A token used
+ * for text clears the text contrast floor*).
+ *
+ * Measured rather than trusted for the same reason as the edge above, and
+ * written down when the palette moved from amber to purple: a whole palette
+ * changing at once is exactly when a pairing that used to pass stops passing
+ * and nobody looks at that one screen.
+ */
+describe('text on the surfaces it is drawn on', () => {
+  const grounds = ['surface', 'ground', 'surfaceMuted', 'surfaceSunk'] as const
+  const texts = ['ink', 'inkMuted', 'accentInk', 'danger'] as const
+  const pairs: ReadonlyArray<readonly [string, string]> = [
+    ...texts.flatMap((text) => grounds.map((on) => [text, on] as const)),
+    ['accentInk', 'accentWash'],
+    ['inkMuted', 'accentWash'],
+    ['inkOnAccent', 'accent'],
+    ['danger', 'dangerSurface'],
+  ]
+
+  it.each(MODES.flatMap((mode) => pairs.map(([text, on]) => [mode, text, on] as const)))(
+    'on the %s ground, %s clears 4.5:1 on %s',
+    (mode, text, on) => {
+      const fg = COLOUR[text as keyof typeof COLOUR][mode]
+      const bg = COLOUR[on as keyof typeof COLOUR][mode]
+      expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5)
+    },
+  )
+})
+
+/**
+ * Every pin clears the 3:1 non-text floor against the land it stands on, and
+ * its glyph clears it against the pin (`map-rendering`, *A visited marker is
+ * drawn as visited*, which holds every type colour to that floor).
+ *
+ * The first gold proposed for `shopping` when it left violet measured 2.88:1 on
+ * the light land — a value that looked right in a swatch and is the reason this
+ * is a test.
+ */
+describe('marker type colours', () => {
+  const types = Object.keys(MARKER_TYPE_COLOURS) as Array<keyof typeof MARKER_TYPE_COLOURS>
+
+  it.each(MODES.flatMap((mode) => types.map((type) => [mode, type] as const)))(
+    'on the %s ground, %s clears 3:1 against the land',
+    (mode, type) => {
+      expect(
+        contrast(MARKER_TYPE_COLOURS[type][mode], BASEMAP_COLOUR.land[mode]),
+      ).toBeGreaterThanOrEqual(3)
+    },
+  )
+
+  it.each(MODES.flatMap((mode) => types.map((type) => [mode, type] as const)))(
+    'on the %s ground, the glyph clears 3:1 on %s',
+    (mode, type) => {
+      expect(
+        contrast(MARKER_FOREGROUND[mode], MARKER_TYPE_COLOURS[type][mode]),
+      ).toBeGreaterThanOrEqual(3)
+    },
+  )
 })

@@ -32,8 +32,8 @@ class BasemapFailure extends Error {
  * some satisfaction: `mapStyle` takes a URL, so the same `styleUrl()` web used
  * went straight in, with no fetching and no per-platform patching. That was
  * true and is no longer, for a reason that has nothing to do with platforms —
- * OpenFreeMap's styles, light and dark, are cool where this interface is
- * warm.
+ * OpenFreeMap's styles, light and dark, are a neutral grey where this
+ * interface is tinted.
  *
  * The important part survived intact: both platforms still fetch the same
  * document and pass it through the same shared function, so there is still one

@@ -19,6 +19,7 @@ import { bytesFor } from './build-icons.mjs'
 import { COLUMNS, FRAMES, LAND, renderGlobe } from './icon-globe.mjs'
 import { decodeIco, decodePng, dropBounds } from './icon-pixels.mjs'
 import {
+  DROP,
   encodePng,
   holeOutline,
   markerPath,
@@ -116,8 +117,9 @@ test('the hole is knocked out rather than painted over', () => {
 
   // The hole's centre shows the tile through it; a point inside the head but
   // outside the hole is the drop.
-  assert.deepEqual(at(16, 15), [0xe3, 0x9a, 0x2b], 'the hole shows the tile')
-  assert.deepEqual(at(16, 15 - 9), [0x24, 0x17, 0x03], 'the head around it is the drop')
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  assert.deepEqual(at(16, 15), rgb(TILE), 'the hole shows the tile')
+  assert.deepEqual(at(16, 15 - 9), rgb(DROP), 'the head around it is the drop')
 })
 
 test('every asset centres the drop on the canvas', () => {
@@ -297,7 +299,7 @@ test('the favicon centres the drop on the box the path actually draws', () => {
   assert.ok(!svg.includes('translate(-16 -21.5)'), 'not the assumed centre')
   assert.ok(svg.includes(`translate(-16 -${centreY.toFixed(4)})`), `centre ${centreY}`)
   assert.ok(svg.includes(markerPath()), 'carries the shared path')
-  assert.ok(svg.includes(TILE) && svg.includes('#241703'), 'carries the token colours')
+  assert.ok(svg.includes(TILE) && svg.includes(DROP), 'carries the token colours')
 })
 
 /**

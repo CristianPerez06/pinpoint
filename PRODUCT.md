@@ -83,10 +83,10 @@ a direction already travelled.
 - **The map is the interface.** The majority of what a person looks at is rendered from
   a map style document, not from application styling. Tiles come from OpenFreeMap;
   attribution is required and is a permanent part of the layout. The document is fetched
-  and repainted in the interface's warm colours before either renderer sees it, on both
+  and repainted in the interface's own tinted colours before either renderer sees it, on both
   grounds. OpenFreeMap now publishes a dark style too (checked 2026-09-30, #237), and it
   is not used: it is a neutral near-black with dim grey labels, so it would read as a
-  stranger's map under a warm interface, and the light map would still need repainting.
+  stranger's map under a tinted interface, and the light map would still need repainting.
 - **Places arrive one at a time**, from a recommendation or a video, after the initial
   list is in.
 - **Every price is in US dollars.** A trip may cross borders, but one fixed currency is
@@ -192,12 +192,17 @@ The name, the typeface and the palette are all binding.
 - **Typeface:** Figtree, bundled with both applications rather than fetched from a third
   party, licensed at no cost, variable weight 300–900, unsubsetted so macrons render in
   the same face. `pnpm check:fonts` asserts the two copies are byte-identical.
-- **Accent:** amber (`#E39A2B` light / `#F0AE4A` dark), chosen specifically so it cannot
-  be mistaken for a sixth marker family — it is nowhere near slate, orange-red, violet,
-  blue or teal. Anything *written* in the accent uses `accentInk` instead, because the
-  accent itself clears about 2:1 on white.
-- **Neutrals carry a warm bias** rather than being a pure grey ramp, and the basemap is
-  warmed to match, so the map and the interface share one ground instead of looking
+- **Accent:** purple (`#7A35DC` light / `#B48CFA` dark). It replaced amber in
+  `purple-palette` (2026-11), after a real trip showed both modes reading as dated. It
+  must never be mistakable for a marker type, so the type that was violet — Shopping —
+  moved to gold in the same change; the accent sits at the hue Shopping held, as far from
+  every other type as Shopping was. Anything *written* in the accent uses `accentInk`,
+  and anything *on* it uses `inkOnAccent` — white on the light ground, near-black on the
+  dark one.
+- **Neutrals carry a slight purple bias** — a faint lilac on light, a deep aubergine on
+  dark — rather than being a pure grey ramp, and the basemap is tinted to match, with
+  recognisably blue water and green parks, so the map and the interface share one ground
+  instead of looking
   stapled together.
 - **The eight marker type colours and their prominence ranking are a product decision,
   not a palette.** `temple` is deliberately the most recessive coloured value because it

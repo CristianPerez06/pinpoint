@@ -59,7 +59,7 @@ the tile's colour, so the hole cannot land a half-pixel off the fill at small si
 - **WHEN** any two of the product's icon assets are placed side by side
 - **THEN** they read as one product rather than as two
 
-### Requirement: The mark is amber-tiled on every surface
+### Requirement: The mark is accent-tiled on every surface
 
 The tile SHALL be the accent and the drop SHALL be `inkOnAccent`, on every asset,
 regardless of platform. The mark SHALL NOT be inverted for a surface, and its polarity
@@ -79,11 +79,16 @@ applies to an asset expressed as text as much as to one expressed as pixels: a c
 written into a hand-maintained drawing is a copy of a token like any other, and is the
 one the previous change left unchecked.
 
+This requirement names the accent rather than a hue on purpose. It was titled after
+amber while the accent was amber, and the title then stated a colour the requirement
+itself never did. The mark follows the accent: when the accent changes, every asset is
+recut and none keeps the old colour.
+
 #### Scenario: A person installs both the site and the application
 
 - **WHEN** an installed copy of the site and the installed application appear on one
   home screen
-- **THEN** both show an amber tile carrying a dark drop
+- **THEN** both show a tile in the accent carrying a drop in `inkOnAccent`
 - **AND** neither is the inverse of the other
 
 #### Scenario: An asset is cut for a new platform
@@ -97,6 +102,12 @@ one the previous change left unchecked.
 - **WHEN** a colour written into an icon expressed as text no longer matches the token
 - **THEN** an automated check fails
 - **AND** it names the asset and the token it has departed from
+
+#### Scenario: The accent changes
+
+- **WHEN** the accent's value is changed in the token definition
+- **THEN** every icon asset is recut with the new tile and drop
+- **AND** no asset is left showing the previous accent
 
 ### Requirement: The mark carries its own ground and is not themed
 

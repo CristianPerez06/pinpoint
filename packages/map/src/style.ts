@@ -41,7 +41,7 @@ export function styleUrl(name: StyleName = DEFAULT_STYLE): string {
  * and hand the result to their renderer — see the requirement in
  * `map-rendering`.
  */
-export const BASEMAP_TRANSFORM = 'pinpoint-warm-positron'
+export const BASEMAP_TRANSFORM = 'pinpoint-tinted-positron'
 
 /**
  * Attribution that must remain visible wherever these tiles are rendered.

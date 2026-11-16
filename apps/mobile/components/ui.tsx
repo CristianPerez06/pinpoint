@@ -634,10 +634,10 @@ export function Button({
         : 'transparent'
   const ink =
     tone === 'primary'
-      ? // Not `ground`, which is what this was and is only half right: on the
-        // dark theme `ground` is near-black over amber and clears 9.35:1, and
-        // on the light one it is near-white over the same amber and clears
-        // 2.26:1. `inkOnAccent` is the pair chosen against the accent itself.
+      ? // Not `ground`, which is what this was and was only half right while
+        // the accent was amber: near-black over it on the dark theme cleared
+        // 9.35:1, near-white over it on the light one cleared 2.26:1. A fill is
+        // not a ground. `inkOnAccent` is the pair chosen against the accent.
         theme.colour.inkOnAccent
       : tone === 'danger'
         ? theme.colour.danger

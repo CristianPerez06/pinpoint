@@ -1,40 +1,40 @@
 ---
 name: Pinpoint
-description: A warm, quiet planning surface where the map and the interface share one ground and five saturated pins are the only strong colour on screen.
+description: A quiet planning surface where the map and the interface share one ground and eight pin colours are the only strong colour on screen.
 colors:
-  ground: "#FBFAF8"
+  ground: "#F6F4FB"
   surface: "#FFFFFF"
-  surface-muted: "#F3F2EF"
-  surface-sunk: "#EFEDE8"
-  line: "#E4E2DC"
-  line-strong: "#8F8C84"
-  ink: "#1A1917"
-  ink-muted: "#6E6A63"
-  ink-faint: "#9C978E"
-  accent: "#E39A2B"
-  accent-ink: "#8A5A0B"
-  accent-wash: "#FBF1DF"
-  accent-ring: "#E39A2B61"
-  ink-on-accent: "#241703"
+  surface-muted: "#EFEBF8"
+  surface-sunk: "#ECE8F5"
+  line: "#E3DEF0"
+  line-strong: "#827C92"
+  ink: "#1A1626"
+  ink-muted: "#625C72"
+  ink-faint: "#A19BB0"
+  accent: "#7A35DC"
+  accent-ink: "#6227C0"
+  accent-wash: "#F0E9FD"
+  accent-ring: "#7A35DC52"
+  ink-on-accent: "#FFFFFF"
   danger: "#B3261E"
-  danger-surface: "#FCEDEC"
+  danger-surface: "#FCEDEE"
   pin-place: "#8B857A"
   pin-temple: "#7C8896"
   pin-culture: "#B43F72"
   pin-nature: "#3F7A32"
   pin-food: "#D2451E"
-  pin-shopping: "#8A3FFC"
+  pin-shopping: "#9C7A00"
   pin-stay: "#0B5FD0"
   pin-transport: "#00857A"
   marker-foreground: "#FFFFFF"
-  map-land: "#EFEEE9"
-  map-block: "#E3E1D9"
+  map-land: "#F2F0F7"
+  map-block: "#E6E2EF"
   map-road: "#FFFFFF"
-  map-road-casing: "#DAD6CC"
-  map-water: "#CBD6DA"
-  map-park: "#E1E5DC"
-  map-boundary: "#DEDAD0"
-  map-label: "#9A948B"
+  map-road-casing: "#DAD5E6"
+  map-water: "#C3D4F0"
+  map-park: "#D9E8D5"
+  map-boundary: "#DCD7E6"
+  map-label: "#8D879C"
 typography:
   display:
     fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
@@ -181,24 +181,26 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Warmed Basemap"**
+**Creative North Star: "The Tinted Basemap"**
 
 Most map products arrive as two designs stapled together: somebody else's grey
 cartography, and an interface floating above it in an unrelated palette. Pinpoint
 refuses that seam. The upstream style document is rewritten before either renderer sees
-it, so the land, the roads and the water are drawn in the same warm neutrals as the
+it, so the land, the roads and the water are drawn in the same tinted neutrals as the
 panels sitting on top of them. The map is not a backdrop the interface stands on. It is
 the ground, and everything else is a surface lifted off it.
 
-Everything follows from making that ground quiet. The neutrals carry a warm bias rather
+Everything follows from making that ground quiet. The neutrals carry a slight purple bias rather
 than being a pure grey ramp; the chrome is muted fills, hairlines and pill-shaped
 controls that state nothing until touched; the basemap's own labels are deliberately
-recessive. All of that restraint exists to buy one thing — five saturated marker
-families that are the only strong colour anywhere on screen. When somebody scans this
+recessive. All of that restraint exists to buy one thing — eight pin colours, one per
+place type, that are the only strong colour anywhere on screen. When somebody scans this
 interface, the pins are what they see, because nothing else is competing.
 
-The mood is **warm, quiet and precise**. Warm in the literal sense that there is no
-neutral grey in the system. Quiet because the interface is a tool used while deciding
+The mood is **quiet, precise and current**. There is no neutral grey in the system:
+every grey leans slightly toward the accent, a faint lilac on light and an aubergine on
+dark. It leaned warm — beige and brown-black — until `purple-palette` (2026-11), and
+after a real trip that read as a dated app rather than a chosen one. Quiet because the interface is a tool used while deciding
 something else. Precise in the fractional type sizes (13.5px, 12.5px), the tabular
 figures, the hairline dividers, and the fact that every value was chosen against the
 ground it renders on rather than derived from its opposite. This must never read as a
@@ -208,9 +210,9 @@ deliberately short of that look.
 
 **Key Characteristics:**
 
-- One warm ground shared by the map and the interface, never two palettes meeting.
-- Five saturated marker families, ranked by deliberate prominence, as the only strong colour.
-- Amber as the single accent, chosen so it can never be mistaken for a place type.
+- One tinted ground shared by the map and the interface, never two palettes meeting.
+- Eight pin colours, one per place type and ranked by deliberate prominence, as the only strong colour.
+- Purple as the single accent, chosen so it can never be mistaken for a place type.
 - Every colour chosen twice, once against each ground; no theme is derived from the other.
 - One typeface doing all the work, at eight named roles.
 - Depth measured as distance from the map, not applied as decoration.
@@ -223,34 +225,34 @@ deliberately short of that look.
 
 ## Colors
 
-A warm neutral ramp with exactly one accent, holding five saturated families that belong
+A purple-tinted neutral ramp with exactly one accent, holding eight pin colours that belong
 to the data rather than to the interface. Values in the frontmatter are the **light**
 ground; each colour's dark counterpart is given below, because it is a chosen value and
 not a derivation.
 
 ### Primary
 
-- **Signal Amber** (dark ground: `#F0AE4A`): The single accent. It carries the primary
-  action, the current selection and the focus ring — and it is amber specifically
-  because it must be distinguishable from all five marker families at a glance. An
-  accent that read as an eighth place type would make the map's own colour vocabulary
-  ambiguous. Amber is nowhere near slate, orange-red, violet, blue or teal, and it is
-  warm against a near-greyscale basemap.
-- **Deep Amber Ink** (dark ground: `#F0AE4A`): Amber *as text*, and not interchangeable
-  with the accent. The accent itself clears about 2:1 on white and is unreadable as
-  type. On the dark ground the relationship inverts — the bright amber is already the
-  readable value — so the pair converges to one value there.
-- **Amber Wash** (dark ground: `#33291A`): Behind a selected row, and the fill of any
-  control declaring an active state. Always paired with Deep Amber Ink.
-- **Amber Ring** (dark ground: `#F0AE4A6B`): The focus ring and the pin's selection
+- **Signal Purple** (dark ground: `#B48CFA`): The single accent. It carries the primary
+  action, the current selection and the focus ring — and it must be distinguishable from
+  every place type at a glance (`styling`, *The accent cannot be mistaken for a marker
+  type*). An accent that read as a ninth place type would make the map's own colour
+  vocabulary ambiguous. It took the hue Shopping held (CIE LCh 310°) when it replaced
+  amber, and Shopping moved to gold, so every distance around it is one the palette
+  already lived with: 46°–49° from Deep Rose, 22° light / 30° dark from Deep Blue. It is
+  a dark fill on the light ground and a light one on the dark ground.
+- **Deep Purple Ink** (dark ground: `#C9B0FF`): Purple *as text*, one step further from
+  its ground than the fill — deeper on light, paler on dark — so it reads on the wash as
+  well as on a surface (6.92:1 and 7.47:1 on Purple Wash). While the accent was amber this
+  pair converged to one value on the dark ground; in purple it differs on both.
+- **Purple Wash** (dark ground: `#2E2452`): Behind a selected row, and the fill of any
+  control declaring an active state. Always paired with Deep Purple Ink.
+- **Purple Ring** (dark ground: `#B48CFA66`): The focus ring and the pin's selection
   halo. Carries alpha deliberately, so it reads correctly over a surface *and* over
   cartography.
-- **Ink on Amber** (dark ground: `#171614`): Text sitting directly *on* the accent —
-  the opposite problem to Deep Amber Ink. Amber is a light surface on both grounds, so
-  the ink over it is dark on both; this is the second token, after Pin Glyph, whose two
-  values are near-neighbours rather than opposites. Light is a very dark brown of the
-  accent's own hue rather than a neutral, because a neutral over amber reads as a
-  printing error (7.44:1). Dark is Ink's own ground (9.35:1).
+- **Ink on Purple** (dark ground: `#140F24`): Text sitting directly *on* the accent —
+  the opposite problem to Deep Purple Ink. White on the light ground's purple (6.23:1),
+  near-black on the dark ground's (7.18:1), where white would be 2.60:1. A fill is not a
+  ground, so the lettering is chosen against the fill.
 
 ### Secondary — The Place Types
 
@@ -277,60 +279,87 @@ glyph. The cap was never reached; the bucket was. Colour now names the type dire
 - **Quiet Slate** — `temple` (dark: `#98A3B0`): The deliberate majority, deliberately
   the most recessive *coloured* value in the system.
 - **Deep Rose** — `culture` (dark: `#E57DA5`): The last colour the wheel had room for,
-  at CIE LCh 356° — the middle of the 94° span between Violet and Burnt Orange, 46°
-  and 48° clear of them. Measured in CIE LCh because that is what the palette mock
-  measures in; the same value argued in OKLCH came out 33° from Violet and thin.
+  at CIE LCh 356° — the middle of the 94° span between the violet at 310° and Burnt
+  Orange, 46° and 48° clear of them. That violet was Shopping's when this was chosen and
+  is the accent's now, at the same hue, so the span is unchanged. Measured in CIE LCh
+  because that is what the palette mock measures in; the same value argued in OKLCH came
+  out 33° from the violet and thin.
 - **Leaf Green** — `nature` (dark: `#6FB45C`): Pushed yellow rather than blue, to hold
   its distance from Teal and its ground on the basemap's park fill.
 - **Burnt Orange** — `food` (dark: `#F0653A`)
-- **Violet** — `shopping` (dark: `#A97BFF`)
+- **Gold** — `shopping` (dark: `#DDB43A`): Violet until the accent became purple, then
+  moved so the two could not be confused. At CIE LCh 86°–88°, 43° from Burnt Orange and
+  48°–49° from Leaf Green. The light value is a deep mustard because a brighter gold
+  measured 2.88:1 on the light land, under the 3:1 floor.
 - **Deep Blue** — `stay` (dark: `#4A8FE8`)
 - **Teal** — `transport` (dark: `#00857A` → `#16A99C`)
-- **Pin Glyph** — `marker-foreground` (dark: `#171614`): White on light, near-black on
+- **Pin Glyph** — `marker-foreground` (dark: `#120F1C`): White on light, near-black on
   dark. This is the one place the two themes differ in *kind* rather than in value, and
-  it follows from the families being lifted rather than darkened for the dark ground.
+  it follows from the pin colours being lifted rather than darkened for the dark ground.
+
+**How close the pins sit, measured.** Hue distance is the wrong instrument for a pair
+where one colour is nearly grey: `temple` and `place` have almost no hue to measure, so
+two pins can share a hue and still look nothing alike, or sit far apart in hue and look
+close. Judge a pair by perceived difference (CIE ΔE2000) on the rendered map. Measured in
+`purple-palette` (2026-11), the closest pairs were:
+
+| Pair | Light | Dark | |
+| --- | --- | --- | --- |
+| `place` – `temple` | 14.0 | 12.8 | By design: two near-neutrals, parted by warm against cool |
+| `temple` – `stay` | 20.2 | **16.9** | The tightest coloured pair, on the dark ground |
+| `nature` – `transport` | 19.7 | 21.4 | The pair long judged acceptable |
+| `place` – `shopping` | 21.2 | 23.4 | Same hue; parted by gold being strongly coloured and `place` not |
+
+`temple` – `stay` on the dark ground sits under the pair long accepted and was left
+there on purpose. Deepening the dark blue to part it from `temple` moves it toward the
+accent by about as much — `#3478F0` reaches 20.5 from `temple` and drops to 20.8 from the
+accent — so the wheel has no free room and the change would trade one close pair for
+another. On the rendered dark map the two read as different. Re-measure here before
+moving any pin colour.
 
 ### Tertiary — The Basemap
 
 Not decoration: `@pinpoint/map` rewrites the upstream style document with these, which
 is the entire North Star made literal. Chosen against Positron's structure, a
 near-greyscale style whose quietness is what lets the marker pins be the only strong
-colour on screen.
+colour on screen. Quiet is not colourless: water is recognisably blue and parks
+recognisably green, at low chroma (about 11 for a park) so the area they cover does not
+out-shout the pins.
 
-- **Map Land** (dark: `#1A1815`), **Map Block** (dark: `#262218`), **Map Road** (dark:
-  `#3D372D`), **Map Road Casing** (dark: `#2C271E`), **Map Water** (dark: `#16242C`),
-  **Map Park** (dark: `#1F241F`), **Map Boundary** (dark: `#2A251E`), **Map Label**
-  (dark: `#8A8378`).
+- **Map Land** (dark: `#171423`), **Map Block** (dark: `#211D30`), **Map Road** (dark:
+  `#3B3552`), **Map Road Casing** (dark: `#2A2539`), **Map Water** (dark: `#152A4D`),
+  **Map Park** (dark: `#1A2D26`), **Map Boundary** (dark: `#2C2740`), **Map Label**
+  (dark: `#837C99`).
 
 ### Neutral
 
-- **Warm Paper** — `ground` (dark: `#171614`): Behind everything.
-- **Raised White** — `surface` (dark: `#201E1B`): Rails, cards, sheets, menus.
-- **Muted Fill** — `surface-muted` (dark: `#2A2724`): Fields, hover states, chips. The
+- **Lilac Paper** — `ground` (dark: `#120F1C`): Behind everything.
+- **Raised White** — `surface` (dark: `#1D192B`): Rails, cards, sheets, menus.
+- **Muted Fill** — `surface-muted` (dark: `#2A243C`): Fields, hover states, chips. The
   resting fill of nearly every control.
-- **Sunk Fill** — `surface-sunk` (dark: `#1B1A17`): Anything that reads as *behind* —
+- **Sunk Fill** — `surface-sunk` (dark: `#16131F`): Anything that reads as *behind* —
   sticky headers, footers.
-- **Hairline** — `line` (dark: `#34302B`): The divider between rows.
-- **Stated Edge** — `line-strong` (dark: `#767068`): A border meant to be seen — a
+- **Hairline** — `line` (dark: `#342E49`): The divider between rows.
+- **Stated Edge** — `line-strong` (dark: `#7A7391`): A border meant to be seen — a
   control's edge rather than a divider. Clears the 3:1 non-text floor against Raised
-  White, the ground and Muted Fill: 3.36:1 light, 3.40:1 dark against Raised White. It was
+  White, the ground and Muted Fill: 4.00:1 light, 3.82:1 dark against Raised White. It was
   about 1.5:1 until #124, which made every outlined control an edge you had to know was
   there.
-- **Ink** — `ink` (dark: `#F2F0EC`): Names and values. 16.8:1 on the light ground.
-- **Muted Ink** — `ink-muted` (dark: `#A09A91`): Notes, counts, secondary labels.
-  5.16:1 light, 6.48:1 dark.
-- **Faint Ink** — `ink-faint` (dark: `#7C766D`): **Not text.** A hairline that needs to
+- **Ink** — `ink` (dark: `#F2F0F8`): Names and values. About 16:1 on either ground.
+- **Muted Ink** — `ink-muted` (dark: `#A39DB5`): Notes, counts, secondary labels.
+  5.85:1 light, 7.24:1 dark.
+- **Faint Ink** — `ink-faint` (dark: `#6F6886`): **Not text.** A hairline that needs to
   be darker than Hairline, a border on hover — anything drawn rather than read. It
-  measures 2.78:1 on the light ground and 4.02:1 on the dark, both under the 4.5:1 floor,
+  measures 2.46:1 on the light ground and 3.60:1 on the dark, both under the 4.5:1 floor,
   so recessive *text* goes to Muted Ink instead, which is already clearly quieter than Ink
   and still legible.
 - **Danger** — `danger` (dark: `#F2857C`) and **Danger Surface** — `danger-surface`
-  (dark: `#33211F`): Failure. Chosen distinct from every type colour, so a broken map
+  (dark: `#3A2029`): Failure. Chosen distinct from every type colour, so a broken map
   never reads as a marker.
 
 ### Named Rules
 
-**The Eighth Type Rule.** There are exactly seven place types and one accent. Never
+**The Eighth Type Rule.** There are exactly eight place types and one accent. Never
 introduce a new saturated hue into the interface: any colour a person could mistake for
 a place type breaks the map's vocabulary. And a new *type* now costs a colour — which
 is the whole bound on the list. **The budget is now spent**: eight types, plus the
@@ -348,14 +377,16 @@ but wrongly ranked does not satisfy this system. Changing the ranking is a produ
 change, not a palette refresh — and which type holds the majority is a fact about how
 trips get filled in, so the recessive value follows it rather than being assigned once.
 
-**The Amber Pair Rule.** Never write text in `accent`. Anything amber and legible uses
-`accent-ink`, and anything amber and filled uses `accent-wash` beneath it. The single
-exception is `ink-on-accent` for text sitting on the accent itself.
+**The Accent Pair Rule.** Never write text in `accent`. Anything in the accent and
+legible uses `accent-ink`, and anything filled with it as a state uses `accent-wash`
+beneath it. The single exception is `ink-on-accent` for text sitting on the accent itself.
 
-**The Converged-Pair Rule.** `accent-ink` and `accent` are the *same value* on the dark
-ground — the pair converges once the bright amber is already the readable one. So any
-state that fills with `accent` must also change its lettering, or it paints amber on
-amber at 1:1. Filling with the accent means lettering with `ink-on-accent`, always.
+**The Converged-Pair Rule.** A state that fills with `accent` must also change its
+lettering, always to `ink-on-accent`. This came from amber, where `accent-ink` and
+`accent` were the *same value* on the dark ground and a filled state that kept its
+lettering painted amber on amber at 1:1. The purple pair differs on both grounds; the
+rule stands, because whether two tokens converge is a fact about one palette, and a fill
+is never a lettering.
 
 **The Chrome Fill Rule.** The accent fills a control that **commits** an act inside a form
 or a panel. It never fills a control standing in the chrome at rest — at any width, on
@@ -368,7 +399,7 @@ a control that puts the map into a state where a further action is expected is s
 
 The reason, and it is the reason the rest of this palette is shaped the way it is: chrome is
 on screen at all times, in a fixed place the eye returns to. Every other piece of restraint
-here exists to buy five saturated marker families that are the only strong colour anywhere,
+here exists to buy eight pin colours that are the only strong colour anywhere,
 so that when somebody scans the interface the pins are what they see. A fill in the chrome
 spends that budget continuously, and spends it emphasising a control at the moment nobody is
 using it. A fill on a commit spends it once, inside something raised on purpose and
@@ -558,15 +589,15 @@ step between `ground`, `surface`, `surface-muted` and `surface-sunk`.
 
 ### Shadow Vocabulary
 
-- **sm** (`0 1px 2px #1A19170F`; dark `#00000066`): A control, or a row lifted off its surface.
-- **md** (`0 4px 12px #1A19171A`; dark `#00000075`): A card, a sheet header, anything that floats.
-- **lg** (`0 12px 32px #1A191729`; dark `#00000094`): A panel over the map.
-- **pin** (`0 2px 5px #1A19174D`; dark `#0000008C`): A pin against cartography.
+- **sm** (`0 1px 2px #1A16260F`; dark `#00000066`): A control, or a row lifted off its surface.
+- **md** (`0 4px 12px #1A16261A`; dark `#00000075`): A card, a sheet header, anything that floats.
+- **lg** (`0 12px 32px #1A162629`; dark `#00000094`): A panel over the map.
+- **pin** (`0 2px 5px #1A16264D`; dark `#0000008C`): A pin against cartography.
 
 ### Named Rules
 
 **The Absent-Light Rule.** Dark-theme shadows are near-black at a higher alpha, never the
-light theme's warm ink lightened. On a dark ground a shadow works by absence of light,
+light theme's tinted ink lightened. On a dark ground a shadow works by absence of light,
 and a tinted one reads as a smudge.
 
 **The Cartography Rule.** A pin's shadow is tighter and darker than `sm` even though it
@@ -606,10 +637,9 @@ there shows the map through the corners.
 
 - **Shape:** Fully round (999px), with a 1px transparent border held in reserve for
   hover.
-- **Primary:** Signal Amber fill with Ink on Amber text and an `sm` shadow; hover deepens
-  the shadow to `md`. Never `ground` and never white: on the dark theme `ground` is
-  near-black over amber and reads fine, and on the light one it is near-white over the
-  same amber at 2.26:1.
+- **Primary:** Signal Purple fill with Ink on Purple text and an `sm` shadow; hover deepens
+  the shadow to `md`. Never `ground` and never a fixed white: white on the dark theme's
+  purple is 2.60:1. The lettering is chosen against the fill, not the ground.
 - **Default:** Raised White fill, Ink text, a visible Stated Edge border; hover fills to
   Muted Fill.
 - **Quiet:** Transparent with Muted Ink text; hover fills to Muted Fill and darkens to
@@ -632,10 +662,10 @@ there shows the map through the corners.
 - **Tag:** Muted Fill with Muted Ink at 3×9, `note` type. A type tag inverts to the
   type colour with the pin glyph foreground.
 - **Interest choice:** Outlined in Stated Edge with Muted Ink at rest; **active** is
-  Amber Wash with a Deep Amber Ink border and text. Never the raw accent.
-- **Filter `Clear`:** two states of one permanent control. Live is Amber Wash with a
-  Signal Amber border and Deep Amber Ink text; hovering fills with Signal Amber and the
-  lettering switches to Ink on Amber. Inert is transparent with Muted Ink at the control
+  Purple Wash with a Deep Purple Ink border and text. Never the raw accent.
+- **Filter `Clear`:** two states of one permanent control. Live is Purple Wash with a
+  Signal Purple border and Deep Purple Ink text; hovering fills with Signal Purple and the
+  lettering switches to Ink on Purple. Inert is transparent with Muted Ink at the control
   weight — the border, the fill and the weight carry the difference, so the colour never
   has to go below the contrast floor to say it.
 
@@ -686,7 +716,7 @@ something this application asked.
 
 - **Style:** Muted Fill, transparent 1px border, 10px radius (pill for search), 8×11
   padding.
-- **Focus:** Fills to Raised White, border becomes Signal Amber, plus a 3px Amber Ring
+- **Focus:** Fills to Raised White, border becomes Signal Purple, plus a 3px Purple Ring
   glow. The field brightens as it activates rather than dimming its surroundings.
 - **Error:** Border becomes Danger and the message sits beside the field, not only in a
   summary — a six-field form with one message at the top makes the person hunt for the
@@ -697,7 +727,7 @@ something this application asked.
 
 ### Navigation & Chrome
 
-- **The point:** a 9px accent dot with a 3px Amber Ring halo — a pin reduced to the
+- **The point:** a 9px accent dot with a 3px Purple Ring halo — a pin reduced to the
   point it names, in the one colour that is not a place type. The full wordmark,
   "pinpoint" at 16.5px/800/−0.032em, is for signed-out screens.
 
@@ -710,7 +740,7 @@ something this application asked.
   rather than the trip. The wordmark's letters are not in it: inside the application they
   say nothing the reader does not know, and the trip's name answers a real question.
 
-  The three tools weigh the same as each other, and the dot is the only amber in the bar at
+  The three tools weigh the same as each other, and the dot is the only accent in the bar at
   rest. Search, drop and filter each fire an action and none navigates; drawing one of them
   more strongly claims a hierarchy nothing else in the system describes. See The Chrome Fill
   Rule.
@@ -723,7 +753,7 @@ something this application asked.
 ### The Mark
 
 What a browser tab, a home screen and an installed copy's splash screen show to identify
-the product. One drawing on every surface: **an amber `accent` tile carrying the pin's
+the product. One drawing on every surface: **a purple `accent` tile carrying the pin's
 own teardrop in `ink-on-accent`, with the head knocked out so the tile shows through
 it.** The path is `MARKER_PATH` in `packages/tokens/src/layout.ts` — the same definition
 both applications draw on the map, beside the box it is drawn in. Not a copy of it: a
@@ -736,7 +766,7 @@ application reach the same Android home screen, so a rule indexed on platform pu
 marks in one place. That is not hypothetical: it is the defect this section was written
 after. The dark tile is the better drawing at launcher size and was a close second when
 the mark was picked; it loses on the surface the mark cannot afford to lose on, because
-at 16px in a tab strip a dark tile with an amber pin is a speck where an amber tile is a
+at 16px in a tab strip a dark tile with a small coloured pin is a speck where an accent tile is a
 solid block of the one colour that is not a place type. The restraint thesis at the top
 of this document argues for the dark tile and is scoped to *on screen*, where marker
 colour is the signal. A launcher has no markers to compete with.
@@ -765,7 +795,7 @@ hand-cutting in two sittings is precisely what produced two different drawings.
 
 ### The Focus Ring
 
-One ring for the whole application: `2px solid` Signal Amber at `2px` offset with an
+One ring for the whole application: `2px solid` Signal Purple at `2px` offset with an
 `sm` radius, on `:focus-visible` rather than `:focus` so a mouse click leaves nothing
 behind while keyboard navigation always shows one.
 
@@ -778,7 +808,7 @@ The glyph reinforces what the colour has already said; it is not what separates 
 type from another, which is why it can afford to be small.
 
 - **Selected:** scales to 1.2 from a `50% 100%` origin over 0.18s on a
-  `cubic-bezier(0.2, 0.8, 0.3, 1)`, and the Amber Ring halo fades in behind it.
+  `cubic-bezier(0.2, 0.8, 0.3, 1)`, and the Purple Ring halo fades in behind it.
 - **Draft (unsaved):** the same silhouette in Raised White with a 2px dashed Ink stroke
   and a plus glyph, dropping in over 0.42s on an overshooting
   `cubic-bezier(0.2, 1.2, 0.4, 1)`. Provisional reads as provisional.
@@ -789,7 +819,7 @@ type from another, which is why it can afford to be small.
 
 ### States
 
-- **Loading:** a 20px spinner, 2px Hairline ring with a Signal Amber top edge, 0.8s
+- **Loading:** a 20px spinner, 2px Hairline ring with a Signal Purple top edge, 0.8s
   linear.
 - **Failed:** Danger Surface panel, 1px Danger border, Danger text at weight 600.
 - **Overlay note:** a pill centred at the top of the map — Raised White, Hairline border,
@@ -831,8 +861,8 @@ type from another, which is why it can afford to be small.
   type now costs a colour: adding one is a palette decision somebody has to argue for,
   not an edit to a list.
 - **Don't** write text in `--pp-accent`, and don't letter an accent fill with `ground` or
-  with white — white clears 2.26:1 on it. Amber *text* is `accent-ink`; text *on* amber is
-  `ink-on-accent`.
+  with a fixed white — white clears 2.60:1 on the dark ground's purple. Accent *text* is
+  `accent-ink`; text *on* the accent is `ink-on-accent`.
 - **Don't** fill a control in the chrome with the accent, however primary it feels. The bar
   is on screen at all times and the pins are what the palette was spent on. A control that
   arms, opens or narrows is not committing anything, and the emphasis it seems to want is

@@ -126,7 +126,8 @@
   border: 0;
   border-radius: var(--pp-radius-pill);
   background: var(--pp-accent);
-  /* Not white: amber is a light surface, and white on it clears about 1.7:1. */
+  /* The pair chosen against the accent: white on the light ground's purple,
+     near-black on the dark ground's, where white would clear 2.6:1. */
   color: var(--pp-ink-on-accent);
   font-size: var(--pp-type-control-size);
   font-weight: 600;

@@ -4,7 +4,7 @@ import type { Themed } from './colour'
  * Elevation, stored as ingredients rather than as a shadow.
  *
  * There is no cross-platform notation for a shadow. CSS wants one string,
- * `box-shadow: 0 4px 12px #1A19171A`; React Native wants four separate style
+ * `box-shadow: 0 4px 12px #1A16261A`; React Native wants four separate style
  * properties on iOS and an `elevation` number on Android. Emitting either form
  * here would make the token unusable on the other platform — the same failure
  * the colour literals avoid, arriving through a different door.
@@ -30,25 +30,25 @@ export interface Elevation {
  * Three levels and a fourth for pins, which is not one of them.
  *
  * Dark shadows are near-black at a higher alpha rather than the light theme's
- * warm ink lightened. On a dark ground a shadow works by absence of light, and
+ * tinted ink lightened. On a dark ground a shadow works by absence of light, and
  * a tinted one reads as a smudge.
  */
 export const ELEVATION = {
   /** A control, or a row lifted off its surface. */
   sm: {
-    colour: { light: '#1A19170F', dark: '#00000066' },
+    colour: { light: '#1A16260F', dark: '#00000066' },
     offsetY: 1,
     blur: 2,
   },
   /** A card, a sheet header, anything the eye should read as floating. */
   md: {
-    colour: { light: '#1A19171A', dark: '#00000075' },
+    colour: { light: '#1A16261A', dark: '#00000075' },
     offsetY: 4,
     blur: 12,
   },
   /** A panel over the map, where the thing beneath is busy. */
   lg: {
-    colour: { light: '#1A191729', dark: '#00000094' },
+    colour: { light: '#1A162629', dark: '#00000094' },
     offsetY: 12,
     blur: 32,
   },
@@ -60,7 +60,7 @@ export const ELEVATION = {
    * against road casings and building blocks.
    */
   pin: {
-    colour: { light: '#1A19174D', dark: '#0000008C' },
+    colour: { light: '#1A16264D', dark: '#0000008C' },
     offsetY: 2,
     blur: 5,
   },
