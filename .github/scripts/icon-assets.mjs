@@ -38,7 +38,7 @@ export const DROP_OF_FAVICON = 0.5
  * The phone's still launch image, and why its drop is sized against the pin's
  * height rather than its width.
  *
- * It is the first frame of the animated opening: an amber sphere with the pin
+ * It is the first frame of the animated opening: a purple sphere with the pin
  * standing half the sphere's height, centred. The animated opening draws that
  * same frame from the same number, so the handover cannot jump. The canvas *is*
  * the sphere — a circle to the edge, transparent outside it — so the drop's
@@ -117,7 +117,7 @@ export const ASSETS = [
     size: 1024,
     dropWidth: SPLASH_PIN_OF_SPHERE * (drop.width / drop.height),
     radius: 0.5,
-    note: 'The still launch image: the drop on an amber circle, transparent outside it. `expo-splash-screen` draws it on the ground, and the animated opening starts from exactly this frame.',
+    note: 'The still launch image: the drop on a circle of the accent, transparent outside it. `expo-splash-screen` draws it on the ground, and the animated opening starts from exactly this frame.',
   },
   {
     path: 'apps/web/public/globe.png',

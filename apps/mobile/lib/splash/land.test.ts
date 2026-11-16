@@ -21,7 +21,7 @@ describe('the continents mask', () => {
   })
 
   it('writes the texture south first', () => {
-    const pixels = landPixels(mask, '#B8741A')
+    const pixels = landPixels(mask, '#4E1C99')
     // Antarctica's bottom row is land; it must be the texture's first row.
     const firstRowHasLand = pixels.slice(0, LAND_WIDTH * 4).some((v, i) => i % 4 === 3 && v === 255)
     expect(firstRowHasLand).toBe(true)

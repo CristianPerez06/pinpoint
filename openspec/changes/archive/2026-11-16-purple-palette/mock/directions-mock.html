@@ -1,0 +1,322 @@
+<title>Pinpoint Purple Palette</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: one column of labelled screens; each screen is drawn twice, light then dark, from the palette under review. */
+:root{
+  --pg-bg:#F7F6FA; --pg-panel:#FFFFFF; --pg-ink:#17141F; --pg-muted:#5F5A6D; --pg-line:#E2DFEA;
+  --pg-tag-bg:#EEE9FF; --pg-tag-ink:#4B22C4; --pg-bezel:#0C0B10; --pg-pass:#1F7A3A; --pg-fail:#B3261E;
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --pg-bg:#100E16; --pg-panel:#191622; --pg-ink:#F1EFF7; --pg-muted:#A19BB2; --pg-line:#2D2940;
+  --pg-tag-bg:#2A2247; --pg-tag-ink:#C9BBFF; --pg-bezel:#000000; --pg-pass:#6FCF8A; --pg-fail:#F2857C; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --pg-bg:#100E16; --pg-panel:#191622; --pg-ink:#F1EFF7; --pg-muted:#A19BB2; --pg-line:#2D2940;
+  --pg-tag-bg:#2A2247; --pg-tag-ink:#C9BBFF; --pg-bezel:#000000; --pg-pass:#6FCF8A; --pg-fail:#F2857C; color-scheme:dark }
+
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--font);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 72px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:12px}
+header h1{font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+header p{margin:0;max-width:68ch;color:var(--pg-muted)}
+.switch{display:inline-flex;align-self:flex-start;background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:999px;padding:3px;gap:2px}
+.switch button{font:inherit;font-weight:600;font-size:14px;border:0;background:transparent;color:var(--pg-muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--pg-tag-bg);color:var(--pg-tag-ink)}
+.switch button:focus-visible{outline:2px solid var(--pg-tag-ink);outline-offset:2px}
+section.screen{display:flex;flex-direction:column;gap:14px;padding-top:28px;border-top:1px solid var(--pg-line)}
+section.screen h2{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0}
+section.screen > p{margin:0;max-width:72ch;color:var(--pg-muted)}
+.pair{display:flex;flex-wrap:wrap;gap:20px;min-width:0}
+.slot{display:flex;flex-direction:column;gap:8px;align-items:center;min-width:0;max-width:100%}
+.slot > span{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--pg-muted)}
+.scroller{max-width:100%;overflow-x:auto;padding-bottom:4px}
+
+/* ---------- inside a frame: every colour comes from the frame's own variables ---------- */
+.f{position:relative;overflow:hidden;background:var(--ground);color:var(--ink);font-size:13.5px;line-height:1.35;font-family:var(--font)}
+.phone{width:300px;height:620px;border-radius:34px;border:7px solid var(--pg-bezel)}
+.laptop{width:900px;height:560px;border-radius:12px;border:6px solid var(--pg-bezel)}
+.f svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pin{position:absolute;width:24px;height:32px;transform:translate(-50%,-100%);filter:drop-shadow(0 2px 2.5px var(--pinShadow))}
+.pin.sel{width:31px;height:41px}
+.halo{position:absolute;width:46px;height:46px;border-radius:50%;background:var(--ring);transform:translate(-50%,-80%)}
+.surface{background:var(--surface)}
+.shadow{box-shadow:0 1px 2px var(--sh-sm),0 4px 12px var(--sh-md)}
+.shadow-lg{box-shadow:0 12px 32px var(--sh-lg)}
+.pill{border-radius:999px;padding:8px 13px;font-weight:600;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.ctl{background:var(--muted);color:var(--ink)}
+.chev{width:9px;height:9px;flex:none}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.muted{color:var(--inkMuted)}
+.label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--inkMuted)}
+.btn{border-radius:10px;padding:9px 14px;font-weight:700;text-align:center;white-space:nowrap}
+.btn.go{background:var(--accent);color:var(--onAccent)}
+.btn.out{box-shadow:inset 0 0 0 1px var(--lineStrong);color:var(--ink)}
+.btn.quiet{color:var(--accentInk)}
+.btn.danger{color:var(--danger);box-shadow:inset 0 0 0 1px var(--lineStrong)}
+.narrowed{background:var(--wash);color:var(--accentInk)}
+.narrowed .count{background:var(--accentInk);color:var(--surface);border-radius:999px;padding:0 6px;font-size:11.5px;line-height:17px}
+.field{display:flex;flex-direction:column;gap:5px}
+.input{border-radius:10px;background:var(--muted);padding:9px 11px;color:var(--ink);border:1px solid transparent}
+.input.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring);background:var(--surface)}
+.input .ph{color:var(--inkMuted)}
+.type{display:inline-flex;gap:6px;align-items:center;background:var(--muted);color:var(--ink);border-radius:6px;padding:3px 8px;font-weight:600;font-size:12.5px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.row b{font-weight:600}
+.row.on{background:var(--wash);border-radius:10px;border-bottom-color:transparent}
+.row.on b,.row.on span{color:var(--accentInk)}
+.notice{border:1px solid var(--accent);background:var(--wash);color:var(--accentInk);border-radius:10px;padding:8px 12px;font-weight:500}
+.handle{width:36px;height:4px;border-radius:2px;background:var(--inkFaint);align-self:center}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 16px 18px;display:flex;flex-direction:column;gap:11px;box-shadow:0 -8px 28px var(--sh-lg)}
+.sheet h3,.panel h3{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.iconbtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.attrib{position:absolute;right:8px;bottom:6px;font-size:10px;color:var(--inkMuted);background:var(--surface);opacity:.92;padding:1px 6px;border-radius:4px}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);display:inline-block}
+.err{background:var(--dangerSurface);color:var(--danger);border-radius:10px;padding:10px 12px;font-weight:600}
+
+/* phone chrome */
+.ph-top{position:absolute;top:0;left:0;right:0;padding:14px 14px 10px;display:flex;align-items:center;gap:10px;background:var(--surface);border-bottom:1px solid var(--line)}
+.ph-top .t{display:flex;flex-direction:column;flex:1;min-width:0}
+.ph-top .t b{font-size:15px}
+.ph-bot{position:absolute;left:0;right:0;bottom:0;padding:10px 12px 18px;display:flex;gap:8px;background:var(--surface);border-top:1px solid var(--line)}
+.ph-bot .pill{flex:1;justify-content:center;padding:9px 6px}
+/* laptop chrome */
+.bar{position:absolute;top:0;left:0;right:0;height:54px;padding:0 14px;display:flex;align-items:center;gap:10px;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .scope{width:150px;justify-content:space-between}
+.bar .search{flex:1;color:var(--inkMuted);font-weight:500}
+.panel{position:absolute;left:16px;bottom:16px;width:328px;background:var(--surface);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px}
+.menu{position:absolute;top:60px;width:300px;background:var(--surface);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.check{display:flex;gap:9px;align-items:center;padding:5px 4px}
+.box{width:16px;height:16px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--lineStrong);flex:none;display:grid;place-items:center}
+.box.on{background:var(--accent);box-shadow:none;color:var(--onAccent);font-size:11px;font-weight:800}
+.zoom{position:absolute;right:14px;top:70px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden}
+.zoom div{width:32px;height:32px;display:grid;place-items:center;font-weight:700;background:var(--surface);border-bottom:1px solid var(--line)}
+/* calendar */
+.cal{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--ground)}
+.cal-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tab{padding:6px 12px;border-radius:999px;font-weight:600;color:var(--inkMuted)}
+.tab.on{background:var(--wash);color:var(--accentInk)}
+.board{flex:1;display:grid;grid-template-columns:200px repeat(4,1fr);gap:10px;padding:12px;min-height:0}
+.col{background:var(--surface);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0;border:1px solid var(--line)}
+.col.sunk{background:var(--sunk);border-color:transparent}
+.col.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.col h4{margin:0;font-size:13px;display:flex;justify-content:space-between;gap:6px}
+.place{display:flex;gap:7px;align-items:center;padding:7px 8px;border-radius:10px;background:var(--muted);font-weight:600;font-size:12.5px;min-width:0}
+.place span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.place.on{background:var(--wash);color:var(--accentInk)}
+.place .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--inkMuted);font-weight:500}
+/* mark */
+.markrow{display:flex;gap:18px;align-items:center;padding:18px;border-radius:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--pg-muted)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+/* email */
+.mail{width:440px;max-width:100%;border:1px solid var(--pg-line);border-radius:8px;overflow:hidden;background:#fff}
+/* table */
+table{border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--pg-line);white-space:nowrap}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-muted)}
+td.pass{color:var(--pg-pass);font-weight:700} td.fail{color:var(--pg-fail);font-weight:700}
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:24px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;box-shadow:inset 0 0 0 1px #0000001f}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Purple palette, final values</h1>
+    <p>Every screen below is drawn from the exact colours proposed for the apps. Shapes, sizes and spacing are today's. Use the switch to see the same screens in today's colours.</p>
+    <div class="switch" role="group" aria-label="Palette shown">
+      <button type="button" id="show-new" aria-pressed="true">Purple</button>
+      <button type="button" id="show-old" aria-pressed="false">Today</button>
+    </div>
+  </header>
+  <div id="screens" style="display:flex;flex-direction:column;gap:40px"></div>
+</div>
+
+<script>
+/* ===== the palettes ===== */
+const OLD={
+ COLOUR:{ground:['#FBFAF8','#171614'],surface:['#FFFFFF','#201E1B'],surfaceMuted:['#F3F2EF','#2A2724'],surfaceSunk:['#EFEDE8','#1B1A17'],line:['#E4E2DC','#34302B'],lineStrong:['#8F8C84','#767068'],ink:['#1A1917','#F2F0EC'],inkMuted:['#6E6A63','#A09A91'],inkFaint:['#9C978E','#7C766D'],accent:['#E39A2B','#F0AE4A'],accentInk:['#8A5A0B','#F0AE4A'],inkOnAccent:['#241703','#171614'],accentWash:['#FBF1DF','#33291A'],accentRing:['#E39A2B61','#F0AE4A6B'],scrim:['#00000063','#00000063'],danger:['#B3261E','#F2857C'],dangerSurface:['#FCEDEC','#33211F']},
+ BASEMAP:{land:['#EFEEE9','#1A1815'],block:['#E3E1D9','#262218'],road:['#FFFFFF','#3D372D'],roadCasing:['#DAD6CC','#2C271E'],water:['#CBD6DA','#16242C'],park:['#E1E5DC','#1F241F'],boundary:['#DEDAD0','#2A251E'],label:['#9A948B','#8A8378']},
+ PINS:{place:['#8B857A','#A8A197'],temple:['#7C8896','#98A3B0'],culture:['#B43F72','#E57DA5'],nature:['#3F7A32','#6FB45C'],food:['#D2451E','#F0653A'],shopping:['#8A3FFC','#A97BFF'],stay:['#0B5FD0','#4A8FE8'],transport:['#00857A','#16A99C']},
+ GLYPH:['#FFFFFF','#171614'], MARK_LAND:'#B8741A', SHADOW_INK:'#1A1917'
+};
+const NEW={
+ COLOUR:{ground:['#F6F4FB','#120F1C'],surface:['#FFFFFF','#1D192B'],surfaceMuted:['#EFEBF8','#2A243C'],surfaceSunk:['#ECE8F5','#16131F'],line:['#E3DEF0','#342E49'],lineStrong:['#827C92','#7A7391'],ink:['#1A1626','#F2F0F8'],inkMuted:['#625C72','#A39DB5'],inkFaint:['#A19BB0','#6F6886'],accent:['#7A35DC','#B48CFA'],accentInk:['#6227C0','#C9B0FF'],inkOnAccent:['#FFFFFF','#140F24'],accentWash:['#F0E9FD','#2E2452'],accentRing:['#7A35DC52','#B48CFA66'],scrim:['#00000063','#00000063'],danger:['#B3261E','#F2857C'],dangerSurface:['#FCEDEE','#3A2029']},
+ BASEMAP:{land:['#F2F0F7','#171423'],block:['#E6E2EF','#211D30'],road:['#FFFFFF','#3B3552'],roadCasing:['#DAD5E6','#2A2539'],water:['#C3D4F0','#152A4D'],park:['#D9E8D5','#1A2D26'],boundary:['#DCD7E6','#2C2740'],label:['#8D879C','#837C99']},
+ PINS:{place:['#8B857A','#A8A197'],temple:['#7C8896','#98A3B0'],culture:['#B43F72','#E57DA5'],nature:['#3F7A32','#6FB45C'],food:['#D2451E','#F0653A'],shopping:['#9C7A00','#DDB43A'],stay:['#0B5FD0','#4A8FE8'],transport:['#00857A','#16A99C']},
+ GLYPH:['#FFFFFF','#120F1C'], MARK_LAND:'#4E1C99', SHADOW_INK:'#1A1626'
+};
+const TYPE_NAME={place:'Place',temple:'Temple',culture:'Culture',nature:'Nature',food:'Food',shopping:'Shopping',stay:'Stay',transport:'Transport'};
+
+/* ===== colour maths (WCAG contrast, CIE L*, CIE LCh hue) ===== */
+const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+const lin=v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4;
+const lum=h=>{const [r,g,b]=rgb(h).map(lin);return .2126*r+.7152*g+.0722*b};
+const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const lab=h=>{const [r,g,b]=rgb(h).map(lin);const X=(r*.4124564+g*.3575761+b*.1804375)/.95047,Y=r*.2126729+g*.7151522+b*.072175,Z=(r*.0193339+g*.119192+b*.9503041)/1.08883;
+ const f=t=>t>216/24389?Math.cbrt(t):(24389/27*t+16)/116;const [fx,fy,fz]=[X,Y,Z].map(f);return [116*fy-16,500*(fx-fy),200*(fy-fz)]};
+const hue=h=>{const [,a,b]=lab(h);let H=Math.atan2(b,a)*180/Math.PI;return H<0?H+360:H};
+const chroma=h=>{const [,a,b]=lab(h);return Math.hypot(a,b)};
+const hd=(a,b)=>{const d=Math.abs(hue(a)-hue(b))%360;return Math.min(d,360-d)};
+
+/* ===== one frame's variables ===== */
+function vars(P,m){const i=m==='light'?0:1,c=k=>P.COLOUR[k][i],b=k=>P.BASEMAP[k][i];
+ const sh=m==='light'?[P.SHADOW_INK+'0F',P.SHADOW_INK+'1A',P.SHADOW_INK+'29',P.SHADOW_INK+'4D']:['#00000066','#00000075','#00000094','#0000008C'];
+ return {ground:c('ground'),surface:c('surface'),muted:c('surfaceMuted'),sunk:c('surfaceSunk'),line:c('line'),lineStrong:c('lineStrong'),ink:c('ink'),inkMuted:c('inkMuted'),inkFaint:c('inkFaint'),
+  accent:c('accent'),accentInk:c('accentInk'),onAccent:c('inkOnAccent'),wash:c('accentWash'),ring:c('accentRing'),scrim:c('scrim'),danger:c('danger'),dangerSurface:c('dangerSurface'),
+  land:b('land'),block:b('block'),road:b('road'),casing:b('roadCasing'),water:b('water'),park:b('park'),boundary:b('boundary'),label:b('label'),
+  'sh-sm':sh[0],'sh-md':sh[1],'sh-lg':sh[2],pinShadow:sh[3]}}
+const style=v=>Object.entries(v).map(([k,x])=>`--${k}:${x}`).join(';');
+const pinCol=(P,m,t)=>P.PINS[t][m==='light'?0:1], glyph=(P,m)=>P.GLYPH[m==='light'?0:1];
+
+/* ===== drawing parts ===== */
+const CHEV='<svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function pin(P,m,t,x,y,sel){return (sel?`<div class="halo" style="left:${x}%;top:${y}%"></div>`:'')+
+ `<svg class="pin${sel?' sel':''}" style="left:${x}%;top:${y}%" viewBox="0 0 32 42"><path fill="${pinCol(P,m,t)}" d="M16 41C16 41 2 26 2 15a14 14 0 1 1 28 0c0 11-14 26-14 26Z"/><circle cx="16" cy="15" r="5" fill="${glyph(P,m)}"/></svg>`}
+function map(v,w,h,seed=1){let blocks='';const cols=Math.ceil(w/52),rows=Math.ceil(h/46);
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if((r*7+c*3+seed)%5===0)continue;blocks+=`<rect x="${6+c*52}" y="${4+r*46}" width="40" height="34" rx="2" fill="${v.block}"/>`}
+ const roads=[`M0 ${h*.24}H${w}`,`M0 ${h*.55}H${w}`,`M0 ${h*.82}H${w}`,`M${w*.36}0V${h}`,`M${w*.7}0V${h}`,`M0 ${h*.95}L${w} ${h*.15}`];
+ return `<svg class="map" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><rect width="${w}" height="${h}" fill="${v.land}"/>${blocks}
+ <path d="M${w*.52} ${h*.42}c${w*.14}-${h*.05} ${w*.33}-${h*.03} ${w*.38} ${h*.06}s-${w*.03} ${h*.14}-${w*.19} ${h*.15}-${w*.3}-${h*.04}-${w*.31}-${h*.1} ${w*.03}-${h*.07} ${w*.12}-${h*.11}Z" fill="${v.park}"/>
+ <path d="M-10 ${h*.08}C${w*.2} ${h*.16} ${w*.24} ${h*.26} ${w*.14} ${h*.38}S${w*.04} ${h*.6} ${w*.24} ${h*.7}s${w*.2} ${h*.2} ${w*.07} ${h*.32}H-10Z" fill="${v.water}"/>
+ <path d="M${w*.05} 0L${w*.62} ${h}" stroke="${v.boundary}" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+ ${roads.map(d=>`<path d="${d}" stroke="${v.casing}" stroke-width="11" fill="none"/>`).join('')}${roads.map(d=>`<path d="${d}" stroke="${v.road}" stroke-width="7.5" fill="none"/>`).join('')}
+ <text x="${w*.55}" y="${h*.2}" font-size="11" font-weight="600" letter-spacing="1" fill="${v.label}" font-family="Figtree,sans-serif">HIGASHIYAMA</text>
+ <text x="${w*.04}" y="${h*.3}" font-size="10" font-style="italic" fill="${v.label}" font-family="Figtree,sans-serif">Kamo River</text>
+ <text x="${w*.6}" y="${h*.5}" font-size="10" fill="${v.label}" font-family="Figtree,sans-serif">Maruyama Park</text></svg>`}
+const SPREAD=[['temple',40,30],['temple',58,24],['temple',78,40],['temple',47,62],['temple',86,70],['food',66,52],['shopping',30,48],['stay',20,74],['transport',92,30],['nature',72,58],['culture',54,44],['place',12,40]];
+function pins(P,m,sel=3,set=SPREAD){return set.map(([t,x,y],i)=>pin(P,m,t,x,y,i===sel)).join('')}
+const typeTag=(P,m,t)=>`<span class="type"><i class="dot" style="background:${pinCol(P,m,t)}"></i>${TYPE_NAME[t]}</span>`;
+
+/* ===== screens ===== */
+const S={};
+S.phoneMap=(P,m,v)=>`<div class="f phone" style="${style(v)}">${map(v,286,606)}${pins(P,m,-1)}
+ <div class="ph-top"><div class="t"><b>Japan, November</b><span class="muted" style="display:inline-flex;gap:4px;align-items:center">Kyoto ${CHEV}</span></div><div class="iconbtn ctl">•••</div></div>
+ <div class="zoom shadow" style="top:84px;right:10px"><div>+</div><div style="border:0">−</div></div>
+ <div class="attrib" style="bottom:78px">© OpenFreeMap © OpenStreetMap</div>
+ <div class="ph-bot"><span class="pill ctl">Search</span><span class="pill ctl">+ Drop a pin</span><span class="pill narrowed">Filter <span class="count">2</span></span></div></div>`;
+S.phoneSheet=(P,m,v)=>`<div class="f phone" style="${style(v)}">${map(v,286,606,2)}${pins(P,m,3)}
+ <div class="ph-top"><div class="t"><b>Japan, November</b><span class="muted">Kyoto</span></div><div class="iconbtn ctl">•••</div></div>
+ <div class="sheet"><div class="handle"></div>
+  <h3>Kiyomizu-dera and the Sannenzaka approach</h3>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${typeTag(P,m,'temple')}<span class="muted" style="font-size:12.5px">Higashiyama · From $4</span></div>
+  <p class="muted" style="margin:0">Go before 8 to beat the tour groups. The stage closes after dark except during the autumn lighting.</p>
+  <div><div class="row"><b>Day 1</b><span class="muted">Wed 11 Nov</span></div><div class="row on"><b>Day 2 of 4</b><span>Thu 12 Nov</span></div></div>
+  <div style="display:flex;gap:8px"><span class="pill narrowed" style="flex:1;justify-content:center">I want to go</span><span class="pill ctl" style="flex:1;justify-content:center">Visited</span></div>
+  <div style="display:flex;gap:8px"><div class="btn out" style="flex:1">Route</div><div class="btn go" style="flex:1">Follow</div></div></div></div>`;
+S.phoneForm=(P,m,v)=>`<div class="f phone" style="${style(v)}">${map(v,286,606,3)}${pins(P,m,-1)}<div class="scrim"></div>
+ <div class="sheet" style="top:30%;gap:12px"><div class="handle"></div>
+  <h3>New place</h3>
+  <div class="notice">Someone else edited this trip while the form was open. Check the map before saving.</div>
+  <div class="field"><span class="label">Name</span><div class="input focus">Nishiki Market|</div></div>
+  <div class="field"><span class="label">Type</span><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ctl" style="padding:6px 10px"><i class="dot" style="background:${pinCol(P,m,'food')}"></i>Food</span><span class="pill narrowed" style="padding:6px 10px"><i class="dot" style="background:${pinCol(P,m,'shopping')}"></i>Shopping</span><span class="pill ctl" style="padding:6px 10px"><i class="dot" style="background:${pinCol(P,m,'culture')}"></i>Culture</span></div></div>
+  <div class="field"><span class="label">Note</span><div class="input"><span class="ph">Anything worth remembering</span></div></div>
+  <div style="display:flex;gap:8px;margin-top:auto"><div class="btn out" style="flex:1">Cancel</div><div class="btn go" style="flex:1">Save place</div></div></div></div>`;
+S.phoneError=(P,m,v)=>`<div class="f phone" style="${style(v)}">
+ <div class="ph-top"><div class="t"><b>Japan, November</b><span class="muted">Kyoto</span></div><div class="iconbtn ctl">•••</div></div>
+ <div style="position:absolute;inset:66px 0 72px;background:var(--land);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center">
+  ${globe(P,72)}<span class="muted">Loading the trip…</span></div>
+ <div style="position:absolute;left:12px;right:12px;top:80px;display:flex;flex-direction:column;gap:8px">
+  <div class="err shadow">The places could not be loaded. Check the connection and try again.</div>
+  <div style="display:flex;gap:8px"><div class="btn out surface" style="flex:1">Try again</div><div class="btn danger surface" style="flex:1">Delete place</div></div></div>
+ <div class="ph-bot"><span class="pill ctl">Search</span><span class="pill ctl">+ Drop a pin</span><span class="pill ctl">Filter</span></div></div>`;
+S.laptop=(P,m,v)=>`<div class="f laptop" style="${style(v)}">${map(v,888,548,1)}${pins(P,m,10)}
+ <div class="bar"><span class="pill ctl scope">Japan, November ${CHEV}</span><span class="pill ctl scope">Kyoto ${CHEV}</span><span class="pill ctl search">Search places in Kyoto</span><span class="pill ctl">+ Drop a pin</span><span class="pill narrowed" style="box-shadow:0 0 0 3px var(--ring)">Filter <span class="count">2</span> ${CHEV}</span><span class="iconbtn" style="background:var(--accentWash);color:var(--accentInk)">CP</span></div>
+ <div class="menu shadow-lg" style="left:588px"><span class="label">Show places for</span>
+  <div class="check"><span class="box on">✓</span>Cristian</div><div class="check"><span class="box on">✓</span>Lucía</div><div class="check"><span class="box"></span>Not yet planned</div>
+  <span class="label" style="margin-top:4px">Types</span>
+  <div style="display:flex;flex-wrap:wrap;gap:5px">${['food','shopping','culture','stay'].map((t,i)=>`<span class="pill ${i<2?'narrowed':'ctl'}" style="padding:5px 9px;font-size:12.5px"><i class="dot" style="background:${pinCol(P,m,t)}"></i>${TYPE_NAME[t]}</span>`).join('')}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="btn quiet" style="padding:6px 8px">Clear</span><span class="muted" style="font-size:12.5px">9 of 23 places</span></div></div>
+ <div class="zoom shadow"><div>+</div><div style="border:0">−</div></div>
+ <div class="panel shadow-lg"><h3>Kiyomizu-dera and the Sannenzaka approach, including the three-storied pagoda and Jishu shrine</h3>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${typeTag(P,m,'culture')}<span class="muted" style="font-size:12.5px">Higashiyama · From $4</span></div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px"><span class="muted">Open</span><span>6:00 – 18:00, every day</span><span class="muted">Planned</span><span style="color:var(--accentInk);font-weight:600">Day 2 · Thu 12 Nov</span></div>
+  <div style="display:flex;gap:8px"><span class="pill narrowed" style="flex:1;justify-content:center">I want to go</span><span class="pill ctl" style="flex:1;justify-content:center">Visited</span></div>
+  <div style="display:flex;gap:8px"><div class="btn out" style="flex:1">Edit</div><div class="btn danger" style="flex:1">Delete</div></div></div>
+ <div class="attrib">© OpenFreeMap © OpenStreetMap contributors</div></div>`;
+S.calendar=(P,m,v)=>{const day=(name,date,items,cls='')=>`<div class="col ${cls}"><h4><span>${name}</span><span class="muted" style="font-weight:500">${date}</span></h4>${items.map(([t,n,on])=>`<div class="place${on?' on':''}"><i class="dot" style="background:${pinCol(P,m,t)}"></i><span>${n}</span></div>`).join('')}</div>`;
+ return `<div class="f laptop" style="${style(v)}"><div class="cal">
+ <div class="cal-head"><span class="btn out" style="padding:6px 12px">← Map</span><b style="font-size:15px">Japan, November</b><span class="pill ctl" style="padding:6px 10px">‹</span><span style="font-weight:600;font-variant-numeric:tabular-nums">10 – 13 Nov</span><span class="pill ctl" style="padding:6px 10px">›</span>
+  <div class="tabs"><span class="tab on">Days</span><span class="tab">Not planned 6</span></div></div>
+ <div class="board">
+  <div class="col sunk"><h4><span>Not planned</span><span class="muted" style="font-weight:500">6</span></h4><span class="label" style="margin-top:4px">Kyoto</span>
+   ${[['temple','Tōfuku-ji'],['shopping','Teramachi arcade'],['food','Ippūdō Nishikikōji'],['nature','Philosopher\'s Path']].map(([t,n])=>`<div class="place"><i class="dot" style="background:${pinCol(P,m,t)}"></i><span>${n}</span></div>`).join('')}
+   <span class="label" style="margin-top:4px">Nara</span><div class="place"><i class="dot" style="background:${pinCol(P,m,'culture')}"></i><span>Nara National Museum</span></div><div class="place"><i class="dot" style="background:${pinCol(P,m,'place')}"></i><span>Unnamed spot</span></div></div>
+  ${day('Day 1','Tue 10',[['transport','Kyoto Station'],['stay','Hotel Ethnography Gion'],['food','Gion Kappa']])}
+  ${day('Day 2','Wed 11',[['temple','Kiyomizu-dera and the Sannenzaka approach',1],['temple','Kōdai-ji'],['shopping','Nishiki Market'],['temple','Yasaka Shrine']],'today')}
+  ${day('Day 3','Thu 12',[['temple','Fushimi Inari'],['nature','Arashiyama bamboo grove'],['temple','Tenryū-ji']])}
+  ${day('Day 4','Fri 13',[['transport','Kyoto → Nara'],['culture','Tōdai-ji'],['food','Mellow Café']])}
+ </div></div></div>`};
+S.crowd=(P,m,v)=>{const set=[['temple',30,28],['food',33,30],['shopping',36,28],['culture',62,52],['stay',66,55],['transport',70,52],['nature',74,56],['place',58,57],['temple',14,40],['food',16,60],['shopping',10,52],['nature',68,47],['stay',22,86],['shopping',80,62]];
+ return `<div class="f laptop" style="${style(v)};width:620px;height:420px">${map(v,608,408,4)}${set.map(([t,x,y],i)=>pin(P,m,t,x,y,i===11)).join('')}
+ <div class="panel shadow" style="width:auto;right:16px;padding:8px 12px;flex-direction:row;gap:10px;align-items:center;font-size:12.5px"><b style="color:var(--accentInk)">Selected</b><span class="muted">Nature pin on the park. Gold pins sit on the land, the park and the river.</span></div></div>`};
+
+/* ===== the mark: tile + drop, and the globe ===== */
+function tile(P,size,r){const a=P.COLOUR.accent[0],d=P.COLOUR.inkOnAccent[0];
+ return `<svg width="${size}" height="${size}" viewBox="0 0 64 64"><rect width="64" height="64" rx="${r}" fill="${a}"/><path fill-rule="evenodd" fill="${d}" d="M32 52C32 52 18 37 18 26a14 14 0 1 1 28 0c0 11-14 26-14 26Zm0-31a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>`}
+function globe(P,size){const a=P.COLOUR.accent[0],l=P.MARK_LAND,d=P.COLOUR.inkOnAccent[0];
+ return `<svg width="${size}" height="${size}" viewBox="0 0 64 64"><defs><radialGradient id="gl${size}${a.slice(1)}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff" stop-opacity=".28"/><stop offset="1" stop-color="#000000" stop-opacity=".18"/></radialGradient></defs>
+ <circle cx="32" cy="34" r="26" fill="${a}"/><path d="M14 26c6-6 12-4 15 0s-3 9 2 13-1 10-7 9-12-8-10-22Z M38 18c6 0 13 4 15 10s-4 6-8 4-9-2-9-7 0-7 2-7Z M40 44c4-2 9 0 9 3s-5 7-9 6-3-7 0-9Z" fill="${l}"/>
+ <circle cx="32" cy="34" r="26" fill="url(#gl${size}${a.slice(1)})"/><path fill-rule="evenodd" fill="${d}" d="M32 35C32 35 23 25 23 18a9 9 0 1 1 18 0c0 7-9 17-9 17Zm0-20a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z"/></svg>`}
+S.mark=(P,m,v)=>`<div class="f markrow" style="${style(v)};width:440px;max-width:100%;flex-wrap:wrap">${tile(P,96,20)}${tile(P,48,10)}${tile(P,16,3)}${globe(P,96)}</div>`;
+
+/* ===== emails (light only, written as inline styles) ===== */
+function mail(P){const c=k=>P.COLOUR[k][0];
+ return `<div class="mail"><div style="background:${c('ground')};padding:24px;font-family:Figtree,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${c('ink')}">
+ <h2 style="margin:0 0 16px;color:${c('ink')};font-size:20px">Confirmar la cuenta de Pinpoint</h2>
+ <p style="margin:0 0 16px;color:${c('ink')}">Para terminar de crear la cuenta, ingresar este código de 6 dígitos en la app:</p>
+ <p style="display:inline-block;margin:0 0 16px;padding:8px 16px;background:${c('accentWash')};border:1px solid ${c('accent')};border-radius:8px;color:${c('accentInk')};font-size:24px;font-weight:700;letter-spacing:4px">482 913</p>
+ <p style="margin:0;color:${c('inkMuted')}">El código vence en 1 hora. Si no se pidió este código, ignorar este mensaje.</p></div></div>`}
+
+/* ===== measurements ===== */
+function measure(P){const rows=[];const add=(name,m,a,b,floor)=>{const val=cr(a,b);rows.push([name,m,a,b,val,floor])};
+ for(const m of ['light','dark']){const i=m==='light'?0:1,c=k=>P.COLOUR[k][i],b=k=>P.BASEMAP[k][i];
+  for(const on of ['surface','ground','surfaceMuted','surfaceSunk'])for(const t of ['ink','inkMuted','accentInk','danger'])add(`${t} text on ${on}`,m,c(t),c(on),4.5);
+  add('accentInk text on accentWash',m,c('accentInk'),c('accentWash'),4.5);add('inkOnAccent text on accent',m,c('inkOnAccent'),c('accent'),4.5);add('danger text on dangerSurface',m,c('danger'),c('dangerSurface'),4.5);
+  for(const on of ['surface','ground','surfaceMuted'])add(`lineStrong edge on ${on}`,m,c('lineStrong'),c(on),3);
+  for(const t in P.PINS)add(`${TYPE_NAME[t]} pin on land`,m,P.PINS[t][i],b('land'),3);
+  for(const t in P.PINS)add(`glyph on ${TYPE_NAME[t]} pin`,m,P.GLYPH[i],P.PINS[t][i],3);
+ }
+ return rows}
+function measureTable(P){const rows=measure(P);const fails=rows.filter(r=>r[4]<r[5]).length;
+ return `<p style="margin:0" class="${fails?'':''}"><b>${rows.length-fails} of ${rows.length}</b> pairings clear their floor${fails?`; <b style="color:var(--pg-fail)">${fails} do not</b>`:''}. Text needs 4.5:1, an edge, a pin or a glyph 3:1.</p>
+ <div class="scroller"><table><thead><tr><th>Pairing</th><th>Mode</th><th>Colours</th><th>Ratio</th><th>Floor</th></tr></thead><tbody>
+ ${rows.map(([n,m,a,b,val,f])=>`<tr><td>${n}</td><td>${m}</td><td><span class="sw" style="background:${a}"></span><span class="sw" style="background:${b}"></span></td><td class="${val>=f?'pass':'fail'}">${val.toFixed(2)}</td><td>${f}</td></tr>`).join('')}</tbody></table></div>`}
+function hueTable(P){const out=[];
+ for(const m of ['light','dark']){const i=m==='light'?0:1,a=P.COLOUR.accent[i];
+  for(const t of ['stay','culture','temple']) out.push([`Highlight ↔ ${TYPE_NAME[t]}`,m,a,P.PINS[t][i],hd(a,P.PINS[t][i])]);
+  out.push(['Shopping ↔ Food',m,P.PINS.shopping[i],P.PINS.food[i],hd(P.PINS.shopping[i],P.PINS.food[i])]);
+  out.push(['Shopping ↔ Nature',m,P.PINS.shopping[i],P.PINS.nature[i],hd(P.PINS.shopping[i],P.PINS.nature[i])]);}
+ const dark=['block','road','roadCasing','water','park','boundary','label'].map(k=>[k,Math.abs(lab(P.BASEMAP[k][1])[0]-lab(P.BASEMAP.land[1])[0])]);
+ return `<div class="scroller"><table><thead><tr><th>Hue distance (CIE LCh)</th><th>Mode</th><th>Colours</th><th>Degrees</th></tr></thead><tbody>
+ ${out.map(([n,m,a,b,d])=>`<tr><td>${n}</td><td>${m}</td><td><span class="sw" style="background:${a}"></span><span class="sw" style="background:${b}"></span></td><td>${d.toFixed(0)}°</td></tr>`).join('')}</tbody></table></div>
+ <div class="scroller"><table><thead><tr><th>Dark map: lightness step from the land (CIE L*)</th><th>Step</th><th>Floor</th></tr></thead><tbody>
+ ${dark.map(([k,d])=>`<tr><td>${k}</td><td class="${d>=4.5?'pass':'fail'}">${d.toFixed(1)}</td><td>4.5</td></tr>`).join('')}</tbody></table></div>`}
+
+/* ===== page ===== */
+const SCREENS=[
+ ['Phone: the map',"The toolbar with a filter on. The narrowed Filter is the only coloured control in the chrome; the rest stay neutral.",'phoneMap'],
+ ['Phone: a place open',"The selected pin's halo, the planned day in the sheet, and the one filled button.",'phoneSheet'],
+ ['Phone: adding a place',"The form over a dimmed map, a field in focus, the notice that something changed while it was open, and Save place.",'phoneForm'],
+ ['Phone: loading and an error',"The loading globe in the map's area, an error message, and a destructive button.",'phoneError'],
+ ['Laptop: the map with a place and the filter open',"The one-row bar, a filter menu with checked boxes, the place panel with a very long name, and the focus ring on Filter.",'laptop','scroll'],
+ ['Laptop: the calendar',"The four days, the places not yet planned, today's column, and a selected place.",'calendar','scroll'],
+ ['Worst case: a crowded map',"Every pin type packed together on the land, on the park and beside the river, with a Nature pin selected on the park. Look for any two you cannot tell apart.",'crowd','scroll'],
+];
+function render(P){const blocks=SCREENS.map(([t,p,k,sc])=>{const one=m=>`<div class="slot">${sc?`<div class="scroller">${S[k](P,m,vars(P,m))}</div>`:S[k](P,m,vars(P,m))}<span>${m}</span></div>`;
+  return `<section class="screen"><h2>${t}</h2><p>${p}</p><div class="pair">${one('light')}${one('dark')}</div></section>`}).join('');
+ const legend=`<div class="legend">${Object.keys(P.PINS).map(t=>`<span><i class="dot" style="background:${P.PINS[t][0]}"></i><i class="dot" style="background:${P.PINS[t][1]};margin-left:-3px"></i>${TYPE_NAME[t]}</span>`).join('')}</div>`;
+ return blocks+
+ `<section class="screen"><h2>The icon and the globe</h2><p>One drawing on both grounds: home screen, settings-sized, browser tab, and the globe from the opening and the loading screen.</p><div class="pair">${['light','dark'].map(m=>`<div class="slot">${S.mark(P,m,vars(P,m))}<span>on the ${m} ground</span></div>`).join('')}</div></section>
+ <section class="screen"><h2>The email with a code</h2><p>Emails are drawn in the light colours only, because a mail program decides its own mode. Password reset uses the same box.</p><div class="pair"><div class="slot">${mail(P)}<span>sign-up code</span></div></div></section>
+ <section class="screen"><h2>Pin colours</h2><p>Light then dark for each type. Only Shopping changes, from violet to gold.</p>${legend}</section>
+ <section class="screen"><h2>Measurements</h2><p>Computed in this page from the values above, so they always match what is drawn.</p><div class="tables"><div style="display:flex;flex-direction:column;gap:10px;min-width:0">${measureTable(P)}</div><div style="display:flex;flex-direction:column;gap:16px;min-width:0">${hueTable(P)}</div></div></section>`}
+const root=document.getElementById('screens'),bNew=document.getElementById('show-new'),bOld=document.getElementById('show-old');
+function show(which){root.innerHTML=render(which==='old'?OLD:NEW);bNew.setAttribute('aria-pressed',which!=='old');bOld.setAttribute('aria-pressed',which==='old');try{localStorage.setItem('pp-show',which)}catch(e){}}
+bNew.addEventListener('click',()=>show('new'));bOld.addEventListener('click',()=>show('old'));
+let start='new';try{start=localStorage.getItem('pp-show')||'new'}catch(e){}
+show(start);
+</script>

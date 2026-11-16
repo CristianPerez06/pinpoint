@@ -43,7 +43,7 @@ export const FRAME = 144
  * are: this runs on bare `node`, outside any build. `check-icons.mjs` asserts it
  * still equals the token.
  */
-export const LAND = '#B8741A'
+export const LAND = '#4E1C99'
 
 /**
  * How far the view looks down on the globe: the opening's own tilt (`TILT` in

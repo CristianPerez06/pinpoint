@@ -5,14 +5,14 @@ import { BASEMAP_COLOUR, type ThemeMode } from '@pinpoint/tokens'
  *
  * WHY THE MAP IS PATCHED AT ALL
  *
- * The interface's neutrals are warm, and positron's are cool — left alone, the
+ * The interface's neutrals carry a tint, and positron's are a neutral grey — left alone, the
  * map reads as a stranger's map with our panels floating over it rather than as
  * one object. And a dark interface needs a dark map, or it sits around a white
  * slab, which reads as a bug rather than a theme.
  *
  * OpenFreeMap now publishes a dark style of its own (#237), and it is
- * deliberately not used: it is a neutral near-black with dim grey labels, cool
- * in the same way positron is, and switching to it would not retire this
+ * deliberately not used: it is a neutral near-black with dim grey labels,
+ * untinted in the same way positron is, and switching to it would not retire this
  * function, because the light ground is repainted too.
  *
  * WHY THIS TAKES A DOCUMENT INSTEAD OF FETCHING ONE
@@ -185,8 +185,8 @@ function repaint(
   if (layer.type === 'background') paint['background-color'] = colour
   if (layer.type === 'fill') {
     paint['fill-color'] = colour
-    // Buildings carry an outline. Left at the upstream value it draws a cool
-    // grey box around every warm one.
+    // Buildings carry an outline. Left at the upstream value it draws a plain
+    // grey box around every tinted one.
     if ('fill-outline-color' in paint) paint['fill-outline-color'] = palette.roadCasing
   }
   if (layer.type === 'line') paint['line-color'] = colour

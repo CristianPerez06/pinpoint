@@ -101,10 +101,22 @@ export interface Themed {
  * THE DARK VALUES ARE CHOSEN, NOT DERIVED
  *
  * The light values were picked against white and several fail outright on a
- * dark ground — `stay` at `#0B5FD0` on `#1D1B18` is close to invisible. Each
- * dark value is picked against `#1D1B18` instead, and the ranking above is
+ * dark ground — `stay` at `#0B5FD0` on a near-black ground is close to
+ * invisible. Each dark value is picked against the dark ground instead (it was
+ * `#1D1B18` when they were chosen and is `#120F1C` now; every one of them
+ * still clears 3:1 against the dark land), and the ranking above is
  * preserved in both: `culture` is still the most recessive, the rest are still
  * prominent. A value that is legible but wrongly ranked does not satisfy this.
+ *
+ * HOW CLOSE THEY SIT
+ *
+ * Measured by perceived difference (CIE ΔE2000), not by hue: `temple` and
+ * `place` are near-greys, and hue says little about a colour that has almost
+ * none. The closest coloured pair is `temple` – `stay` on the dark ground, at
+ * 16.9, under the 21.4 of `nature` – `transport` that was long judged
+ * acceptable. Left there on purpose: deepening the dark `stay` to part it from
+ * `temple` moves it toward the accent by about as much. The full table and the
+ * reasoning are in `DESIGN.md`, under the place types.
  *
  * The keys are the marker types defined in `@pinpoint/map`. This package cannot
  * import them — it declares no dependencies, and `@pinpoint/map` depends on it —
@@ -123,9 +135,13 @@ export const MARKER_TYPE_COLOURS = {
    * Deep rose, and the last colour the wheel had room for.
    *
    * It sits at CIE LCh hue 356°, the middle of the only open span left: the
-   * stretch between `shopping`'s violet at 310° and `food`'s burnt orange at
-   * 44° is 94° wide, and this clears 46° of `shopping` and 48° of `food`.
-   * `nature` against `transport` — the pair already judged acceptable — is 49°.
+   * stretch between the violet at 310° and `food`'s burnt orange at 44° is 94°
+   * wide, and this clears 46° of the violet and 48° of `food`. `nature` against
+   * `transport` — the pair already judged acceptable — is 49°.
+   *
+   * That violet was `shopping`'s when this was chosen. It is the accent's now
+   * (`shopping` moved to gold, see below), at the same hue, so the span and
+   * both distances are unchanged — only what sits on the far side of it is.
    *
    * **Measured in CIE LCh, which is the instrument.** An earlier draft put this
    * at hue 345° on an OKLCH reading, where the same span looks 100° wide and
@@ -148,8 +164,21 @@ export const MARKER_TYPE_COLOURS = {
   nature: { light: '#3F7A32', dark: '#6FB45C' },
   /** Burnt orange. */
   food: { light: '#D2451E', dark: '#F0653A' },
-  /** Violet. */
-  shopping: { light: '#8A3FFC', dark: '#A97BFF' },
+  /**
+   * Gold, and it was violet until the accent became purple.
+   *
+   * A violet pin beside violet buttons and a violet selected row reads as the
+   * same thing, so the type moved rather than the accent (`styling`, *The accent
+   * cannot be mistaken for a marker type*). Gold is the hue amber left free.
+   *
+   * Placed by measurement in CIE LCh, at 86.5° light and 87.5° dark: 43° from
+   * `food`'s burnt orange and 48°–49° from `nature`'s green, which is the
+   * spacing the rest of the wheel already holds. The light value is a deep
+   * mustard because a brighter gold measured 2.88:1 against the light land,
+   * under the 3:1 floor a pin has to clear; this one is 3.58:1, and the white
+   * glyph on it is 4.04:1.
+   */
+  shopping: { light: '#9C7A00', dark: '#DDB43A' },
   /** Blue. */
   stay: { light: '#0B5FD0', dark: '#4A8FE8' },
   /** Teal. */
@@ -163,45 +192,55 @@ export type MarkerTypeColourKey = keyof typeof MARKER_TYPE_COLOURS
  *
  * White on the light theme, against eight values chosen to carry it. On the dark
  * theme the pins are the lighter element and the glyph inverts with them: white
- * on `temple`'s dark value clears about 2:1, which is thin at a 16px stroked
+ * on `temple`'s dark value clears about 2.6:1, which is thin at a 16px stroked
  * icon, where near-black clears comfortably against all eight.
  *
  * This is the one place the two themes differ in kind rather than in value, and
  * it follows from the types being lifted rather than darkened.
  */
-export const MARKER_FOREGROUND: Themed = { light: '#FFFFFF', dark: '#171614' }
+export const MARKER_FOREGROUND: Themed = { light: '#FFFFFF', dark: '#120F1C' }
 
 /**
- * The continents on the mark's globe: the sphere's amber taken darker.
+ * The continents on the mark's globe: the sphere's purple taken darker — the
+ * accent's own hue (310°) at about two thirds of its lightness, so the globe
+ * reads as one colour in two depths rather than as two colours.
  *
  * Not themed, because the mark carries its own ground and is the same on both
  * (`product-mark`). It lived as a literal in the phone's opening while that was
  * the only thing drawing it; the waiting area's globe draws it too, so it is a
  * shared value now and belongs here.
  */
-export const MARK_LAND = '#B8741A'
+export const MARK_LAND = '#4E1C99'
 
 /**
  * Neutrals and the accent, used by both applications for the surfaces around
  * the map.
  *
- * The neutrals carry a warm bias rather than being a pure grey ramp. That is a
- * choice and not an accident: it is what makes the amber read as chosen rather
- * than dropped onto a stock palette, and the basemap below is warmed to match so
+ * The neutrals carry a slight purple bias rather than being a pure grey ramp —
+ * a faint lilac on the light ground, a deep aubergine on the dark one. That is a
+ * choice and not an accident: it is what makes the accent read as chosen rather
+ * than dropped onto a stock palette, and the basemap below is tinted to match so
  * the map and the interface share one ground instead of looking stapled
  * together.
+ *
+ * They were warm — beige on light, brown-black on dark — until `purple-palette`.
+ * After a real trip both modes read as dated: every grey carried the same tint,
+ * the ground and the surfaces above it were a step apart that hardly showed, and
+ * the map had almost no colour of its own. The bias moved to the accent's hue,
+ * and the steps between ground, surface and fill were opened so a panel lifts
+ * off what is behind it.
  */
 export const COLOUR = {
   /** Behind everything. */
-  ground: { light: '#FBFAF8', dark: '#171614' },
+  ground: { light: '#F6F4FB', dark: '#120F1C' },
   /** Rails, cards, sheets — anything that sits above the ground. */
-  surface: { light: '#FFFFFF', dark: '#201E1B' },
+  surface: { light: '#FFFFFF', dark: '#1D192B' },
   /** Fields, hover states, chips. */
-  surfaceMuted: { light: '#F3F2EF', dark: '#2A2724' },
+  surfaceMuted: { light: '#EFEBF8', dark: '#2A243C' },
   /** Recessed: sticky headers, footers, anything that reads as behind. */
-  surfaceSunk: { light: '#EFEDE8', dark: '#1B1A17' },
+  surfaceSunk: { light: '#ECE8F5', dark: '#16131F' },
   /** The hairline between rows. */
-  line: { light: '#E4E2DC', dark: '#34302B' },
+  line: { light: '#E3DEF0', dark: '#342E49' },
   /**
    * A border meant to be seen — a control's edge rather than a divider.
    *
@@ -209,79 +248,92 @@ export const COLOUR = {
    * `surfaceMuted` on both grounds, because it is what shows where a control
    * is (`styling`, *A control's edge clears the non-text contrast floor*). It
    * was `#D3D0C8` / `#443F38`, about 1.5:1, which made every outlined control
-   * an edge you had to already know was there (#124). Mixed from that value
-   * toward `inkMuted`, so it stays the palette's own warm grey. For a line that
-   * only separates two things, use `line`.
+   * an edge you had to already know was there (#124). It takes the palette's
+   * own purple-grey, and on the light ground it is kept darker than the bare
+   * floor needs — 3.41:1 on `surfaceMuted`, the tightest of the three — because
+   * an edge that only just clears reads as faint on a real screen. For a line
+   * that only separates two things, use `line`.
    */
-  lineStrong: { light: '#8F8C84', dark: '#767068' },
+  lineStrong: { light: '#827C92', dark: '#7A7391' },
   /** Names and values. */
-  ink: { light: '#1A1917', dark: '#F2F0EC' },
+  ink: { light: '#1A1626', dark: '#F2F0F8' },
   /** Notes, counts, labels. */
-  inkMuted: { light: '#6E6A63', dark: '#A09A91' },
+  inkMuted: { light: '#625C72', dark: '#A39DB5' },
   /**
    * Not text. A hairline that needs to be darker than `line`, a border on
    * hover — anything drawn rather than read.
    *
    * It said "placeholders, and text that is deliberately hard to notice" and
    * was used for exactly that: every uppercase field label, every placeholder,
-   * every dismiss glyph, on both platforms. It measures **2.78:1** on the light
-   * ground and **4.02:1** on the dark, so all of it sat under the 4.5:1 floor —
-   * and "deliberately hard to notice" is what made that read as intent instead
-   * of as a defect.
+   * every dismiss glyph, on both platforms. It measured **2.78:1** on the light
+   * ground and **4.02:1** on the dark (2.46:1 and 3.60:1 in the purple
+   * palette), so all of it sat under the 4.5:1 floor — and "deliberately hard to
+   * notice" is what made that read as intent instead of as a defect.
    *
    * Deliberately recessive is a real thing to want, and `inkMuted` already is
-   * one: 5.16:1 light and 6.48:1 dark, clearly quieter than `ink` at 16.8:1 and
-   * legible. Recessive text goes there. What stays here is what is not text.
+   * one: 5.85:1 light and 7.24:1 dark on the ground, clearly quieter than `ink`
+   * at about 16:1 and legible. Recessive text goes there. What stays here is
+   * what is not text.
    */
-  inkFaint: { light: '#9C978E', dark: '#7C766D' },
+  inkFaint: { light: '#A19BB0', dark: '#6F6886' },
 
   /**
-   * The accent, and why it is amber.
+   * The accent, and why it is purple.
    *
    * It carries the primary action, the current selection, and the focus ring,
    * so it must be distinguishable from all eight marker types at a glance — an
    * accent that reads as a ninth type would make the map's own colour
-   * vocabulary ambiguous. Amber is nowhere near slate, taupe, green, orange-red,
-   * magenta-rose, violet, blue, or teal, and it is warm against the cool
-   * greyscale basemap.
+   * vocabulary ambiguous (`styling`, *The accent cannot be mistaken for a
+   * marker type*).
    *
-   * Green is the closest of the seven and the one to watch: `nature` is a leaf
-   * green at low lightness where the accent is a light warm amber, so they part
-   * on lightness as well as on hue.
+   * It was amber until `purple-palette`, which was the person's choice of a
+   * more current look. Purple took the hue `shopping` held (310° in CIE LCh),
+   * and `shopping` moved to gold, so the accent sits exactly where a type used
+   * to and every distance around it is one the palette already lived with:
+   * 46°–49° from `culture`'s rose, and 22° light / 30° dark from `stay`'s blue —
+   * which is what `shopping` and `stay` were apart. Blue is the one to watch:
+   * the two part on chroma and on lightness as well as on hue, and the accent
+   * is never drawn as a pin.
+   *
+   * Unlike amber it is a dark fill on the light ground and a light one on the
+   * dark ground, which is why `inkOnAccent` below is a pair of opposites now.
    */
-  accent: { light: '#E39A2B', dark: '#F0AE4A' },
+  accent: { light: '#7A35DC', dark: '#B48CFA' },
   /**
    * The accent as text, and this is not interchangeable with `accent`.
    *
-   * `#E39A2B` on white clears about 2:1, which is unreadable. Anything written
-   * in the accent uses this instead — the same hue taken down to a value that
-   * carries. On the dark ground the relationship inverts and the bright amber
-   * is already the readable one, so the two values converge.
+   * Anything written in the accent uses this. It is the same hue taken one step
+   * further from its ground than the fill — deeper on light, paler on dark — so
+   * that it reads on the selected-row wash as well as on a surface: 6.92:1 and
+   * 7.47:1 on `accentWash`, where the fill itself would manage about 5.3:1.
+   *
+   * While the accent was amber the two **converged** on the dark ground, and a
+   * state that filled with `accent` and kept `accentInk` lettering painted a
+   * word out at 1:1. In purple they differ on both grounds. The rule that came
+   * out of that stands regardless: a state that fills with the accent letters
+   * itself with `inkOnAccent`, never with this.
    */
-  accentInk: { light: '#8A5A0B', dark: '#F0AE4A' },
+  accentInk: { light: '#6227C0', dark: '#C9B0FF' },
   /**
    * Text drawn *on* the accent, which is the opposite problem to `accentInk`.
    *
-   * The accent is a light surface on both grounds, so the ink over it is dark
-   * on both — this is the second token, after `MARKER_FOREGROUND`, whose two
-   * values are near-neighbours rather than opposites.
+   * The purple is a dark fill on the light ground and a light one on the dark
+   * ground, so the ink over it is white on light (6.23:1) and near-black on
+   * dark (7.18:1). White on the dark ground's accent would be 2.60:1.
    *
-   * It exists because the obvious choice is wrong in a way nothing reports. A
-   * primary button filled with the accent and lettered in `ground` reads as
-   * correct on the dark theme, where `ground` is near-black and clears 9.35:1,
-   * and is unreadable on the light one, where `ground` is near-white and clears
-   * 2.26:1. One expression, one value, and only half of it legible — so the
-   * ground a button is standing on cannot be the thing that letters it.
-   *
-   * Light is a very dark brown of the accent's own hue rather than a neutral,
-   * because a neutral over amber reads as a printing error. It clears 7.44:1.
-   * Dark is `ink`'s ground, which is what native already drew and is 9.35:1.
+   * It was a pair of near-neighbours while the accent was amber, which is light
+   * on both grounds, and the reason this token exists is the same either way:
+   * the ground a button is standing on is not the thing that letters it. A
+   * fill is a different surface from a ground, and a value chosen against one
+   * makes no claim about the other (`styling`, *Text is chosen against the
+   * surface it is drawn on*). Under amber, lettering in `ground` was legible on
+   * one theme and 2.26:1 on the other.
    */
-  inkOnAccent: { light: '#241703', dark: '#171614' },
+  inkOnAccent: { light: '#FFFFFF', dark: '#140F24' },
   /** Behind a selected row. */
-  accentWash: { light: '#FBF1DF', dark: '#33291A' },
+  accentWash: { light: '#F0E9FD', dark: '#2E2452' },
   /** The focus ring. Alpha, so it reads over a surface or over the map. */
-  accentRing: { light: '#E39A2B61', dark: '#F0AE4A6B' },
+  accentRing: { light: '#7A35DC52', dark: '#B48CFA66' },
   /**
    * Laid over a screen while something raised over it is the one being used —
    * a sheet that sets the screen back, a centred calendar, a place opened over
@@ -296,7 +348,7 @@ export const COLOUR = {
 
   /** Failure. Distinct from every type colour, so a broken map never reads as a marker. */
   danger: { light: '#B3261E', dark: '#F2857C' },
-  dangerSurface: { light: '#FCEDEC', dark: '#33211F' },
+  dangerSurface: { light: '#FCEDEE', dark: '#3A2029' },
 } as const satisfies Record<string, Themed>
 
 /**
@@ -304,12 +356,18 @@ export const COLOUR = {
  *
  * These are not decoration. `@pinpoint/map` rewrites the upstream style
  * document with them, which is how the map ends up sharing the interface's
- * warm ground instead of arriving as a stranger's grey. They live here rather
+ * purple-tinted ground instead of arriving as a stranger's grey. They live here rather
  * than in the map package for the same reason every other colour does: one
  * place a colour is written.
  *
  * Values are chosen against positron's structure — a near-greyscale style whose
  * quietness is what lets the marker pins be the only strong colour on screen.
+ *
+ * Quiet is not the same as colourless, which is what the warm set had become:
+ * water a pale grey, parks a grey-green, and a map that read as beige. Since
+ * `purple-palette` water is recognisably blue and parks recognisably green,
+ * still at low chroma (about 11 for a park on either ground) so that the area
+ * they cover does not out-shout the pins.
  */
 /**
  * HOW THESE VALUES WERE CHOSEN, AND THE MISTAKE THEY CORRECT
@@ -333,14 +391,14 @@ export const COLOUR = {
  */
 export const BASEMAP_COLOUR = {
   /** Everything that is not water, park, road, or building. */
-  land: { light: '#EFEEE9', dark: '#1A1815' },
+  land: { light: '#F2F0F7', dark: '#171423' },
   /** Building footprints and blocks. */
-  block: { light: '#E3E1D9', dark: '#262218' },
+  block: { light: '#E6E2EF', dark: '#211D30' },
   /** The road surface itself. The most prominent thing after labels. */
-  road: { light: '#FFFFFF', dark: '#3D372D' },
+  road: { light: '#FFFFFF', dark: '#3B3552' },
   /** The line around a road, which is what separates it from the land. */
-  roadCasing: { light: '#DAD6CC', dark: '#2C271E' },
-  water: { light: '#CBD6DA', dark: '#16242C' },
+  roadCasing: { light: '#DAD5E6', dark: '#2A2539' },
+  water: { light: '#C3D4F0', dark: '#152A4D' },
   /**
    * Park and woodland.
    *
@@ -351,7 +409,7 @@ export const BASEMAP_COLOUR = {
    * regardless of how its lightness measures. Judge a fill by the area it will
    * actually cover, not by a swatch.
    */
-  park: { light: '#E1E5DC', dark: '#1F241F' },
+  park: { light: '#D9E8D5', dark: '#1A2D26' },
   /**
    * Administrative borders.
    *
@@ -360,7 +418,7 @@ export const BASEMAP_COLOUR = {
    * louder than the roads somebody is actually navigating by. They sit between
    * the land and a road casing: present when looked for, invisible otherwise.
    */
-  boundary: { light: '#DEDAD0', dark: '#2A251E' },
+  boundary: { light: '#DCD7E6', dark: '#2C2740' },
   /** The map's own text. Deliberately quiet — our markers are the subject. */
-  label: { light: '#9A948B', dark: '#8A8378' },
+  label: { light: '#8D879C', dark: '#837C99' },
 } as const satisfies Record<string, Themed>

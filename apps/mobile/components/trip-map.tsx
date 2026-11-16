@@ -128,8 +128,8 @@ const ARRIVED_NOTE_MS = 4000
  * It works, with one correction to what it originally claimed. `mapStyle` is
  * typed `string | StyleSpecification`, so the same `styleUrl()` web used could
  * go straight in, and for a while that meant no fetching and no per-platform
- * patching. Theming ended that: OpenFreeMap's styles are cool where this
- * interface is warm, so the document has to be transformed before either
+ * patching. Theming ended that: OpenFreeMap's styles are a neutral grey where
+ * this interface is tinted, so the document has to be transformed before either
  * renderer sees it.
  *
  * What the original claim was actually about survived. Both platforms still

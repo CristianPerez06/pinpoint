@@ -334,8 +334,9 @@
   }
 
   /* The one thing being asked for, so it carries the wash — and its lettering
-     changes with it, because `accent` and `accent-ink` converge on the dark
-     ground and amber on amber is not thin, it is absent. */
+     changes with it, because while the accent was amber `accent` and
+     `accent-ink` converged on the dark ground, and amber on amber is not thin,
+     it is absent. A state that changes the fill sets the lettering too. */
   .confirmUse {
     border-color: var(--pp-accent);
     background: var(--pp-accent-wash);

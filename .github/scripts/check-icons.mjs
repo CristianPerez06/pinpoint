@@ -172,7 +172,7 @@ if (background?.toUpperCase() !== TILE.toUpperCase()) {
   problems.push(
     `\`adaptiveIcon.backgroundColor\` is ${background}, not the mark's tile ${TILE}. ` +
       `The foreground has no tile of its own, so this is the tile — the Android icon ` +
-      `would be the only surface where the mark is not amber.`,
+      `would be the only surface where the mark is not the accent.`,
   )
 }
 

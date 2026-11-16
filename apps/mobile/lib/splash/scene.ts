@@ -61,10 +61,12 @@ const PIN = COLOUR.inkOnAccent.light
  * The continents are `MARK_LAND`, shared with the waiting area's globe. `PIN_LIT`
  * is the pin's body once light reaches it — `PIN` is what it looks like unlit —
  * and a literal, because nothing else in either application draws it and
- * `styling` keeps a token for values that are shared.
+ * `styling` keeps a token for values that are shared. The pin is white since the
+ * accent became purple, so lit it is a white a shade into the accent's hue —
+ * pure white would leave the light nothing to model the head with.
  */
 const LAND = MARK_LAND
-const PIN_LIT = '#3A260A'
+const PIN_LIT = '#E6E1F2'
 
 /** Where the globe starts: facing South America. */
 const START_LONGITUDE = -60
@@ -175,11 +177,11 @@ export function createScene(gl: ExpoWebGLRenderingContext, widthInPoints: number
   key.shadow.mapSize.set(1024, 1024)
   Object.assign(key.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3 })
   key.shadow.radius = 4
-  const rim = new DirectionalLight(0xfff1dc, 0)
+  const rim = new DirectionalLight(0xf1edff, 0)
   rim.position.set(4, -1, 2)
   scene.add(ambient, key, rim)
 
-  // The globe: an amber ball, and the continents on a second skin that fades in.
+  // The globe: a ball in the accent, and the continents on a second skin that fades in.
   /*
    * ONE SHADING PROGRAM FOR EVERYTHING
    *

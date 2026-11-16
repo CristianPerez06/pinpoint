@@ -29,33 +29,33 @@ export interface Theme {
 export const LIGHT: Theme = {
   "mode": "light",
   "colour": {
-    "ground": "#FBFAF8",
+    "ground": "#F6F4FB",
     "surface": "#FFFFFF",
-    "surfaceMuted": "#F3F2EF",
-    "surfaceSunk": "#EFEDE8",
-    "line": "#E4E2DC",
-    "lineStrong": "#8F8C84",
-    "ink": "#1A1917",
-    "inkMuted": "#6E6A63",
-    "inkFaint": "#9C978E",
-    "accent": "#E39A2B",
-    "accentInk": "#8A5A0B",
-    "inkOnAccent": "#241703",
-    "accentWash": "#FBF1DF",
-    "accentRing": "#E39A2B61",
+    "surfaceMuted": "#EFEBF8",
+    "surfaceSunk": "#ECE8F5",
+    "line": "#E3DEF0",
+    "lineStrong": "#827C92",
+    "ink": "#1A1626",
+    "inkMuted": "#625C72",
+    "inkFaint": "#A19BB0",
+    "accent": "#7A35DC",
+    "accentInk": "#6227C0",
+    "inkOnAccent": "#FFFFFF",
+    "accentWash": "#F0E9FD",
+    "accentRing": "#7A35DC52",
     "scrim": "#00000063",
     "danger": "#B3261E",
-    "dangerSurface": "#FCEDEC"
+    "dangerSurface": "#FCEDEE"
   },
   "basemap": {
-    "land": "#EFEEE9",
-    "block": "#E3E1D9",
+    "land": "#F2F0F7",
+    "block": "#E6E2EF",
     "road": "#FFFFFF",
-    "roadCasing": "#DAD6CC",
-    "water": "#CBD6DA",
-    "park": "#E1E5DC",
-    "boundary": "#DEDAD0",
-    "label": "#9A948B"
+    "roadCasing": "#DAD5E6",
+    "water": "#C3D4F0",
+    "park": "#D9E8D5",
+    "boundary": "#DCD7E6",
+    "label": "#8D879C"
   },
   "markerType": {
     "place": "#8B857A",
@@ -63,29 +63,29 @@ export const LIGHT: Theme = {
     "culture": "#B43F72",
     "nature": "#3F7A32",
     "food": "#D2451E",
-    "shopping": "#8A3FFC",
+    "shopping": "#9C7A00",
     "stay": "#0B5FD0",
     "transport": "#00857A"
   },
   "markerForeground": "#FFFFFF",
   "elevation": {
     "sm": {
-      "colour": "#1A19170F",
+      "colour": "#1A16260F",
       "offsetY": 1,
       "blur": 2
     },
     "md": {
-      "colour": "#1A19171A",
+      "colour": "#1A16261A",
       "offsetY": 4,
       "blur": 12
     },
     "lg": {
-      "colour": "#1A191729",
+      "colour": "#1A162629",
       "offsetY": 12,
       "blur": 32
     },
     "pin": {
-      "colour": "#1A19174D",
+      "colour": "#1A16264D",
       "offsetY": 2,
       "blur": 5
     }
@@ -95,33 +95,33 @@ export const LIGHT: Theme = {
 export const DARK: Theme = {
   "mode": "dark",
   "colour": {
-    "ground": "#171614",
-    "surface": "#201E1B",
-    "surfaceMuted": "#2A2724",
-    "surfaceSunk": "#1B1A17",
-    "line": "#34302B",
-    "lineStrong": "#767068",
-    "ink": "#F2F0EC",
-    "inkMuted": "#A09A91",
-    "inkFaint": "#7C766D",
-    "accent": "#F0AE4A",
-    "accentInk": "#F0AE4A",
-    "inkOnAccent": "#171614",
-    "accentWash": "#33291A",
-    "accentRing": "#F0AE4A6B",
+    "ground": "#120F1C",
+    "surface": "#1D192B",
+    "surfaceMuted": "#2A243C",
+    "surfaceSunk": "#16131F",
+    "line": "#342E49",
+    "lineStrong": "#7A7391",
+    "ink": "#F2F0F8",
+    "inkMuted": "#A39DB5",
+    "inkFaint": "#6F6886",
+    "accent": "#B48CFA",
+    "accentInk": "#C9B0FF",
+    "inkOnAccent": "#140F24",
+    "accentWash": "#2E2452",
+    "accentRing": "#B48CFA66",
     "scrim": "#00000063",
     "danger": "#F2857C",
-    "dangerSurface": "#33211F"
+    "dangerSurface": "#3A2029"
   },
   "basemap": {
-    "land": "#1A1815",
-    "block": "#262218",
-    "road": "#3D372D",
-    "roadCasing": "#2C271E",
-    "water": "#16242C",
-    "park": "#1F241F",
-    "boundary": "#2A251E",
-    "label": "#8A8378"
+    "land": "#171423",
+    "block": "#211D30",
+    "road": "#3B3552",
+    "roadCasing": "#2A2539",
+    "water": "#152A4D",
+    "park": "#1A2D26",
+    "boundary": "#2C2740",
+    "label": "#837C99"
   },
   "markerType": {
     "place": "#A8A197",
@@ -129,11 +129,11 @@ export const DARK: Theme = {
     "culture": "#E57DA5",
     "nature": "#6FB45C",
     "food": "#F0653A",
-    "shopping": "#A97BFF",
+    "shopping": "#DDB43A",
     "stay": "#4A8FE8",
     "transport": "#16A99C"
   },
-  "markerForeground": "#171614",
+  "markerForeground": "#120F1C",
   "elevation": {
     "sm": {
       "colour": "#00000066",

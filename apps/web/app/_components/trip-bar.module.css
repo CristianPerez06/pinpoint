@@ -174,9 +174,10 @@
  *
  * Lettered in Danger on the panel's own surface, and filled with Danger Surface
  * on hover. Note what it does not do: fill with `danger` and keep the same
- * lettering. `accent` and `accent-ink` are the same value on the dark ground
- * and that is what made `Clear` paint amber on amber and vanish under the
- * pointer on exactly one theme — the rule that came out of it is that anything
+ * lettering. `accent` and `accent-ink` were the same value on the dark ground
+ * while the accent was amber, and that is what made `Clear` paint amber on amber
+ * and vanish under the pointer on exactly one theme — the rule that came out of
+ * it, which outlived the amber, is that anything
  * filling with a themed colour letters itself in the pair's other half. Filling
  * with the surface tint keeps the two apart on both grounds without needing one.
  */
@@ -243,9 +244,10 @@
 }
 
 /*
- * Deep Amber Ink on the surface, and the *wash* on hover — never the accent
- * itself, which is the same value as `accent-ink` on the dark ground and would
- * letter this in its own background.
+ * `accent-ink` on the surface, and the *wash* on hover — never the accent
+ * itself. While the accent was amber it was the same value as `accent-ink` on
+ * the dark ground and would have lettered this in its own background; it no
+ * longer is, and a fill is still the wrong thing to letter a word with.
  */
 .restore {
   flex: none;

@@ -51,11 +51,12 @@ function Globe() {
         className={styles.globePin}
         viewBox={`0 0 ${MARKER_SIZE.width} ${MARKER_SIZE.height}`}
       >
-        {/* The outline first, in the sphere's own amber, then the pin over it.
+        {/* The outline first, in the sphere's own colour, then the pin over it.
             Over the sphere the outline disappears into it; where the head rises
-            above the sphere it traces the pin against the ground — which on the
-            dark ground is nearly the pin's own colour, and the head was lost in
-            it. The same drawing on both grounds, as the mark is. */}
+            above the sphere it traces the pin against the ground — which on one
+            of the two grounds is nearly the pin's own colour (the dark one while
+            the pin was dark brown, the light one now it is white), and the head
+            was lost in it. The same drawing on both grounds, as the mark is. */}
         <path
           d={`${MARKER_PATH} ${hole}`}
           fill="none"
