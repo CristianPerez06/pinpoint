@@ -66,7 +66,7 @@
   max-width: min(560px, 90vw);
   margin-top: var(--pp-space-xs);
   background: var(--pp-surface);
-  border: 1px solid var(--pp-line);
+  border: 1px solid var(--pp-panel-edge);
   border-radius: var(--pp-radius-lg);
   box-shadow: var(--pp-shadow-lg);
   z-index: 4;

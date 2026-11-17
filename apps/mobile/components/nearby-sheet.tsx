@@ -189,7 +189,7 @@ export function NearbySheet({
             styles.sheet,
             {
               backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
+              borderColor: theme.colour.panelEdge,
               height: sheetHeight(windowHeight),
               paddingBottom: insets.bottom,
             },

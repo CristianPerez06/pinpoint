@@ -107,7 +107,7 @@
   padding: var(--pp-space-sm) var(--pp-space-md);
   border-radius: var(--pp-radius-pill);
   background: var(--pp-surface);
-  border: 1px solid var(--pp-line);
+  border: 1px solid var(--pp-panel-edge);
   box-shadow: var(--pp-shadow-md);
   color: var(--pp-ink-muted);
   font-size: var(--pp-type-note-size);

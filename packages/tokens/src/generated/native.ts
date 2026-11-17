@@ -19,7 +19,7 @@ export interface ThemeElevation {
 
 export interface Theme {
   readonly mode: 'light' | 'dark'
-  readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'inkOnAccent' | 'accentWash' | 'accentRing' | 'scrim' | 'danger' | 'dangerSurface', string>>
+  readonly colour: Readonly<Record<'ground' | 'surface' | 'surfaceMuted' | 'surfaceSunk' | 'line' | 'lineStrong' | 'panelEdge' | 'ink' | 'inkMuted' | 'inkFaint' | 'accent' | 'accentInk' | 'inkOnAccent' | 'accentWash' | 'accentRing' | 'scrim' | 'danger' | 'dangerSurface', string>>
   readonly basemap: Readonly<Record<'land' | 'block' | 'road' | 'roadCasing' | 'water' | 'park' | 'boundary' | 'label', string>>
   readonly markerType: Readonly<Record<'place' | 'temple' | 'culture' | 'nature' | 'food' | 'shopping' | 'stay' | 'transport', string>>
   readonly markerForeground: string
@@ -35,6 +35,7 @@ export const LIGHT: Theme = {
     "surfaceSunk": "#ECE8F5",
     "line": "#E3DEF0",
     "lineStrong": "#827C92",
+    "panelEdge": "#E3DEF0",
     "ink": "#1A1626",
     "inkMuted": "#625C72",
     "inkFaint": "#A19BB0",
@@ -96,22 +97,23 @@ export const DARK: Theme = {
   "mode": "dark",
   "colour": {
     "ground": "#120F1C",
-    "surface": "#1D192B",
-    "surfaceMuted": "#2A243C",
+    "surface": "#2D2844",
+    "surfaceMuted": "#37314F",
     "surfaceSunk": "#16131F",
-    "line": "#342E49",
-    "lineStrong": "#7A7391",
+    "line": "#423C5D",
+    "lineStrong": "#8A83A2",
+    "panelEdge": "#5E5680",
     "ink": "#F2F0F8",
     "inkMuted": "#A39DB5",
     "inkFaint": "#6F6886",
     "accent": "#B48CFA",
     "accentInk": "#C9B0FF",
     "inkOnAccent": "#140F24",
-    "accentWash": "#2E2452",
+    "accentWash": "#3A2C66",
     "accentRing": "#B48CFA66",
     "scrim": "#00000063",
     "danger": "#F2857C",
-    "dangerSurface": "#3A2029"
+    "dangerSurface": "#4C2735"
   },
   "basemap": {
     "land": "#171423",

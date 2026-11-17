@@ -166,7 +166,7 @@ export function CitySheet({
               styles.sheet,
               {
                 backgroundColor: theme.colour.surface,
-                borderColor: theme.colour.line,
+                borderColor: theme.colour.panelEdge,
                 // A definite height, so the `ScrollView` inside has something to
                 // resolve `flex: 1` against. A sheet that sizes to its children
                 // reports almost nothing to a scroller and clips everything past

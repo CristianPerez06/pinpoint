@@ -95,3 +95,28 @@ describe('marker type colours', () => {
     },
   )
 })
+
+/**
+ * `styling`, *Anything raised over the map stands apart from the map on both
+ * grounds*. On the dark ground a shadow cannot be seen, so the surface has to be
+ * lighter than every area the map fills and the outline lighter still.
+ */
+describe('a panel raised over the map', () => {
+  const areas = ['land', 'block', 'water', 'park'] as const
+  const drawn = (Object.keys(BASEMAP_COLOUR) as Array<keyof typeof BASEMAP_COLOUR>).filter(
+    (key) => key !== 'label',
+  )
+
+  it.each(areas)('has a dark surface lighter than the dark %s', (area) => {
+    expect(luminance(COLOUR.surface.dark)).toBeGreaterThan(luminance(BASEMAP_COLOUR[area].dark))
+  })
+
+  it.each(['surface', ...drawn] as const)('has a dark outline lighter than the dark %s', (key) => {
+    const under = key === 'surface' ? COLOUR.surface.dark : BASEMAP_COLOUR[key].dark
+    expect(luminance(COLOUR.panelEdge.dark)).toBeGreaterThan(luminance(under))
+  })
+
+  it('keeps the light outline at the hairline value', () => {
+    expect(COLOUR.panelEdge.light).toBe(COLOUR.line.light)
+  })
+})

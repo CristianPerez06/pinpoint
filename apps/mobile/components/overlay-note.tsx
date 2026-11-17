@@ -66,7 +66,7 @@ export function MarkersOverlayNote({
               }
             : {
                 backgroundColor: theme.colour.surface,
-                borderColor: theme.colour.line,
+                borderColor: theme.colour.panelEdge,
               },
         ]}
       >
@@ -96,7 +96,7 @@ export function MarkersOverlayNote({
             }
           : {
               backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
+              borderColor: theme.colour.panelEdge,
             },
       ]}
       pointerEvents="none"

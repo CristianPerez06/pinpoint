@@ -210,7 +210,7 @@ export function TripSheet({
               styles.sheet,
               {
                 backgroundColor: theme.colour.surface,
-                borderColor: theme.colour.line,
+                borderColor: theme.colour.panelEdge,
                 // A definite height, so the `ScrollView` inside has something to
                 // resolve against rather than asking a parent that sizes to it.
                 height,
