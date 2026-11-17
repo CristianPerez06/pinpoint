@@ -19,7 +19,7 @@
   padding: var(--pp-space-md);
   background: var(--pp-surface);
   color: var(--pp-ink);
-  border: 1px solid var(--pp-line);
+  border: 1px solid var(--pp-panel-edge);
   border-radius: var(--pp-radius-lg);
   box-shadow: var(--pp-shadow-lg);
   z-index: 3;
@@ -472,7 +472,7 @@
   padding: var(--pp-space-md);
   background: var(--pp-surface);
   color: var(--pp-ink);
-  border: 1px solid var(--pp-line);
+  border: 1px solid var(--pp-panel-edge);
   border-radius: var(--pp-radius-lg);
   box-shadow: var(--pp-shadow-lg);
 }

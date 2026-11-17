@@ -151,7 +151,7 @@ export function PeopleSheet({
               styles.sheet,
               {
                 backgroundColor: theme.colour.surface,
-                borderColor: theme.colour.line,
+                borderColor: theme.colour.panelEdge,
                 // A definite height, so the `ScrollView` inside has something to
                 // resolve against — see `AGENTS.md` on content-sized containers.
                 height,

@@ -635,8 +635,8 @@ export function MarkerFormSheet({
             {
               height,
               marginBottom: lift,
-              backgroundColor: theme.colour.ground,
-              borderColor: theme.colour.line,
+              backgroundColor: theme.colour.surface,
+              borderColor: theme.colour.panelEdge,
               shadowColor: theme.elevation.lg.colour,
             },
           ]}

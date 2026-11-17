@@ -285,7 +285,7 @@ export function FilterSheet({
             styles.sheet,
             {
               backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
+              borderColor: theme.colour.panelEdge,
               // Definite, so the scroller inside has a height to divide with
               // the foot. A container sizing to its children reports almost
               // nothing to a scroller and clips everything past the first row

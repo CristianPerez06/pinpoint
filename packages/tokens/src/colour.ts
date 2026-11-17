@@ -233,14 +233,23 @@ export const MARK_LAND = '#4E1C99'
 export const COLOUR = {
   /** Behind everything. */
   ground: { light: '#F6F4FB', dark: '#120F1C' },
-  /** Rails, cards, sheets — anything that sits above the ground. */
-  surface: { light: '#FFFFFF', dark: '#1D192B' },
+  /**
+   * Rails, cards, sheets — anything that sits above the ground.
+   *
+   * On the dark ground it is kept lighter than every area the map fills —
+   * land, blocks, water, parks — because a panel over the map is told apart
+   * by this alone there: a black shadow on a near-black map is invisible. It
+   * was `#1D192B`, 1.06:1 against the dark land, and menus read as part of the
+   * map (`dark-panels-over-map`). The muted fill, the hairlines, the wash and
+   * the danger fill moved up with it so they still part from it.
+   */
+  surface: { light: '#FFFFFF', dark: '#2D2844' },
   /** Fields, hover states, chips. */
-  surfaceMuted: { light: '#EFEBF8', dark: '#2A243C' },
+  surfaceMuted: { light: '#EFEBF8', dark: '#37314F' },
   /** Recessed: sticky headers, footers, anything that reads as behind. */
   surfaceSunk: { light: '#ECE8F5', dark: '#16131F' },
   /** The hairline between rows. */
-  line: { light: '#E3DEF0', dark: '#342E49' },
+  line: { light: '#E3DEF0', dark: '#423C5D' },
   /**
    * A border meant to be seen — a control's edge rather than a divider.
    *
@@ -254,7 +263,20 @@ export const COLOUR = {
    * an edge that only just clears reads as faint on a real screen. For a line
    * that only separates two things, use `line`.
    */
-  lineStrong: { light: '#827C92', dark: '#7A7391' },
+  lineStrong: { light: '#827C92', dark: '#8A83A2' },
+  /**
+   * The outline of anything raised over the map — a menu, the place card or
+   * form, a sheet, a note. Not a control's edge (`lineStrong`) and not a divider
+   * between rows (`line`, which stays the divider inside these panels).
+   *
+   * On the dark ground it is what shows where a panel ends, because a shadow
+   * cannot be seen on a near-black map: kept lighter than `surface` and than
+   * every map colour but the labels, roads included (`styling`, *Anything
+   * raised over the map stands apart from the map on both grounds*). On the
+   * light ground the shadow already does that, so it is `line`'s value and
+   * the light theme is unchanged.
+   */
+  panelEdge: { light: '#E3DEF0', dark: '#5E5680' },
   /** Names and values. */
   ink: { light: '#1A1626', dark: '#F2F0F8' },
   /** Notes, counts, labels. */
@@ -305,7 +327,8 @@ export const COLOUR = {
    * Anything written in the accent uses this. It is the same hue taken one step
    * further from its ground than the fill — deeper on light, paler on dark — so
    * that it reads on the selected-row wash as well as on a surface: 6.92:1 and
-   * 7.47:1 on `accentWash`, where the fill itself would manage about 5.3:1.
+   * 6.43:1 on `accentWash`, where the fill itself would manage about 5.3:1
+   * and 4.7:1.
    *
    * While the accent was amber the two **converged** on the dark ground, and a
    * state that filled with `accent` and kept `accentInk` lettering painted a
@@ -331,7 +354,7 @@ export const COLOUR = {
    */
   inkOnAccent: { light: '#FFFFFF', dark: '#140F24' },
   /** Behind a selected row. */
-  accentWash: { light: '#F0E9FD', dark: '#2E2452' },
+  accentWash: { light: '#F0E9FD', dark: '#3A2C66' },
   /** The focus ring. Alpha, so it reads over a surface or over the map. */
   accentRing: { light: '#7A35DC52', dark: '#B48CFA66' },
   /**
@@ -348,7 +371,7 @@ export const COLOUR = {
 
   /** Failure. Distinct from every type colour, so a broken map never reads as a marker. */
   danger: { light: '#B3261E', dark: '#F2857C' },
-  dangerSurface: { light: '#FCEDEE', dark: '#3A2029' },
+  dangerSurface: { light: '#FCEDEE', dark: '#4C2735' },
 } as const satisfies Record<string, Themed>
 
 /**

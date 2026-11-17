@@ -75,7 +75,7 @@ export function MenuSheet({
             styles.sheet,
             {
               backgroundColor: theme.colour.surface,
-              borderColor: theme.colour.line,
+              borderColor: theme.colour.panelEdge,
               paddingBottom: SPACE.md + insets.bottom,
             },
           ]}

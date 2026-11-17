@@ -242,9 +242,9 @@ not a derivation.
   a dark fill on the light ground and a light one on the dark ground.
 - **Deep Purple Ink** (dark ground: `#C9B0FF`): Purple *as text*, one step further from
   its ground than the fill — deeper on light, paler on dark — so it reads on the wash as
-  well as on a surface (6.92:1 and 7.47:1 on Purple Wash). While the accent was amber this
+  well as on a surface (6.92:1 and 6.43:1 on Purple Wash). While the accent was amber this
   pair converged to one value on the dark ground; in purple it differs on both.
-- **Purple Wash** (dark ground: `#2E2452`): Behind a selected row, and the fill of any
+- **Purple Wash** (dark ground: `#3A2C66`): Behind a selected row, and the fill of any
   control declaring an active state. Always paired with Deep Purple Ink.
 - **Purple Ring** (dark ground: `#B48CFA66`): The focus ring and the pin's selection
   halo. Carries alpha deliberately, so it reads correctly over a surface *and* over
@@ -334,15 +334,22 @@ out-shout the pins.
 ### Neutral
 
 - **Lilac Paper** — `ground` (dark: `#120F1C`): Behind everything.
-- **Raised White** — `surface` (dark: `#1D192B`): Rails, cards, sheets, menus.
-- **Muted Fill** — `surface-muted` (dark: `#2A243C`): Fields, hover states, chips. The
+- **Raised White** — `surface` (dark: `#2D2844`): Rails, cards, sheets, menus. On the dark
+  ground it is kept lighter than every area the map fills — land, blocks, water, parks —
+  because there a shadow cannot be seen and this is what lifts a panel off the map. It was
+  `#1D192B`, 1.06:1 against the dark land, until `dark-panels-over-map`.
+- **Muted Fill** — `surface-muted` (dark: `#37314F`): Fields, hover states, chips. The
   resting fill of nearly every control.
 - **Sunk Fill** — `surface-sunk` (dark: `#16131F`): Anything that reads as *behind* —
   sticky headers, footers.
-- **Hairline** — `line` (dark: `#342E49`): The divider between rows.
-- **Stated Edge** — `line-strong` (dark: `#7A7391`): A border meant to be seen — a
+- **Hairline** — `line` (dark: `#423C5D`): The divider between rows.
+- **Panel Edge** — `panel-edge` (dark: `#5E5680`): The outline of anything raised over the
+  map — menus, the place card and form, sheets, notes. On the dark ground it is lighter
+  than Raised White and every map colour but the labels, so it shows where a panel ends
+  where a shadow cannot. On the light ground it is Hairline's value.
+- **Stated Edge** — `line-strong` (dark: `#8A83A2`): A border meant to be seen — a
   control's edge rather than a divider. Clears the 3:1 non-text floor against Raised
-  White, the ground and Muted Fill: 4.00:1 light, 3.82:1 dark against Raised White. It was
+  White, the ground and Muted Fill: 4.00:1 light, 3.90:1 dark against Raised White. It was
   about 1.5:1 until #124, which made every outlined control an edge you had to know was
   there.
 - **Ink** — `ink` (dark: `#F2F0F8`): Names and values. About 16:1 on either ground.
@@ -354,7 +361,7 @@ out-shout the pins.
   so recessive *text* goes to Muted Ink instead, which is already clearly quieter than Ink
   and still legible.
 - **Danger** — `danger` (dark: `#F2857C`) and **Danger Surface** — `danger-surface`
-  (dark: `#3A2029`): Failure. Chosen distinct from every type colour, so a broken map
+  (dark: `#4C2735`): Failure. Chosen distinct from every type colour, so a broken map
   never reads as a marker.
 
 ### Named Rules

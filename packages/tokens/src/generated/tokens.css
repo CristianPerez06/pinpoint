@@ -106,6 +106,7 @@
   --pp-surface-sunk: #ECE8F5;
   --pp-line: #E3DEF0;
   --pp-line-strong: #827C92;
+  --pp-panel-edge: #E3DEF0;
   --pp-ink: #1A1626;
   --pp-ink-muted: #625C72;
   --pp-ink-faint: #A19BB0;
@@ -150,22 +151,23 @@
   :root:not([data-theme='light']) {
     /* surfaces and ink */
     --pp-ground: #120F1C;
-    --pp-surface: #1D192B;
-    --pp-surface-muted: #2A243C;
+    --pp-surface: #2D2844;
+    --pp-surface-muted: #37314F;
     --pp-surface-sunk: #16131F;
-    --pp-line: #342E49;
-    --pp-line-strong: #7A7391;
+    --pp-line: #423C5D;
+    --pp-line-strong: #8A83A2;
+    --pp-panel-edge: #5E5680;
     --pp-ink: #F2F0F8;
     --pp-ink-muted: #A39DB5;
     --pp-ink-faint: #6F6886;
     --pp-accent: #B48CFA;
     --pp-accent-ink: #C9B0FF;
     --pp-ink-on-accent: #140F24;
-    --pp-accent-wash: #2E2452;
+    --pp-accent-wash: #3A2C66;
     --pp-accent-ring: #B48CFA66;
     --pp-scrim: #00000063;
     --pp-danger: #F2857C;
-    --pp-danger-surface: #3A2029;
+    --pp-danger-surface: #4C2735;
 
     /* the basemap, patched to share this ground */
     --pp-map-land: #171423;
@@ -199,22 +201,23 @@
 :root[data-theme='dark'] {
   /* surfaces and ink */
   --pp-ground: #120F1C;
-  --pp-surface: #1D192B;
-  --pp-surface-muted: #2A243C;
+  --pp-surface: #2D2844;
+  --pp-surface-muted: #37314F;
   --pp-surface-sunk: #16131F;
-  --pp-line: #342E49;
-  --pp-line-strong: #7A7391;
+  --pp-line: #423C5D;
+  --pp-line-strong: #8A83A2;
+  --pp-panel-edge: #5E5680;
   --pp-ink: #F2F0F8;
   --pp-ink-muted: #A39DB5;
   --pp-ink-faint: #6F6886;
   --pp-accent: #B48CFA;
   --pp-accent-ink: #C9B0FF;
   --pp-ink-on-accent: #140F24;
-  --pp-accent-wash: #2E2452;
+  --pp-accent-wash: #3A2C66;
   --pp-accent-ring: #B48CFA66;
   --pp-scrim: #00000063;
   --pp-danger: #F2857C;
-  --pp-danger-surface: #3A2029;
+  --pp-danger-surface: #4C2735;
 
   /* the basemap, patched to share this ground */
   --pp-map-land: #171423;

@@ -867,7 +867,7 @@ export function MarkerDetails({
     styles.sheet,
     {
       backgroundColor: theme.colour.surface,
-      borderColor: theme.colour.line,
+      borderColor: theme.colour.panelEdge,
       shadowColor: theme.elevation.lg.colour,
       paddingBottom: SPACE.md + insets.bottom,
       maxHeight: cap,
